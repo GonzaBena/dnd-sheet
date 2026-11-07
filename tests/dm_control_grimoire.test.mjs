@@ -48,6 +48,7 @@ const { userStore } = await import('../src/scripts/state/userStore.ts');
 const { journalStore } = await import('../src/scripts/state/journalStore.ts');
 
 test('Grimorio del Control (DM Workspace) Tests', async (t) => {
+  campaignStore.seedLegacyFixtures();
   // Ensure default user is Gonzo (user-me)
   userStore.setCurrentUser('user-me');
   assert.equal(userStore.getCurrentUser().id, 'user-me');

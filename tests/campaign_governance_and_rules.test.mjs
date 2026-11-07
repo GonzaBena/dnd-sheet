@@ -31,6 +31,7 @@ const { campaignStore } = await import('../src/scripts/state/campaignStore.ts');
 const { userStore } = await import('../src/scripts/state/userStore.ts');
 
 test('Campaign Governance & Rules Tests', async (t) => {
+  campaignStore.seedLegacyFixtures();
   userStore.setCurrentUser('user-me');
 
   await t.test('1. A campaign cannot have 2 characters of the same user', () => {

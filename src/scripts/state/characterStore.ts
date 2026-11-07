@@ -26,6 +26,15 @@ class CharacterStoreManager {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
+        if (parsed.id === 'elysian-ventosombra' || parsed.name === 'Elysian Ventosombra') {
+          parsed.id = 'atlas';
+          parsed.name = 'Atlas';
+          if (parsed.sessionContext?.campaignName === 'Maldición de Strahd') {
+            parsed.sessionContext.campaignName = 'Aventura Independiente';
+            parsed.sessionContext.sessionNumber = 1;
+            parsed.sessionContext.location = 'Tierras Salvajes';
+          }
+        }
         return recalculateCharacter(parsed);
       }
     } catch (e) {

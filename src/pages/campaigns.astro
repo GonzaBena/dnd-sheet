@@ -228,7 +228,31 @@ import DmPanelModal from '../components/dm/DmPanelModal.astro';
     // 1. Render Campaigns Grid
     if (gridContainer) {
       gridContainer.innerHTML = '';
-      campaigns.forEach(camp => {
+      if (campaigns.length === 0) {
+        gridContainer.innerHTML = `
+          <div class="col-span-full py-12 px-6 rounded-2xl bg-[#121721] border border-[#222f42] text-center flex flex-col items-center justify-center gap-3">
+            <div class="w-12 h-12 rounded-full bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400">
+              <span class="material-symbols-outlined text-2xl">auto_stories</span>
+            </div>
+            <div>
+              <h4 class="font-headline font-bold text-sm text-[#f1f5f9] mb-1">No hay campañas creadas</h4>
+              <p class="text-xs text-[#94a3b8] max-w-sm mx-auto">Pulsa en "Nueva Campaña" para comenzar tu próxima aventura.</p>
+            </div>
+            <button
+              type="button"
+              id="btn-create-campaign-empty"
+              class="mt-2 flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-[#0a0d12] font-bold text-xs shadow-md transition-all active:scale-95 cursor-pointer"
+            >
+              <span class="material-symbols-outlined text-[16px]">add_circle</span>
+              <span>Crear Primera Campaña</span>
+            </button>
+          </div>
+        `;
+        document.getElementById('btn-create-campaign-empty')?.addEventListener('click', () => {
+          window.dispatchEvent(new CustomEvent('open-create-campaign-modal'));
+        });
+      } else {
+        campaigns.forEach(camp => {
         const charsInCamp = campaignStore.getCharactersForCampaign(camp.id);
         const myCharInCamp = campaignStore.getMyCharacterForCampaign(camp.id, currentUser.id);
         const isActive = camp.id === activeCampId;
@@ -415,6 +439,7 @@ import DmPanelModal from '../components/dm/DmPanelModal.astro';
 
         gridContainer.appendChild(card);
       });
+      }
     }
 
     // 2. Render Standalone Characters

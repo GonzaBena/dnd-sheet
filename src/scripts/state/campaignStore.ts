@@ -36,7 +36,9 @@ export const CAMPAIGN_PRESET_IMAGES = [
   }
 ];
 
-const DEFAULT_CAMPAIGNS: Campaign[] = [
+export const DEFAULT_CAMPAIGNS: Campaign[] = [];
+
+export const LEGACY_TEST_CAMPAIGNS: Campaign[] = [
   {
     id: 'barovia-strahd',
     name: 'Maldición de Strahd',
@@ -90,14 +92,26 @@ const DEFAULT_CAMPAIGNS: Campaign[] = [
   }
 ];
 
-// Initial roster characters across campaigns
-const SEED_CHARACTERS: CharacterData[] = [
+// Initial roster characters across campaigns - Only Atlas kept for the user!
+export const SEED_CHARACTERS: CharacterData[] = [
+  {
+    ...JSON.parse(JSON.stringify(defaultCharacter)),
+    id: 'atlas',
+    campaignId: null,
+    userId: 'user-me',
+    name: 'Atlas',
+    playerName: 'Gonzo (Tú)',
+  }
+];
+
+export const LEGACY_TEST_CHARACTERS: CharacterData[] = [
   // Character 1: Elysian (Main in Barovia)
   {
     ...JSON.parse(JSON.stringify(defaultCharacter)),
     id: 'elysian-ventosombra',
     campaignId: 'barovia-strahd',
     userId: 'user-me',
+    name: 'Elysian Ventosombra',
     playerName: 'Gonzo (Tú)',
   },
   // Character 2: Morgana (in Barovia)
@@ -277,41 +291,9 @@ class CampaignStoreManager {
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          // Migration/backfill: ensure dmId, dmName, and memberUserIds exist on all campaigns
-          let modified = false;
-          const upgraded = parsed.map((c: any) => {
-            const seed = DEFAULT_CAMPAIGNS.find(d => d.id === c.id);
-            if (!c.creatorId) {
-              modified = true;
-              c.creatorId = seed?.creatorId || c.dmId || 'user-me';
-            }
-            if (!c.dmId) {
-              modified = true;
-              if (seed && seed.dmId) {
-                c.dmId = seed.dmId;
-                c.dmName = seed.dmName;
-              } else if (c.isCurrentUserDm || c.dmName?.includes('Tú') || c.dm?.includes('Tú')) {
-                c.dmId = 'user-me';
-                c.dmName = 'Gonzo (Tú)';
-              } else {
-                c.dmId = 'user-raven';
-                c.dmName = c.dmName || c.dm || 'Lord Raven';
-              }
-            }
-            if (!c.dmName) {
-              modified = true;
-              c.dmName = seed?.dmName || (c as any).dm || 'Dungeon Master';
-            }
-            if (!c.memberUserIds || !Array.isArray(c.memberUserIds) || c.memberUserIds.length === 0) {
-              modified = true;
-              c.memberUserIds = seed?.memberUserIds || ['user-me', c.dmId || 'user-raven'];
-            }
-            return c as Campaign;
-          });
-          if (modified) {
-            this.persistCampaigns(upgraded);
-          }
-          return upgraded;
+          // Clean all created/demo campaigns as requested
+          this.persistCampaigns([]);
+          return [];
         }
       }
     } catch (e) {
@@ -328,27 +310,19 @@ class CampaignStoreManager {
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          // Backfill userId if loading from older localStorage
-          let modified = false;
-          const currentUserId = userStore.getCurrentUser().id;
-          const upgraded = parsed.map((c: CharacterData) => {
-            if (!c.userId) {
-              modified = true;
-              const seed = SEED_CHARACTERS.find(s => s.id === c.id);
-              if (seed && seed.userId) {
-                c.userId = seed.userId;
-              } else if (c.playerName?.includes('Tú') || c.playerName?.includes('Gonzo')) {
-                c.userId = 'user-me';
-              } else {
-                c.userId = currentUserId;
-              }
-            }
-            return c;
-          });
-          if (modified) {
-            this.persistCharacters(upgraded);
+          // Keep only Atlas (or migrate user's character to Atlas)
+          const myChar = parsed.find((c: CharacterData) => c.id === 'atlas' || c.name === 'Atlas') ||
+                         parsed.find((c: CharacterData) => c.userId === 'user-me' || c.id === 'elysian-ventosombra');
+          if (myChar) {
+            myChar.id = 'atlas';
+            myChar.name = 'Atlas';
+            myChar.userId = 'user-me';
+            myChar.campaignId = null;
+            myChar.playerName = 'Gonzo (Tú)';
+            const finalChars = [myChar];
+            this.persistCharacters(finalChars);
+            return finalChars;
           }
-          return upgraded;
         }
       }
     } catch (e) {
@@ -359,12 +333,27 @@ class CampaignStoreManager {
   }
 
   private loadActiveCampaignId(): string | null {
-    if (typeof window === 'undefined') return 'barovia-strahd';
+    if (typeof window === 'undefined') return null;
     try {
       const saved = localStorage.getItem(ACTIVE_CAMPAIGN_KEY);
-      if (saved !== null) return saved === 'none' ? null : saved;
+      if (saved !== null && saved !== 'none') {
+        if (this.campaigns.some(c => c.id === saved)) return saved;
+      }
     } catch (_) {}
-    return 'barovia-strahd';
+    return null;
+  }
+
+  public seedLegacyFixtures() {
+    userStore.seedLegacyFixtures();
+    this.campaigns = JSON.parse(JSON.stringify(LEGACY_TEST_CAMPAIGNS));
+    this.characters = JSON.parse(JSON.stringify(LEGACY_TEST_CHARACTERS));
+    this.activeCampaignId = 'barovia-strahd';
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(CAMPAIGNS_STORAGE_KEY, JSON.stringify(this.campaigns));
+      localStorage.setItem(ALL_CHARACTERS_STORAGE_KEY, JSON.stringify(this.characters));
+      localStorage.setItem(ACTIVE_CAMPAIGN_KEY, this.activeCampaignId);
+      window.dispatchEvent(new CustomEvent('campaigns-updated', { detail: { campaigns: this.campaigns } }));
+    }
   }
 
   private persistCampaigns(campaigns: Campaign[]) {

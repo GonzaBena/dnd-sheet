@@ -31,6 +31,7 @@ const { campaignStore } = await import('../src/scripts/state/campaignStore.ts');
 const { userStore } = await import('../src/scripts/state/userStore.ts');
 
 test('Campaign UI Interactions & Navbar Resolution Tests', async (t) => {
+  campaignStore.seedLegacyFixtures();
   userStore.setCurrentUser('user-me');
 
   await t.test('1. When active campaign has user as DM, navbar button resolves to Grimorio del Control', () => {

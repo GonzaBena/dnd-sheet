@@ -11,6 +11,16 @@ export const SEED_USERS: AppUser[] = [
     email: 'gonzo@dnd.local',
     avatarUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80',
     role: 'dm'
+  }
+];
+
+export const LEGACY_TEST_USERS: AppUser[] = [
+  {
+    id: 'user-me',
+    name: 'Gonzo (Tú)',
+    email: 'gonzo@dnd.local',
+    avatarUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80',
+    role: 'dm'
   },
   {
     id: 'user-raven',
@@ -64,13 +74,25 @@ class UserStoreManager {
       const saved = localStorage.getItem(USERS_STORAGE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          // Keep only user-me
+          const onlyMe = parsed.filter(u => u.id === 'user-me');
+          if (onlyMe.length > 0) {
+            this.persistUsers(onlyMe);
+            return onlyMe;
+          }
+        }
       }
     } catch (e) {
       console.warn('[UserStore] Error loading users', e);
     }
     this.persistUsers(SEED_USERS);
     return SEED_USERS;
+  }
+
+  public seedLegacyFixtures() {
+    this.persistUsers(LEGACY_TEST_USERS);
+    this.currentUserId = 'user-me';
   }
 
   private loadCurrentUserId(): string {

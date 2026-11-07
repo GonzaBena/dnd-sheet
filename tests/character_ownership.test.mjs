@@ -31,6 +31,7 @@ const { campaignStore } = await import('../src/scripts/state/campaignStore.ts');
 const { userStore } = await import('../src/scripts/state/userStore.ts');
 
 test('Character Ownership & Access Protection Tests', async (t) => {
+  campaignStore.seedLegacyFixtures();
   // Reset user to default 'user-me' (Gonzo)
   userStore.setCurrentUser('user-me');
   const gonzo = userStore.getCurrentUser();
