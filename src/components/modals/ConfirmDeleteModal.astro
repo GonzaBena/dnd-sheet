@@ -1,0 +1,302 @@
+---
+// src/components/modals/ConfirmDeleteModal.astro
+---
+
+<div id="confirm-delete-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
+  <div class="modal-content w-full max-w-sm sm:max-w-md rounded-2xl bg-[#121721] border border-rose-500/40 shadow-[0_20px_60px_rgba(0,0,0,0.95)] overflow-hidden flex flex-col">
+    <!-- Header -->
+    <div class="p-4 bg-rose-950/20 border-b border-[#222f42] flex items-center justify-between">
+      <div class="flex items-center gap-2.5">
+        <div class="w-8 h-8 rounded-lg bg-rose-500/20 text-rose-400 flex items-center justify-center border border-rose-500/30">
+          <span class="material-symbols-outlined text-[20px]">delete_forever</span>
+        </div>
+        <div>
+          <h3 class="font-headline font-bold text-base text-[#f1f5f9]" id="delete-modal-title">¿Eliminar elemento?</h3>
+          <span class="text-[10px] text-rose-400" id="delete-modal-subtitle">Confirmación de seguridad</span>
+        </div>
+      </div>
+      <button
+        type="button"
+        id="delete-modal-close-x"
+        class="w-7 h-7 rounded-lg bg-[#10141d] border border-[#222f42] hover:border-rose-500/50 text-[#94a3b8] hover:text-rose-400 flex items-center justify-center text-xs transition-colors cursor-pointer"
+        aria-label="Cerrar modal"
+      >
+        <span class="material-symbols-outlined text-[16px]">close</span>
+      </button>
+    </div>
+
+    <!-- Body -->
+    <div class="p-5 space-y-4">
+      <!-- Item summary card -->
+      <div class="p-3 rounded-xl bg-[#18202e] border border-[#222f42] flex items-center justify-between gap-3">
+        <div class="flex items-center gap-3 truncate">
+          <div id="delete-modal-item-icon-wrap" class="w-10 h-10 rounded-lg bg-rose-500/10 border border-rose-500/30 flex items-center justify-center text-rose-400 shrink-0">
+            <span class="material-symbols-outlined text-[22px]" id="delete-modal-item-icon">inventory_2</span>
+          </div>
+          <div class="truncate">
+            <span class="font-headline font-bold text-sm text-[#f1f5f9] block truncate" id="delete-modal-item-name">Nombre</span>
+            <div class="flex items-center gap-2 mt-0.5">
+              <span class="text-[10px] text-[#94a3b8]" id="delete-modal-item-category">Elemento</span>
+              <span class="text-[10px] px-1.5 py-0.2 rounded bg-amber-500/10 text-amber-300 font-bold border border-amber-500/20" id="delete-modal-item-stock">x1</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Single item mode message (hidden if quantity > 1) -->
+      <div id="delete-modal-single-prompt" class="text-xs text-[#cbd5e1] leading-relaxed">
+        <p>¿Estás seguro de que deseas eliminar este elemento? Esta acción no se puede deshacer.</p>
+      </div>
+
+      <!-- Multiple units mode (shown if quantity > 1) -->
+      <div id="delete-modal-multi-prompt" class="space-y-3 hidden">
+        <p class="text-xs text-[#cbd5e1]">
+          Tienes <strong id="delete-modal-total-display" class="text-amber-400"></strong> unidades en total. ¿Deseas eliminar una cantidad específica o todo el lote?
+        </p>
+
+        <!-- Stepper UI -->
+        <div class="p-3 rounded-xl bg-[#10141d] border border-[#222f42] space-y-2">
+          <label class="text-[10px] text-[#94a3b8] font-bold block uppercase tracking-wider">Cantidad a eliminar</label>
+          <div class="flex items-center gap-3 justify-center">
+            <button
+              type="button"
+              id="delete-qty-minus"
+              class="w-10 h-10 rounded-lg bg-[#18202e] border border-[#222f42] text-amber-400 hover:bg-amber-500/20 active:scale-95 text-lg font-bold flex items-center justify-center transition-all cursor-pointer"
+              title="Reducir cantidad"
+            >
+              -
+            </button>
+            <input
+              type="number"
+              id="delete-qty-input"
+              value="1"
+              min="1"
+              class="w-24 text-center font-headline font-bold text-lg py-1.5 rounded-lg bg-[#18202e] border border-amber-500/50 text-[#f1f5f9] focus:outline-none"
+            />
+            <button
+              type="button"
+              id="delete-qty-plus"
+              class="w-10 h-10 rounded-lg bg-[#18202e] border border-[#222f42] text-amber-400 hover:bg-amber-500/20 active:scale-95 text-lg font-bold flex items-center justify-center transition-all cursor-pointer"
+              title="Aumentar cantidad"
+            >
+              +
+            </button>
+          </div>
+
+          <!-- Quick presets -->
+          <div class="flex items-center justify-center gap-2 pt-1 text-[11px]">
+            <button
+              type="button"
+              id="delete-qty-set-one"
+              class="px-2.5 py-1 rounded-md bg-[#18202e] hover:bg-amber-500/10 text-[#cbd5e1] hover:text-amber-300 border border-[#222f42] transition-colors cursor-pointer"
+            >
+              1 unidad
+            </button>
+            <button
+              type="button"
+              id="delete-qty-set-all"
+              class="px-2.5 py-1 rounded-md bg-[#18202e] hover:bg-rose-500/10 text-[#cbd5e1] hover:text-rose-300 border border-[#222f42] transition-colors cursor-pointer"
+            >
+              Todas
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Actions Footer -->
+    <div class="p-4 bg-[#18202e] border-t border-[#222f42] flex items-center justify-end gap-2.5">
+      <button
+        type="button"
+        id="delete-modal-cancel-btn"
+        class="px-4 py-2 rounded-xl bg-[#121721] border border-[#222f42] text-[#94a3b8] hover:text-[#f1f5f9] cursor-pointer text-xs font-medium transition-colors"
+      >
+        Cancelar
+      </button>
+
+      <!-- Multi mode button: "Eliminar Todo" -->
+      <button
+        type="button"
+        id="delete-modal-all-btn"
+        class="hidden px-3.5 py-2 rounded-xl bg-rose-950/60 hover:bg-rose-900/80 text-rose-300 border border-rose-500/40 font-bold cursor-pointer text-xs transition-colors"
+      >
+        Eliminar Todo
+      </button>
+
+      <!-- Primary confirm button -->
+      <button
+        type="button"
+        id="delete-modal-confirm-btn"
+        class="px-4 py-2 rounded-xl bg-gradient-to-r from-rose-600 to-rose-500 text-white font-bold shadow-[0_0_12px_rgba(239,68,68,0.3)] hover:brightness-110 active:scale-95 transition-all cursor-pointer text-xs flex items-center gap-1.5"
+      >
+        <span class="material-symbols-outlined text-[15px]">delete</span>
+        <span id="delete-modal-confirm-text">Sí, Eliminar</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+  import { openModal, closeModal } from '../../scripts/animations/modalAnimations';
+  import { characterStore } from '../../scripts/state/characterStore';
+  import { journalStore } from '../../scripts/state/journalStore';
+
+  const modal = document.getElementById('confirm-delete-modal');
+  const backdrop = document.getElementById('modal-backdrop');
+  const closeX = document.getElementById('delete-modal-close-x');
+  const cancelBtn = document.getElementById('delete-modal-cancel-btn');
+  const confirmBtn = document.getElementById('delete-modal-confirm-btn');
+  const allBtn = document.getElementById('delete-modal-all-btn');
+  const confirmText = document.getElementById('delete-modal-confirm-text');
+
+  const titleEl = document.getElementById('delete-modal-title');
+  const subtitleEl = document.getElementById('delete-modal-subtitle');
+  const itemNameEl = document.getElementById('delete-modal-item-name');
+  const itemCategoryEl = document.getElementById('delete-modal-item-category');
+  const itemStockEl = document.getElementById('delete-modal-item-stock');
+  const itemIconEl = document.getElementById('delete-modal-item-icon');
+
+  const singlePrompt = document.getElementById('delete-modal-single-prompt');
+  const multiPrompt = document.getElementById('delete-modal-multi-prompt');
+  const totalDisplay = document.getElementById('delete-modal-total-display');
+
+  const qtyInput = document.getElementById('delete-qty-input') as HTMLInputElement | null;
+  const qtyMinus = document.getElementById('delete-qty-minus');
+  const qtyPlus = document.getElementById('delete-qty-plus');
+  const setOneBtn = document.getElementById('delete-qty-set-one');
+  const setAllBtn = document.getElementById('delete-qty-set-all');
+
+  let currentPayload: any = null;
+  let maxQty = 1;
+
+  function updateQuantityUi(val: number) {
+    if (!qtyInput) return;
+    const clamped = Math.max(1, Math.min(val, maxQty));
+    qtyInput.value = clamped.toString();
+    if (confirmText) {
+      confirmText.textContent = maxQty > 1 ? `Eliminar (${clamped})` : 'Sí, Eliminar';
+    }
+  }
+
+  function hideModal() {
+    if (modal && backdrop) {
+      closeModal(modal, backdrop, () => {
+        if (currentPayload?.onCancel) {
+          currentPayload.onCancel();
+        }
+        currentPayload = null;
+      });
+    }
+  }
+
+  // Stepper handlers
+  qtyMinus?.addEventListener('click', () => {
+    if (qtyInput) updateQuantityUi(parseInt(qtyInput.value || '1', 10) - 1);
+  });
+
+  qtyPlus?.addEventListener('click', () => {
+    if (qtyInput) updateQuantityUi(parseInt(qtyInput.value || '1', 10) + 1);
+  });
+
+  qtyInput?.addEventListener('input', () => {
+    if (qtyInput) updateQuantityUi(parseInt(qtyInput.value || '1', 10));
+  });
+
+  setOneBtn?.addEventListener('click', () => updateQuantityUi(1));
+  setAllBtn?.addEventListener('click', () => updateQuantityUi(maxQty));
+
+  closeX?.addEventListener('click', hideModal);
+  cancelBtn?.addEventListener('click', hideModal);
+
+  // Confirm deletion of selected amount
+  confirmBtn?.addEventListener('click', () => {
+    if (!currentPayload) return;
+
+    const amountToDelete = maxQty > 1 && qtyInput ? parseInt(qtyInput.value, 10) || 1 : undefined;
+
+    if (typeof currentPayload.onConfirm === 'function') {
+      currentPayload.onConfirm(amountToDelete);
+    } else {
+      executeDefaultDelete(currentPayload, amountToDelete);
+    }
+
+    if (modal && backdrop) {
+      closeModal(modal, backdrop);
+      currentPayload = null;
+    }
+  });
+
+  // Confirm deletion of entire stack (multi mode shortcut)
+  allBtn?.addEventListener('click', () => {
+    if (!currentPayload) return;
+
+    if (typeof currentPayload.onConfirm === 'function') {
+      currentPayload.onConfirm(maxQty);
+    } else {
+      executeDefaultDelete(currentPayload, maxQty);
+    }
+
+    if (modal && backdrop) {
+      closeModal(modal, backdrop);
+      currentPayload = null;
+    }
+  });
+
+  function executeDefaultDelete(payload: any, amount?: number) {
+    if (payload.type === 'inventory' && payload.id) {
+      characterStore.removeInventoryItem(payload.id, amount);
+    } else if (payload.type === 'weapon' && payload.id) {
+      characterStore.removeAction(payload.id);
+    } else if (payload.type === 'spell' && (payload.name || payload.id)) {
+      characterStore.removeSpell(payload.name || payload.id);
+    } else if (payload.type === 'journal' && payload.id) {
+      journalStore.deleteEntry(payload.id);
+    }
+  }
+
+  // Listen for the custom open event
+  window.addEventListener('open-delete-modal', ((e: CustomEvent) => {
+    currentPayload = e.detail;
+    if (!currentPayload) return;
+
+    const {
+      title = '¿Eliminar elemento?',
+      subtitle = 'Confirmación de seguridad',
+      name = 'Elemento',
+      category = 'General',
+      icon = 'delete',
+      quantity = 1
+    } = currentPayload;
+
+    maxQty = Math.max(1, quantity);
+
+    if (titleEl) titleEl.textContent = title;
+    if (subtitleEl) subtitleEl.textContent = subtitle;
+    if (itemNameEl) itemNameEl.textContent = name;
+    if (itemCategoryEl) itemCategoryEl.textContent = category;
+    if (itemIconEl) itemIconEl.textContent = icon;
+    if (itemStockEl) {
+      itemStockEl.textContent = `x${maxQty}`;
+      itemStockEl.style.display = maxQty > 1 ? 'inline-block' : 'none';
+    }
+
+    if (maxQty > 1) {
+      // Multiple items mode
+      singlePrompt?.classList.add('hidden');
+      multiPrompt?.classList.remove('hidden');
+      allBtn?.classList.remove('hidden');
+      if (totalDisplay) totalDisplay.textContent = `x${maxQty}`;
+      updateQuantityUi(1);
+    } else {
+      // Single item mode
+      singlePrompt?.classList.remove('hidden');
+      multiPrompt?.classList.add('hidden');
+      allBtn?.classList.add('hidden');
+      if (confirmText) confirmText.textContent = 'Sí, Eliminar';
+    }
+
+    if (modal && backdrop) {
+      openModal(modal, backdrop);
+    }
+  }) as EventListener);
+</script>

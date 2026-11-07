@@ -1,0 +1,136 @@
+---
+// src/components/inventory/CurrencyPouch.astro
+---
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+  <!-- Monedero -->
+  <div class="rounded-xl bg-[#121721] border border-[#222f42] p-4 shadow-sm flex flex-col justify-between">
+    <div class="flex items-center justify-between mb-3">
+      <h3 class="text-xs font-headline font-bold text-[#f1f5f9] uppercase tracking-wider flex items-center gap-1.5">
+        <span class="material-symbols-outlined text-amber-500 text-[16px]">monetization_on</span>
+        <span>Bolsa de Monedas</span>
+      </h3>
+      <span class="text-[10px] text-[#94a3b8] font-label cursor-pointer hover:text-amber-400" id="currency-edit-btn" title="Editar monedas">Editar</span>
+    </div>
+
+    <div class="grid grid-cols-5 gap-1.5 text-center font-label cursor-pointer" id="currency-display-grid" title="Haz clic para abrir el gestor de monedas">
+      <div class="p-2 rounded-lg bg-[#18202e] border border-[#222f42] hover:border-amber-500/40 transition-colors">
+        <span class="text-[10px] text-[#94a3b8] block">PC</span>
+        <span id="coin-cp" class="text-sm font-headline font-bold text-amber-600">42</span>
+      </div>
+      <div class="p-2 rounded-lg bg-[#18202e] border border-[#222f42] hover:border-amber-500/40 transition-colors">
+        <span class="text-[10px] text-[#94a3b8] block">PP</span>
+        <span id="coin-sp" class="text-sm font-headline font-bold text-slate-300">18</span>
+      </div>
+      <div class="p-2 rounded-lg bg-[#18202e] border border-[#222f42] hover:border-amber-500/40 transition-colors">
+        <span class="text-[10px] text-[#94a3b8] block">PE</span>
+        <span id="coin-ep" class="text-sm font-headline font-bold text-cyan-400">5</span>
+      </div>
+      <div class="p-2 rounded-lg bg-[#18202e] border border-amber-500/40 bg-amber-500/5 hover:border-amber-500 transition-colors">
+        <span class="text-[10px] text-amber-400 font-bold block">PO</span>
+        <span id="coin-gp" class="text-sm font-headline font-bold text-amber-400">135</span>
+      </div>
+      <div class="p-2 rounded-lg bg-[#18202e] border border-[#222f42] hover:border-amber-500/40 transition-colors">
+        <span class="text-[10px] text-[#94a3b8] block">PPT</span>
+        <span id="coin-pp" class="text-sm font-headline font-bold text-purple-300">2</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sintonización mágica -->
+  <div class="rounded-xl bg-[#121721] border border-[#222f42] p-4 shadow-sm flex flex-col justify-between">
+    <div class="flex items-center justify-between mb-2">
+      <h3 class="text-xs font-headline font-bold text-[#f1f5f9] uppercase tracking-wider flex items-center gap-1.5">
+        <span class="material-symbols-outlined text-amber-500 text-[16px]">stars</span>
+        <span>Sintonizados</span>
+      </h3>
+      <div class="flex items-center gap-2">
+        <span class="text-[10px] text-amber-400 font-bold bg-amber-500/10 px-1.5 py-0.2 rounded border border-amber-500/30" id="attuned-limit-badge">2 / 3 Límite</span>
+        <button
+          type="button"
+          id="attuned-config-btn"
+          class="text-[10px] text-amber-400 hover:text-amber-300 font-bold bg-amber-500/10 hover:bg-amber-500/20 px-2 py-0.5 rounded border border-amber-500/30 flex items-center gap-1 cursor-pointer transition-colors"
+          title="Configurar objetos mágicos sintonizados"
+        >
+          <span class="material-symbols-outlined text-[13px]">tune</span>
+          <span>Configurar</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="space-y-1.5 text-xs font-label cursor-pointer" id="attuned-items-container" title="Haz clic en cualquier ranura para configurar">
+      <!-- Populated by JavaScript -->
+    </div>
+  </div>
+</div>
+
+<script>
+  import { characterStore } from '../../scripts/state/characterStore';
+  import { openModal } from '../../scripts/animations/modalAnimations';
+
+  const attunedContainer = document.getElementById('attuned-items-container');
+  const attunedBadge = document.getElementById('attuned-limit-badge');
+  const attunedBtn = document.getElementById('attuned-config-btn');
+
+  const openAttunedModal = () => {
+    window.dispatchEvent(new CustomEvent('open-attuned-modal'));
+  };
+
+  attunedBtn?.addEventListener('click', openAttunedModal);
+  attunedContainer?.addEventListener('click', openAttunedModal);
+
+  function renderAttuned(char: any) {
+    if (!attunedContainer) return;
+    attunedContainer.innerHTML = '';
+
+    const items = char.attunedItems || [];
+    const count = items.filter((it: any) => !it.name.includes('Libre') && it.name.trim()).length;
+    if (attunedBadge) attunedBadge.textContent = `${count} / 3 Límite`;
+
+    items.forEach((item: any, i: number) => {
+      const isFree = item.name.includes('Libre') || !item.name.trim();
+      const el = document.createElement('div');
+      el.className = `p-1.5 px-2.5 rounded-lg bg-[#18202e] border ${isFree ? 'border-dashed border-[#222f42] opacity-60' : 'border-[#222f42] hover:border-amber-500/40'} flex items-center justify-between text-[11px] transition-colors`;
+      el.innerHTML = `
+        <div class="flex items-center gap-2 truncate">
+          <span class="material-symbols-outlined text-[14px] ${isFree ? 'text-[#64748b]' : 'text-amber-400'}">${item.icon || 'stars'}</span>
+          <span class="truncate ${isFree ? 'text-[#64748b] italic' : 'text-[#f1f5f9] font-medium'}">${item.name}</span>
+        </div>
+        <span class="text-[10px] text-[#64748b] shrink-0">Ranura ${i + 1}</span>
+      `;
+      attunedContainer.appendChild(el);
+    });
+  }
+
+  function renderCoins(char: any) {
+    const cp = document.getElementById('coin-cp');
+    const sp = document.getElementById('coin-sp');
+    const ep = document.getElementById('coin-ep');
+    const gp = document.getElementById('coin-gp');
+    const pp = document.getElementById('coin-pp');
+    if (cp) cp.textContent = String(char.currency.cp);
+    if (sp) sp.textContent = String(char.currency.sp);
+    if (ep) ep.textContent = String(char.currency.ep);
+    if (gp) gp.textContent = String(char.currency.gp);
+    if (pp) pp.textContent = String(char.currency.pp);
+  }
+
+  function triggerCurrencyModal() {
+    window.dispatchEvent(new CustomEvent('open-currency-modal'));
+    const modal = document.getElementById('edit-currency-modal');
+    const backdrop = document.getElementById('modal-backdrop');
+    if (modal && backdrop) openModal(modal, backdrop);
+  }
+
+  // Open modal on "Editar" or clicking the coins grid
+  document.getElementById('currency-edit-btn')?.addEventListener('click', triggerCurrencyModal);
+  document.getElementById('currency-display-grid')?.addEventListener('click', triggerCurrencyModal);
+
+  renderCoins(characterStore.get());
+  renderAttuned(characterStore.get());
+
+  window.addEventListener('character-updated', ((e: CustomEvent) => {
+    renderCoins(e.detail.character);
+    renderAttuned(e.detail.character);
+  }) as EventListener);
+</script>

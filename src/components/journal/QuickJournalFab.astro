@@ -1,0 +1,36 @@
+---
+// src/components/journal/QuickJournalFab.astro
+---
+
+<!-- Floating Action Button (FAB) Bottom-Right -->
+<div class="fixed bottom-6 right-6 z-40">
+  <button
+    id="journal-fab-btn"
+    class="w-14 h-14 rounded-full bg-gradient-to-tr from-amber-600 via-amber-500 to-amber-400 text-[#0a0d12] flex items-center justify-center shadow-[0_0_25px_rgba(245,158,11,0.6)] border-2 border-amber-300/80 hover:scale-110 active:scale-95 transition-all group cursor-pointer"
+    title="Añadir entrada rápida a la Bitácora"
+    type="button"
+  >
+    <span class="material-symbols-outlined text-[28px] font-bold group-hover:rotate-12 transition-transform duration-300">history_edu</span>
+    <span class="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-rose-500 border-2 border-[#0a0d12] flex items-center justify-center text-[9px] font-bold text-white shadow-sm">+</span>
+  </button>
+</div>
+
+<script>
+  import { openDrawer } from '../../scripts/animations/modalAnimations';
+
+  document.getElementById('journal-fab-btn')?.addEventListener('click', () => {
+    const drawer = document.getElementById('quick-journal-drawer');
+    const backdrop = document.getElementById('drawer-backdrop');
+    if (drawer && backdrop) {
+      openDrawer(drawer, backdrop);
+
+      // On mobile / touch screens, avoid auto-focusing immediately upon opening
+      // so the virtual keyboard does not abruptly pop up and block the drawer or shift the screen
+      const isMobileOrTouch = window.matchMedia('(max-width: 640px)').matches || ('ontouchstart' in window && !window.matchMedia('(pointer: fine)').matches);
+      if (!isMobileOrTouch) {
+        const input = document.getElementById('drawer-note-input') as HTMLTextAreaElement;
+        if (input) input.focus();
+      }
+    }
+  });
+</script>

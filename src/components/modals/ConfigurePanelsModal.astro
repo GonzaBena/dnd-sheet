@@ -1,0 +1,215 @@
+---
+// src/components/modals/ConfigurePanelsModal.astro
+---
+
+<div id="configure-panels-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
+  <div class="modal-content w-full max-w-lg rounded-2xl bg-[#121721] border border-[#222f42] shadow-[0_20px_60px_rgba(0,0,0,0.9)] overflow-hidden flex flex-col">
+    <!-- Header -->
+    <div class="p-4 bg-[#18202e] border-b border-[#222f42] flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <div class="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center border border-amber-500/30">
+          <span class="material-symbols-outlined text-[20px]">tune</span>
+        </div>
+        <div>
+          <h3 class="font-headline font-bold text-base text-[#f1f5f9]">Personalizar Pestañas y Módulos</h3>
+          <span class="text-[10px] text-[#94a3b8]">Adapta la ficha a tu clase (Druida, Mago, Guerrero...)</span>
+        </div>
+      </div>
+      <button id="config-panels-close-btn" class="w-7 h-7 rounded-lg bg-[#10141d] border border-[#222f42] hover:border-rose-500/50 text-[#94a3b8] hover:text-rose-400 flex items-center justify-center text-xs transition-colors cursor-pointer">
+        <span class="material-symbols-outlined text-[16px]">close</span>
+      </button>
+    </div>
+
+    <!-- Body -->
+    <div class="p-5 space-y-4 text-xs font-label">
+      <!-- 1. Presets de Clase Rápidos -->
+      <div>
+        <label class="text-[#94a3b8] block mb-2 font-headline font-bold uppercase tracking-wider text-[11px]">
+          Plantillas Rápidas según la Clase:
+        </label>
+        <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+          <!-- Druida -->
+          <button type="button" class="preset-btn p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 hover:border-emerald-500 text-emerald-300 font-bold flex flex-col items-center justify-center gap-1 transition-all cursor-pointer active:scale-95" data-preset="druid">
+            <span class="material-symbols-outlined text-[20px]">pets</span>
+            <span>Druida</span>
+            <span class="text-[9px] text-emerald-400/80 font-normal">Forma Salvaje + Magia</span>
+          </button>
+
+          <!-- Mago -->
+          <button type="button" class="preset-btn p-2.5 rounded-xl bg-purple-500/10 border border-purple-500/30 hover:border-purple-500 text-purple-300 font-bold flex flex-col items-center justify-center gap-1 transition-all cursor-pointer active:scale-95" data-preset="wizard">
+            <span class="material-symbols-outlined text-[20px]">auto_fix_high</span>
+            <span>Mago / Brujo</span>
+            <span class="text-[9px] text-purple-400/80 font-normal">Grimorio Extenso</span>
+          </button>
+
+          <!-- Guerrero / Bárbaro -->
+          <button type="button" class="preset-btn p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/30 hover:border-rose-500 text-rose-300 font-bold flex flex-col items-center justify-center gap-1 transition-all cursor-pointer active:scale-95" data-preset="fighter">
+            <span class="material-symbols-outlined text-[20px]">swords</span>
+            <span>Guerrero / Bárbaro</span>
+            <span class="text-[9px] text-rose-400/80 font-normal">Armas y Combate</span>
+          </button>
+
+          <!-- Pícaro -->
+          <button type="button" class="preset-btn p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 hover:border-amber-500 text-amber-300 font-bold flex flex-col items-center justify-center gap-1 transition-all cursor-pointer active:scale-95" data-preset="rogue">
+            <span class="material-symbols-outlined text-[20px]">vpn_key</span>
+            <span>Pícaro</span>
+            <span class="text-[9px] text-amber-400/80 font-normal">Pericias + Furtivo</span>
+          </button>
+
+          <!-- Clérigo / Paladín -->
+          <button type="button" class="preset-btn p-2.5 rounded-xl bg-sky-500/10 border border-sky-500/30 hover:border-sky-500 text-sky-300 font-bold flex flex-col items-center justify-center gap-1 transition-all cursor-pointer active:scale-95" data-preset="cleric">
+            <span class="material-symbols-outlined text-[20px]">shield</span>
+            <span>Clérigo / Paladín</span>
+            <span class="text-[9px] text-sky-400/80 font-normal">Armas + Magia Divina</span>
+          </button>
+
+          <!-- Ver Todo -->
+          <button type="button" class="preset-btn p-2.5 rounded-xl bg-[#18202e] border border-[#222f42] hover:border-amber-500/40 text-[#f1f5f9] font-bold flex flex-col items-center justify-center gap-1 transition-all cursor-pointer active:scale-95" data-preset="custom">
+            <span class="material-symbols-outlined text-[20px]">visibility</span>
+            <span>Ver Todo</span>
+            <span class="text-[9px] text-[#94a3b8] font-normal">Todos los Módulos</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="h-px bg-[#222f42] my-2"></div>
+
+      <!-- 2. Toggles individuales de Módulos -->
+      <div class="space-y-2">
+        <label class="text-[#94a3b8] block mb-1 font-headline font-bold uppercase tracking-wider text-[11px]">
+          Módulos Activos en la Ficha:
+        </label>
+
+        <!-- Magia -->
+        <label class="p-2.5 rounded-xl bg-[#18202e] border border-[#222f42] flex items-center justify-between cursor-pointer select-none">
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-amber-400 text-[18px]">auto_fix_high</span>
+            <span class="text-xs font-medium text-[#f1f5f9]">Magia y Espacios de Conjuro</span>
+          </div>
+          <input type="checkbox" id="cfg-show-spells" class="rounded bg-[#10141d] border-[#222f42] text-amber-500 focus:ring-amber-500/40 cursor-pointer" />
+        </label>
+
+        <!-- Forma Salvaje -->
+        <label class="p-2.5 rounded-xl bg-[#18202e] border border-[#222f42] flex items-center justify-between cursor-pointer select-none">
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-emerald-400 text-[18px]">pets</span>
+            <span class="text-xs font-medium text-[#f1f5f9]">Forma Salvaje (Bestiario Druida)</span>
+          </div>
+          <input type="checkbox" id="cfg-show-wildshape" class="rounded bg-[#10141d] border-[#222f42] text-emerald-500 focus:ring-emerald-500/40 cursor-pointer" />
+        </label>
+
+        <!-- Armas -->
+        <label class="p-2.5 rounded-xl bg-[#18202e] border border-[#222f42] flex items-center justify-between cursor-pointer select-none">
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-amber-500 text-[18px]">swords</span>
+            <span class="text-xs font-medium text-[#f1f5f9]">Armas y Acciones de Ataque</span>
+          </div>
+          <input type="checkbox" id="cfg-show-weapons" class="rounded bg-[#10141d] border-[#222f42] text-amber-500 focus:ring-amber-500/40 cursor-pointer" />
+        </label>
+
+        <!-- Habilidades -->
+        <label class="p-2.5 rounded-xl bg-[#18202e] border border-[#222f42] flex items-center justify-between cursor-pointer select-none">
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-amber-500 text-[18px]">verified</span>
+            <span class="text-xs font-medium text-[#f1f5f9]">Habilidades y Salvaciones</span>
+          </div>
+          <input type="checkbox" id="cfg-show-skills" class="rounded bg-[#10141d] border-[#222f42] text-amber-500 focus:ring-amber-500/40 cursor-pointer" />
+        </label>
+
+        <!-- Mochila -->
+        <label class="p-2.5 rounded-xl bg-[#18202e] border border-[#222f42] flex items-center justify-between cursor-pointer select-none">
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-amber-500 text-[18px]">backpack</span>
+            <span class="text-xs font-medium text-[#f1f5f9]">Mochila, Pociones y Monedas</span>
+          </div>
+          <input type="checkbox" id="cfg-show-inventory" class="rounded bg-[#10141d] border-[#222f42] text-amber-500 focus:ring-amber-500/40 cursor-pointer" />
+        </label>
+
+        <!-- Bitácora -->
+        <label class="p-2.5 rounded-xl bg-[#18202e] border border-[#222f42] flex items-center justify-between cursor-pointer select-none">
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-amber-500 text-[18px]">history_edu</span>
+            <span class="text-xs font-medium text-[#f1f5f9]">Bitácora de Sesión</span>
+          </div>
+          <input type="checkbox" id="cfg-show-journal" class="rounded bg-[#10141d] border-[#222f42] text-amber-500 focus:ring-amber-500/40 cursor-pointer" />
+        </label>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="p-4 bg-[#18202e] border-t border-[#222f42] flex items-center justify-end gap-2.5">
+      <button type="button" id="config-panels-cancel-btn" class="px-4 py-2 rounded-xl bg-[#121721] border border-[#222f42] text-[#94a3b8] hover:text-[#f1f5f9] cursor-pointer text-xs">
+        Cancelar
+      </button>
+      <button type="button" id="config-panels-save-btn" class="px-5 py-2 rounded-xl bg-gradient-to-r from-amber-600 to-amber-500 text-[#0a0d12] font-bold shadow-[0_0_12px_rgba(245,158,11,0.3)] hover:brightness-110 active:scale-95 transition-all cursor-pointer text-xs">
+        Aplicar Cambios
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+  import { characterStore } from '../../scripts/state/characterStore';
+  import { closeModal } from '../../scripts/animations/modalAnimations';
+
+  const modal = document.getElementById('configure-panels-modal');
+  const backdrop = document.getElementById('modal-backdrop');
+  const closeBtn = document.getElementById('config-panels-close-btn');
+  const cancelBtn = document.getElementById('config-panels-cancel-btn');
+  const saveBtn = document.getElementById('config-panels-save-btn');
+
+  const spellsCheck = document.getElementById('cfg-show-spells') as HTMLInputElement;
+  const wildShapeCheck = document.getElementById('cfg-show-wildshape') as HTMLInputElement;
+  const weaponsCheck = document.getElementById('cfg-show-weapons') as HTMLInputElement;
+  const skillsCheck = document.getElementById('cfg-show-skills') as HTMLInputElement;
+  const invCheck = document.getElementById('cfg-show-inventory') as HTMLInputElement;
+  const journalCheck = document.getElementById('cfg-show-journal') as HTMLInputElement;
+
+  function loadToggles() {
+    const char = characterStore.get();
+    if (!char.layoutConfig) return;
+    const cfg = char.layoutConfig;
+    if (spellsCheck) spellsCheck.checked = cfg.showSpells;
+    if (wildShapeCheck) wildShapeCheck.checked = cfg.showWildShape;
+    if (weaponsCheck) weaponsCheck.checked = cfg.showWeapons;
+    if (skillsCheck) skillsCheck.checked = cfg.showSkills;
+    if (invCheck) invCheck.checked = cfg.showInventory;
+    if (journalCheck) journalCheck.checked = cfg.showJournal;
+  }
+
+  // Presets in 1 click
+  document.querySelectorAll('.preset-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const preset = btn.getAttribute('data-preset') as any;
+      if (preset) {
+        characterStore.applyClassPreset(preset);
+        loadToggles();
+        if (modal && backdrop) closeModal(modal, backdrop);
+      }
+    });
+  });
+
+  loadToggles();
+  window.addEventListener('character-updated', loadToggles);
+
+  closeBtn?.addEventListener('click', () => {
+    if (modal && backdrop) closeModal(modal, backdrop);
+  });
+  cancelBtn?.addEventListener('click', () => {
+    if (modal && backdrop) closeModal(modal, backdrop);
+  });
+
+  saveBtn?.addEventListener('click', () => {
+    characterStore.updateLayoutConfig({
+      showSpells: spellsCheck?.checked ?? true,
+      showWildShape: wildShapeCheck?.checked ?? false,
+      showWeapons: weaponsCheck?.checked ?? true,
+      showSkills: skillsCheck?.checked ?? true,
+      showInventory: invCheck?.checked ?? true,
+      showJournal: journalCheck?.checked ?? true,
+      classPreset: 'custom'
+    });
+
+    if (modal && backdrop) closeModal(modal, backdrop);
+  });
+</script>

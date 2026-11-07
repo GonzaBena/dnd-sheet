@@ -1,0 +1,430 @@
+---
+// src/components/layout/Header.astro
+---
+
+<header class="fixed top-0 w-full z-40 bg-[#0a0d12]/95 backdrop-blur-xl border-b border-[#222f42] shadow-[0_4px_25px_rgba(0,0,0,0.6)]">
+  <div class="h-16 sm:h-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-3">
+    <!-- Brand / Title -->
+    <div class="flex items-center gap-3 shrink-0">
+      <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-500 to-amber-700 flex items-center justify-center shadow-[0_0_12px_rgba(245,158,11,0.5)] border border-amber-400/40">
+        <span class="material-symbols-outlined text-[#0a0d12] text-xl font-bold">auto_stories</span>
+      </div>
+      <div class="flex flex-col">
+        <span class="text-sm font-headline font-bold text-[#f1f5f9] leading-tight tracking-tight">Crónicas del Aventurero</span>
+        <span id="header-app-subtitle" class="text-[10px] font-label text-amber-500 uppercase tracking-wider font-semibold">Grimorio de Campaña</span>
+      </div>
+    </div>
+
+    <!-- Active Campaign Badge (Clean center) -->
+    <a href="/campaigns" class="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#121721] border border-[#222f42] hover:border-amber-500/50 hover:bg-[#18202e] transition-all text-[11px] font-label shrink-0" title="Ver y gestionar campañas">
+      <div class="flex items-center gap-1.5 text-[#94a3b8]">
+        <span class="material-symbols-outlined text-[14px] text-amber-500">castle</span>
+        <span class="font-medium text-[#e2e8f0]" id="header-campaign-name">Maldición de Strahd</span>
+      </div>
+      <span class="text-[#334155]">•</span>
+      <div class="flex items-center gap-1 text-[#94a3b8]" id="header-char-chip">
+        <span class="font-semibold text-amber-400" id="header-char-level">Nvl. 5</span>
+        <span class="text-[#cbd5e1]" id="header-char-class">Explorador</span>
+      </div>
+    </a>
+
+    <!-- Quick Utilities & Actions -->
+    <div class="flex items-center gap-2 shrink-0">
+      <!-- DM Mode shortcut -->
+      <button
+        id="header-open-dm-btn"
+        class="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-amber-600 to-amber-500 text-[#0a0d12] hover:brightness-110 active:scale-95 transition-all text-xs font-bold font-label shadow-sm cursor-pointer"
+        title="Alternar entre el Grimorio del Control y la Ficha de Personaje"
+        type="button"
+      >
+        <span class="material-symbols-outlined text-[16px]" id="header-dm-btn-icon">crown</span>
+        <span id="header-dm-btn-text">Grimorio del Control</span>
+      </button>
+
+      <!-- Tirar Dados Modal Trigger -->
+      <button
+        id="header-open-dice-btn"
+        class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#18202e] border border-amber-500/30 text-amber-400 hover:bg-amber-500/10 hover:border-amber-500/60 transition-all text-xs font-bold font-label active:scale-95 shadow-sm cursor-pointer"
+        title="Lanzador de dados interactivo público"
+        type="button"
+      >
+        <span class="material-symbols-outlined text-[16px] text-amber-400">casino</span>
+        <span class="hidden xs:inline">Tirar Dados</span>
+      </button>
+
+      <!-- Tirar Dados Secretos Trigger -->
+      <button
+        id="header-open-secret-dice-btn"
+        class="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg bg-[#18202e] border border-purple-500/40 text-purple-300 hover:bg-purple-500/15 hover:border-purple-400 transition-all text-xs font-bold font-label active:scale-95 shadow-sm cursor-pointer"
+        title="Lanzar tirada secreta (oculta para otros jugadores)"
+        type="button"
+      >
+        <span class="material-symbols-outlined text-[16px] text-purple-400">visibility_off</span>
+        <span class="hidden sm:inline">Tirada Secreta</span>
+      </button>
+
+      <!-- Descanso Corto / Largo -->
+      <button
+        id="header-rest-btn"
+        class="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg bg-[#18202e] border border-[#222f42] text-[#94a3b8] hover:bg-[#222f42] hover:text-[#f1f5f9] transition-all text-xs font-medium font-label active:scale-95"
+        title="Descanso Corto o Largo"
+        type="button"
+      >
+        <span class="material-symbols-outlined text-[16px] text-amber-500">bedtime</span>
+        <span class="hidden sm:inline">Descanso</span>
+      </button>
+
+      <!-- Profile & Settings Dropdown Menu Trigger -->
+      <div class="relative">
+        <button
+          id="header-profile-btn"
+          class="w-8 h-8 rounded-full bg-gradient-to-br from-amber-500 to-amber-600 border border-amber-400/50 flex items-center justify-center shadow-[0_0_12px_rgba(245,158,11,0.4)] hover:brightness-110 active:scale-95 transition-all"
+          title="Opciones del personaje y campaña"
+          type="button"
+        >
+          <span class="material-symbols-outlined text-[#0a0d12] text-[18px] font-bold">manage_accounts</span>
+        </button>
+
+        <!-- Dropdown Menu -->
+        <div
+          id="header-profile-menu"
+          class="hidden absolute right-0 mt-2 w-56 rounded-xl bg-[#121721] border border-[#222f42] shadow-[0_10px_30px_rgba(0,0,0,0.8)] py-1.5 z-50 text-xs font-medium backdrop-blur-md"
+        >
+          <a
+            href="/campaigns"
+            class="w-full text-left px-3.5 py-2 text-[#e2e8f0] hover:bg-[#18202e] hover:text-amber-400 flex items-center gap-2.5 transition-colors font-medium"
+          >
+            <span class="material-symbols-outlined text-[16px] text-amber-500">castle</span>
+            <span>Gestión de Campañas</span>
+          </a>
+
+          <button
+            id="menu-roster-btn"
+            class="w-full text-left px-3.5 py-2 text-[#e2e8f0] hover:bg-[#18202e] hover:text-amber-400 flex items-center gap-2.5 transition-colors"
+          >
+            <span class="material-symbols-outlined text-[16px] text-amber-400">groups</span>
+            <span>Ver Aventureros de la Campaña</span>
+          </button>
+
+          <button
+            id="menu-clone-btn"
+            class="w-full text-left px-3.5 py-2 text-[#e2e8f0] hover:bg-[#18202e] hover:text-amber-400 flex items-center gap-2.5 transition-colors"
+          >
+            <span class="material-symbols-outlined text-[16px] text-amber-400">content_copy</span>
+            <span>Copiar / Clonar Personaje</span>
+          </button>
+
+          <button
+            id="menu-secret-dice-btn"
+            class="w-full text-left px-3.5 py-2 text-[#e2e8f0] hover:bg-[#18202e] hover:text-purple-400 flex items-center gap-2.5 transition-colors cursor-pointer"
+          >
+            <span class="material-symbols-outlined text-[16px] text-purple-400">visibility_off</span>
+            <span>Hacer Tirada Secreta</span>
+          </button>
+
+          <div class="h-px bg-[#222f42] my-1"></div>
+
+          <button
+            id="menu-edit-char-btn"
+            class="w-full text-left px-3.5 py-2 text-[#e2e8f0] hover:bg-[#18202e] hover:text-amber-400 flex items-center gap-2.5 transition-colors"
+          >
+            <span class="material-symbols-outlined text-[16px] text-amber-500">edit</span>
+            <span>Editar Personaje & Atributos</span>
+          </button>
+
+          <button
+            id="menu-panels-btn"
+            class="w-full text-left px-3.5 py-2 text-[#e2e8f0] hover:bg-[#18202e] hover:text-amber-400 flex items-center gap-2.5 transition-colors"
+          >
+            <span class="material-symbols-outlined text-[16px] text-emerald-400">tune</span>
+            <span>Personalizar Pestañas (Clase)</span>
+          </button>
+          
+          <button
+            id="menu-sync-btn"
+            class="w-full text-left px-3.5 py-2 text-[#e2e8f0] hover:bg-[#18202e] hover:text-amber-400 flex items-center justify-between transition-colors"
+          >
+            <div class="flex items-center gap-2.5">
+              <span class="material-symbols-outlined text-[16px] text-cyan-400">sync</span>
+              <span>Sincronizar Móvil / PC</span>
+            </div>
+            <span id="header-sync-dot" class="w-2 h-2 rounded-full bg-slate-500" title="Estado de sincronización"></span>
+          </button>
+
+          <button
+            id="menu-export-btn"
+            class="w-full text-left px-3.5 py-2 text-[#e2e8f0] hover:bg-[#18202e] hover:text-amber-400 flex items-center gap-2.5 transition-colors"
+          >
+            <span class="material-symbols-outlined text-[16px] text-emerald-400">file_download</span>
+            <span>Exportar Copia (JSON)</span>
+          </button>
+
+          <button
+            id="menu-import-btn"
+            class="w-full text-left px-3.5 py-2 text-[#e2e8f0] hover:bg-[#18202e] hover:text-amber-400 flex items-center gap-2.5 transition-colors"
+          >
+            <span class="material-symbols-outlined text-[16px] text-sky-400">file_upload</span>
+            <span>Importar Personaje</span>
+          </button>
+          <input type="file" id="import-file-input" accept=".json" class="hidden" />
+
+          <div class="h-px bg-[#222f42] my-1"></div>
+
+          <button
+            id="menu-reset-btn"
+            class="w-full text-left px-3.5 py-2 text-rose-400 hover:bg-rose-950/30 hover:text-rose-300 flex items-center gap-2.5 transition-colors"
+          >
+            <span class="material-symbols-outlined text-[16px]">delete_sweep</span>
+            <span>Borrar Todo / Reiniciar</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<script>
+  import { characterStore } from '../../scripts/state/characterStore';
+  import { campaignStore } from '../../scripts/state/campaignStore';
+  import { openModal } from '../../scripts/animations/modalAnimations';
+
+  // Toggle profile menu
+  const profileBtn = document.getElementById('header-profile-btn');
+  const profileMenu = document.getElementById('header-profile-menu');
+  profileBtn?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    profileMenu?.classList.toggle('hidden');
+  });
+
+  document.addEventListener('click', () => {
+    profileMenu?.classList.add('hidden');
+  });
+
+  // Open Dice Modal (Public)
+  document.getElementById('header-open-dice-btn')?.addEventListener('click', () => {
+    window.dispatchEvent(new CustomEvent('open-dice-roller', {
+      detail: {
+        die: 20,
+        count: 1,
+        modifier: 0,
+        label: 'Tirada de dados',
+        tag: '#Tirada',
+        isSecret: false,
+        autoroll: false
+      }
+    }));
+  });
+
+  // Open Dice Modal (Secret)
+  const triggerSecretDiceModal = () => {
+    window.dispatchEvent(new CustomEvent('open-dice-roller', {
+      detail: {
+        die: 20,
+        count: 1,
+        modifier: 0,
+        label: 'Tirada Secreta',
+        tag: '#Privado',
+        isSecret: true,
+        autoroll: false
+      }
+    }));
+  };
+
+  document.getElementById('header-open-secret-dice-btn')?.addEventListener('click', triggerSecretDiceModal);
+  document.getElementById('menu-secret-dice-btn')?.addEventListener('click', () => {
+    profileMenu?.classList.add('hidden');
+    triggerSecretDiceModal();
+  });
+
+  // DM button trigger: toggles between Grimorio del Control and Hoja de Personaje
+  document.getElementById('header-open-dm-btn')?.addEventListener('click', () => {
+    const activeCampId = campaignStore.getActiveCampaignId();
+    if (!activeCampId) return;
+    const isDm = campaignStore.isCurrentUserDm(activeCampId);
+    if (!isDm) return;
+
+    const url = new URL(window.location.href);
+    const currentMode = url.searchParams.get('mode');
+
+    // Toggle between DM Grimoire and Player Sheet
+    if (currentMode === 'player') {
+      url.searchParams.set('mode', 'dm');
+    } else {
+      url.searchParams.set('mode', 'player');
+    }
+    window.location.href = url.toString();
+  });
+
+  // Open Roster modal trigger
+  document.getElementById('menu-roster-btn')?.addEventListener('click', () => {
+    profileMenu?.classList.add('hidden');
+    const activeCampId = campaignStore.getActiveCampaignId();
+    if (activeCampId) {
+      window.dispatchEvent(new CustomEvent('open-campaign-roster', { detail: { campaignId: activeCampId } }));
+    }
+  });
+
+  // Open Clone modal trigger
+  document.getElementById('menu-clone-btn')?.addEventListener('click', () => {
+    profileMenu?.classList.add('hidden');
+    window.dispatchEvent(new CustomEvent('open-clone-character-modal', {
+      detail: { sourceCharacterId: characterStore.get().id }
+    }));
+  });
+
+  // Edit character modal trigger
+  document.getElementById('menu-edit-char-btn')?.addEventListener('click', () => {
+    profileMenu?.classList.add('hidden');
+    const editModal = document.getElementById('edit-character-modal');
+    const backdrop = document.getElementById('modal-backdrop');
+    if (editModal && backdrop) openModal(editModal, backdrop);
+  });
+
+  // Sync config trigger
+  document.getElementById('menu-sync-btn')?.addEventListener('click', () => {
+    profileMenu?.classList.add('hidden');
+    const syncModal = document.getElementById('sync-config-modal');
+    const backdrop = document.getElementById('modal-backdrop');
+    if (syncModal && backdrop) openModal(syncModal, backdrop);
+  });
+
+  // Reset confirmation trigger
+  document.getElementById('menu-reset-btn')?.addEventListener('click', () => {
+    profileMenu?.classList.add('hidden');
+    const resetModal = document.getElementById('reset-confirm-modal');
+    const backdrop = document.getElementById('modal-backdrop');
+    if (resetModal && backdrop) openModal(resetModal, backdrop);
+  });
+
+  // Export JSON
+  document.getElementById('menu-export-btn')?.addEventListener('click', () => {
+    profileMenu?.classList.add('hidden');
+    const jsonStr = characterStore.exportJson();
+    const blob = new Blob([jsonStr], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${characterStore.get().name.toLowerCase().replace(/\s+/g, '_')}_dnd5e.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  });
+
+  // Import JSON
+  const importInput = document.getElementById('import-file-input') as HTMLInputElement;
+  document.getElementById('menu-import-btn')?.addEventListener('click', () => {
+    profileMenu?.classList.add('hidden');
+    importInput?.click();
+  });
+
+  importInput?.addEventListener('change', (e) => {
+    const file = importInput.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const text = event.target?.result as string;
+        if (characterStore.importJson(text)) {
+          alert('¡Personaje importado exitosamente!');
+        } else {
+          alert('Error al importar el archivo JSON.');
+        }
+      };
+      reader.readAsText(file);
+    }
+  });
+
+  // Rest Modal trigger
+  document.getElementById('header-rest-btn')?.addEventListener('click', () => {
+    window.dispatchEvent(new CustomEvent('open-rest-modal'));
+  });
+
+  // Panels config modal trigger
+  document.getElementById('menu-panels-btn')?.addEventListener('click', () => {
+    profileMenu?.classList.add('hidden');
+    const panelsModal = document.getElementById('configure-panels-modal');
+    const backdrop = document.getElementById('modal-backdrop');
+    if (panelsModal && backdrop) openModal(panelsModal, backdrop);
+  });
+
+  function renderHeader(char: any) {
+    const levelEl = document.getElementById('header-char-level');
+    const classEl = document.getElementById('header-char-class');
+    const campEl = document.getElementById('header-campaign-name');
+    const dmBtn = document.getElementById('header-open-dm-btn');
+    const dmBtnIcon = document.getElementById('header-dm-btn-icon');
+    const dmBtnText = document.getElementById('header-dm-btn-text');
+    const appSubtitle = document.getElementById('header-app-subtitle');
+    const charChip = document.getElementById('header-char-chip');
+
+    const activeCamp = campaignStore.getActiveCampaign();
+    const isDm = campaignStore.isCurrentUserDm();
+    const urlMode = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('mode') : null;
+    const isDmMode = isDm && urlMode !== 'player';
+
+    if (campEl) {
+      campEl.textContent = activeCamp ? activeCamp.name : (char?.sessionContext?.campaignName || 'Sin Campaña');
+    }
+
+    if (isDmMode) {
+      if (appSubtitle) appSubtitle.textContent = 'Grimorio del Control';
+      if (charChip) {
+        charChip.innerHTML = '<span class="font-bold text-amber-400 flex items-center gap-1"><span>👑</span><span>Dungeon Master</span></span>';
+      }
+      if (dmBtn) {
+        const myCharInCamp = activeCamp ? campaignStore.getMyCharacterForCampaign(activeCamp.id) : null;
+        if (myCharInCamp) {
+          dmBtn.classList.remove('hidden');
+          if (dmBtnIcon) dmBtnIcon.textContent = 'person';
+          if (dmBtnText) dmBtnText.textContent = `Ver Ficha (${myCharInCamp.name.split(' ')[0]})`;
+        } else {
+          dmBtn.classList.add('hidden');
+        }
+      }
+    } else {
+      if (appSubtitle) appSubtitle.textContent = 'Grimorio de Campaña';
+      if (charChip && char) {
+        charChip.innerHTML = `<span class="font-semibold text-amber-400" id="header-char-level">Nvl. ${char.level}</span><span class="text-[#cbd5e1]" id="header-char-class">${char.className}</span>`;
+      }
+      if (dmBtn) {
+        if (isDm) {
+          dmBtn.classList.remove('hidden');
+          if (dmBtnIcon) dmBtnIcon.textContent = 'crown';
+          if (dmBtnText) dmBtnText.textContent = 'Grimorio del Control';
+        } else {
+          dmBtn.classList.add('hidden');
+        }
+      }
+    }
+  }
+
+  // Hydrate immediately
+  renderHeader(characterStore.get());
+
+  // Listen for character updates to sync header chips
+  window.addEventListener('character-updated', ((e: CustomEvent) => {
+    renderHeader(e.detail.character);
+  }) as EventListener);
+
+  // Listen for user changes to dynamically update DM controls
+  window.addEventListener('current-user-changed', () => {
+    renderHeader(characterStore.get());
+  });
+
+  window.addEventListener('campaigns-updated', () => {
+    renderHeader(characterStore.get());
+  });
+
+  // Listen to sync status to update the dot in header
+  window.addEventListener('sync-status-changed', ((e: CustomEvent<any>) => {
+    const dot = document.getElementById('header-sync-dot');
+    if (!dot) return;
+    if (e.detail.state === 'connected') {
+      dot.className = 'w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)] animate-pulse';
+    } else if (e.detail.state === 'connecting') {
+      dot.className = 'w-2 h-2 rounded-full bg-amber-400 animate-ping';
+    } else if (e.detail.state === 'error') {
+      dot.className = 'w-2 h-2 rounded-full bg-rose-500';
+    } else {
+      dot.className = 'w-2 h-2 rounded-full bg-slate-500';
+    }
+  }) as EventListener);
+</script>

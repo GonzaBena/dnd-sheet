@@ -1,0 +1,276 @@
+---
+// src/pages/index.astro
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Header from '../components/layout/Header.astro';
+import SessionBanner from '../components/layout/SessionBanner.astro';
+import ClassTabsNav from '../components/navigation/ClassTabsNav.astro';
+import HeroCard from '../components/character/HeroCard.astro';
+import VitalsGrid from '../components/character/VitalsGrid.astro';
+import AbilitiesGrid from '../components/character/AbilitiesGrid.astro';
+import SavingThrows from '../components/character/SavingThrows.astro';
+import SkillsList from '../components/character/SkillsList.astro';
+import FeaturesFeats from '../components/character/FeaturesFeats.astro';
+import WildShapePanel from '../components/character/WildShapePanel.astro';
+import WeaponActionCard from '../components/combat/WeaponActionCard.astro';
+import CurrencyPouch from '../components/inventory/CurrencyPouch.astro';
+import BackpackGrid from '../components/inventory/BackpackGrid.astro';
+import SpellcastingPanel from '../components/combat/SpellcastingPanel.astro';
+import JournalSection from '../components/journal/JournalSection.astro';
+import QuickJournalFab from '../components/journal/QuickJournalFab.astro';
+import QuickJournalDrawer from '../components/journal/QuickJournalDrawer.astro';
+
+import DiceRollerModal from '../components/modals/DiceRollerModal.astro';
+import EditCharacterModal from '../components/modals/EditCharacterModal.astro';
+import EditCurrencyModal from '../components/modals/EditCurrencyModal.astro';
+import EditSkillsModal from '../components/modals/EditSkillsModal.astro';
+import AddItemModal from '../components/modals/AddItemModal.astro';
+import AddSpellModal from '../components/modals/AddSpellModal.astro';
+import AddWeaponModal from '../components/modals/AddWeaponModal.astro';
+import ConfigurePanelsModal from '../components/modals/ConfigurePanelsModal.astro';
+import SyncConfigModal from '../components/modals/SyncConfigModal.astro';
+import ResetConfirmModal from '../components/modals/ResetConfirmModal.astro';
+import EditCampaignModal from '../components/modals/EditCampaignModal.astro';
+import EditAttunedModal from '../components/modals/EditAttunedModal.astro';
+import EditFeaturesModal from '../components/modals/EditFeaturesModal.astro';
+import ConfirmDeleteModal from '../components/modals/ConfirmDeleteModal.astro';
+import RestModal from '../components/modals/RestModal.astro';
+import MilestoneCelebrationModal from '../components/modals/MilestoneCelebrationModal.astro';
+import NewMilestoneModal from '../components/modals/NewMilestoneModal.astro';
+import CampaignRosterModal from '../components/campaigns/CampaignRosterModal.astro';
+import CloneCharacterModal from '../components/campaigns/CloneCharacterModal.astro';
+import DmPanelModal from '../components/dm/DmPanelModal.astro';
+import DmControlGrimoire from '../components/dm/DmControlGrimoire.astro';
+---
+
+<BaseLayout>
+  <!-- Global Modal Backdrop -->
+  <div id="modal-backdrop" class="hidden fixed inset-0 bg-black/80 backdrop-blur-xs z-50 transition-opacity"></div>
+
+  <!-- Sticky Top Header (Cleaned of internal links) -->
+  <Header />
+
+  <!-- Main Viewport Area -->
+  <main class="w-full pt-20 sm:pt-24 pb-16 bg-[#0a0d12] min-h-screen">
+    <!-- Atmospheric Ambient Lighting Elements -->
+    <div class="relative w-full overflow-hidden px-4 sm:px-6 lg:px-10 py-4 max-w-[1720px] mx-auto">
+      <div class="absolute -top-32 left-1/4 w-96 h-96 bg-amber-500/10 rounded-full blur-[110px] pointer-events-none"></div>
+      <div class="absolute top-96 right-10 w-96 h-96 bg-rose-600/10 rounded-full blur-[120px] pointer-events-none"></div>
+      <div class="absolute top-1/2 left-10 w-72 h-72 bg-amber-600/5 rounded-full blur-[90px] pointer-events-none"></div>
+
+      <!-- Top Session Context Banner & Quick d20 -->
+      <SessionBanner />
+
+      <!-- 1. GRIMORIO DEL CONTROL WORKSPACE (Active when user is DM) -->
+      <div id="dm-control-workspace" class="hidden space-y-6">
+        <DmControlGrimoire />
+      </div>
+
+      <!-- 2. PLAYER CHARACTER SHEET WORKSPACE (Active when user is player) -->
+      <div id="player-sheet-workspace" class="space-y-6">
+        <!-- MAIN HERO & CHARACTER HEADER BANNER -->
+        <section class="relative mb-6 rounded-xl bg-[#121721] border border-[#222f42] shadow-[0_8px_30px_rgba(0,0,0,0.5)] p-6 lg:p-8 overflow-hidden">
+          <!-- Decorative background runes/rings -->
+          <div class="absolute -right-20 -bottom-20 w-80 h-80 rounded-full bg-amber-500/5 blur-2xl pointer-events-none"></div>
+          
+          <HeroCard>
+            <VitalsGrid />
+          </HeroCard>
+        </section>
+
+        <!-- ADAPTABLE CLASS TABS NAVIGATION (Combate, Habilidades, Magia, Forma Salvaje, Mochila, Bitácora) -->
+        <ClassTabsNav />
+
+        <!-- MAIN 2-COLUMN DESKTOP WORKSPACE (ADAPTS DYNAMICALLY BY TAB) -->
+        <div class="w-full space-y-6">
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start" id="workspace-grid">
+            <!-- COLUMN 1: ABILITIES, SAVING THROWS, SKILLS & FEATURES -->
+            <div class="space-y-6" id="workspace-col-1">
+              <div id="section-abilities">
+                <AbilitiesGrid />
+              </div>
+              <div id="section-saves">
+                <SavingThrows />
+              </div>
+              <div id="section-skills">
+                <SkillsList />
+              </div>
+              <div id="section-features">
+                <FeaturesFeats />
+              </div>
+            </div>
+
+            <!-- COLUMN 2: COMBAT ARSENAL, WILD SHAPE, CURRENCY, SATCHEL & SPELLCASTING -->
+            <div class="space-y-6" id="workspace-col-2">
+              <div id="section-weapons">
+                <WeaponActionCard />
+              </div>
+              <div id="section-wildshape">
+                <WildShapePanel />
+              </div>
+              <div id="section-currency">
+                <CurrencyPouch />
+              </div>
+              <div id="section-backpack">
+                <BackpackGrid />
+              </div>
+              <div id="section-spells">
+                <SpellcastingPanel />
+              </div>
+            </div>
+          </div>
+
+          <!-- FULL-WIDTH BITÁCORA DE SESIÓN (SESSION JOURNAL) -->
+          <div id="section-journal">
+            <JournalSection />
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Floating Action Button (FAB) for Quick Notes Bottom-Right -->
+  <QuickJournalFab />
+
+  <!-- Off-Canvas Quick Journal Drawer -->
+  <QuickJournalDrawer />
+
+  <!-- Interactive Modals -->
+  <DiceRollerModal />
+  <EditCharacterModal />
+  <EditCurrencyModal />
+  <EditSkillsModal />
+  <AddItemModal />
+  <AddSpellModal />
+  <AddWeaponModal />
+  <ConfigurePanelsModal />
+  <SyncConfigModal />
+  <ResetConfirmModal />
+  <EditCampaignModal />
+  <EditAttunedModal />
+  <EditFeaturesModal />
+  <ConfirmDeleteModal />
+  <RestModal />
+  <NewMilestoneModal />
+  <MilestoneCelebrationModal />
+  <CampaignRosterModal />
+  <CloneCharacterModal />
+  <DmPanelModal />
+</BaseLayout>
+
+<script>
+  import { syncManager } from '../scripts/sync/syncManager';
+  import { campaignStore } from '../scripts/state/campaignStore';
+  import { characterStore } from '../scripts/state/characterStore';
+  import { userStore } from '../scripts/state/userStore';
+  import { congratulationBanner } from '../scripts/ui/congratulationBanner';
+
+  if (typeof window !== 'undefined') {
+    const params = new URLSearchParams(window.location.search);
+
+    // Check if opened via campaign or character switcher
+    const targetCamp = params.get('campaign');
+    const targetChar = params.get('character');
+    if (targetCamp) {
+      campaignStore.setActiveCampaign(targetCamp);
+    }
+    if (targetChar) {
+      const char = campaignStore.getCharacter(targetChar);
+      if (char) {
+        const currentUser = userStore.getCurrentUser();
+        if (campaignStore.isCharacterOwner(char, currentUser.id)) {
+          characterStore.loadCharacter(char);
+        } else {
+          console.warn(`[Security] Usuario ${currentUser.name} (${currentUser.id}) intentó abrir personaje protegido ${char.name} (${char.id})`);
+          alert(`Acceso denegado: la ficha de "${char.name}" pertenece a ${char.playerName || 'otro jugador'} y solo puede ser modificada por su propietario.`);
+          window.location.href = '/campaigns';
+        }
+      }
+    } else {
+      // If no character explicitly in URL, load character corresponding to the active campaign (if player)
+      const activeCampId = campaignStore.getActiveCampaignId();
+      const currentUser = userStore.getCurrentUser();
+      const isDm = campaignStore.isCurrentUserDm(activeCampId || undefined);
+      if (activeCampId && !isDm) {
+        const myChar = campaignStore.getMyCharacterForCampaign(activeCampId, currentUser.id);
+        if (myChar && characterStore.get().id !== myChar.id) {
+          characterStore.loadCharacter(myChar);
+        }
+      }
+    }
+
+    // Determine Workspace Mode: Grimorio del Control (DM) vs Hoja de Personaje (Jugador)
+    function updateWorkspaceMode() {
+      const activeCampId = campaignStore.getActiveCampaignId();
+      const isDm = campaignStore.isCurrentUserDm(activeCampId || undefined);
+      const urlMode = new URLSearchParams(window.location.search).get('mode');
+
+      const dmWorkspace = document.getElementById('dm-control-workspace');
+      const playerWorkspace = document.getElementById('player-sheet-workspace');
+      const sessionBanner = document.getElementById('session-banner-root');
+
+      // If user is DM of active campaign and mode is not explicitly player
+      const shouldShowDm = isDm && urlMode !== 'player';
+
+      if (shouldShowDm) {
+        dmWorkspace?.classList.remove('hidden');
+        playerWorkspace?.classList.add('hidden');
+        sessionBanner?.classList.add('hidden');
+        window.dispatchEvent(new CustomEvent('dm-grimoire-refresh'));
+      } else {
+        dmWorkspace?.classList.add('hidden');
+        playerWorkspace?.classList.remove('hidden');
+        sessionBanner?.classList.remove('hidden');
+      }
+    }
+
+    updateWorkspaceMode();
+
+    window.addEventListener('current-user-changed', updateWorkspaceMode);
+    window.addEventListener('active-campaign-changed', updateWorkspaceMode);
+    window.addEventListener('campaigns-updated', updateWorkspaceMode);
+
+    // Check if opened via Mobile / Multi-device Sync Link
+    const syncCampaign = params.get('sync_campaign');
+    const syncChar = params.get('sync_char');
+
+    if (syncCampaign && syncChar) {
+      const currentCfg = syncManager.getConfig();
+      const syncProj = params.get('sync_proj') || currentCfg.projectId;
+      const syncApi = params.get('sync_api') || currentCfg.apiKey;
+      const syncPin = params.get('sync_pin') || currentCfg.pin || '';
+
+      syncManager.saveConfig({
+        enabled: true,
+        campaignId: syncCampaign,
+        characterId: syncChar,
+        projectId: syncProj,
+        apiKey: syncApi,
+        pin: syncPin
+      }).then(() => {
+        // Clean URL query parameters from address bar
+        const cleanUrl = window.location.pathname + window.location.hash;
+        window.history.replaceState({}, document.title, cleanUrl);
+      });
+    } else {
+      // Defer background cloud sync so UI, clicks and modals are 100% instant on load
+      if ('requestIdleCallback' in window) {
+        (window as any).requestIdleCallback(() => syncManager.reconnect());
+      } else {
+        setTimeout(() => syncManager.reconnect(), 500);
+      }
+    }
+
+    // Listen for Real-Time DM events across the table
+    window.addEventListener('dm-event-received', ((e: CustomEvent<any>) => {
+      const event = e.detail;
+      if (!event) return;
+      if (event.type === 'milestone' && event.payload?.milestone) {
+        const m = event.payload.milestone;
+        congratulationBanner(m.title, m.description, {
+          bannerText: m.bannerText,
+          tag: '#Hito'
+        });
+      }
+    }) as EventListener);
+  }
+</script>

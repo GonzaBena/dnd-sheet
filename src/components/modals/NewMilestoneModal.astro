@@ -1,0 +1,253 @@
+---
+// src/components/modals/NewMilestoneModal.astro
+---
+
+<div id="new-milestone-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
+  <div class="modal-content w-full max-w-lg rounded-2xl bg-[#121721] border border-amber-500/40 shadow-[0_20px_60px_rgba(0,0,0,0.95)] overflow-hidden flex flex-col">
+    <!-- Header -->
+    <div class="p-4 bg-gradient-to-r from-[#18202e] via-[#1f293d] to-[#18202e] border-b border-[#222f42] flex items-center justify-between">
+      <div class="flex items-center gap-2.5">
+        <div class="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center border border-amber-500/40 shadow-[0_0_12px_rgba(245,158,11,0.25)]">
+          <span class="material-symbols-outlined text-[20px]">military_tech</span>
+        </div>
+        <div>
+          <h3 class="font-headline font-bold text-base text-[#f1f5f9]">Celebrar Hito de Campaña</h3>
+          <span class="text-[11px] text-[#94a3b8]">Otorga un logro heroico y regístralo en la bitácora</span>
+        </div>
+      </div>
+      <button
+        id="new-milestone-close-btn"
+        class="w-7 h-7 rounded-lg bg-[#10141d] border border-[#222f42] hover:border-amber-500/50 text-[#94a3b8] hover:text-[#f1f5f9] flex items-center justify-center text-xs transition-colors cursor-pointer"
+        aria-label="Cerrar modal"
+      >
+        <span class="material-symbols-outlined text-[16px]">close</span>
+      </button>
+    </div>
+
+    <!-- Body -->
+    <div class="p-5 space-y-4 text-xs font-label">
+      <!-- Quick Presets -->
+      <div>
+        <label class="text-[#94a3b8] block mb-2 font-bold uppercase tracking-wider text-[10px] flex items-center gap-1">
+          <span class="material-symbols-outlined text-[14px] text-amber-400">bolt</span>
+          <span>Plantillas Rápidas</span>
+        </label>
+        <div class="grid grid-cols-2 sm:grid-cols-3 gap-2" id="milestone-presets-grid">
+          <button
+            type="button"
+            class="preset-milestone-btn p-2 rounded-xl bg-[#18202e] border border-[#222f42] hover:border-amber-500/50 text-left transition-all cursor-pointer group flex flex-col gap-1"
+            data-title="¡Subida de Nivel!"
+            data-desc="El grupo ha superado los desafíos y ascendido en poder y sabiduría."
+            data-banner="¡SUBIDA DE NIVEL!"
+          >
+            <span class="text-amber-400 font-bold group-hover:text-amber-300 flex items-center gap-1">
+              <span>⚡</span> Nivel
+            </span>
+            <span class="text-[10px] text-[#94a3b8] line-clamp-1">Ascenso de poder</span>
+          </button>
+
+          <button
+            type="button"
+            class="preset-milestone-btn p-2 rounded-xl bg-[#18202e] border border-[#222f42] hover:border-amber-500/50 text-left transition-all cursor-pointer group flex flex-col gap-1"
+            data-title="¡Jefe Legendario Derrotado!"
+            data-desc="La temible criatura ha sido abatida tras un heroico y reñido combate."
+            data-banner="¡VICTORIA ÉPICA!"
+          >
+            <span class="text-rose-400 font-bold group-hover:text-rose-300 flex items-center gap-1">
+              <span>⚔️</span> Jefe Vencido
+            </span>
+            <span class="text-[10px] text-[#94a3b8] line-clamp-1">Monstruo o Némesis</span>
+          </button>
+
+          <button
+            type="button"
+            class="preset-milestone-btn p-2 rounded-xl bg-[#18202e] border border-[#222f42] hover:border-amber-500/50 text-left transition-all cursor-pointer group flex flex-col gap-1"
+            data-title="¡Misión Cumplida!"
+            data-desc="El encargo principal ha concluido con éxito. El destino del reino cambia."
+            data-banner="¡FELICIDADES!"
+          >
+            <span class="text-emerald-400 font-bold group-hover:text-emerald-300 flex items-center gap-1">
+              <span>📜</span> Misión Épica
+            </span>
+            <span class="text-[10px] text-[#94a3b8] line-clamp-1">Objetivo superado</span>
+          </button>
+
+          <button
+            type="button"
+            class="preset-milestone-btn p-2 rounded-xl bg-[#18202e] border border-[#222f42] hover:border-amber-500/50 text-left transition-all cursor-pointer group flex flex-col gap-1"
+            data-title="¡Artefacto Legendario Hallado!"
+            data-desc="Un objeto antiguo de inmenso poder ha caído en posesión del grupo."
+            data-banner="¡RELIQUIA ÉPICA!"
+          >
+            <span class="text-purple-400 font-bold group-hover:text-purple-300 flex items-center gap-1">
+              <span>🗝️</span> Reliquia
+            </span>
+            <span class="text-[10px] text-[#94a3b8] line-clamp-1">Tesoro sagrado</span>
+          </button>
+
+          <button
+            type="button"
+            class="preset-milestone-btn p-2 rounded-xl bg-[#18202e] border border-[#222f42] hover:border-amber-500/50 text-left transition-all cursor-pointer group flex flex-col gap-1"
+            data-title="¡Mazmorra Conquistada!"
+            data-desc="Los pasadizos oscuros han sido purificados y sus secretos reclamados."
+            data-banner="¡CONQUISTA!"
+          >
+            <span class="text-sky-400 font-bold group-hover:text-sky-300 flex items-center gap-1">
+              <span>🏰</span> Mazmorra
+            </span>
+            <span class="text-[10px] text-[#94a3b8] line-clamp-1">Catacumbas o fortaleza</span>
+          </button>
+
+          <button
+            type="button"
+            class="preset-milestone-btn p-2 rounded-xl bg-[#18202e] border border-[#222f42] hover:border-amber-500/50 text-left transition-all cursor-pointer group flex flex-col gap-1"
+            data-title="¡Hazaña Heroica Memorable!"
+            data-desc="Un momento de coraje y astucia que será recordado por los bardos por generaciones."
+            data-banner="¡GLORIA ETERNA!"
+          >
+            <span class="text-amber-400 font-bold group-hover:text-amber-300 flex items-center gap-1">
+              <span>⭐</span> Hazaña
+            </span>
+            <span class="text-[10px] text-[#94a3b8] line-clamp-1">Momento estelar</span>
+          </button>
+        </div>
+      </div>
+
+      <form id="new-milestone-form" class="space-y-3.5">
+        <!-- Texto del Banderín -->
+        <div>
+          <label class="text-[#94a3b8] block mb-1 font-bold">Texto en Medio del Banderín</label>
+          <input
+            type="text"
+            id="milestone-input-banner"
+            value="¡FELICIDADES!"
+            placeholder="ej: ¡FELICIDADES!"
+            class="w-full p-2.5 rounded-lg bg-[#18202e] border border-[#222f42] text-[#f1f5f9] focus:border-amber-500 focus:outline-none uppercase font-bold tracking-wider"
+            required
+          />
+        </div>
+
+        <!-- Título del Hito -->
+        <div>
+          <label class="text-[#94a3b8] block mb-1 font-bold">Título del Hito Conseguido</label>
+          <input
+            type="text"
+            id="milestone-input-title"
+            placeholder="ej: ¡Victoria en el Templo de Ámbar!"
+            class="w-full p-2.5 rounded-lg bg-[#18202e] border border-[#222f42] text-[#f1f5f9] focus:border-amber-500 focus:outline-none"
+            required
+          />
+        </div>
+
+        <!-- El Porqué Debajo -->
+        <div>
+          <label class="text-[#94a3b8] block mb-1 font-bold">El Porqué (Motivo y detalles del logro)</label>
+          <textarea
+            id="milestone-input-desc"
+            rows="3"
+            placeholder="Describe qué ocurrió, la recompensa o la relevancia para la campaña..."
+            class="w-full p-2.5 rounded-lg bg-[#18202e] border border-[#222f42] text-[#f1f5f9] focus:border-amber-500 focus:outline-none resize-none"
+            required
+          ></textarea>
+        </div>
+
+        <!-- Guardar en Bitácora Check -->
+        <div class="flex items-center gap-2 pt-1">
+          <input
+            type="checkbox"
+            id="milestone-save-journal-check"
+            checked
+            class="rounded bg-[#10141d] border-[#222f42] text-amber-500 focus:ring-amber-500/40"
+          />
+          <label for="milestone-save-journal-check" class="text-xs text-[#94a3b8] cursor-pointer hover:text-[#f1f5f9]">
+            Registrar automáticamente como entrada en la Bitácora con la etiqueta <span class="text-amber-400 font-bold">#Hito</span>
+          </label>
+        </div>
+
+        <!-- Footer Actions -->
+        <div class="pt-4 border-t border-[#222f42] flex items-center justify-end gap-2.5">
+          <button
+            type="button"
+            id="new-milestone-cancel-btn"
+            class="px-4 py-2 rounded-xl bg-[#121721] border border-[#222f42] text-[#94a3b8] hover:text-[#f1f5f9] transition-colors cursor-pointer"
+          >
+            Cancelar
+          </button>
+          <button
+            type="submit"
+            class="px-5 py-2 rounded-xl bg-gradient-to-r from-amber-600 via-amber-500 to-amber-600 hover:from-amber-500 hover:to-amber-400 text-[#0a0d12] font-headline font-bold text-xs shadow-[0_0_15px_rgba(245,158,11,0.3)] active:scale-95 transition-all cursor-pointer flex items-center gap-1.5"
+          >
+            <span class="material-symbols-outlined text-[16px]">celebration</span>
+            <span>¡Lanzar Celebración!</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+  import { openModal, closeModal } from '../../scripts/animations/modalAnimations';
+  import { congratulationBanner } from '../../scripts/ui/congratulationBanner';
+
+  const modal = document.getElementById('new-milestone-modal');
+  const backdrop = document.getElementById('modal-backdrop');
+  const closeBtn = document.getElementById('new-milestone-close-btn');
+  const cancelBtn = document.getElementById('new-milestone-cancel-btn');
+  const form = document.getElementById('new-milestone-form') as HTMLFormElement;
+
+  const bannerInp = document.getElementById('milestone-input-banner') as HTMLInputElement;
+  const titleInp = document.getElementById('milestone-input-title') as HTMLInputElement;
+  const descInp = document.getElementById('milestone-input-desc') as HTMLTextAreaElement;
+  const saveCheck = document.getElementById('milestone-save-journal-check') as HTMLInputElement;
+
+  // Open modal event
+  window.addEventListener('open-new-milestone-modal', () => {
+    if (modal && backdrop) {
+      openModal(modal, backdrop);
+    }
+  });
+
+  const closeMe = () => {
+    if (modal && backdrop) {
+      closeModal(modal, backdrop);
+    }
+  };
+
+  closeBtn?.addEventListener('click', closeMe);
+  cancelBtn?.addEventListener('click', closeMe);
+
+  // Preset buttons handler
+  document.querySelectorAll('.preset-milestone-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const bText = btn.getAttribute('data-banner') || '¡FELICIDADES!';
+      const tText = btn.getAttribute('data-title') || '';
+      const dText = btn.getAttribute('data-desc') || '';
+
+      if (bannerInp) bannerInp.value = bText;
+      if (titleInp) titleInp.value = tText;
+      if (descInp) descInp.value = dText;
+    });
+  });
+
+  // Submit and trigger congratulationBanner
+  form?.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const banner = bannerInp?.value.trim() || '¡FELICIDADES!';
+    const title = titleInp?.value.trim() || '¡Hito de Campaña Conseguido!';
+    const desc = descInp?.value.trim() || 'Un momento memorable ha sido grabado en la historia de la aventura.';
+    const saveToJournal = saveCheck ? saveCheck.checked : true;
+
+    // Close config modal first
+    closeMe();
+
+    // Small delay to let the modal transition smoothly before celebration pops up
+    setTimeout(() => {
+      congratulationBanner(title, desc, {
+        bannerText: banner,
+        saveToJournal: saveToJournal,
+        tag: '#Hito'
+      });
+    }, 280);
+  });
+</script>

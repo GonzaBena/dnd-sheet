@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f6d77a"/>
+      <stop offset="1" stop-color="#c8922a"/>
+    </linearGradient>
+  </defs>
+  <!-- fondo: mismo tono que el theme-color del sitio -->
+  <rect width="64" height="64" rx="14" fill="#0a0d12"/>
+  <rect x="1.5" y="1.5" width="61" height="61" rx="12.5" fill="none" stroke="#c8922a" stroke-opacity=".35" stroke-width="1.5"/>
+  <!-- d20: hexágono exterior -->
+  <polygon points="32,8 53,20 53,44 32,56 11,44 11,20" fill="#c8922a" fill-opacity=".14" stroke="url(#g)" stroke-width="3.2" stroke-linejoin="round"/>
+  <!-- cara central -->
+  <polygon points="32,19 21,39 43,39" fill="url(#g)" stroke="url(#g)" stroke-width="2" stroke-linejoin="round"/>
+  <!-- aristas hacia los vértices -->
+  <g stroke="url(#g)" stroke-width="2.6" stroke-linecap="round" fill="none">
+    <path d="M32 19V8"/>
+    <path d="M21 39L11 44M21 39L11 20"/>
+    <path d="M43 39L53 44M43 39L53 20"/>
+    <path d="M21 39L32 56M43 39L32 56"/>
+  </g>
+</svg>

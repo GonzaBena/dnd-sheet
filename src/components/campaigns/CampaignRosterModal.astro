@@ -1,0 +1,397 @@
+---
+// src/components/campaigns/CampaignRosterModal.astro
+---
+
+<div id="campaign-roster-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
+  <div class="modal-content w-full max-w-lg rounded-2xl bg-[#121721] border border-amber-500/30 shadow-[0_20px_60px_rgba(0,0,0,0.95)] overflow-hidden flex flex-col max-h-[85vh]">
+    <!-- Header -->
+    <div class="p-4 bg-gradient-to-r from-[#18202e] via-[#1b2434] to-[#18202e] border-b border-[#222f42] flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center border border-amber-500/40 shadow-[0_0_12px_rgba(245,158,11,0.25)]">
+          <span class="material-symbols-outlined text-[20px]">groups</span>
+        </div>
+        <div>
+          <h3 id="roster-modal-campaign-title" class="font-headline font-bold text-base text-[#f1f5f9]">Grupo de Aventureros</h3>
+          <span id="roster-modal-campaign-subtitle" class="text-[11px] text-[#94a3b8]">Compañeros de campaña y personajes activos</span>
+        </div>
+      </div>
+      <button
+        id="roster-modal-close-btn"
+        class="w-7 h-7 rounded-lg bg-[#10141d] border border-[#222f42] hover:border-amber-500/50 text-[#94a3b8] hover:text-[#f1f5f9] flex items-center justify-center text-xs transition-colors cursor-pointer"
+        aria-label="Cerrar modal"
+      >
+        <span class="material-symbols-outlined text-[16px]">close</span>
+      </button>
+    </div>
+
+    <!-- DM & Creator Badge row -->
+    <div class="px-5 py-2.5 bg-[#0f141d] border-b border-[#222f42] flex items-center justify-between text-xs font-label flex-wrap gap-2">
+      <div class="flex items-center gap-3 text-[#94a3b8] flex-wrap">
+        <div class="flex items-center gap-1.5">
+          <span class="material-symbols-outlined text-[15px] text-amber-500">crown</span>
+          <span>Dungeon Master: <strong id="roster-modal-dm-name" class="text-amber-300">Lord Raven</strong></span>
+          <button
+            type="button"
+            id="roster-modal-change-dm-btn"
+            class="hidden text-[10px] text-amber-400 hover:text-amber-200 font-bold underline cursor-pointer ml-1"
+            title="Reasignar el DM entre los usuarios de la mesa"
+          >
+            (Cambiar DM)
+          </button>
+        </div>
+        <span class="text-[#334155]">•</span>
+        <div class="flex items-center gap-1 text-[11px]">
+          <span>Creador:</span>
+          <strong id="roster-modal-creator-name" class="text-[#cbd5e1]">...</strong>
+        </div>
+      </div>
+      <span id="roster-modal-char-count" class="px-2 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-400 text-[10px] font-bold">
+        4 Aventureros
+      </span>
+    </div>
+
+    <!-- Body / List of Characters -->
+    <div class="p-4 sm:p-5 overflow-y-auto space-y-2.5 max-h-[60vh] custom-scrollbar" id="roster-characters-list">
+      <!-- Populated via JavaScript -->
+    </div>
+
+    <!-- Footer -->
+    <div class="p-3 bg-[#18202e] border-t border-[#222f42] flex items-center justify-between text-xs font-label flex-wrap gap-2">
+      <div class="flex items-center gap-2 flex-wrap">
+        <button
+          type="button"
+          id="roster-modal-copy-btn"
+          class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#10141d] border border-amber-500/30 text-amber-300 hover:bg-amber-500/10 hover:border-amber-500/60 transition-colors cursor-pointer text-xs font-medium"
+        >
+          <span class="material-symbols-outlined text-[16px]">content_copy</span>
+          <span>Copiar personaje a esta campaña</span>
+        </button>
+
+        <button
+          type="button"
+          id="roster-modal-delete-campaign-btn"
+          class="hidden flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-rose-500/10 border border-rose-500/30 text-rose-400 hover:bg-rose-500/20 hover:border-rose-500/60 transition-colors cursor-pointer text-xs font-medium"
+          title="Cerrar y eliminar la campaña"
+        >
+          <span class="material-symbols-outlined text-[16px]">delete_forever</span>
+          <span>Cerrar Campaña</span>
+        </button>
+      </div>
+
+      <button
+        type="button"
+        id="roster-modal-close-bottom-btn"
+        class="px-4 py-1.5 rounded-lg bg-[#222f42] hover:bg-[#2c3d56] text-[#f1f5f9] transition-colors cursor-pointer"
+      >
+        Cerrar
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+  import { campaignStore } from '../../scripts/state/campaignStore';
+  import { characterStore } from '../../scripts/state/characterStore';
+  import { userStore } from '../../scripts/state/userStore';
+  import { openModal, closeModal } from '../../scripts/animations/modalAnimations';
+
+  const modal = document.getElementById('campaign-roster-modal');
+  const backdrop = document.getElementById('modal-backdrop');
+  const closeBtn = document.getElementById('roster-modal-close-btn');
+  const closeBottomBtn = document.getElementById('roster-modal-close-bottom-btn');
+  const copyBtn = document.getElementById('roster-modal-copy-btn');
+  const deleteCampaignBtn = document.getElementById('roster-modal-delete-campaign-btn');
+  const changeDmBtn = document.getElementById('roster-modal-change-dm-btn');
+  const listContainer = document.getElementById('roster-characters-list');
+  const titleEl = document.getElementById('roster-modal-campaign-title');
+  const subEl = document.getElementById('roster-modal-campaign-subtitle');
+  const dmEl = document.getElementById('roster-modal-dm-name');
+  const creatorEl = document.getElementById('roster-modal-creator-name');
+  const countEl = document.getElementById('roster-modal-char-count');
+
+  let currentCampaignId: string | null = null;
+
+  function renderRoster(campaignId: string) {
+    currentCampaignId = campaignId;
+    const campaign = campaignStore.getCampaign(campaignId);
+    if (!campaign || !listContainer) return;
+
+    const currentUser = userStore.getCurrentUser();
+    const creatorUser = userStore.getUser(campaign.creatorId);
+
+    if (titleEl) titleEl.textContent = `Grupo: ${campaign.name}`;
+    if (subEl) subEl.textContent = `${campaign.setting} • Sesión ${campaign.sessionNumber}`;
+    if (dmEl) dmEl.textContent = campaign.dmName;
+    if (creatorEl) creatorEl.textContent = creatorUser ? `${creatorUser.name} ${creatorUser.id === currentUser.id ? '(Tú)' : ''}` : campaign.creatorId;
+
+    const canManage = campaignStore.canUserManageMembers(campaignId, currentUser.id);
+    const canDelete = campaignStore.canUserDeleteCampaign(campaignId, currentUser.id);
+
+    if (changeDmBtn) changeDmBtn.classList.toggle('hidden', !canManage);
+    if (deleteCampaignBtn) deleteCampaignBtn.classList.toggle('hidden', !canDelete);
+
+    const chars = campaignStore.getCharactersForCampaign(campaignId);
+    if (countEl) countEl.textContent = `${chars.length} Aventurero${chars.length === 1 ? '' : 's'}`;
+
+    listContainer.innerHTML = '';
+
+    if (chars.length === 0) {
+      listContainer.innerHTML = `
+        <div class="py-6 text-center text-xs text-[#64748b] space-y-1.5">
+          <p>No hay personajes asignados a esta campaña todavía.</p>
+          <p class="text-[11px] text-amber-500/80">Puedes copiar uno de tus personajes existentes o crear uno nuevo.</p>
+        </div>
+      `;
+    }
+
+    chars.forEach(char => {
+      const isMine = campaignStore.isCharacterOwner(char, currentUser.id);
+      const isCreator = char.userId === campaign.creatorId;
+      const isDm = char.userId === campaign.dmId;
+
+      const card = document.createElement('div');
+      card.className = `p-3 rounded-xl bg-[#18202e] border ${isMine ? 'border-amber-500/60 shadow-[0_0_12px_rgba(245,158,11,0.15)] ring-1 ring-amber-500/30' : 'border-[#222f42]'} hover:border-amber-500/40 transition-all flex items-center justify-between gap-3 text-xs font-label`;
+
+      card.innerHTML = `
+        <div class="flex items-center gap-3 min-w-0">
+          <div class="relative w-11 h-11 rounded-xl overflow-hidden shrink-0 border border-amber-500/30 shadow-md bg-[#10141d]">
+            <img src="${char.avatarUrl || 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=400&q=80'}" alt="${char.name}" class="w-full h-full object-cover" />
+          </div>
+          <div class="min-w-0">
+            <div class="flex items-center gap-1.5 flex-wrap">
+              <h4 class="font-headline font-bold text-sm text-[#f1f5f9] truncate">${char.name}</h4>
+              ${isMine 
+                ? '<span class="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 text-[9px] font-bold uppercase border border-amber-500/40 flex items-center gap-1"><span>⭐</span><span>Tu Ficha</span></span>' 
+                : '<span class="px-1.5 py-0.5 rounded bg-[#10141d] text-[#94a3b8] text-[9px] font-bold uppercase border border-[#222f42] flex items-center gap-1"><span>🔒</span><span>Protegida</span></span>'
+              }
+              ${isCreator ? '<span class="px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-400 text-[9px] font-bold border border-amber-500/30 flex items-center gap-1"><span>👑</span><span>Creador</span></span>' : ''}
+              ${isDm ? '<span class="px-1.5 py-0.5 rounded bg-purple-500/15 text-purple-300 text-[9px] font-bold border border-purple-500/30 flex items-center gap-1"><span>👑</span><span>DM</span></span>' : ''}
+            </div>
+            <div class="flex items-center gap-1.5 text-[11px] text-[#94a3b8] truncate">
+              <span class="text-[#cbd5e1] font-semibold">${char.race}</span>
+              <span>•</span>
+              <span class="text-amber-400 font-bold">${char.className} ${char.subclass ? `(${char.subclass})` : ''}</span>
+              <span>•</span>
+              <span class="text-amber-300 font-bold">Nvl. ${char.level}</span>
+            </div>
+            <div class="flex items-center gap-1.5 text-[10px] text-[#64748b]">
+              <span>Jugador: <strong class="${isMine ? 'text-amber-300' : 'text-[#cbd5e1]'}">${char.playerName || (isMine ? currentUser.name : 'Otro Jugador')}</strong></span>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2 shrink-0">
+          <div class="text-right hidden sm:block">
+            <div class="text-[10px] text-[#94a3b8]">Salud</div>
+            <div class="font-headline font-bold text-xs ${char.hp.current <= char.hp.max * 0.3 ? 'text-rose-400' : 'text-emerald-400'}">
+              ${char.hp.current}/${char.hp.max} PG
+            </div>
+          </div>
+
+          <div class="flex items-center gap-1.5">
+            ${isMine ? `
+              <button
+                type="button"
+                class="open-char-sheet-btn px-2.5 py-1.5 rounded-lg bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-[#0a0d12] transition-all text-xs font-bold active:scale-95 cursor-pointer flex items-center gap-1 shadow-xs"
+                data-id="${char.id}"
+                title="Abrir tu hoja de personaje editable"
+              >
+                <span class="material-symbols-outlined text-[15px]">edit_document</span>
+                <span class="hidden sm:inline">Abrir</span>
+              </button>
+              <button
+                type="button"
+                class="leave-char-btn px-2 py-1.5 rounded-lg bg-[#10141d] hover:bg-rose-500/20 text-[#94a3b8] hover:text-rose-400 border border-[#222f42] hover:border-rose-500/40 text-xs font-bold transition-all cursor-pointer flex items-center gap-1"
+                title="Salir de la campaña con este personaje (pasará a ser independiente)"
+              >
+                <span class="material-symbols-outlined text-[15px]">logout</span>
+                <span class="hidden md:inline">Abandonar</span>
+              </button>
+            ` : `
+              <div
+                class="px-2 py-1.5 rounded-lg bg-[#10141d] border border-[#222f42] text-[#64748b] text-[10px] font-bold flex items-center gap-1 select-none"
+                title="Solo el propietario (${char.playerName || 'el jugador asignado'}) puede abrir y editar esta ficha"
+              >
+                <span class="material-symbols-outlined text-[13px] text-amber-500/70">lock</span>
+                <span>Solo Lectura</span>
+              </div>
+              ${canManage ? `
+                <button
+                  type="button"
+                  class="remove-char-btn px-2 py-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 text-xs font-bold transition-all cursor-pointer flex items-center gap-1"
+                  data-user-id="${char.userId}"
+                  data-user-name="${char.playerName || char.name}"
+                  title="Quitar a este miembro y su personaje de la campaña"
+                >
+                  <span class="material-symbols-outlined text-[15px]">person_remove</span>
+                  <span class="hidden md:inline">Quitar</span>
+                </button>
+              ` : ''}
+            `}
+          </div>
+        </div>
+      `;
+
+      if (isMine) {
+        card.querySelector('.open-char-sheet-btn')?.addEventListener('click', (e) => {
+          e.stopPropagation();
+          campaignStore.setActiveCampaign(campaignId);
+          characterStore.loadCharacter(char);
+          window.location.href = `/?campaign=${encodeURIComponent(campaignId)}&character=${encodeURIComponent(char.id)}`;
+        });
+      }
+
+      listContainer.appendChild(card);
+    });
+
+    // Other members in campaign who don't have a character assigned (e.g. DM)
+    const membersWithoutChar = (campaign.memberUserIds || []).filter(uid => !chars.some(c => c.userId === uid));
+    if (membersWithoutChar.length > 0) {
+      const extraSection = document.createElement('div');
+      extraSection.className = 'pt-2.5 mt-2 border-t border-[#222f42] space-y-2';
+      extraSection.innerHTML = `<span class="text-[10px] text-[#64748b] uppercase tracking-wider font-bold block">Otros Miembros de la Mesa</span>`;
+      
+      membersWithoutChar.forEach(mUid => {
+        const mUser = userStore.getUser(mUid);
+        const isThisMe = mUid === currentUser.id;
+        const isThisCreator = mUid === campaign.creatorId;
+        const isThisDm = mUid === campaign.dmId;
+        const mCard = document.createElement('div');
+        mCard.className = 'p-2.5 rounded-xl bg-[#10141d] border border-[#222f42] flex items-center justify-between gap-3 text-xs';
+        mCard.innerHTML = `
+          <div class="flex items-center gap-2.5">
+            <div class="w-8 h-8 rounded-lg bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400">
+              <span class="material-symbols-outlined text-[16px]">${isThisDm ? 'crown' : 'person'}</span>
+            </div>
+            <div>
+              <div class="flex items-center gap-1.5 flex-wrap">
+                <span class="font-bold text-[#f1f5f9]">${mUser ? mUser.name : mUid}</span>
+                ${isThisMe ? '<span class="text-[9px] text-amber-400 font-bold">(Tú)</span>' : ''}
+                ${isThisCreator ? '<span class="px-1.5 py-0.2 rounded bg-amber-500/15 text-amber-400 text-[8px] font-bold border border-amber-500/30">👑 Creador</span>' : ''}
+                ${isThisDm ? '<span class="px-1.5 py-0.2 rounded bg-purple-500/15 text-purple-300 text-[8px] font-bold border border-purple-500/30">👑 DM</span>' : ''}
+              </div>
+              <span class="text-[10px] text-[#64748b]">${isThisDm ? 'Dungeon Master Activo' : 'Miembro sin personaje'}</span>
+            </div>
+          </div>
+          <div class="flex items-center gap-1.5">
+            ${isThisMe ? `
+              <button
+                type="button"
+                class="leave-char-btn px-2.5 py-1 rounded-lg bg-[#18202e] hover:bg-rose-500/20 text-[#94a3b8] hover:text-rose-400 border border-[#222f42] hover:border-rose-500/40 text-[11px] font-bold transition-all cursor-pointer flex items-center gap-1"
+                title="Salir de la campaña"
+              >
+                <span class="material-symbols-outlined text-[13px]">logout</span>
+                <span>Abandonar</span>
+              </button>
+            ` : (canManage ? `
+              <button
+                type="button"
+                class="remove-char-btn px-2.5 py-1 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 text-[11px] font-bold transition-all cursor-pointer flex items-center gap-1"
+                data-user-id="${mUid}"
+                data-user-name="${mUser ? mUser.name : mUid}"
+                title="Quitar de la campaña"
+              >
+                <span class="material-symbols-outlined text-[13px]">person_remove</span>
+                <span>Quitar</span>
+              </button>
+            ` : '')}
+          </div>
+        `;
+        extraSection.appendChild(mCard);
+      });
+      listContainer.appendChild(extraSection);
+    }
+
+    // Attach listeners for remove and leave buttons
+    listContainer.querySelectorAll('.remove-char-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const targetUid = btn.getAttribute('data-user-id');
+        const targetName = btn.getAttribute('data-user-name');
+        if (!currentCampaignId || !targetUid) return;
+        if (!confirm(`¿Estás seguro de quitar a "${targetName}" de la campaña?\nSi tiene un personaje asignado, este se convertirá en un personaje independiente sin perder datos.`)) return;
+        try {
+          campaignStore.removeCampaignMember(currentCampaignId, targetUid);
+          renderRoster(currentCampaignId);
+          window.dispatchEvent(new CustomEvent('campaigns-updated'));
+          alert(`"${targetName}" ha sido retirado de la campaña.`);
+        } catch (err: any) {
+          alert(err?.message || err);
+        }
+      });
+    });
+
+    listContainer.querySelectorAll('.leave-char-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (!currentCampaignId) return;
+        const camp = campaignStore.getCampaign(currentCampaignId);
+        if (!confirm(`¿Estás seguro de abandonar la campaña "${camp?.name || ''}"?\nTu personaje se desvinculará y pasará a ser un personaje independiente sin perder stats ni inventario.`)) return;
+        try {
+          campaignStore.leaveCampaign(currentCampaignId);
+          closeMe();
+          window.dispatchEvent(new CustomEvent('campaigns-updated'));
+          alert(`Has abandonado la campaña. Tu personaje ahora es independiente.`);
+        } catch (err: any) {
+          alert(err?.message || err);
+        }
+      });
+    });
+  }
+
+  // Event listener to open modal with a specific campaign
+  window.addEventListener('open-campaign-roster', ((e: CustomEvent<{ campaignId: string }>) => {
+    if (e.detail?.campaignId) {
+      renderRoster(e.detail.campaignId);
+      if (modal && backdrop) openModal(modal, backdrop);
+    }
+  }) as EventListener);
+
+  // Change DM button
+  document.getElementById('roster-modal-change-dm-btn')?.addEventListener('click', () => {
+    if (!currentCampaignId) return;
+    const users = userStore.getUsers();
+    const userNames = users.map((u, i) => `${i + 1}. ${u.name} [${u.id}]`).join('\n');
+    const choice = prompt(`Elige el nuevo Dungeon Master ingresando el número:\n${userNames}`);
+    if (!choice) return;
+    const idx = parseInt(choice) - 1;
+    if (idx >= 0 && idx < users.length) {
+      const selectedUser = users[idx];
+      campaignStore.setCampaignDm(currentCampaignId, selectedUser.id);
+      renderRoster(currentCampaignId);
+      alert(`¡${selectedUser.name} ha sido asignado como el nuevo Dungeon Master de esta campaña!`);
+      window.dispatchEvent(new CustomEvent('campaigns-updated'));
+    }
+  });
+
+  const closeMe = () => {
+    if (modal && backdrop) closeModal(modal, backdrop);
+  };
+
+  closeBtn?.addEventListener('click', closeMe);
+  closeBottomBtn?.addEventListener('click', closeMe);
+
+  deleteCampaignBtn?.addEventListener('click', () => {
+    if (!currentCampaignId) return;
+    const camp = campaignStore.getCampaign(currentCampaignId);
+    if (!camp) return;
+    if (!confirm(`⚠️ ACCIÓN DESTRUCTIVA ⚠️\n\n¿Estás seguro de cerrar y eliminar la campaña "${camp.name}"?\n\n• Todos los personajes de los jugadores se convertirán en personajes independientes autónomos.\n• No se perderán puntos de golpe, inventario, conjuros ni notas.\n• Esta acción no se puede deshacer.`)) return;
+    try {
+      campaignStore.deleteCampaign(currentCampaignId);
+      closeMe();
+      window.dispatchEvent(new CustomEvent('campaigns-updated'));
+      alert(`La campaña "${camp.name}" ha sido cerrada. Todos los personajes ahora son independientes.`);
+    } catch (err: any) {
+      alert(`Error al eliminar campaña: ${err?.message || err}`);
+    }
+  });
+
+  copyBtn?.addEventListener('click', () => {
+    closeMe();
+    if (currentCampaignId) {
+      window.dispatchEvent(new CustomEvent('open-clone-character-modal', {
+        detail: { targetCampaignId: currentCampaignId }
+      }));
+    }
+  });
+</script>

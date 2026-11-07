@@ -1,0 +1,390 @@
+---
+// src/components/modals/MilestoneCelebrationModal.astro
+---
+
+<div
+  id="milestone-celebration-modal"
+  class="hidden fixed inset-0 z-[60] flex items-center justify-center p-4 sm:p-6 overflow-y-auto"
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="milestone-title"
+>
+  <!-- Atmospheric backdrop with golden radial vignette -->
+  <div
+    id="milestone-backdrop"
+    class="fixed inset-0 bg-[#06080c]/85 backdrop-blur-md transition-opacity duration-300"
+  ></div>
+
+  <!-- Celebratory floating particles canvas / container -->
+  <div id="milestone-particles" class="fixed inset-0 pointer-events-none z-[61] overflow-hidden"></div>
+
+  <!-- Modal card -->
+  <div
+    class="relative z-[62] w-full max-w-lg rounded-2xl bg-gradient-to-b from-[#161c27] via-[#121721] to-[#0d1118] border border-amber-500/40 shadow-[0_0_50px_rgba(245,158,11,0.25),0_25px_60px_rgba(0,0,0,0.95)] overflow-hidden flex flex-col items-center p-6 sm:p-8 text-center"
+  >
+    <!-- Background atmospheric glow -->
+    <div class="absolute -top-24 left-1/2 -translate-x-1/2 w-80 h-80 rounded-full bg-amber-500/15 blur-3xl pointer-events-none"></div>
+    <div class="absolute -bottom-24 left-1/2 -translate-x-1/2 w-64 h-64 rounded-full bg-rose-500/10 blur-3xl pointer-events-none"></div>
+
+    <!-- Close icon top-right -->
+    <button
+      id="milestone-close-x-btn"
+      class="absolute top-4 right-4 w-8 h-8 rounded-lg bg-[#10141d]/80 border border-[#222f42] hover:border-amber-500/50 text-[#94a3b8] hover:text-[#f1f5f9] flex items-center justify-center transition-colors cursor-pointer"
+      title="Cerrar celebración"
+      aria-label="Cerrar"
+    >
+      <span class="material-symbols-outlined text-[18px]">close</span>
+    </button>
+
+    <!-- Subtitle chip above ribbon -->
+    <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-300 text-[11px] font-bold tracking-wider uppercase mb-3 shadow-[0_0_12px_rgba(245,158,11,0.2)]">
+      <span class="material-symbols-outlined text-[15px]" id="milestone-header-icon">military_tech</span>
+      <span id="milestone-subtitle-text">Hito de Campaña Conseguido</span>
+    </div>
+
+    <!-- HERALDIC RIBBON BANNER (Styled directly from user reference) -->
+    <div class="relative w-full max-w-[420px] h-[85px] sm:h-[98px] my-2 select-none" id="milestone-ribbon-wrapper">
+      <svg
+        viewBox="0 0 540 115"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        class="w-full h-full drop-shadow-[0_8px_20px_rgba(0,0,0,0.7)]"
+      >
+        <defs>
+          <!-- Golden gradient for ribbon borders -->
+          <linearGradient id="goldStroke" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#fef08a" />
+            <stop offset="50%" stop-color="#f59e0b" />
+            <stop offset="100%" stop-color="#b45309" />
+          </linearGradient>
+
+          <!-- Rich dark-gold gilded background for ribbon body -->
+          <linearGradient id="ribbonBodyGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="#2a2013" />
+            <stop offset="50%" stop-color="#1c160e" />
+            <stop offset="100%" stop-color="#140f09" />
+          </linearGradient>
+
+          <!-- Fold shadow gradient -->
+          <linearGradient id="foldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#0f0c08" />
+            <stop offset="100%" stop-color="#050402" />
+          </linearGradient>
+
+          <!-- Side wings darker gradient -->
+          <linearGradient id="wingGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="#1f180e" />
+            <stop offset="100%" stop-color="#120e08" />
+          </linearGradient>
+        </defs>
+
+        <!-- 1. LEFT REAR WING (swallowtail cut, positioned more inward) -->
+        <path
+          d="M 125 42 L 55 42 L 80 69 L 55 96 L 125 96 Z"
+          fill="url(#wingGrad)"
+          stroke="url(#goldStroke)"
+          stroke-width="3"
+          stroke-linejoin="round"
+        />
+
+        <!-- 2. RIGHT REAR WING (swallowtail cut, positioned more inward) -->
+        <path
+          d="M 415 42 L 485 42 L 460 69 L 485 96 L 415 96 Z"
+          fill="url(#wingGrad)"
+          stroke="url(#goldStroke)"
+          stroke-width="3"
+          stroke-linejoin="round"
+        />
+
+        <!-- 3. LEFT FOLD TRIANGLE (Inverted: unites body corner at 95,82 with inner wing corner at 125,96) -->
+        <path
+          d="M 95 82 L 125 96 L 125 82 Z"
+          fill="url(#foldGrad)"
+          stroke="url(#goldStroke)"
+          stroke-width="2.5"
+          stroke-linejoin="round"
+        />
+
+        <!-- 4. RIGHT FOLD TRIANGLE (Inverted: unites body corner at 445,82 with inner wing corner at 415,96) -->
+        <path
+          d="M 445 82 L 415 96 L 415 82 Z"
+          fill="url(#foldGrad)"
+          stroke="url(#goldStroke)"
+          stroke-width="2.5"
+          stroke-linejoin="round"
+        />
+
+        <!-- 5. CENTRAL FRONT BANNER BODY -->
+        <rect
+          x="95"
+          y="16"
+          width="350"
+          height="66"
+          rx="2"
+          fill="url(#ribbonBodyGrad)"
+          stroke="url(#goldStroke)"
+          stroke-width="3.5"
+          stroke-linejoin="round"
+        />
+
+        <!-- Inner decorative thin golden border -->
+        <rect
+          x="100"
+          y="21"
+          width="340"
+          height="56"
+          rx="1"
+          fill="none"
+          stroke="#f59e0b"
+          stroke-opacity="0.4"
+          stroke-width="1.2"
+        />
+
+        <!-- Corner decorative rivets -->
+        <circle cx="105" cy="26" r="2" fill="#fbbf24" />
+        <circle cx="435" cy="26" r="2" fill="#fbbf24" />
+        <circle cx="105" cy="72" r="2" fill="#fbbf24" />
+        <circle cx="435" cy="72" r="2" fill="#fbbf24" />
+      </svg>
+
+      <!-- TEXT INSIDE THE RIBBON (Centered inside front banner) -->
+      <div class="absolute left-[18%] top-[14%] w-[64%] h-[57%] flex items-center justify-center pointer-events-none px-2 overflow-hidden">
+        <span
+          id="milestone-ribbon-text"
+          class="font-headline font-bold text-sm sm:text-lg text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-amber-300 to-amber-100 tracking-[0.12em] uppercase drop-shadow-[0_2px_8px_rgba(245,158,11,0.6)] leading-none text-center whitespace-nowrap"
+        >
+          ¡FELICIDADES!
+        </span>
+      </div>
+    </div>
+
+    <!-- DETAILS BELOW THE RIBBON ("EL PORQUÉ DEBAJO") -->
+    <div class="w-full mt-2 space-y-3 font-body">
+      <!-- Milestone Title -->
+      <h3
+        id="milestone-title-text"
+        class="text-xl sm:text-2xl font-headline font-bold text-[#f8fafc] leading-tight drop-shadow-sm px-2"
+      >
+        ¡Has alcanzado el Nivel 6!
+      </h3>
+
+      <!-- Milestone Description ("El porqué") -->
+      <p
+        id="milestone-reason-text"
+        class="text-xs sm:text-sm text-[#cbd5e1] leading-relaxed max-w-md mx-auto px-2"
+      >
+        Tu leyenda resuena a través de la niebla. Nuevas facultades, espacios de conjuro y mayores bonificadores han sido desbloqueados para tu personaje.
+      </p>
+
+      <!-- Session Context & Log Badge -->
+      <div class="flex items-center justify-center gap-2 flex-wrap pt-1 text-[11px] font-label text-[#94a3b8]">
+        <span class="px-2.5 py-1 rounded-md bg-[#18202e] border border-[#222f42] flex items-center gap-1">
+          <span class="material-symbols-outlined text-[13px] text-amber-400">history_edu</span>
+          <span id="milestone-session-tag">Registrado en Bitácora (#Hito)</span>
+        </span>
+      </div>
+    </div>
+
+    <!-- Action buttons -->
+    <div class="w-full pt-6 mt-4 border-t border-[#222f42]/70 flex flex-col sm:flex-row items-center justify-center gap-3">
+      <button
+        id="milestone-celebrate-btn"
+        class="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-gradient-to-r from-amber-600 via-amber-500 to-amber-600 hover:from-amber-500 hover:to-amber-400 text-[#0a0d12] font-headline font-bold text-sm shadow-[0_0_20px_rgba(245,158,11,0.4)] active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-2"
+      >
+        <span class="material-symbols-outlined text-[18px]">celebration</span>
+        <span>Celebrar y Continuar</span>
+      </button>
+
+      <button
+        id="milestone-view-journal-btn"
+        class="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-[#18202e] hover:bg-[#222f42] border border-[#222f42] hover:border-amber-500/40 text-[#cbd5e1] hover:text-[#f8fafc] font-label text-xs font-semibold active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-1.5"
+      >
+        <span class="material-symbols-outlined text-[16px] text-amber-400">menu_book</span>
+        <span>Ver en Bitácora</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+  import anime from 'animejs';
+  import type { MilestoneEventDetail } from '../../scripts/ui/congratulationBanner';
+
+  const modal = document.getElementById('milestone-celebration-modal');
+  const backdrop = document.getElementById('milestone-backdrop');
+  const card = modal?.querySelector('.relative.z-\\[62\\]') as HTMLElement;
+  const ribbonWrapper = document.getElementById('milestone-ribbon-wrapper');
+  const ribbonText = document.getElementById('milestone-ribbon-text');
+  const subtitleText = document.getElementById('milestone-subtitle-text');
+  const titleText = document.getElementById('milestone-title-text');
+  const reasonText = document.getElementById('milestone-reason-text');
+  const headerIcon = document.getElementById('milestone-header-icon');
+  const sessionTag = document.getElementById('milestone-session-tag');
+  const particlesContainer = document.getElementById('milestone-particles');
+
+  const closeXBtn = document.getElementById('milestone-close-x-btn');
+  const celebrateBtn = document.getElementById('milestone-celebrate-btn');
+  const viewJournalBtn = document.getElementById('milestone-view-journal-btn');
+
+  function triggerSparkleBurst() {
+    if (!particlesContainer) return;
+    particlesContainer.innerHTML = '';
+
+    const colors = ['#f59e0b', '#fbbf24', '#fef08a', '#ef4444', '#f97316', '#ffffff'];
+    const particleCount = 40;
+
+    for (let i = 0; i < particleCount; i++) {
+      const p = document.createElement('div');
+      const size = Math.floor(Math.random() * 8) + 4;
+      const isSquare = Math.random() > 0.5;
+      
+      p.className = 'absolute rounded-full pointer-events-none opacity-0';
+      if (isSquare) p.classList.remove('rounded-full');
+      p.style.width = `${size}px`;
+      p.style.height = `${size}px`;
+      p.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+      p.style.left = '50%';
+      p.style.top = '40%';
+      p.style.boxShadow = `0 0 10px ${p.style.backgroundColor}`;
+
+      particlesContainer.appendChild(p);
+
+      const angle = Math.random() * Math.PI * 2;
+      const distance = Math.random() * 260 + 80;
+      const destX = Math.cos(angle) * distance;
+      const destY = Math.sin(angle) * distance - 40;
+
+      anime({
+        targets: p,
+        translateX: [0, destX],
+        translateY: [0, destY],
+        scale: [0.2, 1.3, 0],
+        opacity: [1, 1, 0],
+        rotate: [0, Math.random() * 360],
+        duration: 1200 + Math.random() * 600,
+        easing: 'easeOutExpo',
+        delay: Math.random() * 100
+      });
+    }
+  }
+
+  function showMilestone(detail: MilestoneEventDetail) {
+    if (!modal || !card) return;
+
+    // 1. Populate text & options
+    if (ribbonText) {
+      const bText = detail.options?.bannerText || '¡FELICIDADES!';
+      ribbonText.textContent = bText;
+
+      // Dynamically scale font size & tracking so phrases like "¡GLORIA ETERNA!" always fit in 1 line
+      if (bText.length > 15) {
+        ribbonText.className = 'font-headline font-bold text-[11px] sm:text-sm text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-amber-300 to-amber-100 tracking-[0.08em] uppercase drop-shadow-[0_2px_8px_rgba(245,158,11,0.6)] leading-none text-center whitespace-nowrap';
+      } else if (bText.length > 11) {
+        ribbonText.className = 'font-headline font-bold text-xs sm:text-base text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-amber-300 to-amber-100 tracking-[0.09em] uppercase drop-shadow-[0_2px_8px_rgba(245,158,11,0.6)] leading-none text-center whitespace-nowrap';
+      } else {
+        ribbonText.className = 'font-headline font-bold text-sm sm:text-lg text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-amber-300 to-amber-100 tracking-[0.12em] uppercase drop-shadow-[0_2px_8px_rgba(245,158,11,0.6)] leading-none text-center whitespace-nowrap';
+      }
+    }
+    if (titleText) {
+      titleText.textContent = detail.texto;
+    }
+    if (reasonText) {
+      reasonText.textContent = detail.desc;
+    }
+    if (subtitleText) {
+      subtitleText.textContent = detail.options?.subtitle || 'Hito de Campaña Conseguido';
+    }
+    if (headerIcon && detail.options?.icon) {
+      headerIcon.textContent = detail.options.icon;
+    }
+    if (sessionTag && detail.options?.sessionNumber) {
+      sessionTag.textContent = `Sesión ${detail.options.sessionNumber} • Registrado en Bitácora (#Hito)`;
+    }
+
+    // 2. Reveal modal
+    modal.classList.remove('hidden');
+
+    // 3. Animate card and ribbon entry
+    anime({
+      targets: backdrop,
+      opacity: [0, 1],
+      duration: 350,
+      easing: 'linear'
+    });
+
+    anime({
+      targets: card,
+      scale: [0.75, 1],
+      opacity: [0, 1],
+      translateY: [40, 0],
+      duration: 500,
+      easing: 'easeOutBack'
+    });
+
+    // Animate ribbon flourish
+    if (ribbonWrapper) {
+      anime({
+        targets: ribbonWrapper,
+        scale: [0.6, 1.05, 1],
+        rotate: [-3, 2, 0],
+        duration: 700,
+        delay: 150,
+        easing: 'easeOutElastic(1, .6)'
+      });
+    }
+
+    // Trigger golden sparkles
+    triggerSparkleBurst();
+  }
+
+  function hideMilestone(onDone?: () => void) {
+    if (!modal || !card) return;
+
+    anime({
+      targets: card,
+      scale: [1, 0.85],
+      opacity: [1, 0],
+      duration: 250,
+      easing: 'easeInQuad'
+    });
+
+    anime({
+      targets: backdrop,
+      opacity: [1, 0],
+      duration: 250,
+      easing: 'linear',
+      complete: () => {
+        modal.classList.add('hidden');
+        if (particlesContainer) particlesContainer.innerHTML = '';
+        if (onDone) onDone();
+      }
+    });
+  }
+
+  // Listen to the global event
+  window.addEventListener('show-milestone-alert', ((e: CustomEvent<MilestoneEventDetail>) => {
+    showMilestone(e.detail);
+  }) as EventListener);
+
+  // Close handlers
+  closeXBtn?.addEventListener('click', () => hideMilestone());
+  celebrateBtn?.addEventListener('click', () => hideMilestone());
+  backdrop?.addEventListener('click', () => hideMilestone());
+
+  // View journal handler
+  viewJournalBtn?.addEventListener('click', () => {
+    hideMilestone(() => {
+      // Find journal section or tab
+      const journalSection = document.getElementById('section-journal');
+      if (journalSection) {
+        journalSection.scrollIntoView({ behavior: 'smooth' });
+      }
+
+      // Filter by #Hito in journal
+      const hitoBtn = document.querySelector('[data-filter="#Hito"]') as HTMLButtonElement;
+      if (hitoBtn) {
+        hitoBtn.click();
+      }
+    });
+  });
+</script>

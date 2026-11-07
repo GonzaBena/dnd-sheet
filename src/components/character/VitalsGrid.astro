@@ -1,0 +1,219 @@
+---
+// src/components/character/VitalsGrid.astro
+---
+
+<div class="xl:col-span-8 grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3 flex flex-col">
+  <!-- Top Full-Width Hit Points Panel -->
+  <div class="w-full rounded-xl bg-[#18202e] border border-[#222f42] p-4 shadow-sm flex flex-col gap-3">
+    <div class="flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center gap-2">
+        <span class="material-symbols-outlined text-rose-500 text-[22px] drop-shadow-[0_0_6px_rgba(239,68,68,0.6)]">favorite</span>
+        <div>
+          <span class="text-xs font-bold uppercase tracking-wider text-[#94a3b8] block leading-none">Puntos de Golpe</span>
+          <span class="text-[11px] font-label text-[#64748b]">Estado del aventurero</span>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <!-- Direct editable HP values -->
+        <div class="text-right flex items-baseline gap-1.5 cursor-pointer hover:opacity-80 transition-opacity" id="hp-clickable-area" title="Haz clic para modificar tus PG manualmente">
+          <span id="current-hp-num" class="text-2xl font-headline font-bold text-[#f1f5f9]">42</span>
+          <span class="text-xs font-label text-[#64748b]">/ <span id="max-hp-num">48</span> PG</span>
+          <span id="temp-hp-badge" class="text-xs font-bold text-amber-300 bg-amber-500/20 border border-amber-500/40 px-2 py-0.5 rounded shadow-[0_0_8px_rgba(245,158,11,0.2)]">+5 Temp</span>
+        </div>
+
+        <!-- Quick heal/damage controls -->
+        <div class="flex items-center gap-1 pl-2 border-l border-[#222f42]">
+          <button id="hp-sub-5" class="w-7 h-7 rounded-lg bg-[#121721] border border-[#222f42] hover:border-rose-500/50 flex items-center justify-center text-xs font-bold text-rose-400 active:scale-90 transition-all cursor-pointer" title="Recibir 5 de daño">-5</button>
+          <button id="hp-sub-1" class="w-7 h-7 rounded-lg bg-[#121721] border border-[#222f42] hover:border-rose-500/50 flex items-center justify-center text-xs font-bold text-rose-400 active:scale-90 transition-all cursor-pointer" title="Recibir 1 de daño">-1</button>
+          <button id="hp-add-1" class="w-7 h-7 rounded-lg bg-[#121721] border border-[#222f42] hover:border-amber-500/50 flex items-center justify-center text-xs font-bold text-amber-400 active:scale-90 transition-all cursor-pointer" title="Curar 1 PG">+1</button>
+          <button id="hp-add-5" class="w-7 h-7 rounded-lg bg-[#121721] border border-[#222f42] hover:border-amber-500/50 flex items-center justify-center text-xs font-bold text-amber-400 active:scale-90 transition-all cursor-pointer" title="Curar 5 PG">+5</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Health Progress Meter and Status -->
+    <div class="flex items-center gap-3">
+      <div class="flex-1 bg-[#0a0d12] h-3.5 rounded-full overflow-hidden flex border border-[#222f42]">
+        <div id="hp-progress-bar" class="bg-gradient-to-r from-rose-600 via-amber-600 to-amber-500 h-full transition-all duration-300 rounded-l-full shadow-[0_0_10px_rgba(245,158,11,0.5)]" style="width: 87.5%"></div>
+        <div id="hp-temp-bar" class="bg-amber-400/80 h-full transition-all duration-300 rounded-r-full" style="width: 10.4%"></div>
+      </div>
+      <span id="hp-percentage-label" class="text-xs font-label font-bold text-amber-400 shrink-0">87% Salud</span>
+    </div>
+  </div>
+
+  <!-- 4 Combat Vitals Cards Grid -->
+  <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 w-full">
+    <!-- Armor Class -->
+    <div class="rounded-xl bg-[#18202e] border border-[#222f42] p-3 flex flex-col items-center justify-center text-center shadow-sm hover:border-amber-500/40 transition-colors">
+      <span class="material-symbols-outlined text-amber-400 text-[22px] mb-1 drop-shadow-[0_0_6px_rgba(245,158,11,0.5)]">shield</span>
+      <span id="vitals-ac-num" class="text-2xl font-headline font-bold text-[#f1f5f9] leading-none">16</span>
+      <span class="text-[11px] uppercase tracking-wider font-label font-bold text-[#94a3b8] mt-1">Clase Armadura</span>
+      <span id="vitals-ac-note" class="text-[10px] text-amber-400/90 font-label mt-0.5 truncate">Cuero tach. + Escudo</span>
+    </div>
+
+    <!-- Initiative -->
+    <div class="rounded-xl bg-[#18202e] border border-[#222f42] p-3 flex flex-col items-center justify-center text-center shadow-sm hover:border-amber-500/40 transition-colors cursor-pointer group" id="vitals-init-card" title="Haz clic para tirar Iniciativa">
+      <span class="material-symbols-outlined text-amber-500 text-[22px] mb-1 drop-shadow-[0_0_6px_rgba(245,158,11,0.5)]">bolt</span>
+      <span id="vitals-init-num" class="text-2xl font-headline font-bold text-amber-400 leading-none group-hover:scale-110 transition-transform">+3</span>
+      <span class="text-[11px] uppercase tracking-wider font-label font-bold text-[#94a3b8] mt-1">Iniciativa</span>
+      <span class="text-[10px] text-[#64748b] font-label mt-0.5">DEX +3</span>
+    </div>
+
+    <!-- Speed -->
+    <div class="rounded-xl bg-[#18202e] border border-[#222f42] p-3 flex flex-col items-center justify-center text-center shadow-sm hover:border-amber-500/40 transition-colors">
+      <span class="material-symbols-outlined text-[#94a3b8] text-[22px] mb-1">directions_run</span>
+      <span class="text-2xl font-headline font-bold text-[#f1f5f9] leading-none"><span id="vitals-speed-num">30</span><span class="text-xs font-normal text-[#94a3b8]"> ft</span></span>
+      <span class="text-[11px] uppercase tracking-wider font-label font-bold text-[#94a3b8] mt-1">Velocidad</span>
+      <span id="vitals-speed-note" class="text-[10px] text-[#64748b] font-label mt-0.5">6 casillas</span>
+    </div>
+
+    <!-- Hit Dice & Rest Mechanics -->
+    <div class="rounded-xl bg-[#18202e] border border-[#222f42] p-3 flex flex-col justify-between shadow-sm hover:border-amber-500/40 transition-colors">
+      <div class="flex items-center justify-between">
+        <span class="text-[11px] font-bold uppercase tracking-wider text-[#94a3b8]">Dados de Golpe</span>
+        <span class="material-symbols-outlined text-[16px] text-amber-500">sports_kabaddi</span>
+      </div>
+      <div class="my-1 text-center sm:text-left">
+        <span id="vitals-hitdice-display" class="text-xl font-headline font-bold text-[#f1f5f9]">5 / 5</span>
+        <span id="vitals-hitdice-type" class="text-xs font-label text-amber-400 font-semibold ml-1">d10</span>
+      </div>
+      <div class="flex gap-1">
+        <button id="rest-short-btn" class="flex-1 py-1 rounded bg-[#121721] border border-[#222f42] hover:bg-[#222f42] text-[10px] font-bold text-[#cbd5e1] transition-colors cursor-pointer">Corto</button>
+        <button id="rest-long-btn" class="flex-1 py-1 rounded bg-amber-500/20 border border-amber-500/40 hover:bg-amber-500/30 text-[10px] font-bold text-amber-300 transition-colors cursor-pointer">Largo</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  import { characterStore } from '../../scripts/state/characterStore';
+  import { animateHpBar } from '../../scripts/animations/hpAnimations';
+  import { openModal } from '../../scripts/animations/modalAnimations';
+
+  const barEl = document.getElementById('hp-progress-bar');
+  const tempBarEl = document.getElementById('hp-temp-bar');
+  const numEl = document.getElementById('current-hp-num');
+  const maxEl = document.getElementById('max-hp-num');
+  const tempBadgeEl = document.getElementById('temp-hp-badge');
+  const pctLabel = document.getElementById('hp-percentage-label');
+
+  function updateHpUi(char: any) {
+    if (!barEl || !numEl || !maxEl || !pctLabel) return;
+    const current = char.hp.current;
+    const max = char.hp.max;
+    const temp = char.hp.temp || 0;
+
+    numEl.textContent = String(current);
+    maxEl.textContent = String(max);
+
+    if (tempBadgeEl) {
+      if (temp > 0) {
+        tempBadgeEl.textContent = `+${temp} Temp`;
+        tempBadgeEl.style.display = 'inline-block';
+      } else {
+        tempBadgeEl.style.display = 'none';
+      }
+    }
+
+    const pct = Math.max(0, Math.min(100, Math.round((current / max) * 100)));
+    pctLabel.textContent = `${pct}% Salud`;
+    barEl.style.width = `${pct}%`;
+
+    if (tempBarEl) {
+      const tempPct = Math.min(100 - pct, Math.round((temp / max) * 100));
+      tempBarEl.style.width = `${tempPct}%`;
+    }
+  }
+
+  // Quick modify buttons with smooth Anime.js
+  document.getElementById('hp-sub-5')?.addEventListener('click', () => {
+    const old = characterStore.get().hp.current;
+    const res = characterStore.modifyHp(-5);
+    if (barEl && numEl) animateHpBar(barEl, numEl, old, res.current, res.max);
+  });
+  document.getElementById('hp-sub-1')?.addEventListener('click', () => {
+    const old = characterStore.get().hp.current;
+    const res = characterStore.modifyHp(-1);
+    if (barEl && numEl) animateHpBar(barEl, numEl, old, res.current, res.max);
+  });
+  document.getElementById('hp-add-1')?.addEventListener('click', () => {
+    const old = characterStore.get().hp.current;
+    const res = characterStore.modifyHp(1);
+    if (barEl && numEl) animateHpBar(barEl, numEl, old, res.current, res.max);
+  });
+  document.getElementById('hp-add-5')?.addEventListener('click', () => {
+    const old = characterStore.get().hp.current;
+    const res = characterStore.modifyHp(5);
+    if (barEl && numEl) animateHpBar(barEl, numEl, old, res.current, res.max);
+  });
+
+  // Manual HP edit
+  document.getElementById('hp-clickable-area')?.addEventListener('click', () => {
+    const char = characterStore.get();
+    const cur = prompt('Puntos de Golpe actuales:', String(char.hp.current));
+    if (cur !== null) {
+      const max = prompt('Puntos de Golpe máximos:', String(char.hp.max));
+      const temp = prompt('Puntos de Golpe temporales:', String(char.hp.temp));
+      characterStore.setHp(Number(cur) || 0, Number(max) || char.hp.max, Number(temp) || 0);
+    }
+  });
+
+  // Initiative click to roll
+  document.getElementById('vitals-init-card')?.addEventListener('click', () => {
+    window.dispatchEvent(new CustomEvent('open-dice-roller', {
+      detail: {
+        die: 20,
+        count: 1,
+        modifier: characterStore.get().initiativeBonus,
+        label: 'Tirada de Iniciativa',
+        tag: '#Combate'
+      }
+    }));
+  });
+
+  // Short and Long rest triggers
+  document.getElementById('rest-short-btn')?.addEventListener('click', () => {
+    const char = characterStore.get();
+    if (char.hitDice.remaining <= 0) {
+      alert('No te quedan Dados de Golpe disponibles para gastar. Necesitas un Descanso Largo.');
+      return;
+    }
+    const res = characterStore.shortRest(1);
+    alert(`¡Descanso Corto completado! Has gastado 1 Dado de Golpe y recuperado +${res.healed} PG.`);
+  });
+
+  document.getElementById('rest-long-btn')?.addEventListener('click', () => {
+    if (confirm('¿Completar Descanso Largo? Restaura todos tus PG al 100%, espacios de conjuro y recupera dados de golpe.')) {
+      characterStore.longRest();
+      alert(`¡Descanso Largo completado! Tus PG están al máximo (${characterStore.get().hp.max}/${characterStore.get().hp.max}) y tus recursos al 100%.`);
+    }
+  });
+
+  function renderVitals(char: any) {
+    if (!char) return;
+    updateHpUi(char);
+
+    const acEl = document.getElementById('vitals-ac-num');
+    const acNoteEl = document.getElementById('vitals-ac-note');
+    const initEl = document.getElementById('vitals-init-num');
+    const speedEl = document.getElementById('vitals-speed-num');
+    const hdDispEl = document.getElementById('vitals-hitdice-display');
+    const hdTypeEl = document.getElementById('vitals-hitdice-type');
+
+    if (acEl) acEl.textContent = String(char.armorClass);
+    if (acNoteEl) acNoteEl.textContent = char.armorNote;
+    if (initEl) initEl.textContent = `${char.initiativeBonus >= 0 ? '+' : ''}${char.initiativeBonus}`;
+    if (speedEl) speedEl.textContent = String(char.speedFt);
+    if (hdDispEl) hdDispEl.textContent = `${char.hitDice.remaining} / ${char.hitDice.total}`;
+    if (hdTypeEl) hdTypeEl.textContent = char.hitDice.die;
+  }
+
+  // Hydrate immediately
+  renderVitals(characterStore.get());
+
+  // Sync with store updates
+  window.addEventListener('character-updated', ((e: CustomEvent) => {
+    renderVitals(e.detail.character);
+  }) as EventListener);
+</script>

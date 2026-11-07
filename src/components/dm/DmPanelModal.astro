@@ -1,0 +1,389 @@
+---
+// src/components/dm/DmPanelModal.astro
+---
+
+<div id="dm-panel-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4">
+  <div class="modal-content w-full max-w-5xl rounded-2xl bg-[#0f141d] border border-amber-500/50 shadow-[0_25px_70px_rgba(0,0,0,0.98)] overflow-hidden flex flex-col max-h-[92vh]">
+    <!-- DM Top Banner & Navigation -->
+    <div class="p-4 sm:p-5 bg-gradient-to-r from-[#18202e] via-[#20293d] to-[#18202e] border-b border-[#222f42] flex flex-wrap items-center justify-between gap-3 shrink-0">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-amber-700 text-[#0a0d12] flex items-center justify-center font-bold shadow-[0_0_15px_rgba(245,158,11,0.5)] border border-amber-400">
+          <span class="material-symbols-outlined text-[24px]">shield_with_heart</span>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[10px] font-bold uppercase tracking-wider flex items-center gap-1">
+              <span>👑</span>
+              <span>Pantalla del Dungeon Master</span>
+            </span>
+            <span id="dm-campaign-status-badge" class="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-[10px] font-bold">En Vivo</span>
+          </div>
+          <h2 id="dm-panel-campaign-title" class="font-headline font-bold text-lg text-[#f1f5f9] leading-tight">Maldición de Strahd</h2>
+        </div>
+      </div>
+
+      <!-- Quick Session Controls -->
+      <div class="flex items-center gap-2">
+        <div class="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[#10141d] border border-[#222f42] text-xs font-label text-[#94a3b8]">
+          <span class="material-symbols-outlined text-[16px] text-amber-500">wb_twilight</span>
+          <span id="dm-panel-weather-text">Niebla Espesa</span>
+          <span>•</span>
+          <span id="dm-panel-location-text">Valle de Barovia</span>
+        </div>
+
+        <button
+          id="dm-panel-close-btn"
+          class="w-8 h-8 rounded-xl bg-[#10141d] border border-[#222f42] hover:border-rose-500/50 text-[#94a3b8] hover:text-rose-400 flex items-center justify-center transition-colors cursor-pointer"
+          aria-label="Cerrar pantalla DM"
+        >
+          <span class="material-symbols-outlined text-[18px]">close</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- DM Actions Toolbar (Dice, Milestones, Inspiration, Resting) -->
+    <div class="p-3 bg-[#141b27] border-b border-[#222f42] flex flex-wrap items-center justify-between gap-2.5 shrink-0 text-xs font-label">
+      <!-- DM Dice Rollers -->
+      <div class="flex items-center gap-1.5 flex-wrap">
+        <span class="text-[10px] font-bold uppercase text-amber-500 tracking-wider mr-1 flex items-center gap-1">
+          <span class="material-symbols-outlined text-[14px]">casino</span>
+          <span>Dados DM:</span>
+        </span>
+        <button type="button" class="dm-quick-dice-btn px-2.5 py-1 rounded-lg bg-[#18202e] border border-amber-500/30 hover:border-amber-400 text-amber-300 font-bold active:scale-95 transition-all cursor-pointer" data-dice="1d20">d20</button>
+        <button type="button" class="dm-quick-dice-btn px-2.5 py-1 rounded-lg bg-[#18202e] border border-[#222f42] hover:border-amber-400 text-[#cbd5e1] font-bold active:scale-95 transition-all cursor-pointer" data-dice="1d100">d100</button>
+        <button type="button" class="dm-quick-dice-btn px-2.5 py-1 rounded-lg bg-[#18202e] border border-[#222f42] hover:border-amber-400 text-[#cbd5e1] font-bold active:scale-95 transition-all cursor-pointer" data-dice="2d6">2d6</button>
+        <button type="button" class="dm-quick-dice-btn px-2.5 py-1 rounded-lg bg-[#18202e] border border-[#222f42] hover:border-amber-400 text-[#cbd5e1] font-bold active:scale-95 transition-all cursor-pointer" data-dice="1d12">1d12</button>
+        <button type="button" class="dm-quick-dice-btn px-2.5 py-1 rounded-lg bg-[#18202e] border border-[#222f42] hover:border-amber-400 text-[#cbd5e1] font-bold active:scale-95 transition-all cursor-pointer" data-dice="1d8">1d8</button>
+        
+        <label class="flex items-center gap-1.5 ml-2 cursor-pointer text-[#94a3b8] hover:text-[#f1f5f9] select-none text-[11px]">
+          <input type="checkbox" id="dm-secret-roll-check" class="rounded bg-[#10141d] border-[#222f42] text-amber-500 focus:ring-amber-500/40" />
+          <span>Tirada Oculta (Solo DM)</span>
+        </label>
+      </div>
+
+      <!-- Heroic Actions -->
+      <div class="flex items-center gap-2">
+        <button
+          type="button"
+          id="dm-launch-milestone-btn"
+          class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-[#0a0d12] font-bold shadow-[0_0_12px_rgba(245,158,11,0.3)] active:scale-95 transition-all cursor-pointer"
+        >
+          <span class="material-symbols-outlined text-[16px]">celebration</span>
+          <span>¡Lanzar Hito / Logro Épico!</span>
+        </button>
+
+        <button
+          type="button"
+          id="dm-group-rest-btn"
+          class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-[#18202e] border border-[#222f42] hover:border-amber-500/50 text-[#cbd5e1] hover:text-amber-300 transition-colors cursor-pointer"
+          title="Otorgar descanso corto a todos los aventureros"
+        >
+          <span class="material-symbols-outlined text-[16px] text-amber-400">bedtime</span>
+          <span class="hidden sm:inline">Descanso Grupo</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Live Players Grid (Main workspace) -->
+    <div class="p-4 sm:p-6 overflow-y-auto space-y-4 custom-scrollbar">
+      <div class="flex items-center justify-between">
+        <h3 class="font-headline font-bold text-sm text-[#f1f5f9] flex items-center gap-2">
+          <span class="material-symbols-outlined text-[18px] text-amber-500">groups</span>
+          <span>Aventureros en la Mesa</span>
+          <span id="dm-player-count-chip" class="text-xs px-2 py-0.5 rounded-full bg-[#18202e] border border-[#222f42] text-[#94a3b8]">3</span>
+        </h3>
+        <span class="text-[11px] text-[#64748b]">Sincronización en tiempo real activa</span>
+      </div>
+
+      <!-- Character Cards Grid -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="dm-players-grid">
+        <!-- Populated via JavaScript -->
+      </div>
+    </div>
+
+    <!-- DM Footer Note / Quick log -->
+    <div class="p-3 bg-[#141b27] border-t border-[#222f42] flex items-center justify-between gap-3 text-xs font-label">
+      <div class="flex items-center gap-2 min-w-0">
+        <span class="material-symbols-outlined text-[16px] text-amber-400">visibility</span>
+        <span class="text-[#94a3b8] truncate">Vista exclusiva para el Dungeon Master. Los cambios de PG e Inspiración se notifican a la mesa.</span>
+      </div>
+      <button
+        type="button"
+        id="dm-panel-done-btn"
+        class="px-4 py-1.5 rounded-lg bg-[#222f42] hover:bg-[#2e405a] text-[#f1f5f9] font-medium transition-colors cursor-pointer shrink-0"
+      >
+        Cerrar Panel
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+  import { campaignStore } from '../../scripts/state/campaignStore';
+  import { characterStore } from '../../scripts/state/characterStore';
+  import { journalStore } from '../../scripts/state/journalStore';
+  import { userStore } from '../../scripts/state/userStore';
+  import { congratulationBanner } from '../../scripts/ui/congratulationBanner';
+  import { openModal, closeModal } from '../../scripts/animations/modalAnimations';
+
+  const modal = document.getElementById('dm-panel-modal');
+  const backdrop = document.getElementById('modal-backdrop');
+  const closeBtn = document.getElementById('dm-panel-close-btn');
+  const doneBtn = document.getElementById('dm-panel-done-btn');
+  const gridContainer = document.getElementById('dm-players-grid');
+  const titleEl = document.getElementById('dm-panel-campaign-title');
+  const weatherEl = document.getElementById('dm-panel-weather-text');
+  const locEl = document.getElementById('dm-panel-location-text');
+  const countChip = document.getElementById('dm-player-count-chip');
+  const secretCheck = document.getElementById('dm-secret-roll-check') as HTMLInputElement;
+
+  let activeDmCampaignId: string | null = null;
+
+  function renderDmPanel(campaignId: string) {
+    activeDmCampaignId = campaignId;
+    const campaign = campaignStore.getCampaign(campaignId);
+    if (!campaign || !gridContainer) return;
+
+    if (titleEl) titleEl.textContent = `Campaña: ${campaign.name}`;
+    if (weatherEl) weatherEl.textContent = campaign.weather;
+    if (locEl) locEl.textContent = campaign.location;
+
+    const chars = campaignStore.getCharactersForCampaign(campaignId);
+    if (countChip) countChip.textContent = `${chars.length} Aventureros`;
+
+    gridContainer.innerHTML = '';
+
+    if (chars.length === 0) {
+      gridContainer.innerHTML = `
+        <div class="col-span-full py-12 text-center text-xs text-[#64748b]">
+          No hay aventureros en esta campaña aún. Añade o copia personajes desde la pantalla de campañas.
+        </div>
+      `;
+      return;
+    }
+
+    chars.forEach(char => {
+      const card = document.createElement('div');
+      const hpPercent = Math.max(0, Math.min(100, Math.round((char.hp.current / char.hp.max) * 100)));
+      let hpColor = 'bg-emerald-500';
+      if (hpPercent <= 25) hpColor = 'bg-rose-500';
+      else if (hpPercent <= 50) hpColor = 'bg-amber-500';
+
+      card.className = 'p-4 rounded-xl bg-[#18202e] border border-[#222f42] hover:border-amber-500/40 transition-all flex flex-col justify-between gap-3 text-xs font-label shadow-sm';
+
+      const passivePerception = 10 + (char.stats?.wis?.modifier || 2) + (char.proficiencyBonus || 3);
+
+      card.innerHTML = `
+        <div>
+          <!-- Top Row: Avatar & Identity -->
+          <div class="flex items-center gap-3 mb-2.5">
+            <div class="relative w-12 h-12 rounded-xl overflow-hidden shrink-0 border border-amber-500/30 shadow-md bg-[#10141d]">
+              <img src="${char.avatarUrl || 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=400&q=80'}" alt="${char.name}" class="w-full h-full object-cover" />
+            </div>
+            <div class="min-w-0">
+              <h4 class="font-headline font-bold text-sm text-[#f1f5f9] truncate">${char.name}</h4>
+              <div class="text-[11px] text-[#94a3b8] truncate">
+                <span class="text-[#cbd5e1] font-semibold">${char.race}</span> •
+                <span class="text-amber-400 font-bold">${char.className} Nvl. ${char.level}</span>
+              </div>
+              <span class="text-[10px] text-[#64748b]">Jugador: <strong class="text-[#cbd5e1]">${char.playerName || 'Jugador'}</strong></span>
+            </div>
+          </div>
+
+          <!-- Vitals: HP bar with quick adjustments -->
+          <div class="p-2.5 rounded-lg bg-[#10141d] border border-[#222f42] space-y-1.5 mb-2.5">
+            <div class="flex items-center justify-between">
+              <span class="text-[10px] uppercase font-bold text-[#94a3b8]">Puntos de Golpe</span>
+              <span class="font-headline font-bold text-xs text-[#f1f5f9]">${char.hp.current} / ${char.hp.max} PG ${char.hp.temp ? `<span class="text-amber-400">(+${char.hp.temp})</span>` : ''}</span>
+            </div>
+            <div class="w-full h-2 rounded-full bg-[#18202e] overflow-hidden">
+              <div class="h-full ${hpColor} transition-all duration-300" style="width: ${hpPercent}%"></div>
+            </div>
+            <div class="flex items-center justify-between pt-1">
+              <div class="flex items-center gap-1">
+                <button type="button" class="hp-mod-btn px-1.5 py-0.5 rounded bg-rose-950/60 hover:bg-rose-900 border border-rose-800 text-rose-300 font-bold text-[10px] cursor-pointer" data-id="${char.id}" data-delta="-5">-5</button>
+                <button type="button" class="hp-mod-btn px-1.5 py-0.5 rounded bg-rose-950/60 hover:bg-rose-900 border border-rose-800 text-rose-300 font-bold text-[10px] cursor-pointer" data-id="${char.id}" data-delta="-1">-1</button>
+              </div>
+              <div class="flex items-center gap-1">
+                <button type="button" class="hp-mod-btn px-1.5 py-0.5 rounded bg-emerald-950/60 hover:bg-emerald-900 border border-emerald-800 text-emerald-300 font-bold text-[10px] cursor-pointer" data-id="${char.id}" data-delta="1">+1</button>
+                <button type="button" class="hp-mod-btn px-1.5 py-0.5 rounded bg-emerald-950/60 hover:bg-emerald-900 border border-emerald-800 text-emerald-300 font-bold text-[10px] cursor-pointer" data-id="${char.id}" data-delta="5">+5</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Quick Stats Chips -->
+          <div class="grid grid-cols-3 gap-1.5 text-center text-[10px]">
+            <div class="p-1 rounded bg-[#10141d] border border-[#222f42]">
+              <span class="text-[#64748b] block">CA</span>
+              <strong class="text-amber-400 font-headline text-xs">${char.armorClass}</strong>
+            </div>
+            <div class="p-1 rounded bg-[#10141d] border border-[#222f42]">
+              <span class="text-[#64748b] block">Percep. Pas.</span>
+              <strong class="text-[#cbd5e1] font-headline text-xs">${passivePerception}</strong>
+            </div>
+            <div class="p-1 rounded bg-[#10141d] border border-[#222f42]">
+              <span class="text-[#64748b] block">Iniciativa</span>
+              <strong class="text-emerald-400 font-headline text-xs">+${char.initiativeBonus || 3}</strong>
+            </div>
+          </div>
+        </div>
+
+        <!-- Inspiration Button & Sheet Link -->
+        <div class="flex items-center justify-between pt-2 border-t border-[#222f42]/60">
+          <button
+            type="button"
+            class="inspire-char-btn flex items-center gap-1 px-2 py-1 rounded-lg ${char.inspiration ? 'bg-amber-500/20 text-amber-300 border border-amber-500/50' : 'bg-[#10141d] text-[#64748b] border border-[#222f42]'} hover:text-amber-300 transition-all text-[11px] font-bold cursor-pointer"
+            data-id="${char.id}"
+          >
+            <span class="material-symbols-outlined text-[14px] ${char.inspiration ? 'text-amber-400' : 'text-[#64748b]'}">hotel_class</span>
+            <span>${char.inspiration ? 'Inspirado ✨' : 'Dar Inspiración'}</span>
+          </button>
+
+          <button
+            type="button"
+            class="open-sheet-from-dm text-xs text-[#94a3b8] hover:text-amber-400 transition-colors cursor-pointer flex items-center gap-1"
+            data-id="${char.id}"
+          >
+            <span>Ver Ficha</span>
+            <span class="material-symbols-outlined text-[14px]">arrow_forward</span>
+          </button>
+        </div>
+      `;
+
+      // Quick HP delta listener
+      card.querySelectorAll('.hp-mod-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const delta = parseInt(btn.getAttribute('data-delta') || '0');
+          char.hp.current = Math.max(0, Math.min(char.hp.max, char.hp.current + delta));
+          campaignStore.saveCharacter(char);
+          renderDmPanel(campaignId);
+        });
+      });
+
+      // Inspiration toggle
+      card.querySelector('.inspire-char-btn')?.addEventListener('click', () => {
+        char.inspiration = !char.inspiration;
+        campaignStore.saveCharacter(char);
+        journalStore.log(
+          `Inspiración otorgada por el DM`,
+          `El Dungeon Master ha ${char.inspiration ? 'otorgado Inspiración ✨' : 'retirado la Inspiración'} a "${char.name}".`,
+          ['#Combate']
+        );
+        renderDmPanel(campaignId);
+      });
+
+      // Open sheet
+      card.querySelector('.open-sheet-from-dm')?.addEventListener('click', () => {
+        campaignStore.setActiveCampaign(campaignId);
+        characterStore.loadCharacter(char);
+        closeMe();
+        window.location.href = `/?campaign=${encodeURIComponent(campaignId)}&character=${encodeURIComponent(char.id)}`;
+      });
+
+      gridContainer.appendChild(card);
+    });
+  }
+
+  // Quick dice rolling for DM
+  document.querySelectorAll('.dm-quick-dice-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const formula = btn.getAttribute('data-dice') || '1d20';
+      const isSecret = secretCheck?.checked || false;
+      const sides = parseInt(formula.replace(/\D/g, '')) || 20;
+      const count = parseInt(formula) || 1;
+      let total = 0;
+      for (let i = 0; i < count; i++) {
+        total += Math.floor(Math.random() * sides) + 1;
+      }
+
+      if (isSecret) {
+        alert(`🎲 Tirada Oculta del DM (${formula}): Resultado = ${total}`);
+      } else {
+        // Broadcast public roll
+        if (activeDmCampaignId) {
+          campaignStore.sendDmEvent(activeDmCampaignId, {
+            campaignId: activeDmCampaignId,
+            type: 'dice_roll',
+            dmName: 'Dungeon Master',
+            payload: {
+              diceRoll: { formula, result: total, isSecret: false }
+            }
+          });
+        }
+        journalStore.log(
+          `Tirada del Dungeon Master (${formula})`,
+          `El DM lanzó los dados en la mesa con resultado: ${total}.`,
+          ['#Tirada'],
+          { formula, result: total }
+        );
+        alert(`🎲 ¡Tirada del DM publicada a la mesa! (${formula}): ${total}`);
+      }
+    });
+  });
+
+  // Launch milestone button
+  document.getElementById('dm-launch-milestone-btn')?.addEventListener('click', () => {
+    const title = prompt('Título del Hito conseguido por el grupo:', '¡Hazaña Heroica de la Mesa!');
+    if (!title) return;
+    const banner = prompt('Texto del Banderín (en mayúsculas):', '¡VICTORIA ÉPICA!') || '¡FELICIDADES!';
+    const desc = prompt('Descripción del Logro:', 'El grupo ha triunfado ante el peligro y grabado su nombre en las crónicas.') || '¡Logro conseguido!';
+
+    if (activeDmCampaignId) {
+      campaignStore.sendDmEvent(activeDmCampaignId, {
+        campaignId: activeDmCampaignId,
+        type: 'milestone',
+        dmName: 'Dungeon Master',
+        payload: {
+          milestone: { bannerText: banner, title, description: desc }
+        }
+      });
+    }
+
+    congratulationBanner(title, desc, {
+      bannerText: banner,
+      tag: '#Hito'
+    });
+  });
+
+  // Group rest button
+  document.getElementById('dm-group-rest-btn')?.addEventListener('click', () => {
+    if (!activeDmCampaignId) return;
+    if (confirm('¿Aplicar Descanso Corto a todos los personajes de esta campaña?')) {
+      const chars = campaignStore.getCharactersForCampaign(activeDmCampaignId);
+      chars.forEach(c => {
+        c.hp.current = Math.min(c.hp.max, c.hp.current + 8);
+        campaignStore.saveCharacter(c);
+      });
+      journalStore.log(
+        'Descanso Corto de Grupo',
+        'El Dungeon Master decretó un descanso corto para todos los aventureros (+8 PG recuperados).',
+        ['#Descanso']
+      );
+      renderDmPanel(activeDmCampaignId);
+      alert('¡Descanso de grupo completado!');
+    }
+  });
+
+  // Open DM panel event
+  window.addEventListener('open-dm-panel', ((e: CustomEvent<{ campaignId: string }>) => {
+    const campId = e.detail?.campaignId || campaignStore.getActiveCampaignId() || 'barovia-strahd';
+    const camp = campaignStore.getCampaign(campId);
+    const currentUser = userStore.getCurrentUser();
+
+    // Strict access control: only the assigned DM user can open this panel
+    if (camp && camp.dmId !== currentUser.id) {
+      alert(`Acceso Restringido: Solo el Dungeon Master (${camp.dmName}) tiene permiso para acceder a esta pantalla.`);
+      return;
+    }
+
+    renderDmPanel(campId);
+    if (modal && backdrop) openModal(modal, backdrop);
+  }) as EventListener);
+
+  const closeMe = () => {
+    if (modal && backdrop) closeModal(modal, backdrop);
+  };
+
+  closeBtn?.addEventListener('click', closeMe);
+  doneBtn?.addEventListener('click', closeMe);
+</script>

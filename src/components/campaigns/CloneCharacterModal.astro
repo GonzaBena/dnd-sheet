@@ -1,0 +1,209 @@
+---
+// src/components/campaigns/CloneCharacterModal.astro
+---
+
+<div id="clone-character-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
+  <div class="modal-content w-full max-w-md rounded-2xl bg-[#121721] border border-amber-500/40 shadow-[0_20px_60px_rgba(0,0,0,0.95)] overflow-hidden flex flex-col">
+    <!-- Header -->
+    <div class="p-4 bg-gradient-to-r from-[#18202e] via-[#1b2434] to-[#18202e] border-b border-[#222f42] flex items-center justify-between">
+      <div class="flex items-center gap-2.5">
+        <div class="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center border border-amber-500/40 shadow-[0_0_12px_rgba(245,158,11,0.25)]">
+          <span class="material-symbols-outlined text-[20px]">content_copy</span>
+        </div>
+        <div>
+          <h3 class="font-headline font-bold text-base text-[#f1f5f9]">Copiar Personaje a Otra Campaña</h3>
+          <span class="text-[11px] text-[#94a3b8]">Crea una copia con ID independiente</span>
+        </div>
+      </div>
+      <button
+        id="clone-char-close-btn"
+        class="w-7 h-7 rounded-lg bg-[#10141d] border border-[#222f42] hover:border-amber-500/50 text-[#94a3b8] hover:text-[#f1f5f9] flex items-center justify-center text-xs transition-colors cursor-pointer"
+        aria-label="Cerrar modal"
+      >
+        <span class="material-symbols-outlined text-[16px]">close</span>
+      </button>
+    </div>
+
+    <!-- Form -->
+    <form id="clone-char-form" class="p-5 space-y-4 text-xs font-label">
+      <!-- Personaje Origen -->
+      <div>
+        <label class="text-[#94a3b8] block mb-1 font-bold">Personaje a Copiar</label>
+        <select
+          id="clone-source-select"
+          class="w-full p-2.5 rounded-lg bg-[#18202e] border border-[#222f42] text-[#f1f5f9] focus:border-amber-500 focus:outline-none"
+          required
+        >
+          <!-- Populated by JS -->
+        </select>
+      </div>
+
+      <!-- Campaña Destino -->
+      <div>
+        <label class="text-[#94a3b8] block mb-1 font-bold">Campaña de Destino</label>
+        <select
+          id="clone-target-campaign-select"
+          class="w-full p-2.5 rounded-lg bg-[#18202e] border border-[#222f42] text-[#f1f5f9] focus:border-amber-500 focus:outline-none"
+          required
+        >
+          <!-- Populated by JS -->
+        </select>
+      </div>
+
+      <!-- Nombre de la copia -->
+      <div>
+        <label class="text-[#94a3b8] block mb-1 font-bold">Nombre para la Copia</label>
+        <input
+          type="text"
+          id="clone-name-input"
+          placeholder="ej: Elysian Ventosombra (Copia)"
+          class="w-full p-2.5 rounded-lg bg-[#18202e] border border-[#222f42] text-[#f1f5f9] focus:border-amber-500 focus:outline-none"
+          required
+        />
+      </div>
+
+      <!-- Info Box -->
+      <div class="p-3 rounded-xl bg-[#10141d] border border-amber-500/20 text-[#94a3b8] space-y-1 text-[11px]">
+        <div class="flex items-center gap-1.5 text-amber-400 font-bold">
+          <span class="material-symbols-outlined text-[14px]">info</span>
+          <span>Copia 100% Autónoma</span>
+        </div>
+        <p>Se generará un nuevo identificador único. Toda variación de PG, objetos o hechizos en la nueva campaña no afectará al personaje original.</p>
+      </div>
+
+      <!-- Actions -->
+      <div class="pt-3 border-t border-[#222f42] flex items-center justify-end gap-2.5">
+        <button
+          type="button"
+          id="clone-char-cancel-btn"
+          class="px-4 py-2 rounded-xl bg-[#121721] border border-[#222f42] text-[#94a3b8] hover:text-[#f1f5f9] transition-colors cursor-pointer"
+        >
+          Cancelar
+        </button>
+        <button
+          type="submit"
+          class="px-5 py-2 rounded-xl bg-gradient-to-r from-amber-600 to-amber-500 text-[#0a0d12] font-bold shadow-[0_0_12px_rgba(245,158,11,0.3)] hover:brightness-110 active:scale-95 transition-all cursor-pointer flex items-center gap-1.5"
+        >
+          <span class="material-symbols-outlined text-[16px]">copy_all</span>
+          <span>Clonar y Guardar</span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  import { campaignStore } from '../../scripts/state/campaignStore';
+  import { characterStore } from '../../scripts/state/characterStore';
+  import { userStore } from '../../scripts/state/userStore';
+  import { openModal, closeModal } from '../../scripts/animations/modalAnimations';
+
+  const modal = document.getElementById('clone-character-modal');
+  const backdrop = document.getElementById('modal-backdrop');
+  const closeBtn = document.getElementById('clone-char-close-btn');
+  const cancelBtn = document.getElementById('clone-char-cancel-btn');
+  const form = document.getElementById('clone-char-form') as HTMLFormElement;
+
+  const sourceSelect = document.getElementById('clone-source-select') as HTMLSelectElement;
+  const targetSelect = document.getElementById('clone-target-campaign-select') as HTMLSelectElement;
+  const nameInput = document.getElementById('clone-name-input') as HTMLInputElement;
+
+  function populateOptions(preselectSourceId?: string, preselectTargetCampId?: string) {
+    if (!sourceSelect || !targetSelect) return;
+
+    // 1. Populate Characters
+    const chars = campaignStore.getAllCharacters();
+    const currentUser = userStore.getCurrentUser();
+    sourceSelect.innerHTML = '';
+    chars.forEach(char => {
+      const opt = document.createElement('option');
+      opt.value = char.id;
+      const isMine = campaignStore.isCharacterOwner(char, currentUser.id);
+      const camp = char.campaignId ? campaignStore.getCampaign(char.campaignId) : null;
+      opt.textContent = `${isMine ? '⭐ ' : ''}${char.name} (Nvl. ${char.level} ${char.className}) ${camp ? `[${camp.name}]` : '[Sin Campaña]'} - ${isMine ? 'Tuyo' : (char.playerName || 'Otro')}`;
+      if (preselectSourceId && char.id === preselectSourceId) opt.selected = true;
+      sourceSelect.appendChild(opt);
+    });
+
+    // 2. Populate Campaigns
+    const campaigns = campaignStore.getCampaigns();
+    targetSelect.innerHTML = '';
+
+    const noneOpt = document.createElement('option');
+    noneOpt.value = 'none';
+    noneOpt.textContent = '⭐ Personaje Independiente (Sin Campaña)';
+    if (preselectTargetCampId === 'none' || preselectTargetCampId === null) noneOpt.selected = true;
+    targetSelect.appendChild(noneOpt);
+
+    campaigns.forEach(camp => {
+      const opt = document.createElement('option');
+      opt.value = camp.id;
+      const existing = campaignStore.getMyCharacterForCampaign(camp.id, currentUser.id);
+      if (existing) {
+        opt.textContent = `🏰 ${camp.name} (DM: ${camp.dmName}) - [Ocupado: ${existing.name}]`;
+        opt.disabled = true;
+      } else {
+        opt.textContent = `🏰 ${camp.name} (DM: ${camp.dmName})`;
+      }
+      if (preselectTargetCampId && camp.id === preselectTargetCampId && !opt.disabled) {
+        opt.selected = true;
+      }
+      targetSelect.appendChild(opt);
+    });
+
+    updateSuggestedName();
+  }
+
+  function updateSuggestedName() {
+    if (!nameInput || !sourceSelect) return;
+    const selectedChar = campaignStore.getCharacter(sourceSelect.value);
+    if (selectedChar) {
+      nameInput.value = `${selectedChar.name} (Copia)`;
+    }
+  }
+
+  sourceSelect?.addEventListener('change', updateSuggestedName);
+
+  window.addEventListener('open-clone-character-modal', ((e: CustomEvent<{ sourceCharacterId?: string; targetCampaignId?: string }>) => {
+    const srcId = e.detail?.sourceCharacterId || characterStore.get().id;
+    const targetCampId = e.detail?.targetCampaignId;
+    populateOptions(srcId, targetCampId);
+    if (modal && backdrop) openModal(modal, backdrop);
+  }) as EventListener);
+
+  const closeMe = () => {
+    if (modal && backdrop) closeModal(modal, backdrop);
+  };
+
+  closeBtn?.addEventListener('click', closeMe);
+  cancelBtn?.addEventListener('click', closeMe);
+
+  form?.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const sourceCharId = sourceSelect.value;
+    const targetCampId = targetSelect.value === 'none' ? null : targetSelect.value;
+    const newName = nameInput.value.trim();
+
+    if (!sourceCharId) return;
+
+    const currentUser = userStore.getCurrentUser();
+    if (targetCampId) {
+      const existing = campaignStore.getMyCharacterForCampaign(targetCampId, currentUser.id);
+      if (existing) {
+        alert(`Una campaña no permite más de 1 personaje del mismo usuario. Ya tienes a "${existing.name}" en esta campaña.`);
+        return;
+      }
+    }
+
+    try {
+      const cloned = campaignStore.cloneCharacter(sourceCharId, targetCampId, newName);
+      closeMe();
+      // Notify user
+      alert(`¡Personaje "${cloned.name}" copiado exitosamente con ID único: [${cloned.id}]!`);
+      // Refresh campaigns UI if on campaigns page
+      window.dispatchEvent(new CustomEvent('campaigns-updated'));
+    } catch (err: any) {
+      alert(`Error al clonar personaje: ${err?.message || err}`);
+    }
+  });
+</script>

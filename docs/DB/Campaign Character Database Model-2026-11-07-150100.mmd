@@ -1,0 +1,172 @@
+erDiagram
+    app_user {
+        int id PK
+        string name
+        string email UK
+        string password_hash
+    }
+    campaign {
+        int id PK
+        int dm_id FK
+        string name
+        string description
+        string setting
+        date start_date
+        string status
+    }
+    campaign_player {
+        int campaign_id PK, FK
+        int user_id PK, FK
+        date join_date
+    }
+    game_session {
+        int id PK
+        int campaign_id FK
+        int number
+        date played_on
+        string summary
+        string dm_notes
+    }
+    player_character {
+        int id PK
+        int user_id FK
+        int campaign_id FK
+        int race_id FK
+        int background_id FK
+        string name
+        string alignment
+        int experience
+        int max_hit_points
+        int current_hit_points
+        int armor_class
+        string notes
+    }
+    stats_character {
+        int character_id PK, FK
+        int strength
+        int dexterity
+        int constitution
+        int intelligence
+        int wisdom
+        int charisma
+    }
+    race {
+        int id PK
+        string name UK
+        string size
+        int speed
+        string traits
+    }
+    background {
+        int id PK
+        string name UK
+        string description
+    }
+    dnd_class {
+        int id PK
+        string name UK
+        int hit_die
+        string primary_ability
+    }
+    character_class {
+        int character_id PK, FK
+        int dnd_class_id PK, FK
+        int level
+        string subclass
+    }
+    skill {
+        int id PK
+        string name UK
+        string base_ability
+    }
+    character_skill {
+        int character_id PK, FK
+        int skill_id PK, FK
+        boolean proficient
+    }
+    spell {
+        int id PK
+        string name UK
+        int level
+        string school
+        string description
+    }
+    character_spell {
+        int character_id PK, FK
+        int spell_id PK, FK
+        boolean prepared
+    }
+    item {
+        int id PK
+        string name
+        string type
+        string description
+        decimal weight
+        int value_gp
+    }
+    inventory {
+        int character_id PK, FK
+        int item_id PK, FK
+        int quantity
+        boolean equipped
+    }
+    npc {
+        int id PK
+        int campaign_id FK
+        string name
+        string role
+        string description
+    }
+    location {
+        int id PK
+        int campaign_id FK
+        int parent_location_id FK
+        string name
+        string type
+        string description
+    }
+    monster {
+        int id PK
+        string name
+        string type
+        decimal challenge_rating
+        int hit_points
+        int armor_class
+    }
+    encounter {
+        int id PK
+        int session_id FK
+        int location_id FK
+        string description
+        string outcome
+    }
+    encounter_monster {
+        int encounter_id PK, FK
+        int monster_id PK, FK
+        int quantity
+    }
+
+    app_user ||--o{ campaign : "runs (DM)"
+    app_user ||--o{ campaign_player : "joins"
+    campaign ||--o{ campaign_player : "has"
+    campaign ||--o{ game_session : "played in"
+    campaign ||--o{ player_character : "includes"
+    campaign ||--o{ npc : "contains"
+    campaign ||--o{ location : "takes place in"
+    location |o--o{ location : "contains"
+    app_user ||--o{ player_character : "creates"
+    player_character ||--|| stats_character : "has"
+    race ||--o{ player_character : "defines"
+    background ||--o{ player_character : "defines"
+    player_character ||--o{ character_class : "has"
+    dnd_class ||--o{ character_class : "assigned in"
+    player_character ||--o{ character_skill : "masters"
+    skill ||--o{ character_skill : "assigned in"
+    player_character ||--o{ character_spell : "knows"
+    spell ||--o{ character_spell : "known by"
+    player_character ||--o{ inventory : "carries"
+    item ||--o{ inventory : "appears in"
+    game_session ||--o{ encounter : "includes"
+    location |o--o{ encounter : "occurs at"
+    encounter ||--o{ encounter_monster : "faces"
+    monster ||--o{ encounter_monster : "takes part in"

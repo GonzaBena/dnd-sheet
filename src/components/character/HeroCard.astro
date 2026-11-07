@@ -1,0 +1,181 @@
+---
+// src/components/character/HeroCard.astro
+---
+
+<div class="relative z-10 grid grid-cols-1 xl:grid-cols-12 gap-8 items-center">
+  <!-- Portrait & Badges -->
+  <div class="xl:col-span-4 flex flex-col items-center gap-3">
+    <!-- Portrait with Ornate Fantasy Frame -->
+    <div class="relative shrink-0 group cursor-pointer" id="hero-portrait-container" title="Haz clic para cambiar la imagen del personaje">
+      <div class="w-32 h-32 sm:w-36 sm:h-36 rounded-2xl overflow-hidden shadow-2xl bg-[#18202e] p-1.5 ring-1 ring-amber-500/40 group-hover:ring-amber-500/80 transition-all">
+        <div class="w-full h-full rounded-xl overflow-hidden relative">
+          <img
+            id="hero-avatar-img"
+            alt="Retrato del personaje"
+            class="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-500"
+            src="https://lh3.googleusercontent.com/aida/ALJJyrBB58Th1LIT7lpeirKCc7greaknxjOFNsUVNXZz77F5UWABzUCxDIFrQsVH-v4M8A0YgzwBmDWfYKMutfm3_bdT3-V88pDbTqbx_y9NSuqyMrjiqmBJFvMng6gAO_JzyQ-W01nJjgrp1Vet0W6NkBOEMRrfEvwxOJ23tXexyZedPfyPSJf0S-NEBKVoih8xE_7kPjBiWbV5F_mIeuzrCDq9-2Qj9c1VoQCcRXRuCkddZQ"
+          />
+          <div class="absolute inset-0 bg-gradient-to-t from-[#0a0d12]/80 via-transparent to-transparent"></div>
+          <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 bg-black/40 backdrop-blur-xs transition-opacity text-amber-300 text-xs font-bold gap-1">
+            <span class="material-symbols-outlined text-sm">photo_camera</span>
+            <span>Cambiar</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Level seal (Interactive level-up / edit trigger) -->
+      <button
+        type="button"
+        id="hero-level-seal-btn"
+        class="absolute -bottom-2 -right-2 w-9 h-9 rounded-full bg-gradient-to-br from-amber-500 to-amber-600 text-[#0a0d12] flex flex-col items-center justify-center font-headline font-bold text-xs shadow-[0_0_12px_rgba(245,158,11,0.6)] border border-amber-300 hover:scale-110 active:scale-95 transition-transform cursor-pointer z-20"
+        title="Subir de nivel / Editar ficha de personaje"
+      >
+        <span class="text-[9px] leading-none font-bold text-[#0a0d12]/80">NVL</span>
+        <span id="hero-level-seal" class="text-xs leading-none">5</span>
+      </button>
+
+      <!-- Inspiration Token (Clickable toggle) -->
+      <button
+        id="hero-inspiration-btn"
+        class="absolute -top-2 -left-2 z-20 bg-gradient-to-r from-rose-600 to-amber-600 text-white px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wider uppercase shadow-[0_0_10px_rgba(239,68,68,0.5)] border border-amber-400/30 flex items-center gap-1 active:scale-95 transition-all cursor-pointer"
+        title="Haz clic para activar o desactivar Inspiración"
+        type="button"
+      >
+        <span class="material-symbols-outlined text-[12px] text-amber-200">auto_awesome</span>
+        <span id="hero-inspiration-text">Inspirado</span>
+      </button>
+    </div>
+
+    <!-- Hero Name & Archetype Identity -->
+    <div class="flex-1 text-center">
+      <div class="flex flex-wrap items-center justify-center gap-2 mb-1.5">
+        <span id="hero-race-tag" class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-500/15 border border-amber-500/30 text-amber-300">Semielfo</span>
+        <span id="hero-alignment-tag" class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-500/15 border border-rose-500/30 text-rose-300">Caótico Bueno</span>
+        <span id="hero-prof-tag" class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#18202e] border border-[#222f42] text-[#94a3b8]">Competencia +3</span>
+      </div>
+      
+      <div class="flex items-center justify-center gap-2 group">
+        <h1 id="hero-name-title" class="text-2xl sm:text-3xl font-headline font-bold text-[#f1f5f9] tracking-tight">Elysian Ventosombra</h1>
+        <button id="hero-edit-direct-btn" class="text-[#94a3b8] hover:text-amber-400 opacity-60 hover:opacity-100 transition-opacity" title="Editar datos del personaje">
+          <span class="material-symbols-outlined text-[18px]">edit</span>
+        </button>
+      </div>
+
+      <p id="hero-subclass-title" class="text-sm font-medium text-amber-400 mb-1 cursor-pointer hover:underline" title="Haz clic para editar">Explorador • Guardián del Cónclave Umbrío</p>
+      <p id="hero-quote-text" class="text-xs text-[#94a3b8] hover:text-amber-300 line-clamp-2 italic max-w-md mx-auto cursor-pointer transition-colors" title="Haz clic para editar el texto/lema del personaje">
+        "Superviviente de los Bosques Olvidados. Juramentado a cazar los terrores que se ocultan en la niebla perpetua de Barovia."
+      </p>
+    </div>
+  </div>
+
+  <!-- Hidden Photo Change Input -->
+  <input type="file" id="hero-photo-input" accept="image/*" class="hidden" />
+
+  <slot />
+</div>
+
+<script>
+  import { characterStore } from '../../scripts/state/characterStore';
+  import { openModal } from '../../scripts/animations/modalAnimations';
+
+  // Inspiration Toggle
+  const inspBtn = document.getElementById('hero-inspiration-btn');
+  const inspText = document.getElementById('hero-inspiration-text');
+
+  inspBtn?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    e.preventDefault();
+    const isActive = characterStore.toggleInspiration();
+    updateInspirationUi(isActive);
+  });
+
+  function updateInspirationUi(isActive: boolean) {
+    if (!inspBtn || !inspText) return;
+    if (isActive) {
+      inspBtn.className = 'absolute -top-2 -left-2 z-20 bg-gradient-to-r from-rose-600 to-amber-600 text-white px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wider uppercase shadow-[0_0_10px_rgba(239,68,68,0.5)] border border-amber-400/30 flex items-center gap-1 active:scale-95 transition-all cursor-pointer opacity-100';
+      inspText.textContent = 'Inspirado';
+    } else {
+      inspBtn.className = 'absolute -top-2 -left-2 z-20 bg-[#18202e] text-[#64748b] px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wider uppercase border border-[#222f42] flex items-center gap-1 active:scale-95 transition-all cursor-pointer opacity-70 hover:opacity-100';
+      inspText.textContent = 'Sin Inspirar';
+    }
+  }
+
+  // Portrait click to change avatar
+  const portraitEl = document.getElementById('hero-portrait-container');
+  const photoInput = document.getElementById('hero-photo-input') as HTMLInputElement;
+
+  portraitEl?.addEventListener('click', (e) => {
+    // If the click originated from or inside the inspiration button or level seal, do not open avatar prompt
+    if (
+      (e.target as HTMLElement)?.closest('#hero-inspiration-btn') ||
+      (e.target as HTMLElement)?.closest('#hero-level-seal-btn')
+    ) {
+      return;
+    }
+
+    const method = prompt('Cambiar imagen de personaje:\n1. Pega la URL de una imagen en internet.\n2. O pulsa "Cancelar" para subir una foto desde tu galería o PC.');
+    if (method && method.trim().startsWith('http')) {
+      characterStore.updateProfile({ avatarUrl: method.trim() });
+    } else if (method === null) {
+      photoInput?.click();
+    }
+  });
+
+  photoInput?.addEventListener('change', () => {
+    const file = photoInput.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const dataUrl = e.target?.result as string;
+        characterStore.updateProfile({ avatarUrl: dataUrl });
+      };
+      reader.readAsDataURL(file);
+    }
+  });
+
+  // Direct edit trigger
+  const openEditModal = () => {
+    const editModal = document.getElementById('edit-character-modal');
+    const backdrop = document.getElementById('modal-backdrop');
+    if (editModal && backdrop) openModal(editModal, backdrop);
+  };
+
+  document.getElementById('hero-level-seal-btn')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    openEditModal();
+  });
+  document.getElementById('hero-edit-direct-btn')?.addEventListener('click', openEditModal);
+  document.getElementById('hero-quote-text')?.addEventListener('click', openEditModal);
+  document.getElementById('hero-subclass-title')?.addEventListener('click', openEditModal);
+
+  function renderHero(char: any) {
+    if (!char) return;
+    const nameEl = document.getElementById('hero-name-title');
+    const subEl = document.getElementById('hero-subclass-title');
+    const raceEl = document.getElementById('hero-race-tag');
+    const alignEl = document.getElementById('hero-alignment-tag');
+    const profEl = document.getElementById('hero-prof-tag');
+    const quoteEl = document.getElementById('hero-quote-text');
+    const sealEl = document.getElementById('hero-level-seal');
+    const avatarEl = document.getElementById('hero-avatar-img') as HTMLImageElement;
+
+    if (nameEl) nameEl.textContent = char.name;
+    if (subEl) subEl.textContent = `${char.className} • ${char.subclass || char.title}`;
+    if (raceEl) raceEl.textContent = char.race;
+    if (alignEl) alignEl.textContent = char.alignment;
+    if (profEl) profEl.textContent = `Competencia +${char.proficiencyBonus}`;
+    if (quoteEl) quoteEl.textContent = char.quote;
+    if (sealEl) sealEl.textContent = String(char.level);
+    if (avatarEl && char.avatarUrl) avatarEl.src = char.avatarUrl;
+
+    updateInspirationUi(char.inspiration);
+  }
+
+  // Hydrate immediately on load
+  renderHero(characterStore.get());
+
+  // Listen for character updates
+  window.addEventListener('character-updated', ((e: CustomEvent) => {
+    renderHero(e.detail.character);
+  }) as EventListener);
+</script>

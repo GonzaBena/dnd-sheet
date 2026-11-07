@@ -1,0 +1,125 @@
+---
+// src/components/character/AbilitiesGrid.astro
+---
+
+<div class="rounded-xl bg-[#121721] border border-[#222f42] p-5 shadow-sm">
+  <div class="flex items-center justify-between mb-4">
+    <h3 class="text-sm font-headline font-bold text-[#f1f5f9] uppercase tracking-wider flex items-center gap-1.5">
+      <span class="material-symbols-outlined text-amber-500 text-[18px]">view_in_ar</span>
+      <span>Puntuaciones de Característica</span>
+    </h3>
+    <span class="text-[11px] font-label text-amber-300 bg-amber-500/20 border border-amber-500/40 px-2 py-0.5 rounded-full font-bold">d20 Mod</span>
+  </div>
+
+  <div class="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+    <!-- Fuerza -->
+    <div data-stat="str" class="stat-card p-3 rounded-xl bg-[#18202e] border border-[#222f42] hover:border-amber-500/40 transition-all flex flex-col items-center text-center group cursor-pointer active:scale-95 shadow-xs" title="Haz clic para tirar prueba de Fuerza">
+      <span class="text-[11px] font-bold uppercase tracking-wider text-[#94a3b8]">Fuerza (FUE)</span>
+      <span id="stat-str-mod" class="text-2xl font-headline font-bold text-[#f1f5f9] my-0.5 group-hover:text-amber-400 transition-colors">+2</span>
+      <span id="stat-str-score" class="text-xs px-2 py-0.5 rounded-full bg-[#10141d] border border-[#222f42] text-[#94a3b8] font-semibold">14</span>
+    </div>
+
+    <!-- Destreza -->
+    <div data-stat="dex" class="stat-card p-3 rounded-xl bg-[#18202e] border border-[#222f42] hover:border-amber-500/40 transition-all flex flex-col items-center text-center group cursor-pointer active:scale-95 shadow-xs" title="Haz clic para tirar prueba de Destreza">
+      <span class="text-[11px] font-bold uppercase tracking-wider text-[#94a3b8]">Destreza (DES)</span>
+      <span id="stat-dex-mod" class="text-2xl font-headline font-bold text-amber-400 my-0.5 transition-colors">+3</span>
+      <span id="stat-dex-score" class="text-xs px-2 py-0.5 rounded-full bg-[#10141d] border border-[#222f42] text-[#94a3b8] font-semibold">16</span>
+    </div>
+
+    <!-- Constitución -->
+    <div data-stat="con" class="stat-card p-3 rounded-xl bg-[#18202e] border border-[#222f42] hover:border-amber-500/40 transition-all flex flex-col items-center text-center group cursor-pointer active:scale-95 shadow-xs" title="Haz clic para tirar prueba de Constitución">
+      <span class="text-[11px] font-bold uppercase tracking-wider text-[#94a3b8]">Constitución (CON)</span>
+      <span id="stat-con-mod" class="text-2xl font-headline font-bold text-[#f1f5f9] my-0.5 group-hover:text-amber-400 transition-colors">+2</span>
+      <span id="stat-con-score" class="text-xs px-2 py-0.5 rounded-full bg-[#10141d] border border-[#222f42] text-[#94a3b8] font-semibold">14</span>
+    </div>
+
+    <!-- Inteligencia -->
+    <div data-stat="int" class="stat-card p-3 rounded-xl bg-[#18202e] border border-[#222f42] hover:border-amber-500/40 transition-all flex flex-col items-center text-center group cursor-pointer active:scale-95 shadow-xs" title="Haz clic para tirar prueba de Inteligencia">
+      <span class="text-[11px] font-bold uppercase tracking-wider text-[#94a3b8]">Inteligencia (INT)</span>
+      <span id="stat-int-mod" class="text-2xl font-headline font-bold text-[#f1f5f9] my-0.5 group-hover:text-amber-400 transition-colors">+0</span>
+      <span id="stat-int-score" class="text-xs px-2 py-0.5 rounded-full bg-[#10141d] border border-[#222f42] text-[#94a3b8] font-semibold">10</span>
+    </div>
+
+    <!-- Sabiduría -->
+    <div data-stat="wis" class="stat-card p-3 rounded-xl bg-[#18202e] border border-[#222f42] hover:border-amber-500/40 transition-all flex flex-col items-center text-center group cursor-pointer active:scale-95 shadow-xs" title="Haz clic para tirar prueba de Sabiduría">
+      <span class="text-[11px] font-bold uppercase tracking-wider text-[#94a3b8]">Sabiduría (SAB)</span>
+      <span id="stat-wis-mod" class="text-2xl font-headline font-bold text-[#f1f5f9] my-0.5 group-hover:text-amber-400 transition-colors">+2</span>
+      <span id="stat-wis-score" class="text-xs px-2 py-0.5 rounded-full bg-[#10141d] border border-[#222f42] text-[#94a3b8] font-semibold">15</span>
+    </div>
+
+    <!-- Carisma -->
+    <div data-stat="cha" class="stat-card p-3 rounded-xl bg-[#18202e] border border-[#222f42] hover:border-amber-500/40 transition-all flex flex-col items-center text-center group cursor-pointer active:scale-95 shadow-xs" title="Haz clic para tirar prueba de Carisma">
+      <span class="text-[11px] font-bold uppercase tracking-wider text-[#94a3b8]">Carisma (CAR)</span>
+      <span id="stat-cha-mod" class="text-2xl font-headline font-bold text-[#f1f5f9] my-0.5 group-hover:text-amber-400 transition-colors">-1</span>
+      <span id="stat-cha-score" class="text-xs px-2 py-0.5 rounded-full bg-[#10141d] border border-[#222f42] text-[#94a3b8] font-semibold">8</span>
+    </div>
+  </div>
+</div>
+
+<script>
+  import { characterStore } from '../../scripts/state/characterStore';
+
+  const statNames: Record<string, string> = {
+    str: 'Fuerza',
+    dex: 'Destreza',
+    con: 'Constitución',
+    int: 'Inteligencia',
+    wis: 'Sabiduría',
+    cha: 'Carisma'
+  };
+
+  // Clicking an ability card sets modifier and opens dice roller
+  document.querySelectorAll('.stat-card').forEach((card) => {
+    const stat = card.getAttribute('data-stat') as any;
+    const name = statNames[stat] || String(stat).toUpperCase();
+    card.setAttribute('title', `Haz clic para tirar prueba de ${name} • Clic derecho o Shift+Clic para Tirada Secreta`);
+
+    const triggerStatRoll = (isSecret = false) => {
+      if (!stat) return;
+      const char = characterStore.get();
+      const mod = char.stats[stat]?.modifier ?? 0;
+      window.dispatchEvent(new CustomEvent('open-dice-roller', {
+        detail: {
+          die: 20,
+          count: 1,
+          modifier: mod,
+          label: isSecret ? `Prueba Secreta de ${name}` : `Prueba de ${name}`,
+          tag: isSecret ? '#Privado' : '#Tirada',
+          isSecret
+        }
+      }));
+    };
+
+    card.addEventListener('click', (e: any) => {
+      triggerStatRoll(Boolean(e.shiftKey || e.altKey));
+    });
+
+    card.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+      triggerStatRoll(true);
+    });
+  });
+
+  function renderAbilities(char: any) {
+    if (!char) return;
+    const stats = ['str', 'dex', 'con', 'int', 'wis', 'cha'] as const;
+    stats.forEach((s) => {
+      const modEl = document.getElementById(`stat-${s}-mod`);
+      const scoreEl = document.getElementById(`stat-${s}-score`);
+      if (modEl && char.stats[s]) {
+        const mod = char.stats[s].modifier;
+        modEl.textContent = `${mod >= 0 ? '+' : ''}${mod}`;
+      }
+      if (scoreEl && char.stats[s]) {
+        scoreEl.textContent = String(char.stats[s].score);
+      }
+    });
+  }
+
+  // Hydrate immediately
+  renderAbilities(characterStore.get());
+
+  window.addEventListener('character-updated', ((e: CustomEvent) => {
+    renderAbilities(e.detail.character);
+  }) as EventListener);
+</script>

@@ -1,0 +1,95 @@
+---
+// src/components/character/FeaturesFeats.astro
+---
+
+<div class="rounded-xl bg-[#121721] border border-[#222f42] p-4 shadow-sm">
+  <div class="flex items-center justify-between mb-3">
+    <h3 class="text-xs font-headline font-bold text-[#f1f5f9] uppercase tracking-wider flex items-center gap-1.5">
+      <span class="material-symbols-outlined text-amber-500 text-[16px]">psychology</span>
+      <span>Rasgos del Guardián</span>
+    </h3>
+    <button
+      type="button"
+      id="open-features-config-btn"
+      class="text-[10px] text-amber-400 hover:text-amber-300 font-bold bg-amber-500/10 hover:bg-amber-500/20 px-2.5 py-1 rounded-lg border border-amber-500/30 flex items-center gap-1 cursor-pointer transition-colors"
+      title="Configurar y añadir rasgos y dotes"
+    >
+      <span class="material-symbols-outlined text-[13px]">tune</span>
+      <span>Configurar</span>
+    </button>
+  </div>
+
+  <div class="space-y-2.5" id="features-list-container">
+    <!-- Populated by JavaScript -->
+  </div>
+</div>
+
+<script>
+  import { characterStore } from '../../scripts/state/characterStore';
+
+  const container = document.getElementById('features-list-container');
+  const configBtn = document.getElementById('open-features-config-btn');
+
+  configBtn?.addEventListener('click', () => {
+    window.dispatchEvent(new CustomEvent('open-features-modal'));
+  });
+
+  function renderFeatures(char: any) {
+    if (!container) return;
+    container.innerHTML = '';
+
+    const feats = char.features || [];
+    if (feats.length === 0) {
+      container.innerHTML = `
+        <div class="p-3 text-center text-xs text-[#64748b]">
+          No hay rasgos configurados. Pulsa "Configurar" para añadir dotes.
+        </div>
+      `;
+      return;
+    }
+
+    feats.forEach((feat: any, idx: number) => {
+      const featId = feat.id || `feat-${idx + 1}`;
+      const isEnabled = feat.enabled !== false;
+
+      const card = document.createElement('div');
+      card.className = `p-3 rounded-lg bg-[#18202e] border ${isEnabled ? 'border-[#222f42]' : 'border-[#222f42]/60 opacity-55 bg-[#10141d]'} text-xs space-y-1.5 transition-all`;
+
+      card.innerHTML = `
+        <div class="flex items-center justify-between gap-2">
+          <div class="flex items-center gap-2 truncate">
+            <span class="font-headline font-bold text-sm ${isEnabled ? 'text-amber-300' : 'text-[#94a3b8] line-through'} truncate">${feat.title}</span>
+            ${feat.uses ? `<span class="px-1.5 py-0.2 rounded bg-[#10141d] text-[10px] text-[#94a3b8] border border-[#222f42] font-mono shrink-0">${feat.uses}</span>` : ''}
+          </div>
+
+          <button
+            type="button"
+            class="toggle-feat-btn px-2 py-0.5 rounded text-[10px] font-bold border transition-all cursor-pointer shrink-0 ${
+              isEnabled
+                ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30 hover:bg-rose-500/20 hover:text-rose-400 hover:border-rose-500/30'
+                : 'bg-[#10141d] text-[#64748b] border-[#222f42] hover:bg-emerald-500/20 hover:text-emerald-400 hover:border-emerald-500/30'
+            }"
+            data-id="${featId}"
+            title="${isEnabled ? 'Desactivar este rasgo' : 'Activar este rasgo'}"
+          >
+            ${isEnabled ? 'Activo' : 'Inactivo'}
+          </button>
+        </div>
+
+        <p class="text-[#cbd5e1] text-[11px] leading-relaxed ${isEnabled ? '' : 'text-[#64748b]'}">${feat.description}</p>
+      `;
+
+      card.querySelector('.toggle-feat-btn')?.addEventListener('click', () => {
+        characterStore.toggleFeature(featId);
+      });
+
+      container.appendChild(card);
+    });
+  }
+
+  renderFeatures(characterStore.get());
+
+  window.addEventListener('character-updated', ((e: CustomEvent) => {
+    renderFeatures(e.detail.character);
+  }) as EventListener);
+</script>

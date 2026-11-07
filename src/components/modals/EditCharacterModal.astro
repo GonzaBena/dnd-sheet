@@ -1,0 +1,369 @@
+---
+// src/components/modals/EditCharacterModal.astro
+---
+
+<div id="edit-character-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
+  <div class="modal-content w-full max-w-2xl max-h-[90vh] rounded-2xl bg-[#121721] border border-[#222f42] shadow-[0_20px_60px_rgba(0,0,0,0.9)] overflow-hidden flex flex-col">
+    <!-- Header -->
+    <div class="p-4 bg-[#18202e] border-b border-[#222f42] flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <div class="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center border border-amber-500/30">
+          <span class="material-symbols-outlined text-[20px]">edit</span>
+        </div>
+        <div>
+          <h3 class="font-headline font-bold text-base text-[#f1f5f9]">Editar Ficha de Personaje</h3>
+          <span class="text-[10px] text-[#94a3b8]">Modifica atributos, retrato y estadísticas base</span>
+        </div>
+      </div>
+      <button id="edit-modal-close-btn" class="w-7 h-7 rounded-lg bg-[#10141d] border border-[#222f42] hover:border-rose-500/50 text-[#94a3b8] hover:text-rose-400 flex items-center justify-center text-xs transition-colors cursor-pointer">
+        <span class="material-symbols-outlined text-[16px]">close</span>
+      </button>
+    </div>
+
+    <!-- Scrollable Form Body -->
+    <div class="p-5 overflow-y-auto space-y-5 text-xs font-label">
+      <!-- Section 1: Identity & Avatar -->
+      <div class="space-y-3">
+        <h4 class="text-xs font-headline font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1.5 pb-1 border-b border-[#222f42]">
+          <span class="material-symbols-outlined text-[16px]">badge</span>
+          <span>Identidad y Retrato</span>
+        </h4>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="text-[#94a3b8] block mb-1">Nombre del Personaje</label>
+            <input type="text" id="edit-char-name" class="w-full p-2.5 rounded-lg bg-[#18202e] border border-[#222f42] text-[#f1f5f9] focus:border-amber-500 focus:outline-none" />
+          </div>
+
+          <div>
+            <label class="text-[#94a3b8] block mb-1">Clase y Subclase</label>
+            <div class="grid grid-cols-2 gap-2">
+              <input type="text" id="edit-char-class" placeholder="Clase" class="w-full p-2.5 rounded-lg bg-[#18202e] border border-[#222f42] text-[#f1f5f9] focus:border-amber-500 focus:outline-none" />
+              <input type="text" id="edit-char-subclass" placeholder="Subclase" class="w-full p-2.5 rounded-lg bg-[#18202e] border border-[#222f42] text-[#f1f5f9] focus:border-amber-500 focus:outline-none" />
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <label class="text-[#94a3b8] block mb-1">Texto / Lema debajo del Nombre (Cita o Frase)</label>
+          <textarea
+            id="edit-char-quote"
+            rows="2"
+            placeholder="ej: 'Las sombras no son mi escondite, son mi aliada. Por los senderos de Barovia...'"
+            class="w-full p-2.5 rounded-lg bg-[#18202e] border border-[#222f42] text-[#f1f5f9] focus:border-amber-500 focus:outline-none resize-none"
+          ></textarea>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
+          <div>
+            <label class="text-[#94a3b8] block mb-1">Nivel (1-20)</label>
+            <input type="number" id="edit-char-level" min="1" max="20" class="w-full p-2.5 rounded-lg bg-[#18202e] border border-[#222f42] text-[#f1f5f9] focus:border-amber-500 focus:outline-none" />
+          </div>
+          <div>
+            <label class="text-[#94a3b8] block mb-1">Raza</label>
+            <input type="text" id="edit-char-race" class="w-full p-2.5 rounded-lg bg-[#18202e] border border-[#222f42] text-[#f1f5f9] focus:border-amber-500 focus:outline-none" />
+          </div>
+          <div>
+            <label class="text-[#94a3b8] block mb-1">Alineamiento</label>
+            <input type="text" id="edit-char-alignment" class="w-full p-2.5 rounded-lg bg-[#18202e] border border-[#222f42] text-[#f1f5f9] focus:border-amber-500 focus:outline-none" />
+          </div>
+          <div>
+            <label class="text-[#94a3b8] block mb-1">Título / Epíteto</label>
+            <input type="text" id="edit-char-title" placeholder="ej: Guardián" class="w-full p-2.5 rounded-lg bg-[#18202e] border border-[#222f42] text-[#f1f5f9] focus:border-amber-500 focus:outline-none" />
+          </div>
+        </div>
+
+        <div>
+          <label class="text-[#94a3b8] block mb-1">URL de Imagen de Retrato (o sube archivo)</label>
+          <div class="flex gap-2">
+            <input type="text" id="edit-char-avatar-url" placeholder="https://..." class="flex-1 p-2.5 rounded-lg bg-[#18202e] border border-[#222f42] text-[#f1f5f9] focus:border-amber-500 focus:outline-none" />
+            <button type="button" id="edit-upload-avatar-btn" class="px-3 py-2 rounded-lg bg-[#18202e] border border-[#222f42] hover:border-amber-500 text-amber-400 font-bold flex items-center gap-1 cursor-pointer">
+              <span class="material-symbols-outlined text-[16px]">upload</span>
+              <span>Subir</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section 2: Ability Scores -->
+      <div class="space-y-3">
+        <h4 class="text-xs font-headline font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1.5 pb-1 border-b border-[#222f42]">
+          <span class="material-symbols-outlined text-[16px]">view_in_ar</span>
+          <span>Puntuaciones de Característica (1-30)</span>
+        </h4>
+        <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          <div class="p-2.5 rounded-xl bg-[#18202e] border border-[#222f42] flex items-center justify-between">
+            <span class="font-bold text-[#94a3b8]">Fuerza (FUE)</span>
+            <input type="number" id="edit-stat-str" class="w-14 text-center font-bold p-1 rounded bg-[#10141d] border border-[#222f42] text-[#f1f5f9]" min="1" max="30" />
+          </div>
+          <div class="p-2.5 rounded-xl bg-[#18202e] border border-[#222f42] flex items-center justify-between">
+            <span class="font-bold text-[#94a3b8]">Destreza (DES)</span>
+            <input type="number" id="edit-stat-dex" class="w-14 text-center font-bold p-1 rounded bg-[#10141d] border border-[#222f42] text-amber-400" min="1" max="30" />
+          </div>
+          <div class="p-2.5 rounded-xl bg-[#18202e] border border-[#222f42] flex items-center justify-between">
+            <span class="font-bold text-[#94a3b8]">Constitución (CON)</span>
+            <input type="number" id="edit-stat-con" class="w-14 text-center font-bold p-1 rounded bg-[#10141d] border border-[#222f42] text-[#f1f5f9]" min="1" max="30" />
+          </div>
+          <div class="p-2.5 rounded-xl bg-[#18202e] border border-[#222f42] flex items-center justify-between">
+            <span class="font-bold text-[#94a3b8]">Inteligencia (INT)</span>
+            <input type="number" id="edit-stat-int" class="w-14 text-center font-bold p-1 rounded bg-[#10141d] border border-[#222f42] text-[#f1f5f9]" min="1" max="30" />
+          </div>
+          <div class="p-2.5 rounded-xl bg-[#18202e] border border-[#222f42] flex items-center justify-between">
+            <span class="font-bold text-[#94a3b8]">Sabiduría (SAB)</span>
+            <input type="number" id="edit-stat-wis" class="w-14 text-center font-bold p-1 rounded bg-[#10141d] border border-[#222f42] text-[#f1f5f9]" min="1" max="30" />
+          </div>
+          <div class="p-2.5 rounded-xl bg-[#18202e] border border-[#222f42] flex items-center justify-between">
+            <span class="font-bold text-[#94a3b8]">Carisma (CAR)</span>
+            <input type="number" id="edit-stat-cha" class="w-14 text-center font-bold p-1 rounded bg-[#10141d] border border-[#222f42] text-[#f1f5f9]" min="1" max="30" />
+          </div>
+        </div>
+      </div>
+
+      <!-- Section 3: Vitals & Combat Stats -->
+      <div class="space-y-3">
+        <h4 class="text-xs font-headline font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1.5 pb-1 border-b border-[#222f42]">
+          <span class="material-symbols-outlined text-[16px]">shield</span>
+          <span>Vitales y Combate</span>
+        </h4>
+        <div class="grid grid-cols-3 gap-3">
+          <div>
+            <div class="flex items-center justify-between mb-1">
+              <label class="text-[#94a3b8] block">PG Máximos</label>
+              <span id="edit-char-hp-hint" class="text-[10px] text-amber-400 font-semibold hidden"></span>
+            </div>
+            <input type="number" id="edit-char-max-hp" class="w-full p-2.5 rounded-lg bg-[#18202e] border border-[#222f42] text-[#f1f5f9] focus:border-amber-500 focus:outline-none" />
+          </div>
+          <div>
+            <label class="text-[#94a3b8] block mb-1">Clase de Armadura</label>
+            <input type="number" id="edit-char-ac" class="w-full p-2.5 rounded-lg bg-[#18202e] border border-[#222f42] text-[#f1f5f9] focus:border-amber-500 focus:outline-none" />
+          </div>
+          <div>
+            <label class="text-[#94a3b8] block mb-1">Velocidad (ft)</label>
+            <input type="number" id="edit-char-speed" class="w-full p-2.5 rounded-lg bg-[#18202e] border border-[#222f42] text-[#f1f5f9] focus:border-amber-500 focus:outline-none" />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal Footer Actions -->
+    <div class="p-4 bg-[#18202e] border-t border-[#222f42] flex items-center justify-end gap-2.5">
+      <button type="button" id="edit-cancel-btn" class="px-4 py-2 rounded-xl bg-[#121721] border border-[#222f42] text-[#94a3b8] hover:text-[#f1f5f9] cursor-pointer">
+        Cancelar
+      </button>
+      <button type="button" id="edit-save-btn" class="px-5 py-2 rounded-xl bg-gradient-to-r from-amber-600 to-amber-500 text-[#0a0d12] font-bold shadow-[0_0_12px_rgba(245,158,11,0.3)] hover:brightness-110 active:scale-95 transition-all cursor-pointer">
+        Guardar Cambios
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+  import { characterStore } from '../../scripts/state/characterStore';
+  import { closeModal } from '../../scripts/animations/modalAnimations';
+  import { congratulationBanner } from '../../scripts/ui/congratulationBanner';
+  import { calculateLevelUpHpGain, calculateModifier } from '../../scripts/dnd/calculations';
+
+  const modal = document.getElementById('edit-character-modal');
+  const backdrop = document.getElementById('modal-backdrop');
+  const closeBtn = document.getElementById('edit-modal-close-btn');
+  const cancelBtn = document.getElementById('edit-cancel-btn');
+  const saveBtn = document.getElementById('edit-save-btn');
+
+  // Input refs
+  const nameInp = document.getElementById('edit-char-name') as HTMLInputElement;
+  const classInp = document.getElementById('edit-char-class') as HTMLInputElement;
+  const subclassInp = document.getElementById('edit-char-subclass') as HTMLInputElement;
+  const titleInp = document.getElementById('edit-char-title') as HTMLInputElement;
+  const quoteInp = document.getElementById('edit-char-quote') as HTMLTextAreaElement;
+  const levelInp = document.getElementById('edit-char-level') as HTMLInputElement;
+  const raceInp = document.getElementById('edit-char-race') as HTMLInputElement;
+  const alignInp = document.getElementById('edit-char-alignment') as HTMLInputElement;
+  const avatarInp = document.getElementById('edit-char-avatar-url') as HTMLInputElement;
+  const maxHpInp = document.getElementById('edit-char-max-hp') as HTMLInputElement;
+  const hpHint = document.getElementById('edit-char-hp-hint');
+  const acInp = document.getElementById('edit-char-ac') as HTMLInputElement;
+  const speedInp = document.getElementById('edit-char-speed') as HTMLInputElement;
+
+  const strInp = document.getElementById('edit-stat-str') as HTMLInputElement;
+  const dexInp = document.getElementById('edit-stat-dex') as HTMLInputElement;
+  const conInp = document.getElementById('edit-stat-con') as HTMLInputElement;
+  const intInp = document.getElementById('edit-stat-int') as HTMLInputElement;
+  const wisInp = document.getElementById('edit-stat-wis') as HTMLInputElement;
+  const chaInp = document.getElementById('edit-stat-cha') as HTMLInputElement;
+
+  let initialLevel = 1;
+  let initialMaxHp = 1;
+  let wasFullHp = false;
+
+  function populateForm() {
+    const char = characterStore.get();
+    initialLevel = char.level;
+    initialMaxHp = char.hp.max;
+    wasFullHp = char.hp.current >= char.hp.max;
+
+    if (nameInp) nameInp.value = char.name;
+    if (classInp) classInp.value = char.className;
+    if (subclassInp) subclassInp.value = char.subclass || '';
+    if (titleInp) titleInp.value = char.title || '';
+    if (quoteInp) quoteInp.value = char.quote || '';
+    if (levelInp) levelInp.value = String(char.level);
+    if (raceInp) raceInp.value = char.race;
+    if (alignInp) alignInp.value = char.alignment;
+    if (avatarInp) avatarInp.value = char.avatarUrl || '';
+    if (maxHpInp) maxHpInp.value = String(char.hp.max);
+    if (hpHint) hpHint.classList.add('hidden');
+    if (acInp) acInp.value = String(char.armorClass);
+    if (speedInp) speedInp.value = String(char.speedFt);
+
+    if (strInp) strInp.value = String(char.stats.str.score);
+    if (dexInp) dexInp.value = String(char.stats.dex.score);
+    if (conInp) conInp.value = String(char.stats.con.score);
+    if (intInp) intInp.value = String(char.stats.int.score);
+    if (wisInp) wisInp.value = String(char.stats.wis.score);
+    if (chaInp) chaInp.value = String(char.stats.cha.score);
+  }
+
+  function updateSuggestedHp() {
+    const char = characterStore.get();
+    const curLevelVal = parseInt(levelInp?.value || String(initialLevel));
+    if (isNaN(curLevelVal)) return;
+
+    const conScore = parseInt(conInp?.value || String(char.stats?.con?.score || 10)) || 10;
+    const conMod = calculateModifier(conScore);
+    const die = char.hitDice?.die || 'd10';
+    const levelDiff = curLevelVal - initialLevel;
+
+    if (levelDiff !== 0) {
+      const hpGain = calculateLevelUpHpGain(die, conMod, Math.abs(levelDiff));
+      const suggestedMax = levelDiff > 0 ? initialMaxHp + hpGain : Math.max(1, initialMaxHp - hpGain);
+      if (maxHpInp) maxHpInp.value = String(suggestedMax);
+      if (hpHint) {
+        hpHint.textContent = levelDiff > 0 ? `+${hpGain} PG sugerido (nvl ${curLevelVal})` : `-${hpGain} PG sugerido`;
+        hpHint.classList.remove('hidden');
+      }
+    } else {
+      if (maxHpInp) maxHpInp.value = String(initialMaxHp);
+      if (hpHint) hpHint.classList.add('hidden');
+    }
+  }
+
+  levelInp?.addEventListener('input', updateSuggestedHp);
+  conInp?.addEventListener('input', () => {
+    if (parseInt(levelInp?.value || '') !== initialLevel) {
+      updateSuggestedHp();
+    }
+  });
+
+  // Populate when modal is opened or character updated
+  window.addEventListener('character-updated', populateForm);
+  populateForm();
+
+  // Ensure form is fresh whenever modal opens
+  const observer = new MutationObserver((mutations) => {
+    mutations.forEach((m) => {
+      if (m.type === 'attributes' && m.attributeName === 'class') {
+        if (!modal?.classList.contains('hidden')) {
+          populateForm();
+        }
+      }
+    });
+  });
+  if (modal) observer.observe(modal, { attributes: true });
+
+  // Close
+  closeBtn?.addEventListener('click', () => {
+    if (modal && backdrop) closeModal(modal, backdrop);
+  });
+  cancelBtn?.addEventListener('click', () => {
+    if (modal && backdrop) closeModal(modal, backdrop);
+  });
+
+  // Avatar upload
+  document.getElementById('edit-upload-avatar-btn')?.addEventListener('click', () => {
+    const fileInput = document.getElementById('hero-photo-input') as HTMLInputElement;
+    if (fileInput) fileInput.click();
+  });
+
+  // Save changes and trigger recalculation
+  saveBtn?.addEventListener('click', () => {
+    const char = characterStore.get();
+    const oldLevel = char.level;
+    const oldMaxHp = char.hp.max;
+    const isCurrentlyFull = char.hp.current >= oldMaxHp;
+    const oldCurrentHp = char.hp.current;
+    const newLevel = Math.max(1, Math.min(20, parseInt(levelInp?.value || '1')));
+    const newMaxHp = Math.max(1, parseInt(maxHpInp?.value || '1'));
+
+    char.name = nameInp?.value.trim() || char.name;
+    char.className = classInp?.value.trim() || char.className;
+    char.subclass = subclassInp?.value.trim() || char.subclass;
+    char.title = titleInp?.value.trim() || char.title;
+    char.quote = quoteInp?.value.trim() || char.quote;
+    char.level = newLevel;
+    char.race = raceInp?.value.trim() || char.race;
+    char.alignment = alignInp?.value.trim() || char.alignment;
+    char.avatarUrl = avatarInp?.value.trim() || char.avatarUrl;
+    char.hp.max = newMaxHp;
+
+    // HP calculation according to D&D 5e:
+    if (isCurrentlyFull || wasFullHp) {
+      // If character was at full health, keep health full!
+      char.hp.current = newMaxHp;
+    } else if (newMaxHp > oldMaxHp) {
+      // Current HP increases by the gained max HP
+      const gained = newMaxHp - oldMaxHp;
+      char.hp.current = Math.min(newMaxHp, oldCurrentHp + gained);
+    } else if (char.hp.current > newMaxHp) {
+      char.hp.current = newMaxHp;
+    }
+
+    // Hit Dice calculation
+    if (!char.hitDice) {
+      char.hitDice = { total: newLevel, remaining: newLevel, die: 'd10' };
+    } else if (newLevel !== oldLevel) {
+      const levelDiff = newLevel - oldLevel;
+      const oldRemaining = char.hitDice.remaining;
+      const oldTotal = char.hitDice.total;
+      char.hitDice.total = newLevel;
+      if (oldRemaining >= oldTotal) {
+        char.hitDice.remaining = newLevel;
+      } else if (levelDiff > 0) {
+        char.hitDice.remaining = Math.min(newLevel, oldRemaining + levelDiff);
+      } else {
+        char.hitDice.remaining = Math.min(newLevel, oldRemaining);
+      }
+    }
+
+    char.armorClass = parseInt(acInp?.value || '10');
+    char.speedFt = parseInt(speedInp?.value || '30');
+
+    char.stats.str.score = parseInt(strInp?.value || '10');
+    char.stats.dex.score = parseInt(dexInp?.value || '10');
+    char.stats.con.score = parseInt(conInp?.value || '10');
+    char.stats.int.score = parseInt(intInp?.value || '10');
+    char.stats.wis.score = parseInt(wisInp?.value || '10');
+    char.stats.cha.score = parseInt(chaInp?.value || '10');
+
+    // Save and recalculate
+    characterStore.updateFullCharacter(char);
+
+    if (modal && backdrop) closeModal(modal, backdrop);
+
+    // If level increased, trigger milestone alert with banner!
+    if (newLevel > oldLevel) {
+      setTimeout(() => {
+        congratulationBanner(
+          `¡Has alcanzado el Nivel ${newLevel}!`,
+          `Tu leyenda y poder continúan en ascenso. Revisa tus nuevos espacios de conjuro, puntos de golpe (${char.hp.current}/${char.hp.max} PG) y rasgos de clase para ${char.name}.`,
+          {
+            bannerText: '¡SUBIDA DE NIVEL!',
+            subtitle: 'Ascenso Heroico de Personaje',
+            icon: 'military_tech',
+            saveToJournal: true,
+            tag: '#Hito'
+          }
+        );
+      }, 350);
+    }
+  });
+</script>

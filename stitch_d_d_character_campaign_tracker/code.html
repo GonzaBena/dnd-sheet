@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="es"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0" name="viewport"/><meta content="web_standard" name="shell-type"/><link href="https://fonts.googleapis.com/css2?family=Literata:ital,opsz,wght@0,7..72,400..700;1,7..72,400..700&amp;family=Nunito+Sans:ital,opsz,wght@0,6..12,300..800;1,6..12,300..800&amp;display=swap" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script><script id="tailwind-config">tailwind.config={"darkMode":"class","theme":{"extend":{"colors":{"obsidian":"#0a0d12","card":"#121721","card-sub":"#18202e","amber-glow":"#f59e0b","crimson-glow":"#ef4444","border-slate":"#222f42"},"borderRadius":{"DEFAULT":"0.5rem","lg":"1rem","xl":"1.5rem","full":"9999px"},"fontFamily":{"headline":["Literata"],"display":["Literata"],"body":["Nunito Sans"],"label":["Nunito Sans"]}}}}</script></head><body class="bg-[#0a0d12] font-body text-[#f1f5f9] min-h-screen selection:bg-amber-500/30 selection:text-amber-200"><header class="fixed top-0 w-full z-50 bg-[#0a0d12]/90 backdrop-blur-xl border-b border-[#222f42] shadow-[0_4px_25px_rgba(0,0,0,0.6)]"><div class="h-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-2.5"><div class="flex items-center gap-2.5 shrink-0"><img alt="Crónicas del Aventurero Logo" class="h-7 w-auto object-contain filter drop-shadow-[0_0_8px_rgba(245,158,11,0.4)]" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAOjxkwzeQY2tjMtphJW5txJgjdyCHJz09MUlq5eAzvO-EP_R_Pc0bWws_klhP3G-66Uk5UeSSVmrZZVWNnnk58Lny7OMTx7_BUe42nPP4g6-NbDhEemgH_ylUHV0PTdUQVSIDUB2XJG2hrxGuVIvcUoCfjXVBe1cdfwGJPXHaxWQexlvAmJiELIblLTdmgsEnwEw8i9bTDpsn5Bk5_yqTSLR5nN3_Lfi58BOQ14Nvi"/><div class="flex flex-col"><span class="text-sm font-headline font-bold text-[#f1f5f9] leading-tight tracking-tight">Crónicas del Aventurero</span><span class="text-[10px] font-label text-amber-500 uppercase tracking-wider font-semibold">Grimorio de Campaña</span></div></div><div class="hidden xl:flex items-center gap-2 px-2.5 py-1 rounded-lg bg-[#121721] border border-[#222f42] text-[11px] font-label shrink-0"><div class="flex items-center gap-1.5 text-[#94a3b8]"><span class="material-symbols-outlined text-[14px] text-amber-500">auto_stories</span><span class="font-medium text-[#e2e8f0]">Maldición de Strahd</span></div><span class="text-[#334155]">•</span><div class="flex items-center gap-1 text-[#94a3b8]"><span class="font-semibold text-amber-400">Nvl. 5</span><span class="text-[#cbd5e1]">Pícaro / Mago</span></div></div><nav class="hidden md:flex items-center gap-1 p-1 bg-[#10141d] border border-[#222f42] rounded-xl shrink-0"><a aria-current="page" class="px-2.5 py-1 transition-all bg-gradient-to-r from-amber-600 to-amber-500 text-[#0a0d12] font-bold shadow-[0_0_12px_rgba(245,158,11,0.35)] rounded-lg text-xs leading-none" data-path="hoja-de-personaje" href="#">Hoja de Personaje</a><a class="px-2.5 py-1 rounded-lg text-xs text-[#94a3b8] hover:bg-[#18202e] hover:text-[#f1f5f9] transition-all leading-none" data-path="inventario-y-equipo" href="#">Inventario y Equipo</a><a class="px-2.5 py-1 rounded-lg text-xs text-[#94a3b8] hover:bg-[#18202e] hover:text-[#f1f5f9] transition-all leading-none" data-path="hechizos" href="#">Hechizos</a><a class="px-2.5 py-1 rounded-lg text-xs text-amber-300 bg-amber-500/10 border border-amber-500/30 hover:bg-amber-500/20 hover:text-amber-200 transition-all leading-none flex items-center gap-1.5" data-path="diario-de-sesion" href="#journal-feed"><span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse shadow-[0_0_6px_rgba(245,158,11,0.8)]"></span><span>Diario de Sesión</span><span class="px-1 rounded bg-amber-500/20 text-[10px] font-bold text-amber-400">4</span></a><a class="px-2.5 py-1 rounded-lg text-xs text-[#94a3b8] hover:bg-[#18202e] hover:text-[#f1f5f9] transition-all leading-none" data-path="compendio-y-reglas" href="#">Compendio</a></nav><div class="flex items-center gap-1.5 shrink-0"><button class="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-[#18202e] border border-amber-500/30 text-amber-400 hover:bg-amber-500/10 transition-colors text-xs font-bold font-label" title="Tirar Dados d20" type="button"><span class="material-symbols-outlined text-[16px] text-amber-400">casino</span><span class="hidden sm:inline">Tirar</span></button><button class="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-[#18202e] border border-[#222f42] text-[#94a3b8] hover:bg-[#222f42] hover:text-[#f1f5f9] transition-colors text-xs font-medium font-label" title="Descanso Corto o Largo" type="button"><span class="material-symbols-outlined text-[16px] text-amber-500">bedtime</span><span class="hidden sm:inline">Descanso</span></button><div class="w-8 h-8 rounded-full bg-gradient-to-br from-amber-500 to-amber-600 border border-amber-400/40 flex items-center justify-center shadow-[0_0_12px_rgba(245,158,11,0.4)]"><span class="material-symbols-outlined text-[#0a0d12] text-[18px] font-bold">person</span></div></div></div></header><main class="w-full pt-20 bg-[#0a0d12] min-h-[calc(100vh-80px)]"><div class="flex flex-col w-full">
+<!-- Subtle Atmospheric Backdrop Elements -->
+<div class="relative w-full overflow-hidden px-4 sm:px-6 lg:px-10 py-6 max-w-[1720px] mx-auto">
+<!-- Ambient Light Blotches: Dark Obsidian & Blood Amber -->
+<div class="absolute -top-32 left-1/4 w-96 h-96 bg-amber-500/10 rounded-full blur-[110px] pointer-events-none"></div>
+<div class="absolute top-96 right-10 w-96 h-96 bg-rose-600/10 rounded-full blur-[120px] pointer-events-none"></div>
+<div class="absolute top-1/2 left-10 w-72 h-72 bg-amber-600/5 rounded-full blur-[90px] pointer-events-none"></div>
+<!-- Top Status Banner & Session Context -->
+<div class="mb-6 flex flex-wrap items-center justify-between gap-4 p-4 rounded-xl bg-[#121721] border border-[#222f42] shadow-[0_4px_20px_rgba(0,0,0,0.4)]">
+<div class="flex items-center gap-3">
+<span class="w-3 h-3 rounded-full bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.9)] animate-pulse"></span>
+<div>
+<span class="text-xs uppercase tracking-wider font-bold text-amber-500">Campaña Activa</span>
+<h2 class="text-base font-headline font-bold text-[#f1f5f9]">Maldición de Strahd • Sesión 15 en Curso</h2>
+</div>
+</div>
+<div class="flex flex-wrap items-center gap-3 text-xs font-label">
+<div class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#18202e] border border-[#222f42] text-[#94a3b8]">
+<span class="material-symbols-outlined text-[16px] text-amber-500">wb_twilight</span>
+<span class="text-[#cbd5e1]">Clima: Niebla Espesa / Anochecer</span>
+</div>
+<div class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#18202e] border border-[#222f42] text-[#94a3b8]">
+<span class="material-symbols-outlined text-[16px] text-rose-400">map</span>
+<span class="text-[#cbd5e1]">Ubicación: Valle de Barovia</span>
+</div>
+<button class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-amber-600 to-amber-500 text-[#0a0d12] font-bold shadow-[0_0_15px_rgba(245,158,11,0.3)] hover:brightness-110 transition-all" id="dice-roller-quick">
+<span class="material-symbols-outlined text-[16px]">casino</span>
+<span class="">Tirar d20 (+4 DEX)</span>
+</button>
+</div>
+</div>
+<!-- MAIN HERO & CHARACTER HEADER BANNER -->
+<section class="relative mb-8 rounded-xl bg-[#121721] border border-[#222f42] shadow-[0_8px_30px_rgba(0,0,0,0.5)] p-6 lg:p-8 overflow-hidden">
+<!-- Decorative background runes/rings -->
+<div class="absolute -right-20 -bottom-20 w-80 h-80 rounded-full bg-amber-500/5 blur-2xl pointer-events-none"></div>
+<div class="relative z-10 grid grid-cols-1 xl:grid-cols-12 gap-8 items-center">
+<!-- Portrait & Badges -->
+<div class="xl:col-span-4 flex flex-col items-center gap-3">
+<!-- Portrait with Ornate Fantasy Frame -->
+<div class="relative shrink-0 group">
+<div class="w-32 h-32 sm:w-36 sm:h-36 rounded-2xl overflow-hidden shadow-2xl bg-[#18202e] p-1.5 ring-1 ring-amber-500/40">
+<div class="w-full h-full rounded-xl overflow-hidden relative">
+<img alt="Elysian Ventosombra - Explorador Semielfo" class="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-500" src="https://lh3.googleusercontent.com/aida/ALJJyrBB58Th1LIT7lpeirKCc7greaknxjOFNsUVNXZz77F5UWABzUCxDIFrQsVH-v4M8A0YgzwBmDWfYKMutfm3_bdT3-V88pDbTqbx_y9NSuqyMrjiqmBJFvMng6gAO_JzyQ-W01nJjgrp1Vet0W6NkBOEMRrfEvwxOJ23tXexyZedPfyPSJf0S-NEBKVoih8xE_7kPjBiWbV5F_mIeuzrCDq9-2Qj9c1VoQCcRXRuCkddZQ"/>
+<div class="absolute inset-0 bg-gradient-to-t from-[#0a0d12]/80 via-transparent to-transparent"></div>
+</div>
+</div>
+<!-- Level seal -->
+<div class="absolute -bottom-2 -right-2 w-9 h-9 rounded-full bg-gradient-to-br from-amber-500 to-amber-600 text-[#0a0d12] flex flex-col items-center justify-center font-headline font-bold text-xs shadow-[0_0_12px_rgba(245,158,11,0.6)] border border-amber-300">
+<span class="text-[9px] leading-none font-bold text-[#0a0d12]/80">NVL</span>
+<span class="text-xs leading-none">5</span>
+</div>
+<!-- Inspiration Token -->
+<div class="absolute -top-2 -left-2 bg-gradient-to-r from-rose-600 to-amber-600 text-white px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wider uppercase shadow-[0_0_10px_rgba(239,68,68,0.5)] border border-amber-400/30 flex items-center gap-1">
+<span class="material-symbols-outlined text-[12px] text-amber-200">auto_awesome</span>
+<span class="">Inspirado</span>
+</div>
+</div>
+<!-- Hero Name & Archetype Identity -->
+<div class="flex-1 text-center">
+<div class="flex flex-wrap items-center justify-center gap-2 mb-1.5">
+<span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-500/15 border border-amber-500/30 text-amber-300">Semielfo</span>
+<span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-500/15 border border-rose-500/30 text-rose-300">Caótico Bueno</span>
+<span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#18202e] border border-[#222f42] text-[#94a3b8]">Competencia +3</span>
+</div>
+<h1 class="text-2xl sm:text-3xl font-headline font-bold text-[#f1f5f9] tracking-tight">Elysian Ventosombra</h1>
+<p class="text-sm font-medium text-amber-400 mb-2">Explorador • Guardián del Cónclave Umbrío</p>
+<p class="text-xs text-[#94a3b8] line-clamp-2 italic">
+              "Superviviente de los Bosques Olvidados. Juramentado a cazar los terrores que se ocultan en la niebla perpetua de Barovia."
+            </p>
+</div>
+</div>
+<!-- Vital Statistics & Dynamic Health Bars -->
+<div class="xl:col-span-8 grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3 flex flex-col"><!-- Top Full-Width Hit Points Panel --><div class="w-full rounded-xl bg-[#18202e] border border-[#222f42] p-4 shadow-sm flex flex-col gap-3"><div class="flex flex-wrap items-center justify-between gap-3"><div class="flex items-center gap-2"><span class="material-symbols-outlined text-rose-500 text-[22px] drop-shadow-[0_0_6px_rgba(239,68,68,0.6)]">favorite</span><div><span class="text-xs font-bold uppercase tracking-wider text-[#94a3b8] block leading-none">Puntos de Golpe</span><span class="text-[11px] font-label text-[#64748b]">Estado del aventurero</span></div></div><div class="flex items-center gap-3"><div class="text-right flex items-baseline gap-1.5"><span class="text-2xl font-headline font-bold text-[#f1f5f9]">42</span><span class="text-xs font-label text-[#64748b]">/ 48 PG</span><span class="text-xs font-bold text-amber-300 bg-amber-500/20 border border-amber-500/40 px-2 py-0.5 rounded shadow-[0_0_8px_rgba(245,158,11,0.2)]">+5 Temp</span></div><div class="flex items-center gap-1 pl-2 border-l border-[#222f42]"><button class="w-7 h-7 rounded-lg bg-[#121721] border border-[#222f42] hover:border-rose-500/50 flex items-center justify-center text-xs font-bold text-rose-400 active:scale-95 transition-all" title="Recibir 5 de daño">-5</button><button class="w-7 h-7 rounded-lg bg-[#121721] border border-[#222f42] hover:border-rose-500/50 flex items-center justify-center text-xs font-bold text-rose-400 active:scale-95 transition-all" title="Recibir 1 de daño">-1</button><button class="w-7 h-7 rounded-lg bg-[#121721] border border-[#222f42] hover:border-amber-500/50 flex items-center justify-center text-xs font-bold text-amber-400 active:scale-95 transition-all" title="Curar 1 PG">+1</button><button class="w-7 h-7 rounded-lg bg-[#121721] border border-[#222f42] hover:border-amber-500/50 flex items-center justify-center text-xs font-bold text-amber-400 active:scale-95 transition-all" title="Curar 5 PG">+5</button></div></div></div><!-- Health Progress Meter and Status --><div class="flex items-center gap-3"><div class="flex-1 bg-[#0a0d12] h-3.5 rounded-full overflow-hidden flex border border-[#222f42]"><div class="bg-gradient-to-r from-rose-600 via-amber-600 to-amber-500 h-full transition-all duration-300 rounded-l-full shadow-[0_0_10px_rgba(245,158,11,0.5)]" style="width: 87.5%"></div><div class="bg-amber-400/80 h-full transition-all duration-300 rounded-r-full" style="width: 10.4%"></div></div><span class="text-xs font-label font-bold text-amber-400 shrink-0">87% Salud</span></div></div><!-- 4 Combat Vitals Cards Grid --><div class="grid grid-cols-2 sm:grid-cols-4 gap-3 w-full"><!-- Armor Class --><div class="rounded-xl bg-[#18202e] border border-[#222f42] p-3 flex flex-col items-center justify-center text-center shadow-sm hover:border-amber-500/40 transition-colors"><span class="material-symbols-outlined text-amber-400 text-[22px] mb-1 drop-shadow-[0_0_6px_rgba(245,158,11,0.5)]">shield</span><span class="text-2xl font-headline font-bold text-[#f1f5f9] leading-none">16</span><span class="text-[11px] uppercase tracking-wider font-label font-bold text-[#94a3b8] mt-1">Clase Armadura</span><span class="text-[10px] text-amber-400/90 font-label mt-0.5 truncate">Cuero tach. + Escudo</span></div><!-- Initiative --><div class="rounded-xl bg-[#18202e] border border-[#222f42] p-3 flex flex-col items-center justify-center text-center shadow-sm hover:border-amber-500/40 transition-colors"><span class="material-symbols-outlined text-amber-500 text-[22px] mb-1 drop-shadow-[0_0_6px_rgba(245,158,11,0.5)]">bolt</span><span class="text-2xl font-headline font-bold text-amber-400 leading-none">+3</span><span class="text-[11px] uppercase tracking-wider font-label font-bold text-[#94a3b8] mt-1">Iniciativa</span><span class="text-[10px] text-[#64748b] font-label mt-0.5">DEX +3</span></div><!-- Speed --><div class="rounded-xl bg-[#18202e] border border-[#222f42] p-3 flex flex-col items-center justify-center text-center shadow-sm hover:border-amber-500/40 transition-colors"><span class="material-symbols-outlined text-[#94a3b8] text-[22px] mb-1">directions_run</span><span class="text-2xl font-headline font-bold text-[#f1f5f9] leading-none">30<span class="text-xs font-normal text-[#94a3b8]"> ft</span></span><span class="text-[11px] uppercase tracking-wider font-label font-bold text-[#94a3b8] mt-1">Velocidad</span><span class="text-[10px] text-[#64748b] font-label mt-0.5">6 casillas</span></div><!-- Hit Dice & Rest Mechanics --><div class="rounded-xl bg-[#18202e] border border-[#222f42] p-3 flex flex-col justify-between shadow-sm hover:border-amber-500/40 transition-colors"><div class="flex items-center justify-between"><span class="text-[11px] font-bold uppercase tracking-wider text-[#94a3b8]">Dados de Golpe</span><span class="material-symbols-outlined text-[16px] text-amber-500">sports_kabaddi</span></div><div class="my-1 text-center sm:text-left"><span class="text-xl font-headline font-bold text-[#f1f5f9]">5 / 5</span><span class="text-xs font-label text-amber-400 font-semibold ml-1">d10</span></div><div class="flex gap-1"><button class="flex-1 py-1 rounded bg-[#121721] border border-[#222f42] hover:bg-[#222f42] text-[10px] font-bold text-[#cbd5e1] transition-colors">Corto</button><button class="flex-1 py-1 rounded bg-amber-500/20 border border-amber-500/40 hover:bg-amber-500/30 text-[10px] font-bold text-amber-300 transition-colors">Largo</button></div></div></div></div>
+</div>
+</section>
+<!-- MAIN THREE-COLUMN DESKTOP WORKSPACE -->
+<div class="w-full space-y-8">
+<!-- 2-COLUMN MAIN CHARACTER CONTENT GRID -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+<!-- COLUMN 1: ABILITIES, SAVING THROWS & SKILLS & RASGOS -->
+<div class="space-y-6">
+<!-- CORE ATTRIBUTES (6 D&D STAT CARDS) -->
+<div class="rounded-xl bg-[#121721] border border-[#222f42] p-5 shadow-sm">
+<div class="flex items-center justify-between mb-4">
+<h3 class="text-sm font-headline font-bold text-[#f1f5f9] uppercase tracking-wider flex items-center gap-1.5">
+<span class="material-symbols-outlined text-amber-500 text-[18px]">view_in_ar</span>
+            Puntuaciones de Característica
+          </h3>
+<span class="text-[11px] font-label text-amber-300 bg-amber-500/20 border border-amber-500/40 px-2 py-0.5 rounded-full font-bold">d20 Mod</span>
+</div>
+<div class="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+<!-- Fuerza -->
+<div class="p-3 rounded-xl bg-[#18202e] border border-[#222f42] hover:border-amber-500/40 transition-colors flex flex-col items-center text-center group cursor-pointer">
+<span class="text-[11px] font-bold uppercase tracking-wider text-[#94a3b8]">Fuerza (FUE)</span>
+<span class="text-2xl font-headline font-bold text-[#f1f5f9] my-0.5 group-hover:text-amber-400 transition-colors">+2</span>
+<span class="text-xs px-2 py-0.5 rounded-full bg-[#10141d] border border-[#222f42] text-[#94a3b8] font-semibold">14</span>
+</div>
+<!-- Destreza -->
+<div class="p-3 rounded-xl bg-gradient-to-b from-amber-500/20 to-amber-600/10 border border-amber-500/60 shadow-[0_0_15px_rgba(245,158,11,0.2)] hover:border-amber-400 transition-colors flex flex-col items-center text-center group cursor-pointer">
+<span class="text-[11px] font-bold uppercase tracking-wider text-amber-300">Destreza (DES)</span>
+<span class="text-2xl font-headline font-bold text-amber-400 my-0.5 group-hover:scale-105 transition-transform drop-shadow-[0_0_8px_rgba(245,158,11,0.6)]">+4</span>
+<span class="text-xs px-2 py-0.5 rounded-full bg-gradient-to-r from-amber-600 to-amber-500 text-[#0a0d12] font-bold shadow-sm">18</span>
+</div>
+<!-- Constitución -->
+<div class="p-3 rounded-xl bg-[#18202e] border border-[#222f42] hover:border-amber-500/40 transition-colors flex flex-col items-center text-center group cursor-pointer">
+<span class="text-[11px] font-bold uppercase tracking-wider text-[#94a3b8]">Constitución (CON)</span>
+<span class="text-2xl font-headline font-bold text-[#f1f5f9] my-0.5 group-hover:text-amber-400 transition-colors">+2</span>
+<span class="text-xs px-2 py-0.5 rounded-full bg-[#10141d] border border-[#222f42] text-[#94a3b8] font-semibold">15</span>
+</div>
+<!-- Inteligencia -->
+<div class="p-3 rounded-xl bg-[#18202e] border border-[#222f42] hover:border-amber-500/40 transition-colors flex flex-col items-center text-center group cursor-pointer">
+<span class="text-[11px] font-bold uppercase tracking-wider text-[#94a3b8]">Inteligencia (INT)</span>
+<span class="text-2xl font-headline font-bold text-[#f1f5f9] my-0.5 group-hover:text-amber-400 transition-colors">+1</span>
+<span class="text-xs px-2 py-0.5 rounded-full bg-[#10141d] border border-[#222f42] text-[#94a3b8] font-semibold">12</span>
+</div>
+<!-- Sabiduría -->
+<div class="p-3 rounded-xl bg-rose-500/10 border border-rose-500/40 shadow-[0_0_12px_rgba(239,68,68,0.15)] hover:border-rose-400 transition-colors flex flex-col items-center text-center group cursor-pointer">
+<span class="text-[11px] font-bold uppercase tracking-wider text-rose-300">Sabiduría (SAB)</span>
+<span class="text-2xl font-headline font-bold text-rose-400 my-0.5 group-hover:scale-105 transition-transform drop-shadow-[0_0_8px_rgba(239,68,68,0.5)]">+3</span>
+<span class="text-xs px-2 py-0.5 rounded-full bg-gradient-to-r from-rose-600 to-rose-500 text-white font-bold">16</span>
+</div>
+<!-- Carisma -->
+<div class="p-3 rounded-xl bg-[#18202e] border border-[#222f42] hover:border-amber-500/40 transition-colors flex flex-col items-center text-center group cursor-pointer">
+<span class="text-[11px] font-bold uppercase tracking-wider text-[#94a3b8]">Carisma (CAR)</span>
+<span class="text-2xl font-headline font-bold text-[#f1f5f9] my-0.5 group-hover:text-amber-400 transition-colors">+0</span>
+<span class="text-xs px-2 py-0.5 rounded-full bg-[#10141d] border border-[#222f42] text-[#94a3b8] font-semibold">10</span>
+</div>
+</div>
+<!-- SAVING THROWS LIST -->
+<div class="mt-4 pt-4 border-t-0 bg-[#18202e] border border-[#222f42] rounded-lg p-3">
+<h4 class="text-xs font-bold uppercase tracking-wider text-[#f1f5f9] mb-2 flex items-center justify-between">
+<span>Tiradas de Salvación</span>
+<span class="text-[10px] text-amber-400 font-normal">● Competente</span>
+</h4>
+<div class="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
+<div class="flex items-center justify-between p-1.5 rounded bg-amber-500/20 border border-amber-500/30 text-amber-300 font-bold">
+<span class="flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-amber-400 shadow-[0_0_6px_rgba(245,158,11,0.8)]"></span> FUE</span>
+<span>+5</span>
+</div>
+<div class="flex items-center justify-between p-1.5 rounded bg-amber-500/20 border border-amber-500/30 text-amber-300 font-bold">
+<span class="flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-amber-400 shadow-[0_0_6px_rgba(245,158,11,0.8)]"></span> DES</span>
+<span>+7</span>
+</div>
+<div class="flex items-center justify-between p-1.5 rounded bg-[#10141d] border border-[#222f42] text-[#94a3b8]">
+<span class="flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-[#334155]"></span> CON</span>
+<span>+2</span>
+</div>
+<div class="flex items-center justify-between p-1.5 rounded bg-[#10141d] border border-[#222f42] text-[#94a3b8]">
+<span class="flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-[#334155]"></span> INT</span>
+<span>+1</span>
+</div>
+<div class="flex items-center justify-between p-1.5 rounded bg-[#10141d] border border-[#222f42] text-[#94a3b8]">
+<span class="flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-[#334155]"></span> SAB</span>
+<span>+3</span>
+</div>
+<div class="flex items-center justify-between p-1.5 rounded bg-[#10141d] border border-[#222f42] text-[#94a3b8]">
+<span class="flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-[#334155]"></span> CAR</span>
+<span>+0</span>
+</div>
+</div>
+</div>
+</div>
+<!-- SKILLS & EXPERTISE LIST -->
+<div class="rounded-xl bg-[#121721] border border-[#222f42] p-5 shadow-sm">
+<div class="flex items-center justify-between mb-3">
+<h3 class="text-sm font-headline font-bold text-[#f1f5f9] uppercase tracking-wider flex items-center gap-1.5">
+<span class="material-symbols-outlined text-amber-500 text-[18px]">verified</span>
+            Habilidades Calculadas
+          </h3>
+<span class="text-[10px] text-amber-400 font-label">★ Pericia</span>
+</div>
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+<!-- Sigilo (Pericia) -->
+<div class="flex items-center justify-between p-2 rounded-lg bg-[#18202e] border border-amber-500/30 font-bold text-[#f1f5f9] hover:bg-[#222f42] transition-colors">
+<div class="flex items-center gap-2">
+<span class="text-amber-400 drop-shadow-[0_0_4px_rgba(245,158,11,0.8)]">★</span>
+<span>Sigilo</span>
+<span class="text-[10px] text-[#94a3b8] font-normal">(DES)</span>
+</div>
+<span class="px-2 py-0.5 rounded bg-amber-500 text-[#0a0d12] font-mono text-xs font-bold shadow-[0_0_8px_rgba(245,158,11,0.4)]">+7</span>
+</div>
+<!-- Percepción -->
+<div class="flex items-center justify-between p-2 rounded-lg bg-[#18202e] border border-[#222f42] font-bold text-[#f1f5f9] hover:bg-[#222f42] transition-colors">
+<div class="flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-amber-500 inline-block shadow-[0_0_6px_rgba(245,158,11,0.6)]"></span>
+<span>Percepción</span>
+<span class="text-[10px] text-[#94a3b8] font-normal">(SAB)</span>
+</div>
+<span class="px-2 py-0.5 rounded bg-amber-500/20 border border-amber-500/40 text-amber-300 font-mono text-xs">+6</span>
+</div>
+<!-- Supervivencia -->
+<div class="flex items-center justify-between p-2 rounded-lg bg-[#18202e] border border-[#222f42] font-bold text-[#f1f5f9] hover:bg-[#222f42] transition-colors">
+<div class="flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-amber-500 inline-block shadow-[0_0_6px_rgba(245,158,11,0.6)]"></span>
+<span>Supervivencia</span>
+<span class="text-[10px] text-[#94a3b8] font-normal">(SAB)</span>
+</div>
+<span class="px-2 py-0.5 rounded bg-amber-500/20 border border-amber-500/40 text-amber-300 font-mono text-xs">+6</span>
+</div>
+<!-- Atletismo -->
+<div class="flex items-center justify-between p-2 rounded-lg bg-[#18202e] border border-[#222f42] font-bold text-[#f1f5f9] hover:bg-[#222f42] transition-colors">
+<div class="flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-amber-500 inline-block shadow-[0_0_6px_rgba(245,158,11,0.6)]"></span>
+<span>Atletismo</span>
+<span class="text-[10px] text-[#94a3b8] font-normal">(FUE)</span>
+</div>
+<span class="px-2 py-0.5 rounded bg-amber-500/20 border border-amber-500/40 text-amber-300 font-mono text-xs">+5</span>
+</div>
+<!-- Perspicacia -->
+<div class="flex items-center justify-between p-2 rounded-lg bg-[#18202e] border border-[#222f42] font-bold text-[#f1f5f9] hover:bg-[#222f42] transition-colors">
+<div class="flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-amber-500 inline-block shadow-[0_0_6px_rgba(245,158,11,0.6)]"></span>
+<span>Perspicacia</span>
+<span class="text-[10px] text-[#94a3b8] font-normal">(SAB)</span>
+</div>
+<span class="px-2 py-0.5 rounded bg-amber-500/20 border border-amber-500/40 text-amber-300 font-mono text-xs">+6</span>
+</div>
+<!-- Naturaleza -->
+<div class="flex items-center justify-between p-2 rounded-lg bg-[#18202e] border border-[#222f42] font-semibold text-[#f1f5f9] hover:bg-[#222f42] transition-colors">
+<div class="flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-amber-500 inline-block shadow-[0_0_6px_rgba(245,158,11,0.6)]"></span>
+<span>Naturaleza</span>
+<span class="text-[10px] text-[#94a3b8] font-normal">(INT)</span>
+</div>
+<span class="px-2 py-0.5 rounded bg-[#10141d] border border-[#222f42] text-[#cbd5e1] font-mono text-xs">+4</span>
+</div>
+<!-- Acrobacias -->
+<div class="flex items-center justify-between p-2 rounded-lg bg-[#18202e] border border-[#222f42] font-semibold text-[#f1f5f9] hover:bg-[#222f42] transition-colors">
+<div class="flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-[#475569] inline-block"></span>
+<span>Acrobacias</span>
+<span class="text-[10px] text-[#94a3b8] font-normal">(DES)</span>
+</div>
+<span class="px-2 py-0.5 rounded bg-[#10141d] border border-[#222f42] text-[#cbd5e1] font-mono text-xs">+4</span>
+</div>
+<!-- Trato con Animales -->
+<div class="flex items-center justify-between p-2 rounded-lg bg-[#18202e] border border-[#222f42] text-[#94a3b8] hover:bg-[#222f42] transition-colors">
+<div class="flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-[#475569] inline-block"></span>
+<span>Trato con Animales</span>
+<span class="text-[10px] text-[#64748b] font-normal">(SAB)</span>
+</div>
+<span class="px-2 py-0.5 rounded bg-[#10141d] border border-[#222f42] text-[#94a3b8] font-mono text-xs">+3</span>
+</div>
+</div>
+<div class="mt-4 p-3 rounded-lg bg-[#18202e] border border-[#222f42] text-xs text-[#94a3b8]">
+<span class="font-bold text-[#f1f5f9]">Percepción Pasiva:</span>
+<span class="font-headline font-bold text-amber-400 ml-1 text-sm">16</span>
+<span class="mx-2 text-[#334155]">•</span>
+<span class="font-bold text-[#f1f5f9]">Investigación Pasiva:</span>
+<span class="font-headline font-bold text-rose-400 ml-1 text-sm">11</span>
+</div>
+</div>
+<!-- CLASS FEATURES & FEATS -->
+<div class="rounded-xl bg-[#121721] border border-[#222f42] p-5 shadow-sm space-y-3">
+<h3 class="text-sm font-headline font-bold text-[#f1f5f9] uppercase tracking-wider flex items-center gap-1.5">
+<span class="material-symbols-outlined text-amber-500 text-[18px]">psychology</span>
+          Rasgos del Guardián
+        </h3>
+<div class="p-3 rounded-lg bg-[#18202e] border border-[#222f42]">
+<div class="flex items-center justify-between mb-1">
+<span class="text-xs font-bold text-[#f1f5f9]">Acechador de las Sombras</span>
+<span class="text-[10px] font-bold text-amber-300 bg-amber-500/20 border border-amber-500/40 px-1.5 py-0.5 rounded">Pasiva</span>
+</div>
+<p class="text-xs text-[#94a3b8] leading-relaxed">
+            Invisibilidad a criaturas que dependen de la visión en la oscuridad en penumbra o tinieblas. +10 pies de velocidad en primer asalto.
+          </p>
+</div>
+<div class="p-3 rounded-lg bg-[#18202e] border border-[#222f42]">
+<div class="flex items-center justify-between mb-1">
+<span class="text-xs font-bold text-[#f1f5f9]">Enemigo Predilecto</span>
+<span class="text-[10px] font-bold text-rose-300 bg-rose-500/20 border border-rose-500/40 px-1.5 py-0.5 rounded">Bestias / No-Muertos</span>
+</div>
+<p class="text-xs text-[#94a3b8] leading-relaxed">
+            Ventaja en pruebas de Sabiduría (Supervivencia) para rastrear y pruebas de Inteligencia para recordar información relevante.
+          </p>
+</div>
+<div class="p-3 rounded-lg bg-[#18202e] border border-[#222f42]">
+<div class="flex items-center justify-between mb-1">
+<span class="text-xs font-bold text-[#f1f5f9]">Dote: Tirador Certero</span>
+<span class="text-[10px] font-bold text-[#cbd5e1] bg-[#10141d] border border-[#222f42] px-1.5 py-0.5 rounded">-5 Ataque / +10 Daño</span>
+</div>
+<p class="text-xs text-[#94a3b8] leading-relaxed">
+            Los ataques a distancia ignoran cobertura media y tres cuartos. No sufres desventaja por alcance largo.
+          </p>
+</div>
+</div>
+</div>
+<!-- COLUMN 2: COMBAT ARSENAL, EQUIPMENT & SATCHEL -->
+<div class="space-y-6">
+<!-- EQUIPPED WEAPONS & ATTACK CARDS -->
+<div class="rounded-xl bg-[#121721] border border-[#222f42] p-5 shadow-sm">
+<div class="flex items-center justify-between mb-4">
+<h3 class="text-sm font-headline font-bold text-[#f1f5f9] uppercase tracking-wider flex items-center gap-1.5">
+<span class="material-symbols-outlined text-amber-500 text-[18px]">swords</span>
+            Armas y Acciones de Ataque
+          </h3>
+<span class="text-[11px] font-label text-amber-400 font-bold">2 Ataques por Acción</span>
+</div>
+<div class="space-y-3">
+<!-- Weapon 1: Longbow -->
+<div class="p-4 rounded-xl bg-[#18202e] border border-[#222f42] hover:border-amber-500/40 transition-all shadow-sm">
+<div class="flex items-start justify-between">
+<div>
+<div class="flex items-center gap-2">
+<span class="font-headline font-bold text-[#f1f5f9] text-base">Arco Largo Compuesto</span>
+<span class="text-[10px] bg-amber-500 text-[#0a0d12] px-1.5 py-0.2 rounded font-bold">Equipado</span>
+</div>
+<span class="text-xs text-[#94a3b8]">A distancia • Alcance 150/600 pies • Munición</span>
+</div>
+<button class="px-3 py-1.5 rounded-lg bg-gradient-to-r from-amber-600 to-amber-500 text-[#0a0d12] font-bold text-xs flex items-center gap-1 shadow-[0_0_12px_rgba(245,158,11,0.35)] hover:brightness-110 transition-all active:scale-95">
+<span class="material-symbols-outlined text-[14px]">casino</span>
+<span>+7</span>
+</button>
+</div>
+<div class="mt-3 pt-3 flex items-center justify-between bg-[#10141d] border border-[#222f42] rounded-lg p-2.5 text-xs">
+<div>
+<span class="text-[#64748b] block text-[10px] uppercase font-bold">Daño</span>
+<span class="font-headline font-bold text-[#f1f5f9] text-sm">1d8 + 4</span>
+<span class="text-amber-400 ml-1 font-semibold">perforante</span>
+</div>
+<div class="text-right">
+<span class="text-[#64748b] block text-[10px] uppercase font-bold">Carcaj</span>
+<span class="font-bold text-[#cbd5e1]">36 / 40 Flechas</span>
+</div>
+</div>
+</div>
+<!-- Weapon 2: Shortsword -->
+<div class="p-4 rounded-xl bg-[#18202e] border border-[#222f42] hover:border-rose-500/40 transition-all shadow-sm">
+<div class="flex items-start justify-between">
+<div>
+<div class="flex items-center gap-2">
+<span class="font-headline font-bold text-[#f1f5f9] text-base">Espada Corta Élfica</span>
+<span class="text-[10px] bg-rose-500/20 border border-rose-500/40 text-rose-300 px-1.5 py-0.2 rounded font-bold">Mano Torpe</span>
+</div>
+<span class="text-xs text-[#94a3b8]">Cuerpo a cuerpo • Sutil • Ligera</span>
+</div>
+<button class="px-3 py-1.5 rounded-lg bg-[#10141d] border border-[#222f42] hover:border-amber-500/40 text-[#f1f5f9] font-bold text-xs flex items-center gap-1 shadow-sm transition-all active:scale-95">
+<span class="material-symbols-outlined text-[14px] text-amber-500">casino</span>
+<span>+7</span>
+</button>
+</div>
+<div class="mt-3 pt-3 flex items-center justify-between bg-[#10141d] border border-[#222f42] rounded-lg p-2.5 text-xs">
+<div>
+<span class="text-[#64748b] block text-[10px] uppercase font-bold">Daño</span>
+<span class="font-headline font-bold text-[#f1f5f9] text-sm">1d6 + 4</span>
+<span class="text-rose-400 ml-1 font-semibold">cortante</span>
+</div>
+<div class="text-right">
+<span class="text-[#64748b] block text-[10px] uppercase font-bold">Crítico</span>
+<span class="font-bold text-amber-400">19-20 (Doble)</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- CURRENCY POUCH & ATTUNED ARTIFACTS -->
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+<!-- Monedero -->
+<div class="p-4 rounded-xl bg-[#121721] border border-[#222f42] shadow-sm">
+<h4 class="text-xs font-headline font-bold text-[#f1f5f9] uppercase tracking-wider mb-2 flex items-center gap-1">
+<span class="material-symbols-outlined text-amber-500 text-[16px]">monetization_on</span>
+            Bolsa de Monedas
+          </h4>
+<div class="grid grid-cols-3 gap-2 text-center">
+<div class="p-2 rounded-lg bg-amber-500/20 border border-amber-500/40">
+<span class="text-[10px] font-bold text-amber-300 uppercase block">Oro</span>
+<span class="text-base font-headline font-bold text-amber-400 drop-shadow-[0_0_6px_rgba(245,158,11,0.5)]">145</span>
+<span class="text-[9px] text-[#94a3b8]">PO</span>
+</div>
+<div class="p-2 rounded-lg bg-[#18202e] border border-[#222f42]">
+<span class="text-[10px] font-bold text-[#94a3b8] uppercase block">Plata</span>
+<span class="text-base font-headline font-bold text-[#f1f5f9]">28</span>
+<span class="text-[9px] text-[#64748b]">PP</span>
+</div>
+<div class="p-2 rounded-lg bg-[#18202e] border border-[#222f42]">
+<span class="text-[10px] font-bold text-[#94a3b8] uppercase block">Cobre</span>
+<span class="text-base font-headline font-bold text-[#f1f5f9]">12</span>
+<span class="text-[9px] text-[#64748b]">PC</span>
+</div>
+</div>
+</div>
+<!-- Sintonización mágica -->
+<div class="p-4 rounded-xl bg-[#121721] border border-[#222f42] shadow-sm flex flex-col justify-between">
+<div class="flex items-center justify-between mb-1">
+<h4 class="text-xs font-headline font-bold text-[#f1f5f9] uppercase tracking-wider flex items-center gap-1">
+<span class="material-symbols-outlined text-rose-500 text-[16px]">stars</span>
+              Sintonizados
+            </h4>
+<span class="text-[10px] font-bold bg-amber-500/20 border border-amber-500/40 text-amber-300 px-1.5 py-0.5 rounded">2 / 3</span>
+</div>
+<div class="space-y-1.5 text-xs">
+<div class="p-1.5 rounded bg-[#18202e] border border-[#222f42] flex items-center justify-between">
+<span class="font-medium text-[#f1f5f9] truncate">Capa de la Floresta</span>
+<span class="text-[10px] text-amber-400 font-bold">+2 Sigilo</span>
+</div>
+<div class="p-1.5 rounded bg-[#18202e] border border-[#222f42] flex items-center justify-between">
+<span class="font-medium text-[#f1f5f9] truncate">Amuleto del Cazador</span>
+<span class="text-[10px] text-rose-400 font-bold">+1 CA vs Bestias</span>
+</div>
+</div>
+</div>
+</div>
+<!-- QUICK CONSUMABLES & TRAVEL SATCHEL -->
+<div class="rounded-xl bg-[#121721] border border-[#222f42] p-5 shadow-sm">
+<div class="flex items-center justify-between mb-3">
+<h3 class="text-sm font-headline font-bold text-[#f1f5f9] uppercase tracking-wider flex items-center gap-1.5">
+<span class="material-symbols-outlined text-amber-500 text-[18px]">backpack</span>
+            Mochila de Supervivencia y Pociones
+          </h3>
+<span class="text-xs text-[#94a3b8]">Peso: 42 / 120 lb</span>
+</div>
+<!-- Healing Potion Quick Consume Card -->
+<div class="p-3 mb-3 rounded-xl bg-gradient-to-r from-rose-950/60 to-[#18202e] border border-rose-500/40 flex items-center justify-between">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-lg bg-rose-600 text-white flex items-center justify-center shadow-[0_0_12px_rgba(239,68,68,0.5)]">
+<span class="material-symbols-outlined text-[22px]">science</span>
+</div>
+<div>
+<span class="text-xs font-bold text-[#f1f5f9] block">Poción de Curación Mayor</span>
+<span class="text-[11px] text-rose-300/80">Restaura 4d4 + 4 PG • 3 en inventario</span>
+</div>
+</div>
+<button class="px-3 py-1.5 rounded-lg bg-gradient-to-r from-amber-600 to-amber-500 text-[#0a0d12] text-xs font-bold hover:brightness-110 transition-all shadow-[0_0_12px_rgba(245,158,11,0.3)] active:scale-95 flex items-center gap-1" id="drink-potion-btn">
+<span class="material-symbols-outlined text-[14px]">local_drink</span>
+<span>Beber</span>
+</button>
+</div>
+<!-- Standard Gear List -->
+<div class="grid grid-cols-2 gap-2 text-xs">
+<div class="p-2 rounded-lg bg-[#18202e] border border-[#222f42] flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px] text-amber-500">restaurant</span>
+<span class="text-[#f1f5f9]">Raciones de viaje</span>
+</div>
+<span class="font-bold text-[#94a3b8]">7 días</span>
+</div>
+<div class="p-2 rounded-lg bg-[#18202e] border border-[#222f42] flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px] text-amber-500">line_style</span>
+<span class="text-[#f1f5f9]">Cuerda de seda</span>
+</div>
+<span class="font-bold text-[#94a3b8]">50 pies</span>
+</div>
+<div class="p-2 rounded-lg bg-[#18202e] border border-[#222f42] flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px] text-amber-500">local_fire_department</span>
+<span class="text-[#f1f5f9]">Antorchas</span>
+</div>
+<span class="font-bold text-[#94a3b8]">4 uds</span>
+</div>
+<div class="p-2 rounded-lg bg-[#18202e] border border-[#222f42] flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px] text-amber-500">key</span>
+<span class="text-[#f1f5f9]">Llave del Cuervo</span>
+</div>
+<span class="font-bold text-amber-400">Misión</span>
+</div>
+</div>
+</div>
+<!-- SPELLCASTING CONCLAVE SUMMARY -->
+<div class="rounded-xl bg-[#121721] border border-[#222f42] p-5 shadow-sm">
+<div class="flex items-center justify-between mb-3">
+<h3 class="text-sm font-headline font-bold text-[#f1f5f9] uppercase tracking-wider flex items-center gap-1.5">
+<span class="material-symbols-outlined text-amber-500 text-[18px]">auto_fix_high</span>
+            Magia de Explorador
+          </h3>
+<span class="text-xs text-[#94a3b8]">CD Salvación: 14 • Ataque Mágico: +6</span>
+</div>
+<div class="flex items-center gap-4 p-3 rounded-lg bg-[#18202e] border border-[#222f42]">
+<div>
+<span class="text-[10px] uppercase font-bold text-[#64748b] block">Espacios Nivel 1</span>
+<div class="flex items-center gap-1.5 mt-1">
+<span class="w-3.5 h-3.5 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.8)]"></span>
+<span class="w-3.5 h-3.5 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.8)]"></span>
+<span class="w-3.5 h-3.5 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.8)]"></span>
+<span class="w-3.5 h-3.5 rounded-full bg-[#10141d] border border-[#222f42]"></span>
+<span class="text-xs font-bold text-[#f1f5f9] ml-1">3/4</span>
+</div>
+</div>
+<div class="h-8 w-px bg-[#222f42]"></div>
+<div>
+<span class="text-[10px] uppercase font-bold text-[#64748b] block">Espacios Nivel 2</span>
+<div class="flex items-center gap-1.5 mt-1">
+<span class="w-3.5 h-3.5 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.8)]"></span>
+<span class="w-3.5 h-3.5 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.8)]"></span>
+<span class="text-xs font-bold text-[#f1f5f9] ml-1">2/2</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- FULL-WIDTH BITÁCORA DE SESIÓN ROW -->
+<section class="w-full rounded-xl bg-[#121721] border border-[#222f42] p-5 lg:p-8 shadow-sm">
+<!-- Journal Header with Filters & Status -->
+<div class="flex flex-wrap items-center justify-between gap-4 pb-4 mb-6 bg-[#18202e] border border-[#222f42] rounded-xl p-4">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-lg bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400 shadow-[0_0_10px_rgba(245,158,11,0.3)]">
+<span class="material-symbols-outlined text-[24px]">menu_book</span>
+</div>
+<div>
+<h3 class="text-lg font-headline font-bold text-[#f1f5f9]">Bitácora de Sesión</h3>
+<p class="text-xs text-[#94a3b8]">Registro cronológico en tiempo real de eventos, tiradas y botín de la campaña</p>
+</div>
+</div>
+<!-- Quest Status Badge -->
+<div class="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-500/20 border border-amber-500/40 text-amber-300 text-xs font-bold shadow-sm">
+<span class="w-2.5 h-2.5 rounded-full bg-amber-400 shadow-[0_0_6px_rgba(245,158,11,0.8)]"></span>
+<span>Misión: El Secreto del Cuervo</span>
+</div>
+</div>
+<!-- NEW LOG ENTRY FORM (Wide Layout) -->
+<form class="p-4 sm:p-5 rounded-xl bg-[#18202e] border border-[#222f42] mb-6 shadow-sm space-y-3" id="new-entry-form">
+<div class="flex flex-wrap items-center justify-between gap-2">
+<span class="text-xs font-bold uppercase tracking-wider text-[#f1f5f9] flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px] text-amber-500">edit_note</span>
+          Añadir Nueva Nota de Aventura
+        </span>
+<div class="flex items-center gap-1.5 flex-wrap">
+<button class="tag-btn text-[10px] font-bold px-2.5 py-1 rounded-full bg-[#10141d] border border-[#222f42] text-[#94a3b8] hover:bg-amber-500 hover:text-[#0a0d12] transition-all active:scale-95" data-tag="Combate" type="button">#Combate</button>
+<button class="tag-btn text-[10px] font-bold px-2.5 py-1 rounded-full bg-[#10141d] border border-[#222f42] text-[#94a3b8] hover:bg-amber-500 hover:text-[#0a0d12] transition-all active:scale-95" data-tag="NPC" type="button">#NPC</button>
+<button class="tag-btn text-[10px] font-bold px-2.5 py-1 rounded-full bg-[#10141d] border border-[#222f42] text-[#94a3b8] hover:bg-amber-500 hover:text-[#0a0d12] transition-all active:scale-95" data-tag="Loot" type="button">#Botín</button>
+<button class="tag-btn text-[10px] font-bold px-2.5 py-1 rounded-full bg-[#10141d] border border-[#222f42] text-[#94a3b8] hover:bg-amber-500 hover:text-[#0a0d12] transition-all active:scale-95" data-tag="Tirada" type="button">#Tirada</button>
+</div>
+</div>
+<textarea class="w-full text-xs font-body p-3.5 rounded-lg bg-[#10141d] border border-[#222f42] text-[#f1f5f9] placeholder:text-[#64748b] focus:outline-none focus:border-amber-500/60 focus:ring-1 focus:ring-amber-500/50 resize-none transition-all" id="entry-text" placeholder="Escribe lo ocurrido en la mesa: tiradas, pistas, diálogos o tesoros encontrados..." rows="2"></textarea>
+<div class="flex flex-wrap items-center justify-between gap-3 pt-1">
+<label class="flex items-center gap-1.5 text-xs text-[#94a3b8] cursor-pointer">
+<input class="rounded bg-[#10141d] border-[#222f42] text-amber-500 focus:ring-amber-500/40" id="secret-dm-check" type="checkbox"/>
+<span class="text-[11px] font-medium">Nota Secreta / Sospecha</span>
+</label>
+<button class="px-5 py-2 rounded-lg bg-gradient-to-r from-amber-600 to-amber-500 hover:brightness-110 text-[#0a0d12] text-xs font-bold shadow-[0_0_12px_rgba(245,158,11,0.3)] transition-all flex items-center gap-1.5 active:scale-95" type="submit">
+<span class="material-symbols-outlined text-[16px]">bookmark_add</span>
+<span>Guardar Entrada</span>
+</button>
+</div>
+</form>
+<!-- CHRONOLOGICAL FEED OF SESSION LOGS (2-COLUMN GRID IN WIDE CONTAINER) -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="journal-feed">
+<!-- Feed Item 1: Dice Roll (Perception) -->
+<div class="p-4 rounded-xl bg-[#18202e] border border-[#222f42] hover:border-amber-500/40 transition-colors shadow-sm relative overflow-hidden group">
+<div class="absolute left-0 top-0 bottom-0 w-1.5 bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.8)]"></div>
+<div class="flex items-center justify-between text-xs mb-2">
+<div class="flex items-center gap-2">
+<span class="px-2 py-0.5 rounded bg-amber-500/20 border border-amber-500/40 text-amber-300 font-bold text-[10px] uppercase">Tirada de Dados</span>
+<span class="text-amber-400 font-bold text-xs">Percepción Activa</span>
+</div>
+<span class="text-[10px] text-[#64748b] font-label">Hace 12 min</span>
+</div>
+<div class="p-2.5 rounded-lg bg-[#10141d] border border-[#222f42] mb-2 flex items-center justify-between">
+<span class="text-xs text-[#cbd5e1]">Resultado: <strong class="font-headline text-amber-400">19 natural</strong> + 6 competencia</span>
+<span class="font-headline font-bold text-lg text-amber-300 px-2.5 py-0.5 rounded bg-amber-500/20 border border-amber-500/30">25 Total</span>
+</div>
+<p class="text-xs text-[#e2e8f0] leading-relaxed">
+          Detectaste una trampilla oculta cubierta por un tapiz mohoso detrás del altar del sacerdote vampírico. Tiene grabada una runa de advertencia.
+        </p>
+</div>
+<!-- Feed Item 2: Narrative & Combat Outcome -->
+<div class="p-4 rounded-xl bg-[#18202e] border border-[#222f42] hover:border-rose-500/40 transition-colors shadow-sm relative overflow-hidden group">
+<div class="absolute left-0 top-0 bottom-0 w-1.5 bg-rose-500 shadow-[0_0_8px_rgba(239,68,68,0.8)]"></div>
+<div class="flex items-center justify-between text-xs mb-2">
+<div class="flex items-center gap-2">
+<span class="px-2 py-0.5 rounded bg-rose-500/20 border border-rose-500/40 text-rose-300 font-bold text-[10px] uppercase">Combate</span>
+<span class="font-bold text-[#f1f5f9] text-xs">Criptas del Valle Umbrío</span>
+</div>
+<span class="text-[10px] text-[#64748b] font-label">Sesión 14 • Ayer</span>
+</div>
+<p class="text-xs text-[#94a3b8] leading-relaxed mb-3">
+          Derrotamos a la hueste de espectros usando flechas de fuego alquímico y la luz radiante del clérigo. Elysian asestó el golpe de gracia al líder espectral desde 120 pies.
+        </p>
+<div class="flex items-center gap-2 p-2 rounded-lg bg-rose-950/40 border border-rose-500/30 text-xs text-rose-200">
+<span class="material-symbols-outlined text-[16px] text-amber-400">stars</span>
+<span class="font-semibold">Botín obtenido:</span>
+<span>Llave de bronce antigua con el sello del Cuervo Negro.</span>
+</div>
+</div>
+<!-- Feed Item 3: NPC Interaction -->
+<div class="p-4 rounded-xl bg-[#18202e] border border-[#222f42] hover:border-amber-500/40 transition-colors shadow-sm relative overflow-hidden group">
+<div class="absolute left-0 top-0 bottom-0 w-1.5 bg-amber-600"></div>
+<div class="flex items-center justify-between text-xs mb-2">
+<div class="flex items-center gap-2">
+<span class="px-2 py-0.5 rounded bg-amber-500/20 border border-amber-500/40 text-amber-300 font-bold text-[10px] uppercase">NPC</span>
+<span class="font-bold text-[#f1f5f9] text-xs">Pacto con Lord Cassian</span>
+</div>
+<span class="text-[10px] text-[#64748b] font-label">Sesión 14</span>
+</div>
+<p class="text-xs text-[#cbd5e1] leading-relaxed">
+          Lord Cassian prometió una recompensa de <span class="font-bold text-amber-400">200 piezas de oro</span> y un salvoconducto a través de las puertas de la villa a cambio de recuperar el relicario robado por los lacayos del castillo.
+        </p>
+<div class="mt-2 text-[11px] text-[#94a3b8] italic">
+          Nota personal: Sus ojos titilaron con un brillo carmesí al pronunciar el nombre de Strahd. No confiar del todo.
+        </div>
+</div>
+<!-- Feed Item 4: Quest Landmark -->
+<div class="p-4 rounded-xl bg-[#18202e] border border-[#222f42] hover:border-slate-500 transition-colors shadow-sm relative overflow-hidden group">
+<div class="absolute left-0 top-0 bottom-0 w-1.5 bg-[#475569]"></div>
+<div class="flex items-center justify-between text-xs mb-2">
+<div class="flex items-center gap-2">
+<span class="px-2 py-0.5 rounded bg-[#10141d] border border-[#222f42] text-[#cbd5e1] font-bold text-[10px] uppercase">Pista de Trama</span>
+<span class="font-bold text-[#f1f5f9] text-xs">Misterio de las Campanas</span>
+</div>
+<span class="text-[10px] text-[#64748b] font-label">Sesión 13</span>
+</div>
+<p class="text-xs text-[#94a3b8] leading-relaxed">
+          Las campanas de la abadía redoblan solo cuando la luna menguante toca la cima de la aguja. El ermitaño ciego advirtió que no debemos responder al tercer llamado.
+        </p>
+</div>
+</div>
+<!-- Bottom Session Summary Bar -->
+<div class="mt-6 flex flex-wrap items-center justify-between gap-3 text-xs text-[#94a3b8] bg-[#18202e] border border-[#222f42] rounded-lg p-3.5">
+<div class="flex items-center gap-3">
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[14px] text-amber-400">check_circle</span> 4 Entradas en esta sesión</span>
+<span>•</span>
+<span>XP acumulada: 6.850 / 14.000</span>
+</div>
+<button class="text-amber-400 hover:text-amber-300 font-bold text-xs flex items-center gap-1 transition-colors">
+<span class="material-symbols-outlined text-[14px]">file_download</span>
+<span>Exportar PDF</span>
+</button>
+</div>
+</section>
+</div>
+</div>
+</div>
+<script>
+  // Simple interactive micro-interactions for the adventurer notebook
+  document.addEventListener('DOMContentLoaded', () => {
+    // Quick Potion Drink Interaction
+    const potionBtn = document.getElementById('drink-potion-btn');
+    if (potionBtn) {
+      potionBtn.addEventListener('click', () => {
+        const originalText = potionBtn.innerHTML;
+        potionBtn.innerHTML = '<span class="material-symbols-outlined text-[14px]">done</span> ¡Curado +14!';
+        potionBtn.classList.add('bg-rose-600', 'text-white');
+        setTimeout(() => {
+          potionBtn.innerHTML = originalText;
+          potionBtn.classList.remove('bg-rose-600', 'text-white');
+        }, 2000);
+      });
+    }
+
+    // Quick d20 Roller
+    const diceBtn = document.getElementById('dice-roller-quick');
+    if (diceBtn) {
+      diceBtn.addEventListener('click', () => {
+        const roll = Math.floor(Math.random() * 20) + 1;
+        const total = roll + 4;
+        alert(`🎲 Tirada de d20 (Destreza): ${roll} [Dado] + 4 [Mod] = ${total} Total`);
+      });
+    }
+
+    // Interactive Journal Entry Adding
+    const form = document.getElementById('new-entry-form');
+    const entryText = document.getElementById('entry-text');
+    const journalFeed = document.getElementById('journal-feed');
+    const tagButtons = document.querySelectorAll('.tag-btn');
+    let activeTag = 'Nota';
+
+    tagButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        tagButtons.forEach(b => {
+          b.classList.remove('bg-amber-500', 'text-[#0a0d12]');
+          b.classList.add('bg-[#10141d]', 'text-[#94a3b8]');
+        });
+        btn.classList.remove('bg-[#10141d]', 'text-[#94a3b8]');
+        btn.classList.add('bg-amber-500', 'text-[#0a0d12]');
+        activeTag = btn.dataset.tag;
+      });
+    });
+
+    if (form && entryText && journalFeed) {
+      form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const content = entryText.value.trim();
+        if (!content) return;
+
+        const isSecret = document.getElementById('secret-dm-check')?.checked;
+
+        const newCard = document.createElement('div');
+        newCard.className = 'p-4 rounded-xl bg-[#18202e] border border-[#222f42] hover:border-amber-500/40 transition-colors shadow-sm relative overflow-hidden group animate-fadeIn';
+        newCard.innerHTML = `
+          <div class="absolute left-0 top-0 bottom-0 w-1.5 ${isSecret ? 'bg-rose-500' : 'bg-amber-500'}"></div>
+          <div class="flex items-center justify-between text-xs mb-2">
+            <div class="flex items-center gap-2">
+              <span class="px-2 py-0.5 rounded ${isSecret ? 'bg-rose-500/20 border border-rose-500/40 text-rose-300' : 'bg-amber-500/20 border border-amber-500/40 text-amber-300'} font-bold text-[10px] uppercase">${activeTag}</span>
+              ${isSecret ? '<span class="text-rose-400 font-bold text-[10px]">Nota Secreta</span>' : ''}
+            </div>
+            <span class="text-[10px] text-[#64748b] font-label">Ahora mismo</span>
+          </div>
+          <p class="text-xs text-[#cbd5e1] leading-relaxed">${content}</p>
+        `;
+
+        journalFeed.prepend(newCard);
+        entryText.value = '';
+      });
+    }
+  });
+</script></main><footer class="w-full bg-[#0a0d12] border-t border-[#222f42] py-10 shadow-[0_-2px_12px_rgba(0,0,0,0.5)]"><div class="max-w-7xl mx-auto px-6 lg:px-12 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs font-label text-[#94a3b8]"><div><p class="font-headline font-semibold text-sm text-[#f1f5f9]">Crónicas del Aventurero</p><p class="text-[#64748b] mt-0.5">Registro de campaña y bitácora táctica D&amp;D 5e.</p></div><div class="flex items-center gap-6"><span class="text-amber-500 flex items-center gap-1"><span class="material-symbols-outlined text-[16px]">shield</span> Licencia OGL 5.1</span><span class="text-[#334155]">•</span><span class="">Salud: 34 / 38 PG</span><span class="text-[#334155]">•</span><span class="">Espacios de Conjuro: 3/4 [I] 2/2 [II]</span></div></div></footer>
+<!-- Floating Action Button (FAB) & Quick Journal Drawer --><div class="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-3"><!-- FAB Button --><button class="group relative flex items-center gap-2.5 px-4 py-3 rounded-full bg-gradient-to-r from-amber-600 via-amber-500 to-amber-400 text-[#0a0d12] font-bold shadow-[0_0_20px_rgba(245,158,11,0.6)] hover:brightness-110 active:scale-95 transition-all cursor-pointer border border-amber-300" id="journal-fab-btn" onclick="document.getElementById('quick-journal-drawer').classList.toggle('hidden');"><div class="relative flex items-center justify-center"><span class="material-symbols-outlined text-[22px] text-[#0a0d12]">auto_stories</span><span class="absolute -top-1.5 -right-2 w-4 h-4 bg-rose-600 border border-[#0a0d12] text-white rounded-full text-[9px] flex items-center justify-center font-bold shadow-[0_0_6px_rgba(239,68,68,0.8)]">4</span></div><span class="text-xs font-headline font-bold tracking-tight uppercase">Bitácora Rápida</span><kbd class="hidden sm:inline-block px-1.5 py-0.5 rounded bg-[#0a0d12]/20 border border-[#0a0d12]/30 text-[10px] font-mono">(B)</kbd></button><!-- Quick Journal Slide-over Drawer / Float Panel --><div class="hidden w-[380px] sm:w-[420px] max-w-[90vw] max-h-[82vh] flex flex-col rounded-2xl bg-[#121721] border border-amber-500/40 shadow-[0_12px_40px_rgba(0,0,0,0.8)] backdrop-blur-xl overflow-hidden transition-all" id="quick-journal-drawer"><!-- Drawer Header --><div class="p-4 bg-[#18202e] border-b border-[#222f42] flex items-center justify-between"><div class="flex items-center gap-2.5"><div class="w-8 h-8 rounded-lg bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400"><span class="material-symbols-outlined text-[18px]">history_edu</span></div><div><h4 class="text-xs font-headline font-bold text-[#f1f5f9]">Apuntes Rápidos de Sesión</h4><div class="flex items-center gap-1.5 text-[10px] text-amber-400"><span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span><span>Sesión 15 • Strahd</span></div></div></div><button class="w-7 h-7 rounded-lg bg-[#10141d] border border-[#222f42] hover:border-rose-500/50 text-[#94a3b8] hover:text-rose-400 flex items-center justify-center text-xs transition-colors" onclick="document.getElementById('quick-journal-drawer').classList.add('hidden');"><span class="material-symbols-outlined text-[16px]">close</span></button></div><!-- Drawer Quick Input --><div class="p-3.5 bg-[#10141d] border-b border-[#222f42]"><textarea class="w-full text-xs font-body p-2.5 rounded-lg bg-[#18202e] border border-[#222f42] text-[#f1f5f9] placeholder:text-[#64748b] focus:outline-none focus:border-amber-500/60 focus:ring-1 focus:ring-amber-500/40 resize-none" id="drawer-note-input" placeholder="Añadir apunte rápido al vuelo..." rows="2"></textarea><div class="flex items-center justify-between gap-2 mt-2"><div class="flex items-center gap-1 flex-wrap"><button class="text-[9px] font-bold px-2 py-0.5 rounded bg-[#18202e] border border-amber-500/30 text-amber-300 hover:bg-amber-500 hover:text-[#0a0d12] transition-colors" onclick="document.getElementById('drawer-note-input').value = '#Combate ' + document.getElementById('drawer-note-input').value;" type="button">#Combate</button><button class="text-[9px] font-bold px-2 py-0.5 rounded bg-[#18202e] border border-amber-500/30 text-amber-300 hover:bg-amber-500 hover:text-[#0a0d12] transition-colors" onclick="document.getElementById('drawer-note-input').value = '#Botín ' + document.getElementById('drawer-note-input').value;" type="button">#Botín</button><button class="text-[9px] font-bold px-2 py-0.5 rounded bg-[#18202e] border border-amber-500/30 text-amber-300 hover:bg-amber-500 hover:text-[#0a0d12] transition-colors" onclick="document.getElementById('drawer-note-input').value = '#Pista ' + document.getElementById('drawer-note-input').value;" type="button">#Pista</button><button class="text-[9px] font-bold px-2 py-0.5 rounded bg-[#18202e] border border-amber-500/30 text-amber-300 hover:bg-amber-500 hover:text-[#0a0d12] transition-colors" onclick="document.getElementById('drawer-note-input').value = '#NPC ' + document.getElementById('drawer-note-input').value;" type="button">#NPC</button></div><button class="px-3 py-1 rounded-lg bg-gradient-to-r from-amber-600 to-amber-500 text-[#0a0d12] text-xs font-bold shadow-[0_0_8px_rgba(245,158,11,0.3)] hover:brightness-110 active:scale-95 flex items-center gap-1 transition-all" onclick="if(document.getElementById('drawer-note-input').value.trim()){ alert('Nota guardada en la Bitácora: ' + document.getElementById('drawer-note-input').value); document.getElementById('drawer-note-input').value=''; }" type="button"><span class="material-symbols-outlined text-[13px]">send</span><span>Guardar</span></button></div></div><!-- Recent Mini Feed --><div class="p-3.5 space-y-2.5 overflow-y-auto max-h-[300px]"><div class="text-[10px] uppercase font-bold text-[#64748b] tracking-wider mb-1 flex items-center justify-between"><span>Últimos Registros</span><a class="text-amber-400 hover:underline" href="#new-entry-form" onclick="document.getElementById('quick-journal-drawer').classList.add('hidden');">Ver todos</a></div><div class="p-2.5 rounded-lg bg-[#18202e] border border-[#222f42] text-xs"><div class="flex items-center justify-between mb-1"><span class="px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 text-[9px] font-bold uppercase">Tirada</span><span class="text-[9px] text-[#64748b]">Hace 12 min</span></div><p class="text-[#e2e8f0] text-[11px] leading-tight">Percepción 25 Total • Trampilla con runa vampírica.</p></div><div class="p-2.5 rounded-lg bg-[#18202e] border border-rose-500/30 text-xs"><div class="flex items-center justify-between mb-1"><span class="px-1.5 py-0.2 rounded bg-rose-500/20 text-rose-300 text-[9px] font-bold uppercase">Combate / Botín</span><span class="text-[9px] text-[#64748b]">Sesión 14</span></div><p class="text-[#cbd5e1] text-[11px] leading-tight">Obtenida Llave de bronce con el sello del Cuervo.</p></div><div class="p-2.5 rounded-lg bg-[#18202e] border border-[#222f42] text-xs"><div class="flex items-center justify-between mb-1"><span class="px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 text-[9px] font-bold uppercase">NPC</span><span class="text-[9px] text-[#64748b]">Sesión 14</span></div><p class="text-[#cbd5e1] text-[11px] leading-tight">Lord Cassian: 200 PO por relicario de Strahd.</p></div></div><!-- Drawer Footer Action --><div class="p-2.5 bg-[#18202e] border-t border-[#222f42] flex items-center justify-between text-[11px]"><span class="text-[#94a3b8]">4 notas sincronizadas</span><a class="text-amber-400 hover:text-amber-300 font-bold flex items-center gap-1" href="#new-entry-form" onclick="document.getElementById('quick-journal-drawer').classList.add('hidden');"><span class="material-symbols-outlined text-[13px]">open_in_full</span><span>Expandir Bitácora Completa</span></a></div></div></div></body></html>

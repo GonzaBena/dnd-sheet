@@ -1,0 +1,397 @@
+---
+// src/components/inventory/BackpackGrid.astro
+---
+
+<div class="rounded-xl bg-[#121721] border border-[#222f42] p-5 shadow-sm">
+  <div class="flex items-center justify-between mb-4">
+    <h3 class="text-sm font-headline font-bold text-[#f1f5f9] uppercase tracking-wider flex items-center gap-1.5">
+      <span class="material-symbols-outlined text-amber-500 text-[18px]">backpack</span>
+      <span>Mochila y Pociones</span>
+    </h3>
+    
+    <div class="flex items-center gap-2">
+      <button
+        type="button"
+        id="open-add-item-btn"
+        class="text-[10px] text-amber-400 hover:text-amber-300 font-bold bg-amber-500/10 hover:bg-amber-500/20 px-2.5 py-1 rounded-lg border border-amber-500/30 flex items-center gap-1 cursor-pointer transition-colors"
+        title="Añadir nuevo objeto al inventario"
+      >
+        <span class="material-symbols-outlined text-[13px]">add</span>
+        <span>Añadir Objeto</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="space-y-3">
+    <!-- Dynamic Quick Access Item / Potion Slot -->
+    <div id="quick-slot-card-container">
+      <!-- Populated by JavaScript -->
+    </div>
+
+    <!-- Standard Gear List -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs font-label" id="backpack-items-container">
+      <!-- Populated by JavaScript -->
+    </div>
+
+    <!-- Mobile helper hint -->
+    <div class="flex items-center justify-between text-[10px] text-[#64748b] pt-1 border-t border-[#222f42]/40" id="backpack-footer-hint">
+      <span class="flex items-center gap-1 text-[#94a3b8]">
+        <span class="material-symbols-outlined text-[13px] text-amber-500/80">swipe_left</span>
+        <span>Desliza a la izquierda para eliminar. Toca la flecha para ver notas.</span>
+      </span>
+      <span id="backpack-item-count" class="text-[10px] text-[#64748b]">0 objetos</span>
+    </div>
+  </div>
+</div>
+
+<script>
+  import { characterStore } from '../../scripts/state/characterStore';
+  import { openModal } from '../../scripts/animations/modalAnimations';
+  import { attachSwipeToDelete } from '../../scripts/ui/swipeToDelete';
+
+  const quickSlotContainer = document.getElementById('quick-slot-card-container');
+  const gearContainer = document.getElementById('backpack-items-container');
+  const addItemBtn = document.getElementById('open-add-item-btn');
+
+  // Track expanded item IDs so state survives re-renders
+  const expandedItems = new Set<string>();
+
+  addItemBtn?.addEventListener('click', () => {
+    window.dispatchEvent(new CustomEvent('open-add-item-modal'));
+  });
+
+  function renderQuickSlot(char: any) {
+    if (!quickSlotContainer) return;
+    quickSlotContainer.innerHTML = '';
+
+    const quickId = char.quickSlotItemId;
+    const item = quickId ? char.inventory.find((i: any) => i.id === quickId) : null;
+
+    if (!item) {
+      // Empty unassigned state
+      const emptyCard = document.createElement('div');
+      emptyCard.className = 'p-3 rounded-xl bg-[#18202e]/60 border border-dashed border-[#222f42] flex items-center justify-between gap-3 text-xs';
+      emptyCard.innerHTML = `
+        <div class="flex items-center gap-2.5 text-[#64748b]">
+          <span class="material-symbols-outlined text-[18px]">push_pin</span>
+          <span class="italic">Ningún objeto de acceso rápido asignado</span>
+        </div>
+        <button
+          type="button"
+          class="assign-quick-btn text-[10px] text-amber-400 hover:text-amber-300 font-bold bg-amber-500/10 hover:bg-amber-500/20 px-2.5 py-1 rounded-lg border border-amber-500/30 flex items-center gap-1 cursor-pointer transition-colors"
+        >
+          <span class="material-symbols-outlined text-[13px]">add</span>
+          <span>Asignar</span>
+        </button>
+      `;
+
+      emptyCard.querySelector('.assign-quick-btn')?.addEventListener('click', () => {
+        const firstUsable = char.inventory.find((i: any) => i.usableType && i.usableType !== 'none') || char.inventory[0];
+        if (firstUsable) {
+          characterStore.setQuickSlotItem(firstUsable.id);
+        } else {
+          alert('No tienes objetos en la mochila para asignar.');
+        }
+      });
+
+      quickSlotContainer.appendChild(emptyCard);
+      return;
+    }
+
+    // Item assigned
+    const actionVerb = item.usableType === 'edible' ? 'Comer' : item.usableType === 'usable' ? 'Usar' : 'Beber';
+    const actionIcon = item.usableType === 'edible' ? 'lunch_dining' : item.usableType === 'usable' ? 'bolt' : 'vital_signs';
+
+    const card = document.createElement('div');
+    card.className = 'p-3.5 rounded-xl bg-gradient-to-r from-amber-500/10 via-[#18202e] to-[#18202e] border border-amber-500/30 flex flex-col gap-2 shadow-xs';
+    card.innerHTML = `
+      <div class="flex items-center justify-between gap-3">
+        <div class="flex items-center gap-3 truncate">
+          <div class="w-10 h-10 rounded-lg bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400 shrink-0">
+            <span class="material-symbols-outlined text-[20px]">${item.icon || 'medication'}</span>
+          </div>
+          <div class="truncate">
+            <div class="flex items-center gap-2">
+              <span class="font-headline font-bold text-sm text-[#f1f5f9] truncate">${item.name}</span>
+              <span class="px-2 py-0.2 rounded-full bg-amber-500/20 text-amber-300 text-[10px] font-bold border border-amber-500/40 shrink-0">x${item.quantity}</span>
+              ${item.activationCondition ? `<span class="px-1.5 py-0.2 rounded bg-amber-500/10 text-amber-300 text-[9px] font-bold border border-amber-500/20 flex items-center gap-0.5 shrink-0"><span class="material-symbols-outlined text-[11px]">timer</span><span>${item.activationCondition}</span></span>` : ''}
+            </div>
+            <span class="text-xs text-[#94a3b8] font-label block truncate">
+              ${item.description || (item.healAmount ? `Recupera +${item.healAmount} PG` : 'Objeto usable en combate')}
+            </span>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2 shrink-0">
+          <button
+            type="button"
+            class="edit-quick-btn text-[#64748b] hover:text-amber-400 p-1.5 rounded-lg hover:bg-[#10141d] transition-colors cursor-pointer"
+            title="Editar objeto"
+          >
+            <span class="material-symbols-outlined text-[16px]">edit</span>
+          </button>
+          <button
+            type="button"
+            class="unpin-quick-btn text-[#64748b] hover:text-rose-400 p-1.5 rounded-lg hover:bg-[#10141d] transition-colors cursor-pointer"
+            title="Desasignar de acceso rápido"
+          >
+            <span class="material-symbols-outlined text-[16px]">do_not_disturb_on</span>
+          </button>
+          <button
+            type="button"
+            class="consume-quick-btn px-3.5 py-1.5 rounded-lg bg-gradient-to-r from-amber-600 to-amber-500 text-[#0a0d12] text-xs font-bold shadow-[0_0_12px_rgba(245,158,11,0.3)] hover:brightness-110 active:scale-95 transition-all flex items-center gap-1 cursor-pointer"
+          >
+            <span class="material-symbols-outlined text-[15px]">${actionIcon}</span>
+            <span>${actionVerb}</span>
+          </button>
+        </div>
+      </div>
+
+      ${item.notes ? `
+        <div class="px-2.5 py-1 rounded bg-[#10141d] border border-amber-500/20 text-[11px] text-[#cbd5e1] flex items-start gap-1.5">
+          <span class="material-symbols-outlined text-[13px] text-amber-400 shrink-0 mt-0.5">auto_awesome</span>
+          <span class="leading-relaxed"><strong class="text-amber-400/90 font-medium">Efecto Especial:</strong> ${item.notes}</span>
+        </div>
+      ` : ''}
+    `;
+
+    card.querySelector('.edit-quick-btn')?.addEventListener('click', () => {
+      window.dispatchEvent(new CustomEvent('open-edit-item-modal', { detail: { item } }));
+    });
+
+    card.querySelector('.unpin-quick-btn')?.addEventListener('click', () => {
+      characterStore.setQuickSlotItem(null);
+    });
+
+    card.querySelector('.consume-quick-btn')?.addEventListener('click', () => {
+      const res = characterStore.consumeItem(item.id);
+      if (res.success && res.healed && res.healed > 0) {
+        alert(`¡Has consumido "${item.name}"! +${res.healed} PG recuperados.`);
+      }
+    });
+
+    quickSlotContainer.appendChild(card);
+  }
+
+  function renderBackpack(char: any) {
+    renderQuickSlot(char);
+
+    if (!gearContainer) return;
+    gearContainer.innerHTML = '';
+
+    const items = char.inventory || [];
+    if (items.length === 0) {
+      gearContainer.innerHTML = `
+        <div class="col-span-full py-6 text-center text-xs text-[#64748b]">
+          La mochila está vacía. Pulsa "Añadir Objeto" para guardar equipo.
+        </div>
+      `;
+      return;
+    }
+
+    const countEl = document.getElementById('backpack-item-count');
+    if (countEl) countEl.textContent = `${items.length} ${items.length === 1 ? 'objeto' : 'objetos'}`;
+
+    items.forEach((item: any) => {
+      const isPinned = char.quickSlotItemId === item.id;
+      const isExpanded = expandedItems.has(item.id);
+      const isUsable = item.usableType && item.usableType !== 'none';
+      const actionVerb = item.usableType === 'edible' ? 'Comer' : item.usableType === 'usable' ? 'Usar' : item.usableType === 'drinkable' || item.category === 'potion' ? 'Beber' : null;
+
+      const wrapper = document.createElement('div');
+      wrapper.className = 'relative rounded-lg overflow-hidden select-none bg-[#10141d] border border-[#222f42]';
+
+      // Background trash revealed ONLY on horizontal swipe
+      const swipeBg = document.createElement('div');
+      swipeBg.className = 'swipe-delete-bg absolute inset-0 bg-gradient-to-l from-rose-600/60 via-rose-600/30 to-rose-950/20 flex items-center justify-end px-4 gap-1.5 text-rose-300 font-bold text-xs pointer-events-none opacity-0';
+      swipeBg.innerHTML = `
+        <span class="material-symbols-outlined text-[16px]">delete</span>
+        <span class="text-[11px]">Eliminar</span>
+      `;
+      wrapper.appendChild(swipeBg);
+
+      const card = document.createElement('div');
+      card.className = `relative p-2.5 rounded-lg bg-[#18202e] border ${isPinned ? 'border-amber-500/50 shadow-[0_0_12px_rgba(245,158,11,0.08)]' : 'border-transparent'} hover:border-amber-500/30 flex flex-col gap-2 group transition-colors cursor-grab active:cursor-grabbing w-full`;
+
+      card.innerHTML = `
+        <div class="flex items-center justify-between w-full">
+          <div class="flex items-center gap-2 truncate flex-1 mr-2">
+            <span class="material-symbols-outlined text-[17px] text-amber-500 shrink-0">${item.icon || 'inventory_2'}</span>
+            <div class="truncate">
+              <div class="flex items-center gap-1.5 flex-wrap">
+                <span class="text-[#f1f5f9] font-medium block truncate">${item.name}</span>
+                ${item.usableType && item.usableType !== 'none' ? `<span class="px-1 py-0.2 rounded bg-amber-500/10 text-amber-300 text-[9px] font-bold border border-amber-500/20 uppercase shrink-0">${item.usableType}</span>` : ''}
+                ${item.activationCondition ? `<span class="px-1.5 py-0.2 rounded bg-amber-500/10 text-amber-300 text-[9px] font-bold border border-amber-500/20 flex items-center gap-0.5 shrink-0" title="Condición de activación: ${item.activationCondition}"><span class="material-symbols-outlined text-[10px]">timer</span><span class="truncate max-w-[100px]">${item.activationCondition}</span></span>` : ''}
+              </div>
+              ${item.description ? `<span class="text-[10px] text-[#64748b] truncate block">${item.description}</span>` : ''}
+            </div>
+          </div>
+
+          <div class="flex items-center gap-1 shrink-0">
+            <span class="px-2 py-0.5 rounded bg-[#10141d] text-[#94a3b8] font-bold text-[11px] border border-[#222f42]">x${item.quantity}</span>
+            
+            ${actionVerb ? `
+              <button
+                type="button"
+                class="action-item-btn px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 hover:bg-amber-500 hover:text-[#0a0d12] text-[10px] font-bold border border-amber-500/30 transition-all cursor-pointer"
+                data-id="${item.id}"
+                title="${actionVerb} ${item.name}"
+              >
+                ${actionVerb}
+              </button>
+            ` : ''}
+
+            <button
+              type="button"
+              class="edit-item-btn w-6 h-6 rounded hover:bg-amber-500/20 text-[#94a3b8] hover:text-amber-400 opacity-90 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer"
+              title="Editar objeto y notas"
+            >
+              <span class="material-symbols-outlined text-[14px]">edit</span>
+            </button>
+
+            <button
+              type="button"
+              class="pin-item-btn w-6 h-6 rounded hover:bg-[#10141d] ${isPinned ? 'text-amber-400' : 'text-[#64748b] opacity-70 sm:opacity-0 sm:group-hover:opacity-100'} transition-opacity flex items-center justify-center cursor-pointer"
+              title="${isPinned ? 'Desasignar de acceso rápido' : 'Fijar como acceso rápido superior'}"
+              data-id="${item.id}"
+            >
+              <span class="material-symbols-outlined text-[14px]">${isPinned ? 'push_pin' : 'keep'}</span>
+            </button>
+
+            <button
+              type="button"
+              class="expand-item-btn w-6 h-6 rounded hover:bg-[#10141d] text-[#64748b] hover:text-[#cbd5e1] flex items-center justify-center cursor-pointer"
+              title="${isExpanded ? 'Ocultar notas' : 'Ver notas completas'}"
+            >
+              <span class="material-symbols-outlined text-[16px] transition-transform ${isExpanded ? 'rotate-180 text-amber-400' : ''}">expand_more</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Expandable Details Row -->
+        <div class="expand-panel ${isExpanded ? 'block' : 'hidden'} pt-2 border-t border-[#222f42]/70 space-y-1.5 text-[11px] text-[#cbd5e1]">
+          ${item.activationCondition ? `
+            <div class="flex items-start gap-1.5 bg-amber-500/10 p-2 rounded border border-amber-500/20">
+              <span class="material-symbols-outlined text-[14px] text-amber-400 shrink-0 mt-0.5">timer</span>
+              <div>
+                <strong class="text-amber-300 font-semibold">Activación:</strong>
+                <span>${item.activationCondition}</span>
+              </div>
+            </div>
+          ` : ''}
+
+          ${item.description ? `
+            <div>
+              <strong class="text-[#94a3b8]">Descripción:</strong>
+              <p class="text-[#e2e8f0] leading-relaxed mt-0.5">${item.description}</p>
+            </div>
+          ` : ''}
+
+          ${item.notes ? `
+            <div class="flex items-start gap-1.5 bg-[#10141d] p-2 rounded border border-[#222f42]">
+              <span class="material-symbols-outlined text-[14px] text-amber-400 shrink-0 mt-0.5">auto_awesome</span>
+              <div>
+                <strong class="text-amber-400 font-semibold">Notas y Efectos Especiales:</strong>
+                <p class="text-[#cbd5e1] leading-relaxed mt-0.5 whitespace-pre-line">${item.notes}</p>
+              </div>
+            </div>
+          ` : ''}
+
+          <div class="flex items-center justify-end gap-2 pt-1 text-[10px]">
+            <button type="button" class="panel-edit-btn text-amber-400 hover:underline flex items-center gap-0.5 cursor-pointer">
+              <span class="material-symbols-outlined text-[12px]">edit</span>
+              <span>Editar</span>
+            </button>
+            <button type="button" class="panel-delete-btn text-rose-400 hover:underline flex items-center gap-0.5 cursor-pointer ml-2">
+              <span class="material-symbols-outlined text-[12px]">delete</span>
+              <span>Eliminar</span>
+            </button>
+          </div>
+        </div>
+      `;
+
+      // Helper function to trigger delete modal
+      const triggerItemDelete = () => {
+        window.dispatchEvent(new CustomEvent('open-delete-modal', {
+          detail: {
+            type: 'inventory',
+            id: item.id,
+            name: item.name,
+            category: item.category === 'potion' ? 'Poción' : item.category === 'weapon' ? 'Arma' : item.category === 'treasure' ? 'Tesoro' : 'Equipo',
+            icon: item.icon || 'inventory_2',
+            quantity: item.quantity,
+            title: '¿Eliminar de la mochila?',
+            subtitle: 'Confirmación de inventario',
+            onConfirm: (amount?: number) => {
+              characterStore.removeInventoryItem(item.id, amount);
+            }
+          }
+        }));
+      };
+
+      // Attach mobile swipe-to-delete gesture
+      attachSwipeToDelete({
+        card,
+        container: wrapper,
+        threshold: 60,
+        onTrigger: triggerItemDelete
+      });
+
+      // Expand / Collapse details
+      const toggleExpand = (e: Event) => {
+        e.stopPropagation();
+        if (expandedItems.has(item.id)) {
+          expandedItems.delete(item.id);
+        } else {
+          expandedItems.add(item.id);
+        }
+        renderBackpack(characterStore.get());
+      };
+
+      card.querySelector('.expand-item-btn')?.addEventListener('click', toggleExpand);
+
+      // Edit item trigger
+      const triggerEdit = (e: Event) => {
+        e.stopPropagation();
+        window.dispatchEvent(new CustomEvent('open-edit-item-modal', {
+          detail: { item }
+        }));
+      };
+
+      card.querySelector('.edit-item-btn')?.addEventListener('click', triggerEdit);
+      card.querySelector('.panel-edit-btn')?.addEventListener('click', triggerEdit);
+      card.querySelector('.panel-delete-btn')?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        triggerItemDelete();
+      });
+
+      // Action (Beber / Comer / Usar)
+      card.querySelector('.action-item-btn')?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const res = characterStore.consumeItem(item.id);
+        if (res.success && res.healed && res.healed > 0) {
+          alert(`¡Has consumido "${item.name}"! +${res.healed} PG recuperados.`);
+        }
+      });
+
+      // Pin / unpin trigger
+      card.querySelector('.pin-item-btn')?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (isPinned) {
+          characterStore.setQuickSlotItem(null);
+        } else {
+          characterStore.setQuickSlotItem(item.id);
+        }
+      });
+
+      wrapper.appendChild(card);
+      gearContainer.appendChild(wrapper);
+    });
+  }
+
+  renderBackpack(characterStore.get());
+
+  window.addEventListener('character-updated', ((e: CustomEvent) => {
+    renderBackpack(e.detail.character);
+  }) as EventListener);
+</script>

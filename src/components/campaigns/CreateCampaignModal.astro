@@ -1,0 +1,352 @@
+---
+// src/components/campaigns/CreateCampaignModal.astro
+import { CAMPAIGN_PRESET_IMAGES } from '../../scripts/state/campaignStore';
+---
+
+<div id="create-campaign-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
+  <div class="modal-content w-full max-w-lg rounded-2xl bg-[#121721] border border-[#222f42] shadow-[0_20px_60px_rgba(0,0,0,0.95)] overflow-hidden flex flex-col max-h-[90vh]">
+    <!-- Header -->
+    <div class="p-4 bg-gradient-to-r from-[#18202e] via-[#1b2434] to-[#18202e] border-b border-[#222f42] flex items-center justify-between">
+      <div class="flex items-center gap-2.5">
+        <div class="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center border border-amber-500/40 shadow-[0_0_12px_rgba(245,158,11,0.25)]">
+          <span class="material-symbols-outlined text-[20px]" id="campaign-form-header-icon">add_circle</span>
+        </div>
+        <div>
+          <h3 id="campaign-form-modal-title" class="font-headline font-bold text-base text-[#f1f5f9]">Crear Nueva Campaña</h3>
+          <span class="text-[11px] text-[#94a3b8]">Configura los detalles de tu mesa de juego y mundo</span>
+        </div>
+      </div>
+      <button
+        id="create-campaign-close-btn"
+        class="w-7 h-7 rounded-lg bg-[#10141d] border border-[#222f42] hover:border-amber-500/50 text-[#94a3b8] hover:text-[#f1f5f9] flex items-center justify-center text-xs transition-colors cursor-pointer"
+        aria-label="Cerrar modal"
+      >
+        <span class="material-symbols-outlined text-[16px]">close</span>
+      </button>
+    </div>
+
+    <!-- Form -->
+    <form id="create-campaign-form" class="p-5 overflow-y-auto space-y-4 text-xs font-label custom-scrollbar">
+      <input type="hidden" id="campaign-edit-id" value="" />
+
+      <!-- Nombre -->
+      <div>
+        <label class="text-[#94a3b8] block mb-1 font-bold">Nombre de la Campaña *</label>
+        <input
+          type="text"
+          id="campaign-name-input"
+          placeholder="ej: La Furia de Tiamat"
+          class="w-full p-2.5 rounded-lg bg-[#18202e] border border-[#222f42] text-[#f1f5f9] focus:border-amber-500 focus:outline-none"
+          required
+        />
+      </div>
+
+      <!-- Descripción -->
+      <div>
+        <label class="text-[#94a3b8] block mb-1 font-bold">Descripción de la Aventura</label>
+        <textarea
+          id="campaign-desc-input"
+          rows="3"
+          placeholder="Resumen del argumento, ganchos de aventura, peligros principales..."
+          class="w-full p-2.5 rounded-lg bg-[#18202e] border border-[#222f42] text-[#f1f5f9] focus:border-amber-500 focus:outline-none resize-none"
+        ></textarea>
+      </div>
+
+      <!-- Ambientación / Setting -->
+      <div>
+        <label class="text-[#94a3b8] block mb-1 font-bold">Ambientación / Región</label>
+        <input
+          type="text"
+          id="campaign-setting-input"
+          placeholder="ej: Reinos Olvidados • Puerta de Baldur"
+          class="w-full p-2.5 rounded-lg bg-[#18202e] border border-[#222f42] text-[#f1f5f9] focus:border-amber-500 focus:outline-none"
+        />
+      </div>
+
+      <!-- DM Selection among registered users -->
+      <div class="p-3.5 rounded-xl bg-[#10141d] border border-[#222f42] space-y-2">
+        <div class="flex items-center justify-between">
+          <label class="text-[#94a3b8] font-bold flex items-center gap-1.5">
+            <span class="material-symbols-outlined text-[16px] text-amber-500">crown</span>
+            <span>Dungeon Master de la Campaña *</span>
+          </label>
+          <button
+            type="button"
+            id="btn-add-user-to-system"
+            class="text-[10px] text-amber-400 hover:text-amber-300 font-bold underline cursor-pointer"
+          >
+            + Añadir nuevo usuario
+          </button>
+        </div>
+        <select
+          id="campaign-dm-select"
+          class="w-full p-2.5 rounded-lg bg-[#18202e] border border-[#222f42] text-[#f1f5f9] focus:border-amber-500 focus:outline-none"
+          required
+        >
+          <!-- Populated by JS -->
+        </select>
+        <span class="text-[10px] text-[#64748b] block">
+          Solo el usuario asignado como DM tendrá acceso exclusivo a la pantalla del Dungeon Master.
+        </span>
+      </div>
+
+      <!-- Imagen de portada con selector de presets -->
+      <div>
+        <label class="text-[#94a3b8] block mb-1 font-bold flex items-center justify-between">
+          <span>Imagen de Portada</span>
+          <span class="text-[10px] text-amber-400 font-normal">Elige una miniatura o pega tu URL</span>
+        </label>
+
+        <!-- Presets grid -->
+        <div class="grid grid-cols-3 sm:grid-cols-6 gap-2 mb-2" id="preset-images-picker">
+          {CAMPAIGN_PRESET_IMAGES.map((img) => (
+            <button
+              type="button"
+              class="preset-img-btn group relative h-14 rounded-lg overflow-hidden border border-[#222f42] hover:border-amber-500 transition-all cursor-pointer"
+              data-url={img.url}
+              title={img.name}
+            >
+              <img src={img.url} alt={img.name} class="w-full h-full object-cover group-hover:scale-110 transition-transform" />
+              <div class="absolute inset-0 bg-black/40 group-hover:bg-transparent transition-colors"></div>
+            </button>
+          ))}
+        </div>
+
+        <input
+          type="url"
+          id="campaign-image-input"
+          placeholder="https://images.unsplash.com/... o enlace de imagen"
+          class="w-full p-2.5 rounded-lg bg-[#18202e] border border-[#222f42] text-[#f1f5f9] focus:border-amber-500 focus:outline-none"
+          required
+        />
+      </div>
+
+      <!-- Contexto Inicial de Sesión -->
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div>
+          <label class="text-[#94a3b8] block mb-1 font-bold">Nº Sesión</label>
+          <input
+            type="number"
+            id="campaign-session-num"
+            min="1"
+            value="1"
+            class="w-full p-2 rounded-lg bg-[#18202e] border border-[#222f42] text-[#f1f5f9] focus:border-amber-500 focus:outline-none"
+          />
+        </div>
+        <div>
+          <label class="text-[#94a3b8] block mb-1 font-bold">Clima Inicial</label>
+          <input
+            type="text"
+            id="campaign-weather-num"
+            placeholder="ej: Despejado / Frío"
+            value="Despejado"
+            class="w-full p-2 rounded-lg bg-[#18202e] border border-[#222f42] text-[#f1f5f9] focus:border-amber-500 focus:outline-none"
+          />
+        </div>
+        <div>
+          <label class="text-[#94a3b8] block mb-1 font-bold">Ubicación</label>
+          <input
+            type="text"
+            id="campaign-location-num"
+            placeholder="ej: Taberna del Dragón"
+            value="Taberna del Dragón Verde"
+            class="w-full p-2 rounded-lg bg-[#18202e] border border-[#222f42] text-[#f1f5f9] focus:border-amber-500 focus:outline-none"
+          />
+        </div>
+      </div>
+
+      <!-- Footer Buttons -->
+      <div class="pt-4 border-t border-[#222f42] flex items-center justify-between gap-2.5">
+        <button
+          type="button"
+          id="btn-delete-campaign-from-modal"
+          class="hidden px-3.5 py-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 text-rose-400 font-bold transition-all cursor-pointer text-xs items-center gap-1.5"
+          title="Cerrar y eliminar esta campaña"
+        >
+          <span class="material-symbols-outlined text-[16px]">delete_forever</span>
+          <span>Eliminar Campaña</span>
+        </button>
+
+        <div class="flex items-center gap-2.5 ml-auto">
+          <button
+            type="button"
+            id="create-campaign-cancel-btn"
+            class="px-4 py-2 rounded-xl bg-[#121721] border border-[#222f42] text-[#94a3b8] hover:text-[#f1f5f9] transition-colors cursor-pointer"
+          >
+            Cancelar
+          </button>
+          <button
+            type="submit"
+            class="px-5 py-2 rounded-xl bg-gradient-to-r from-amber-600 to-amber-500 text-[#0a0d12] font-bold shadow-[0_0_12px_rgba(245,158,11,0.3)] hover:brightness-110 active:scale-95 transition-all cursor-pointer flex items-center gap-1.5"
+          >
+            <span class="material-symbols-outlined text-[16px]">save</span>
+            <span id="campaign-form-submit-text">Crear Campaña</span>
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  import { campaignStore, CAMPAIGN_PRESET_IMAGES } from '../../scripts/state/campaignStore';
+  import { userStore } from '../../scripts/state/userStore';
+  import { openModal, closeModal } from '../../scripts/animations/modalAnimations';
+
+  const modal = document.getElementById('create-campaign-modal');
+  const backdrop = document.getElementById('modal-backdrop');
+  const closeBtn = document.getElementById('create-campaign-close-btn');
+  const cancelBtn = document.getElementById('create-campaign-cancel-btn');
+  const form = document.getElementById('create-campaign-form') as HTMLFormElement;
+
+  const editIdInp = document.getElementById('campaign-edit-id') as HTMLInputElement;
+  const nameInp = document.getElementById('campaign-name-input') as HTMLInputElement;
+  const descInp = document.getElementById('campaign-desc-input') as HTMLTextAreaElement;
+  const settingInp = document.getElementById('campaign-setting-input') as HTMLInputElement;
+  const dmSelect = document.getElementById('campaign-dm-select') as HTMLSelectElement;
+  const imgInp = document.getElementById('campaign-image-input') as HTMLInputElement;
+  const sessionInp = document.getElementById('campaign-session-num') as HTMLInputElement;
+  const weatherInp = document.getElementById('campaign-weather-num') as HTMLInputElement;
+  const locationInp = document.getElementById('campaign-location-num') as HTMLInputElement;
+
+  const titleEl = document.getElementById('campaign-form-modal-title');
+  const submitTextEl = document.getElementById('campaign-form-submit-text');
+  const deleteBtn = document.getElementById('btn-delete-campaign-from-modal');
+
+  function populateDmSelect(selectedUserId?: string) {
+    if (!dmSelect) return;
+    dmSelect.innerHTML = '';
+    const users = userStore.getUsers();
+    const currentUser = userStore.getCurrentUser();
+
+    users.forEach(u => {
+      const opt = document.createElement('option');
+      opt.value = u.id;
+      const isMe = u.id === currentUser.id;
+      opt.textContent = `${u.name} ${isMe ? '(Tú)' : ''} [${u.email}]`;
+      if (selectedUserId ? u.id === selectedUserId : isMe) {
+        opt.selected = true;
+      }
+      dmSelect.appendChild(opt);
+    });
+  }
+
+  // Add new user button
+  document.getElementById('btn-add-user-to-system')?.addEventListener('click', () => {
+    const name = prompt('Nombre del nuevo usuario/jugador:');
+    if (!name || !name.trim()) return;
+    const email = prompt('Email del nuevo usuario (opcional):', `${name.toLowerCase().replace(/\s+/g, '')}@dnd.local`);
+    const newUser = userStore.createUser(name, email || undefined);
+    populateDmSelect(newUser.id);
+  });
+
+  // Preset picker handlers
+  document.querySelectorAll('#preset-images-picker .preset-img-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const url = btn.getAttribute('data-url');
+      if (url && imgInp) {
+        imgInp.value = url;
+        document.querySelectorAll('#preset-images-picker .preset-img-btn').forEach(b => b.classList.remove('ring-2', 'ring-amber-400'));
+        btn.classList.add('ring-2', 'ring-amber-400');
+      }
+    });
+  });
+
+  // Open modal for creation
+  window.addEventListener('open-create-campaign-modal', () => {
+    if (form) form.reset();
+    if (editIdInp) editIdInp.value = '';
+    if (titleEl) titleEl.textContent = 'Crear Nueva Campaña';
+    if (submitTextEl) submitTextEl.textContent = 'Crear Campaña';
+    if (imgInp) imgInp.value = CAMPAIGN_PRESET_IMAGES[0].url;
+    if (deleteBtn) {
+      deleteBtn.classList.add('hidden');
+      deleteBtn.classList.remove('flex');
+    }
+    populateDmSelect(userStore.getCurrentUser().id);
+    if (modal && backdrop) openModal(modal, backdrop);
+  });
+
+  // Open modal for editing
+  window.addEventListener('open-edit-campaign-modal', ((e: CustomEvent<{ campaignId: string }>) => {
+    const camp = campaignStore.getCampaign(e.detail.campaignId);
+    if (!camp) return;
+
+    if (editIdInp) editIdInp.value = camp.id;
+    if (nameInp) nameInp.value = camp.name;
+    if (descInp) descInp.value = camp.description;
+    if (settingInp) settingInp.value = camp.setting;
+    populateDmSelect(camp.dmId);
+    if (imgInp) imgInp.value = camp.imageUrl;
+    if (sessionInp) sessionInp.value = String(camp.sessionNumber);
+    if (weatherInp) weatherInp.value = camp.weather;
+    if (locationInp) locationInp.value = camp.location;
+
+    if (titleEl) titleEl.textContent = `Editar: ${camp.name}`;
+    if (submitTextEl) submitTextEl.textContent = 'Guardar Cambios';
+
+    const canDelete = campaignStore.canUserDeleteCampaign(camp.id);
+    if (deleteBtn) {
+      if (canDelete) {
+        deleteBtn.classList.remove('hidden');
+        deleteBtn.classList.add('flex');
+      } else {
+        deleteBtn.classList.add('hidden');
+        deleteBtn.classList.remove('flex');
+      }
+    }
+
+    if (modal && backdrop) openModal(modal, backdrop);
+  }) as EventListener);
+
+  const closeMe = () => {
+    if (modal && backdrop) closeModal(modal, backdrop);
+  };
+
+  closeBtn?.addEventListener('click', closeMe);
+  cancelBtn?.addEventListener('click', closeMe);
+
+  deleteBtn?.addEventListener('click', () => {
+    const editId = editIdInp.value;
+    if (!editId) return;
+    const camp = campaignStore.getCampaign(editId);
+    if (!camp) return;
+    if (!confirm(`⚠️ ¿Cerrar y eliminar la campaña "${camp.name}"?\nTodos los personajes quedarán como independientes para sus usuarios.`)) return;
+    try {
+      campaignStore.deleteCampaign(editId);
+      closeMe();
+      window.dispatchEvent(new CustomEvent('campaigns-updated'));
+      alert(`La campaña "${camp.name}" ha sido eliminada.`);
+    } catch (err: any) {
+      alert(`Error al eliminar campaña: ${err?.message || err}`);
+    }
+  });
+
+  form?.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const editId = editIdInp.value;
+    const selectedUserId = dmSelect.value;
+    const selectedUser = userStore.getUser(selectedUserId);
+    const dmName = selectedUser?.name || 'Dungeon Master';
+
+    const payload = {
+      name: nameInp.value.trim(),
+      description: descInp.value.trim(),
+      setting: settingInp.value.trim() || 'Fantasía Medieval',
+      dmId: selectedUserId,
+      dmName: dmName,
+      imageUrl: imgInp.value.trim() || CAMPAIGN_PRESET_IMAGES[0].url,
+      sessionNumber: parseInt(sessionInp.value) || 1,
+      weather: weatherInp.value.trim() || 'Despejado',
+      location: locationInp.value.trim() || 'Taberna'
+    };
+
+    if (editId) {
+      campaignStore.updateCampaign(editId, payload);
+    } else {
+      campaignStore.createCampaign(payload);
+    }
+
+    closeMe();
+  });
+</script>

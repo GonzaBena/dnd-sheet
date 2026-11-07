@@ -1,0 +1,233 @@
+---
+// src/components/modals/EditCurrencyModal.astro
+---
+
+<div id="edit-currency-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
+  <div class="modal-content w-full max-w-lg rounded-2xl bg-[#121721] border border-[#222f42] shadow-[0_20px_60px_rgba(0,0,0,0.9)] overflow-hidden flex flex-col">
+    <!-- Modal Header -->
+    <div class="p-4 bg-[#18202e] border-b border-[#222f42] flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <div class="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center border border-amber-500/30">
+          <span class="material-symbols-outlined text-[20px]">monetization_on</span>
+        </div>
+        <div>
+          <h3 class="font-headline font-bold text-base text-[#f1f5f9]">Bolsa de Monedas</h3>
+          <span class="text-[10px] text-[#94a3b8]">Ajusta los fondos y botín del personaje</span>
+        </div>
+      </div>
+      <button id="currency-modal-close-btn" class="w-7 h-7 rounded-lg bg-[#10141d] border border-[#222f42] hover:border-rose-500/50 text-[#94a3b8] hover:text-rose-400 flex items-center justify-center text-xs transition-colors cursor-pointer">
+        <span class="material-symbols-outlined text-[16px]">close</span>
+      </button>
+    </div>
+
+    <!-- Modal Body: Responsive grid-2, grid-3, grid-4 -->
+    <div class="p-5 space-y-4">
+      <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3" id="currency-inputs-grid">
+        <!-- 1. Oro (PO) -->
+        <div class="p-3 rounded-xl bg-[#18202e] border border-amber-500/40 flex flex-col justify-between gap-2 shadow-xs">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-headline font-bold text-amber-400">Oro (PO)</span>
+            <span class="w-2.5 h-2.5 rounded-full bg-amber-400 shadow-[0_0_8px_rgba(245,158,11,0.8)]"></span>
+          </div>
+          <input
+            type="number"
+            id="coin-input-gp"
+            min="0"
+            class="w-full text-center text-lg font-headline font-bold p-1.5 rounded-lg bg-[#10141d] border border-[#222f42] text-amber-400 focus:outline-none focus:border-amber-500"
+          />
+          <div class="flex items-center justify-between gap-1">
+            <button type="button" class="coin-adj-btn flex-1 py-0.5 rounded bg-[#10141d] border border-[#222f42] text-[10px] font-bold text-[#94a3b8] hover:text-amber-300 hover:border-amber-500/40 transition-colors" data-target="gp" data-delta="-5">-5</button>
+            <button type="button" class="coin-adj-btn flex-1 py-0.5 rounded bg-[#10141d] border border-[#222f42] text-[10px] font-bold text-[#94a3b8] hover:text-amber-300 hover:border-amber-500/40 transition-colors" data-target="gp" data-delta="5">+5</button>
+            <button type="button" class="coin-adj-btn flex-1 py-0.5 rounded bg-amber-500/20 border border-amber-500/40 text-[10px] font-bold text-amber-300 hover:bg-amber-500 hover:text-[#0a0d12] transition-colors" data-target="gp" data-delta="25">+25</button>
+          </div>
+        </div>
+
+        <!-- 2. Plata (PP) -->
+        <div class="p-3 rounded-xl bg-[#18202e] border border-[#222f42] flex flex-col justify-between gap-2 shadow-xs">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-headline font-bold text-slate-300">Plata (PP)</span>
+            <span class="w-2.5 h-2.5 rounded-full bg-slate-300"></span>
+          </div>
+          <input
+            type="number"
+            id="coin-input-sp"
+            min="0"
+            class="w-full text-center text-lg font-headline font-bold p-1.5 rounded-lg bg-[#10141d] border border-[#222f42] text-slate-300 focus:outline-none focus:border-slate-400"
+          />
+          <div class="flex items-center justify-between gap-1">
+            <button type="button" class="coin-adj-btn flex-1 py-0.5 rounded bg-[#10141d] border border-[#222f42] text-[10px] font-bold text-[#94a3b8] hover:text-slate-200 transition-colors" data-target="sp" data-delta="-5">-5</button>
+            <button type="button" class="coin-adj-btn flex-1 py-0.5 rounded bg-[#10141d] border border-[#222f42] text-[10px] font-bold text-[#94a3b8] hover:text-slate-200 transition-colors" data-target="sp" data-delta="5">+5</button>
+            <button type="button" class="coin-adj-btn flex-1 py-0.5 rounded bg-[#10141d] border border-[#222f42] text-[10px] font-bold text-[#94a3b8] hover:text-slate-200 transition-colors" data-target="sp" data-delta="10">+10</button>
+          </div>
+        </div>
+
+        <!-- 3. Cobre (PC) -->
+        <div class="p-3 rounded-xl bg-[#18202e] border border-[#222f42] flex flex-col justify-between gap-2 shadow-xs">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-headline font-bold text-amber-700">Cobre (PC)</span>
+            <span class="w-2.5 h-2.5 rounded-full bg-amber-700"></span>
+          </div>
+          <input
+            type="number"
+            id="coin-input-cp"
+            min="0"
+            class="w-full text-center text-lg font-headline font-bold p-1.5 rounded-lg bg-[#10141d] border border-[#222f42] text-amber-600 focus:outline-none focus:border-amber-700"
+          />
+          <div class="flex items-center justify-between gap-1">
+            <button type="button" class="coin-adj-btn flex-1 py-0.5 rounded bg-[#10141d] border border-[#222f42] text-[10px] font-bold text-[#94a3b8] hover:text-amber-600 transition-colors" data-target="cp" data-delta="-10">-10</button>
+            <button type="button" class="coin-adj-btn flex-1 py-0.5 rounded bg-[#10141d] border border-[#222f42] text-[10px] font-bold text-[#94a3b8] hover:text-amber-600 transition-colors" data-target="cp" data-delta="10">+10</button>
+            <button type="button" class="coin-adj-btn flex-1 py-0.5 rounded bg-[#10141d] border border-[#222f42] text-[10px] font-bold text-[#94a3b8] hover:text-amber-600 transition-colors" data-target="cp" data-delta="50">+50</button>
+          </div>
+        </div>
+
+        <!-- 4. Platino (PPT) -->
+        <div class="p-3 rounded-xl bg-[#18202e] border border-[#222f42] flex flex-col justify-between gap-2 shadow-xs">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-headline font-bold text-purple-300">Platino (PPT)</span>
+            <span class="w-2.5 h-2.5 rounded-full bg-purple-400"></span>
+          </div>
+          <input
+            type="number"
+            id="coin-input-pp"
+            min="0"
+            class="w-full text-center text-lg font-headline font-bold p-1.5 rounded-lg bg-[#10141d] border border-[#222f42] text-purple-300 focus:outline-none focus:border-purple-400"
+          />
+          <div class="flex items-center justify-between gap-1">
+            <button type="button" class="coin-adj-btn flex-1 py-0.5 rounded bg-[#10141d] border border-[#222f42] text-[10px] font-bold text-[#94a3b8] hover:text-purple-300 transition-colors" data-target="pp" data-delta="-1">-1</button>
+            <button type="button" class="coin-adj-btn flex-1 py-0.5 rounded bg-[#10141d] border border-[#222f42] text-[10px] font-bold text-[#94a3b8] hover:text-purple-300 transition-colors" data-target="pp" data-delta="1">+1</button>
+            <button type="button" class="coin-adj-btn flex-1 py-0.5 rounded bg-[#10141d] border border-[#222f42] text-[10px] font-bold text-[#94a3b8] hover:text-purple-300 transition-colors" data-target="pp" data-delta="5">+5</button>
+          </div>
+        </div>
+
+        <!-- 5. Electro (PE) -->
+        <div class="p-3 rounded-xl bg-[#18202e] border border-[#222f42] flex flex-col justify-between gap-2 shadow-xs">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-headline font-bold text-cyan-400">Electro (PE)</span>
+            <span class="w-2.5 h-2.5 rounded-full bg-cyan-400"></span>
+          </div>
+          <input
+            type="number"
+            id="coin-input-ep"
+            min="0"
+            class="w-full text-center text-lg font-headline font-bold p-1.5 rounded-lg bg-[#10141d] border border-[#222f42] text-cyan-400 focus:outline-none focus:border-cyan-500"
+          />
+          <div class="flex items-center justify-between gap-1">
+            <button type="button" class="coin-adj-btn flex-1 py-0.5 rounded bg-[#10141d] border border-[#222f42] text-[10px] font-bold text-[#94a3b8] hover:text-cyan-300 transition-colors" data-target="ep" data-delta="-1">-1</button>
+            <button type="button" class="coin-adj-btn flex-1 py-0.5 rounded bg-[#10141d] border border-[#222f42] text-[10px] font-bold text-[#94a3b8] hover:text-cyan-300 transition-colors" data-target="ep" data-delta="1">+1</button>
+            <button type="button" class="coin-adj-btn flex-1 py-0.5 rounded bg-[#10141d] border border-[#222f42] text-[10px] font-bold text-[#94a3b8] hover:text-cyan-300 transition-colors" data-target="ep" data-delta="5">+5</button>
+          </div>
+        </div>
+
+        <!-- Total Estimado en Oro -->
+        <div class="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 flex flex-col justify-between gap-1 col-span-2 sm:col-span-2 md:col-span-3">
+          <span class="text-[11px] font-bold text-amber-300">Valor Estimado Total</span>
+          <div class="flex items-baseline gap-2">
+            <span id="currency-total-gp" class="text-2xl font-headline font-bold text-amber-400">159.22</span>
+            <span class="text-xs font-label text-amber-300/80">Piezas de Oro (PO eq.)</span>
+          </div>
+          <span class="text-[10px] text-[#94a3b8]">1 PPT = 10 PO • 1 PE = 0.5 PO • 1 PP = 0.1 PO • 1 PC = 0.01 PO</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal Footer Actions -->
+    <div class="p-4 bg-[#18202e] border-t border-[#222f42] flex items-center justify-end gap-2.5">
+      <button type="button" id="currency-modal-cancel-btn" class="px-4 py-2 rounded-xl bg-[#121721] border border-[#222f42] text-[#94a3b8] hover:text-[#f1f5f9] cursor-pointer text-xs">
+        Cancelar
+      </button>
+      <button type="button" id="currency-modal-save-btn" class="px-5 py-2 rounded-xl bg-gradient-to-r from-amber-600 to-amber-500 text-[#0a0d12] font-bold shadow-[0_0_12px_rgba(245,158,11,0.3)] hover:brightness-110 active:scale-95 transition-all cursor-pointer text-xs">
+        Guardar Monedas
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+  import { characterStore } from '../../scripts/state/characterStore';
+  import { closeModal } from '../../scripts/animations/modalAnimations';
+
+  const modal = document.getElementById('edit-currency-modal');
+  const backdrop = document.getElementById('modal-backdrop');
+  const closeBtn = document.getElementById('currency-modal-close-btn');
+  const cancelBtn = document.getElementById('currency-modal-cancel-btn');
+  const saveBtn = document.getElementById('currency-modal-save-btn');
+
+  const cpInp = document.getElementById('coin-input-cp') as HTMLInputElement;
+  const spInp = document.getElementById('coin-input-sp') as HTMLInputElement;
+  const epInp = document.getElementById('coin-input-ep') as HTMLInputElement;
+  const gpInp = document.getElementById('coin-input-gp') as HTMLInputElement;
+  const ppInp = document.getElementById('coin-input-pp') as HTMLInputElement;
+  const totalGpLabel = document.getElementById('currency-total-gp');
+
+  function calculateTotalGp() {
+    const cp = parseInt(cpInp?.value || '0') || 0;
+    const sp = parseInt(spInp?.value || '0') || 0;
+    const ep = parseInt(epInp?.value || '0') || 0;
+    const gp = parseInt(gpInp?.value || '0') || 0;
+    const pp = parseInt(ppInp?.value || '0') || 0;
+
+    const total = (pp * 10) + gp + (ep * 0.5) + (sp * 0.1) + (cp * 0.01);
+    if (totalGpLabel) totalGpLabel.textContent = total.toFixed(2);
+  }
+
+  function populateCurrencyModal() {
+    const char = characterStore.get();
+    if (cpInp) cpInp.value = String(char.currency.cp);
+    if (spInp) spInp.value = String(char.currency.sp);
+    if (epInp) epInp.value = String(char.currency.ep);
+    if (gpInp) gpInp.value = String(char.currency.gp);
+    if (ppInp) ppInp.value = String(char.currency.pp);
+    calculateTotalGp();
+  }
+
+  // Recalculate on input
+  [cpInp, spInp, epInp, gpInp, ppInp].forEach((inp) => {
+    inp?.addEventListener('input', calculateTotalGp);
+  });
+
+  // Quick increment/decrement buttons
+  document.querySelectorAll('.coin-adj-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const target = btn.getAttribute('data-target');
+      const delta = parseInt(btn.getAttribute('data-delta') || '0');
+      let targetInput: HTMLInputElement | null = null;
+      if (target === 'cp') targetInput = cpInp;
+      if (target === 'sp') targetInput = spInp;
+      if (target === 'ep') targetInput = epInp;
+      if (target === 'gp') targetInput = gpInp;
+      if (target === 'pp') targetInput = ppInp;
+
+      if (targetInput) {
+        const current = parseInt(targetInput.value || '0') || 0;
+        targetInput.value = String(Math.max(0, current + delta));
+        calculateTotalGp();
+      }
+    });
+  });
+
+  // Open triggers
+  window.addEventListener('open-currency-modal', () => {
+    populateCurrencyModal();
+  });
+
+  // Close handlers
+  closeBtn?.addEventListener('click', () => {
+    if (modal && backdrop) closeModal(modal, backdrop);
+  });
+  cancelBtn?.addEventListener('click', () => {
+    if (modal && backdrop) closeModal(modal, backdrop);
+  });
+
+  // Save changes
+  saveBtn?.addEventListener('click', () => {
+    const cp = Math.max(0, parseInt(cpInp?.value || '0') || 0);
+    const sp = Math.max(0, parseInt(spInp?.value || '0') || 0);
+    const ep = Math.max(0, parseInt(epInp?.value || '0') || 0);
+    const gp = Math.max(0, parseInt(gpInp?.value || '0') || 0);
+    const pp = Math.max(0, parseInt(ppInp?.value || '0') || 0);
+
+    characterStore.updateCurrency({ cp, sp, ep, gp, pp });
+
+    if (modal && backdrop) closeModal(modal, backdrop);
+  });
+</script>

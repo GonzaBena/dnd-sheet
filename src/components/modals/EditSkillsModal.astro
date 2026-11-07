@@ -1,0 +1,214 @@
+---
+// src/components/modals/EditSkillsModal.astro
+---
+
+<div id="edit-skills-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
+  <div class="modal-content w-full max-w-2xl max-h-[90vh] rounded-2xl bg-[#121721] border border-[#222f42] shadow-[0_20px_60px_rgba(0,0,0,0.9)] overflow-hidden flex flex-col">
+    <!-- Header -->
+    <div class="p-4 bg-[#18202e] border-b border-[#222f42] flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <div class="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center border border-amber-500/30">
+          <span class="material-symbols-outlined text-[20px]">verified</span>
+        </div>
+        <div>
+          <h3 class="font-headline font-bold text-base text-[#f1f5f9]">Configurar Habilidades y Salvaciones</h3>
+          <span class="text-[10px] text-[#94a3b8]">Competencias, pericias y bonificaciones de objetos mágicos</span>
+        </div>
+      </div>
+      <button id="skills-modal-close-btn" class="w-7 h-7 rounded-lg bg-[#10141d] border border-[#222f42] hover:border-rose-500/50 text-[#94a3b8] hover:text-rose-400 flex items-center justify-center text-xs transition-colors cursor-pointer">
+        <span class="material-symbols-outlined text-[16px]">close</span>
+      </button>
+    </div>
+
+    <!-- Scrollable Body -->
+    <div class="p-5 overflow-y-auto space-y-5 text-xs font-label">
+      <!-- 1. Saving Throws (Salvaciones) -->
+      <div class="space-y-2">
+        <div class="flex items-center justify-between pb-1 border-b border-[#222f42]">
+          <h4 class="font-headline font-bold text-amber-400 uppercase tracking-wider text-xs flex items-center gap-1.5">
+            <span class="material-symbols-outlined text-[16px]">security</span>
+            <span>Tiradas de Salvación (Competencias)</span>
+          </h4>
+          <span class="text-[10px] text-[#94a3b8]">Marca las salvaciones con competencia (+PB)</span>
+        </div>
+        
+        <div class="grid grid-cols-2 sm:grid-cols-3 gap-2" id="modal-saves-grid">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+
+      <!-- 2. Skills Configuration (18 D&D Skills) -->
+      <div class="space-y-2">
+        <div class="flex items-center justify-between pb-1 border-b border-[#222f42]">
+          <h4 class="font-headline font-bold text-amber-400 uppercase tracking-wider text-xs flex items-center gap-1.5">
+            <span class="material-symbols-outlined text-[16px]">psychology</span>
+            <span>Las 18 Habilidades (D&D 5e)</span>
+          </h4>
+          <span class="text-[10px] text-amber-400 font-medium">Bono Competencia: +<span id="modal-pb-display">3</span></span>
+        </div>
+
+        <div class="space-y-2" id="modal-skills-list">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="p-4 bg-[#18202e] border-t border-[#222f42] flex items-center justify-end gap-2.5">
+      <button type="button" id="skills-modal-cancel-btn" class="px-4 py-2 rounded-xl bg-[#121721] border border-[#222f42] text-[#94a3b8] hover:text-[#f1f5f9] cursor-pointer text-xs">
+        Cancelar
+      </button>
+      <button type="button" id="skills-modal-save-btn" class="px-5 py-2 rounded-xl bg-gradient-to-r from-amber-600 to-amber-500 text-[#0a0d12] font-bold shadow-[0_0_12px_rgba(245,158,11,0.3)] hover:brightness-110 active:scale-95 transition-all cursor-pointer text-xs">
+        Guardar Configuración
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+  import { characterStore } from '../../scripts/state/characterStore';
+  import { closeModal } from '../../scripts/animations/modalAnimations';
+
+  const modal = document.getElementById('edit-skills-modal');
+  const backdrop = document.getElementById('modal-backdrop');
+  const closeBtn = document.getElementById('skills-modal-close-btn');
+  const cancelBtn = document.getElementById('skills-modal-cancel-btn');
+  const saveBtn = document.getElementById('skills-modal-save-btn');
+  const savesGrid = document.getElementById('modal-saves-grid');
+  const skillsList = document.getElementById('modal-skills-list');
+  const pbDisplay = document.getElementById('modal-pb-display');
+
+  // Temporary local state while editing
+  let tempSkills: any[] = [];
+  let tempStats: any = {};
+  let currentPb = 3;
+
+  function loadModalData() {
+    const char = characterStore.get();
+    currentPb = char.proficiencyBonus;
+    if (pbDisplay) pbDisplay.textContent = String(currentPb);
+    tempSkills = JSON.parse(JSON.stringify(char.skills || []));
+    tempStats = JSON.parse(JSON.stringify(char.stats));
+
+    renderSaves();
+    renderSkills();
+  }
+
+  function renderSaves() {
+    if (!savesGrid) return;
+    savesGrid.innerHTML = '';
+    const stats: (keyof typeof tempStats)[] = ['str', 'dex', 'con', 'int', 'wis', 'cha'];
+    const names = { str: 'Fuerza', dex: 'Destreza', con: 'Constitución', int: 'Inteligencia', wis: 'Sabiduría', cha: 'Carisma' };
+
+    stats.forEach((s) => {
+      const isProf = tempStats[s]?.savingProficient;
+      const mod = tempStats[s]?.modifier ?? 0;
+      const total = mod + (isProf ? currentPb : 0);
+
+      const label = document.createElement('label');
+      label.className = `p-2 rounded-lg bg-[#18202e] border ${isProf ? 'border-amber-500/50 bg-amber-500/5' : 'border-[#222f42]'} flex items-center justify-between cursor-pointer select-none transition-colors`;
+      label.innerHTML = `
+        <div class="flex items-center gap-2">
+          <input type="checkbox" class="save-check rounded bg-[#10141d] border-[#222f42] text-amber-500 focus:ring-amber-500/40 cursor-pointer" data-stat="${s}" ${isProf ? 'checked' : ''} />
+          <span class="text-xs font-medium text-[#f1f5f9]">${names[s]}</span>
+        </div>
+        <span class="font-headline font-bold text-xs ${isProf ? 'text-amber-400' : 'text-[#94a3b8]'}">${total >= 0 ? '+' : ''}${total}</span>
+      `;
+
+      label.querySelector('input')?.addEventListener('change', (e: any) => {
+        tempStats[s].savingProficient = e.target.checked;
+        renderSaves();
+      });
+
+      savesGrid.appendChild(label);
+    });
+  }
+
+  function renderSkills() {
+    if (!skillsList) return;
+    skillsList.innerHTML = '';
+
+    tempSkills.forEach((skill, index) => {
+      const statMod = tempStats[skill.stat]?.modifier ?? 0;
+      const customBonus = skill.customBonus || 0;
+      let total = statMod + (skill.proficient ? currentPb : 0) + (skill.expertise ? currentPb : 0) + customBonus;
+
+      const row = document.createElement('div');
+      row.className = 'p-2.5 rounded-xl bg-[#18202e] border border-[#222f42] flex flex-wrap items-center justify-between gap-3 text-xs';
+
+      row.innerHTML = `
+        <div class="flex items-center gap-2 min-w-[150px]">
+          <span class="w-7 text-[10px] uppercase font-bold text-[#64748b]">${skill.stat}</span>
+          <span class="font-medium text-[#f1f5f9] text-xs">${skill.name}</span>
+        </div>
+
+        <div class="flex items-center gap-3 flex-wrap">
+          <!-- 3-State Competence Selector -->
+          <div class="flex items-center gap-1 bg-[#10141d] p-1 rounded-lg border border-[#222f42]">
+            <button type="button" class="prof-mode-btn px-2 py-0.5 rounded text-[10px] font-bold transition-all ${!skill.proficient ? 'bg-[#222f42] text-[#f1f5f9]' : 'text-[#64748b] hover:text-[#f1f5f9]'}" data-mode="none">
+              Normal
+            </button>
+            <button type="button" class="prof-mode-btn px-2 py-0.5 rounded text-[10px] font-bold transition-all ${skill.proficient && !skill.expertise ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40' : 'text-[#64748b] hover:text-emerald-400'}" data-mode="prof">
+              Competente (+${currentPb})
+            </button>
+            <button type="button" class="prof-mode-btn px-2 py-0.5 rounded text-[10px] font-bold transition-all ${skill.expertise ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40' : 'text-[#64748b] hover:text-amber-300'}" data-mode="exp">
+              Pericia x2 (+${currentPb * 2})
+            </button>
+          </div>
+
+          <!-- Custom Magic Item Bonus Input -->
+          <div class="flex items-center gap-1.5" title="Bonificación extra de objetos mágicos, dotes, etc.">
+            <span class="text-[10px] text-[#94a3b8]">Bono Objeto:</span>
+            <input type="number" min="-10" max="20" class="custom-bonus-input w-12 text-center p-1 rounded bg-[#10141d] border border-[#222f42] text-amber-400 font-bold" value="${customBonus}" />
+          </div>
+
+          <!-- Total Calculation Badge -->
+          <div class="w-12 text-right">
+            <span class="font-headline font-bold text-sm ${skill.expertise ? 'text-amber-400' : 'text-[#f1f5f9]'}">${total >= 0 ? '+' : ''}${total}</span>
+          </div>
+        </div>
+      `;
+
+      // Mode switch
+      row.querySelectorAll('.prof-mode-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const mode = btn.getAttribute('data-mode');
+          if (mode === 'none') {
+            skill.proficient = false;
+            skill.expertise = false;
+          } else if (mode === 'prof') {
+            skill.proficient = true;
+            skill.expertise = false;
+          } else if (mode === 'exp') {
+            skill.proficient = true;
+            skill.expertise = true;
+          }
+          renderSkills();
+        });
+      });
+
+      // Bonus change
+      const bonusInp = row.querySelector('.custom-bonus-input') as HTMLInputElement;
+      bonusInp?.addEventListener('input', () => {
+        skill.customBonus = parseInt(bonusInp.value || '0') || 0;
+        renderSkills();
+      });
+
+      skillsList.appendChild(row);
+    });
+  }
+
+  window.addEventListener('open-skills-modal', loadModalData);
+
+  closeBtn?.addEventListener('click', () => {
+    if (modal && backdrop) closeModal(modal, backdrop);
+  });
+  cancelBtn?.addEventListener('click', () => {
+    if (modal && backdrop) closeModal(modal, backdrop);
+  });
+
+  saveBtn?.addEventListener('click', () => {
+    characterStore.updateSkillsAndSaves(tempStats, tempSkills);
+    if (modal && backdrop) closeModal(modal, backdrop);
+  });
+</script>

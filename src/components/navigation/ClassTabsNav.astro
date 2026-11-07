@@ -1,0 +1,224 @@
+---
+// src/components/navigation/ClassTabsNav.astro
+---
+
+<nav class="w-full mb-6 p-1.5 rounded-2xl bg-[#121721] border border-[#222f42] shadow-md flex items-center gap-1.5" id="class-tabs-bar">
+  <!-- Scrollable tabs area (only the buttons scroll, never overlapping the configure button) -->
+  <div class="flex-1 min-w-0 overflow-x-auto no-scrollbar flex items-center gap-1 flex-nowrap pr-2" id="tab-buttons-list">
+    <!-- Tab: Todo -->
+    <button
+      type="button"
+      data-tab="all"
+      class="tab-btn px-3.5 py-2 rounded-xl text-xs font-headline font-bold transition-all flex items-center gap-1.5 shrink-0 cursor-pointer bg-gradient-to-r from-amber-600 to-amber-500 text-[#0a0d12] shadow-[0_0_12px_rgba(245,158,11,0.35)]"
+    >
+      <span class="material-symbols-outlined text-[16px]">visibility</span>
+      <span>Todo</span>
+    </button>
+
+    <!-- Tab: Combate -->
+    <button
+      type="button"
+      data-tab="combat"
+      class="tab-btn px-3.5 py-2 rounded-xl text-xs font-headline font-bold transition-all flex items-center gap-1.5 shrink-0 cursor-pointer text-[#94a3b8] hover:bg-[#18202e] hover:text-[#f1f5f9]"
+    >
+      <span class="material-symbols-outlined text-[16px]">swords</span>
+      <span>Combate</span>
+    </button>
+
+    <!-- Tab: Habilidades -->
+    <button
+      type="button"
+      data-tab="skills"
+      class="tab-btn px-3.5 py-2 rounded-xl text-xs font-headline font-bold transition-all flex items-center gap-1.5 shrink-0 cursor-pointer text-[#94a3b8] hover:bg-[#18202e] hover:text-[#f1f5f9]"
+    >
+      <span class="material-symbols-outlined text-[16px]">verified</span>
+      <span>Habilidades</span>
+    </button>
+
+    <!-- Tab: Magia (conditional) -->
+    <button
+      type="button"
+      data-tab="spells"
+      id="tab-btn-spells"
+      class="tab-btn px-3.5 py-2 rounded-xl text-xs font-headline font-bold transition-all flex items-center gap-1.5 shrink-0 cursor-pointer text-[#94a3b8] hover:bg-[#18202e] hover:text-[#f1f5f9]"
+    >
+      <span class="material-symbols-outlined text-[16px]">auto_fix_high</span>
+      <span>Magia</span>
+    </button>
+
+    <!-- Tab: Forma Salvaje (Druida conditional) -->
+    <button
+      type="button"
+      data-tab="wildshape"
+      id="tab-btn-wildshape"
+      class="tab-btn hidden px-3.5 py-2 rounded-xl text-xs font-headline font-bold transition-all items-center gap-1.5 shrink-0 cursor-pointer text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 hover:bg-emerald-500/20"
+    >
+      <span class="material-symbols-outlined text-[16px]">pets</span>
+      <span>Forma Salvaje</span>
+    </button>
+
+    <!-- Tab: Mochila -->
+    <button
+      type="button"
+      data-tab="inventory"
+      class="tab-btn px-3.5 py-2 rounded-xl text-xs font-headline font-bold transition-all flex items-center gap-1.5 shrink-0 cursor-pointer text-[#94a3b8] hover:bg-[#18202e] hover:text-[#f1f5f9]"
+    >
+      <span class="material-symbols-outlined text-[16px]">backpack</span>
+      <span>Mochila</span>
+    </button>
+
+    <!-- Tab: Bitácora -->
+    <button
+      type="button"
+      data-tab="journal"
+      class="tab-btn px-3.5 py-2 rounded-xl text-xs font-headline font-bold transition-all flex items-center gap-1.5 shrink-0 cursor-pointer text-[#94a3b8] hover:bg-[#18202e] hover:text-[#f1f5f9]"
+    >
+      <span class="material-symbols-outlined text-[16px]">history_edu</span>
+      <span>Bitácora</span>
+    </button>
+  </div>
+
+  <!-- Divider -->
+  <div class="h-6 w-px bg-[#222f42] shrink-0 mx-0.5"></div>
+
+  <!-- Customize Panels button (pinned cleanly at the right without overlapping) -->
+  <button
+    type="button"
+    id="open-customize-panels-btn"
+    class="px-2.5 py-2 rounded-xl text-xs font-bold text-amber-400 hover:text-amber-300 bg-[#18202e] border border-amber-500/30 hover:border-amber-500/60 transition-all flex items-center gap-1 shrink-0 cursor-pointer"
+    title="Configurar qué pestañas y módulos mostrar (Mago, Druida, Guerrero...)"
+  >
+    <span class="material-symbols-outlined text-[15px]">tune</span>
+    <span class="hidden md:inline">Pestañas de Clase</span>
+  </button>
+</nav>
+
+<script>
+  import { characterStore } from '../../scripts/state/characterStore';
+  import { openModal } from '../../scripts/animations/modalAnimations';
+
+  const spellsTabBtn = document.getElementById('tab-btn-spells');
+  const wildShapeTabBtn = document.getElementById('tab-btn-wildshape');
+  const customizeBtn = document.getElementById('open-customize-panels-btn');
+
+  customizeBtn?.addEventListener('click', () => {
+    const modal = document.getElementById('configure-panels-modal');
+    const backdrop = document.getElementById('modal-backdrop');
+    if (modal && backdrop) openModal(modal, backdrop);
+  });
+
+  function updateTabsUi(char: any) {
+    if (!char.layoutConfig) return;
+    const cfg = char.layoutConfig;
+
+    // Toggle visibility of conditional tabs
+    if (spellsTabBtn) {
+      if (cfg.showSpells) spellsTabBtn.classList.remove('hidden');
+      else spellsTabBtn.classList.add('hidden');
+    }
+
+    if (wildShapeTabBtn) {
+      if (cfg.showWildShape) wildShapeTabBtn.classList.remove('hidden');
+      else wildShapeTabBtn.classList.add('hidden');
+    }
+
+    // Highlight active tab
+    const active = cfg.activeTab || 'all';
+    document.querySelectorAll('.tab-btn').forEach((btn) => {
+      const tabName = btn.getAttribute('data-tab');
+      if (tabName === active) {
+        btn.className = 'tab-btn px-3.5 py-2 rounded-xl text-xs font-headline font-bold transition-all flex items-center gap-1.5 shrink-0 cursor-pointer bg-gradient-to-r from-amber-600 to-amber-500 text-[#0a0d12] shadow-[0_0_12px_rgba(245,158,11,0.35)]';
+      } else {
+        btn.className = 'tab-btn px-3.5 py-2 rounded-xl text-xs font-headline font-bold transition-all flex items-center gap-1.5 shrink-0 cursor-pointer text-[#94a3b8] hover:bg-[#18202e] hover:text-[#f1f5f9]';
+      }
+    });
+
+    // Update visibility of main content sections based on active tab
+    applyTabFilter(active, cfg);
+  }
+
+  function applyTabFilter(tab: string, cfg: any) {
+    const secAbilities = document.getElementById('section-abilities');
+    const secSaves = document.getElementById('section-saves');
+    const secSkills = document.getElementById('section-skills');
+    const secFeatures = document.getElementById('section-features');
+    const secWeapons = document.getElementById('section-weapons');
+    const secWildShape = document.getElementById('section-wildshape');
+    const secCurrency = document.getElementById('section-currency');
+    const secBackpack = document.getElementById('section-backpack');
+    const secSpells = document.getElementById('section-spells');
+    const secJournal = document.getElementById('section-journal');
+
+    const col1 = document.getElementById('workspace-col-1');
+    const col2 = document.getElementById('workspace-col-2');
+    const grid = document.getElementById('workspace-grid');
+
+    const showAll = tab === 'all';
+
+    // Helper toggle
+    const setVis = (el: HTMLElement | null, visible: boolean) => {
+      if (!el) return;
+      if (visible) el.classList.remove('hidden');
+      else el.classList.add('hidden');
+    };
+
+    setVis(secAbilities, showAll || tab === 'combat');
+    setVis(secSaves, (showAll && cfg.showSkills) || tab === 'skills' || tab === 'combat');
+    setVis(secSkills, (showAll && cfg.showSkills) || tab === 'skills');
+    setVis(secFeatures, (showAll && cfg.showSkills) || tab === 'skills' || tab === 'combat');
+    
+    setVis(secWeapons, (showAll && cfg.showWeapons) || tab === 'combat');
+    setVis(secWildShape, cfg.showWildShape && (showAll || tab === 'wildshape'));
+    setVis(secCurrency, (showAll && cfg.showInventory) || tab === 'inventory');
+    setVis(secBackpack, (showAll && cfg.showInventory) || tab === 'inventory');
+    setVis(secSpells, cfg.showSpells && (showAll || tab === 'spells'));
+    setVis(secJournal, (showAll && cfg.showJournal) || tab === 'journal');
+
+    // DYNAMIC LAYOUT REORGANIZATION (Eliminates empty 50% column gap)
+    if (grid && col1 && col2) {
+      if (tab === 'journal') {
+        grid.classList.add('hidden');
+      } else {
+        grid.classList.remove('hidden');
+
+        if (tab === 'inventory' || tab === 'spells' || tab === 'wildshape') {
+          // Hide Column 1, expand Column 2 centered
+          col1.classList.add('hidden');
+          col2.classList.remove('hidden');
+          col2.className = 'space-y-6 w-full max-w-4xl mx-auto col-span-full';
+          grid.className = 'grid grid-cols-1 gap-6 items-start';
+        } else if (tab === 'skills') {
+          // Hide Column 2, expand Column 1 centered
+          col2.classList.add('hidden');
+          col1.classList.remove('hidden');
+          col1.className = 'space-y-6 w-full max-w-4xl mx-auto col-span-full';
+          grid.className = 'grid grid-cols-1 gap-6 items-start';
+        } else {
+          // 'all' or 'combat': 2-column balanced desktop layout
+          col1.classList.remove('hidden');
+          col2.classList.remove('hidden');
+          col1.className = 'space-y-6 w-full';
+          col2.className = 'space-y-6 w-full';
+          grid.className = 'grid grid-cols-1 lg:grid-cols-2 gap-6 items-start';
+        }
+      }
+    }
+  }
+
+  // Click on tab buttons
+  document.querySelectorAll('.tab-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const tabName = btn.getAttribute('data-tab');
+      if (tabName) {
+        characterStore.setActiveTab(tabName);
+      }
+    });
+  });
+
+  // Initial render
+  updateTabsUi(characterStore.get());
+
+  window.addEventListener('character-updated', ((e: CustomEvent) => {
+    updateTabsUi(e.detail.character);
+  }) as EventListener);
+</script>

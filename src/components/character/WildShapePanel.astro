@@ -1,0 +1,268 @@
+---
+// src/components/character/WildShapePanel.astro
+---
+
+<div class="rounded-xl bg-[#121721] border border-emerald-500/30 p-5 shadow-sm" id="wild-shape-panel">
+  <!-- Header -->
+  <div class="flex flex-wrap items-center justify-between gap-2 mb-4 pb-3 border-b border-[#222f42]">
+    <div class="flex items-center gap-2">
+      <div class="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center border border-emerald-500/30">
+        <span class="material-symbols-outlined text-[20px]">pets</span>
+      </div>
+      <div>
+        <h3 class="text-sm font-headline font-bold text-[#f1f5f9] uppercase tracking-wider flex items-center gap-1.5">
+          <span>Forma Salvaje (Druida)</span>
+        </h3>
+        <span class="text-[10px] text-emerald-400 font-label">Bestiario y Puntos de Golpe de Transformación</span>
+      </div>
+    </div>
+
+    <div class="flex items-center gap-2">
+      <div class="px-2.5 py-1 rounded-lg bg-[#18202e] border border-[#222f42] text-xs font-label">
+        <span class="text-[#94a3b8]">Usos: </span>
+        <strong id="ws-uses-label" class="text-emerald-400 font-bold">2 / 2</strong>
+      </div>
+      <button
+        type="button"
+        id="ws-restore-uses-btn"
+        class="text-[10px] font-bold px-2 py-1 rounded bg-[#18202e] border border-[#222f42] hover:border-emerald-500/40 text-[#94a3b8] hover:text-emerald-300 transition-colors cursor-pointer"
+        title="Restaurar usos en descanso corto"
+      >
+        Descanso
+      </button>
+    </div>
+  </div>
+
+  <!-- Active Transformation Card (if transformed) -->
+  <div id="ws-active-card" class="hidden mb-4 p-4 rounded-xl bg-gradient-to-r from-emerald-950/30 via-[#18202e] to-[#18202e] border-2 border-emerald-500/60 shadow-[0_0_20px_rgba(16,185,129,0.15)]">
+    <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
+      <div class="flex items-center gap-2.5">
+        <span class="material-symbols-outlined text-emerald-400 text-[24px]">cruelty_free</span>
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="font-headline font-bold text-base text-[#f1f5f9]" id="ws-active-name">Oso Pardo</span>
+            <span class="px-2 py-0.2 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-bold border border-emerald-500/40" id="ws-active-cr">CR 1</span>
+          </div>
+          <span class="text-[11px] text-[#94a3b8] font-label" id="ws-active-meta">CA 11 • Velocidad 40 ft</span>
+        </div>
+      </div>
+
+      <button
+        type="button"
+        id="ws-revert-btn"
+        class="px-3 py-1.5 rounded-lg bg-[#10141d] border border-rose-500/40 hover:bg-rose-950/30 text-rose-300 text-xs font-bold transition-all cursor-pointer flex items-center gap-1"
+      >
+        <span class="material-symbols-outlined text-[14px]">undo</span>
+        <span>Revertir a Humanoide</span>
+      </button>
+    </div>
+
+    <!-- Beast Hit Points Meter -->
+    <div class="p-3 rounded-lg bg-[#10141d] border border-[#222f42] mb-3 space-y-2">
+      <div class="flex items-center justify-between text-xs font-label">
+        <span class="font-bold text-[#cbd5e1]">PG de la Bestia</span>
+        <div class="flex items-baseline gap-1">
+          <span id="ws-current-hp" class="font-headline font-bold text-lg text-emerald-400">34</span>
+          <span class="text-[#64748b]">/ <span id="ws-max-hp">34</span> PG</span>
+        </div>
+      </div>
+
+      <div class="w-full bg-[#18202e] h-2.5 rounded-full overflow-hidden flex border border-[#222f42]">
+        <div id="ws-hp-bar" class="bg-gradient-to-r from-emerald-600 to-emerald-400 h-full transition-all duration-300 rounded-full" style="width: 100%"></div>
+      </div>
+
+      <!-- Quick Beast damage/heal buttons -->
+      <div class="flex items-center justify-end gap-1.5 pt-1">
+        <button id="ws-sub-5" class="px-2 py-0.5 rounded bg-[#18202e] border border-[#222f42] hover:border-rose-500/50 text-xs font-bold text-rose-400 cursor-pointer">-5</button>
+        <button id="ws-sub-1" class="px-2 py-0.5 rounded bg-[#18202e] border border-[#222f42] hover:border-rose-500/50 text-xs font-bold text-rose-400 cursor-pointer">-1</button>
+        <button id="ws-add-1" class="px-2 py-0.5 rounded bg-[#18202e] border border-[#222f42] hover:border-emerald-500/50 text-xs font-bold text-emerald-400 cursor-pointer">+1</button>
+        <button id="ws-add-5" class="px-2 py-0.5 rounded bg-[#18202e] border border-[#222f42] hover:border-emerald-500/50 text-xs font-bold text-emerald-400 cursor-pointer">+5</button>
+      </div>
+    </div>
+
+    <!-- Beast Attack Actions -->
+    <div class="space-y-1.5" id="ws-active-attacks">
+      <!-- Populated by JS -->
+    </div>
+  </div>
+
+  <!-- Beast Selection Grid (When not transformed or choosing next form) -->
+  <div class="space-y-2">
+    <span class="text-xs font-headline font-bold text-[#94a3b8] uppercase tracking-wider block">Transformarse en Bestia:</span>
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs font-label" id="ws-beasts-grid">
+      <!-- Populated by JS -->
+    </div>
+  </div>
+</div>
+
+<script>
+  import { characterStore } from '../../scripts/state/characterStore';
+  import { openModal } from '../../scripts/animations/modalAnimations';
+
+  const PRESET_BEASTS = [
+    {
+      name: 'Oso Pardo',
+      cr: 'CR 1',
+      hp: { current: 34, max: 34 },
+      ac: 11,
+      speed: '40 ft, escalar 30 ft',
+      attacks: [
+        { name: 'Mordisco', bonus: '+5 al Impacto', damage: '1d8 + 4' },
+        { name: 'Garras', bonus: '+5 al Impacto', damage: '2d6 + 4' }
+      ]
+    },
+    {
+      name: 'Lobo',
+      cr: 'CR 1/4',
+      hp: { current: 11, max: 11 },
+      ac: 13,
+      speed: '40 ft',
+      attacks: [
+        { name: 'Mordisco', bonus: '+4 al Impacto', damage: '2d4 + 2' }
+      ]
+    },
+    {
+      name: 'Araña Gigante',
+      cr: 'CR 1',
+      hp: { current: 26, max: 26 },
+      ac: 14,
+      speed: '30 ft, trepar 30 ft',
+      attacks: [
+        { name: 'Mordisco Venenoso', bonus: '+5 al Impacto', damage: '1d8 + 3' },
+        { name: 'Telaraña', bonus: '+5 al Impacto', damage: 'Especial (Atrapado)' }
+      ]
+    },
+    {
+      name: 'Halcón de Caza',
+      cr: 'CR 0',
+      hp: { current: 3, max: 3 },
+      ac: 15,
+      speed: '10 ft, vuelo 60 ft',
+      attacks: [
+        { name: 'Garras Rápidas', bonus: '+5 al Impacto', damage: '1d4 + 3' }
+      ]
+    }
+  ];
+
+  const activeCard = document.getElementById('ws-active-card');
+  const activeName = document.getElementById('ws-active-name');
+  const activeCr = document.getElementById('ws-active-cr');
+  const activeMeta = document.getElementById('ws-active-meta');
+  const currentHpEl = document.getElementById('ws-current-hp');
+  const maxHpEl = document.getElementById('ws-max-hp');
+  const hpBarEl = document.getElementById('ws-hp-bar');
+  const activeAttacks = document.getElementById('ws-active-attacks');
+  const usesLabel = document.getElementById('ws-uses-label');
+  const beastsGrid = document.getElementById('ws-beasts-grid');
+  const revertBtn = document.getElementById('ws-revert-btn');
+
+  function renderWildShape(char: any) {
+    if (!char.wildShape) return;
+    const ws = char.wildShape;
+    if (usesLabel) usesLabel.textContent = `${ws.usesRemaining} / ${ws.usesTotal}`;
+
+    if (ws.activeForm) {
+      if (activeCard) activeCard.classList.remove('hidden');
+      if (activeName) activeName.textContent = ws.activeForm.name;
+      if (activeCr) activeCr.textContent = ws.activeForm.cr;
+      if (activeMeta) activeMeta.textContent = `CA ${ws.activeForm.ac} • Velocidad ${ws.activeForm.speed}`;
+      if (currentHpEl) currentHpEl.textContent = String(ws.activeForm.hp.current);
+      if (maxHpEl) maxHpEl.textContent = String(ws.activeForm.hp.max);
+
+      if (hpBarEl) {
+        const pct = Math.max(0, Math.min(100, (ws.activeForm.hp.current / ws.activeForm.hp.max) * 100));
+        hpBarEl.style.width = `${pct}%`;
+      }
+
+      if (activeAttacks) {
+        activeAttacks.innerHTML = '';
+        ws.activeForm.attacks.forEach((atk: any) => {
+          const btn = document.createElement('div');
+          btn.className = 'p-2 rounded-lg bg-[#18202e] border border-[#222f42] flex items-center justify-between';
+          btn.innerHTML = `
+            <div>
+              <strong class="text-[#f1f5f9] block">${atk.name}</strong>
+              <span class="text-[10px] text-emerald-400">${atk.damage}</span>
+            </div>
+            <button class="roll-beast-atk px-2.5 py-1 rounded bg-emerald-500/20 text-emerald-300 font-bold hover:bg-emerald-500 hover:text-[#0a0d12] transition-colors cursor-pointer flex items-center gap-1 text-[11px]">
+              <span class="material-symbols-outlined text-[13px]">casino</span>
+              <span>${atk.bonus}</span>
+            </button>
+          `;
+
+          btn.querySelector('.roll-beast-atk')?.addEventListener('click', () => {
+            const diceModal = document.getElementById('dice-roller-modal');
+            const backdrop = document.getElementById('modal-backdrop');
+            const mod = parseInt(atk.bonus.replace(/[^0-9-]/g, '')) || 0;
+            const modInput = document.getElementById('dice-modifier-input') as HTMLInputElement;
+            if (modInput) modInput.value = String(mod);
+            if (diceModal && backdrop) openModal(diceModal, backdrop);
+          });
+
+          activeAttacks.appendChild(btn);
+        });
+      }
+    } else {
+      if (activeCard) activeCard.classList.add('hidden');
+    }
+
+    // Render Beasts selection
+    if (beastsGrid) {
+      beastsGrid.innerHTML = '';
+      PRESET_BEASTS.forEach((b) => {
+        const card = document.createElement('div');
+        card.className = 'p-2.5 rounded-lg bg-[#18202e] border border-[#222f42] hover:border-emerald-500/40 flex items-center justify-between transition-colors';
+        card.innerHTML = `
+          <div>
+            <div class="flex items-center gap-1.5">
+              <strong class="text-[#f1f5f9]">${b.name}</strong>
+              <span class="text-[9px] text-[#64748b] font-mono">${b.cr}</span>
+            </div>
+            <span class="text-[10px] text-[#94a3b8] block">${b.hp.max} PG • CA ${b.ac} • ${b.speed}</span>
+          </div>
+          <button class="transform-btn px-2.5 py-1 rounded bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-bold hover:bg-emerald-500 hover:text-[#0a0d12] transition-colors cursor-pointer text-xs">
+            Adoptar
+          </button>
+        `;
+
+        card.querySelector('.transform-btn')?.addEventListener('click', () => {
+          if (ws.usesRemaining <= 0) {
+            alert('No te quedan usos de Forma Salvaje. Realiza un descanso corto para recuperar.');
+            return;
+          }
+          characterStore.transformWildShape(JSON.parse(JSON.stringify(b)));
+        });
+
+        beastsGrid.appendChild(card);
+      });
+    }
+  }
+
+  // Quick Beast HP adjustments
+  document.getElementById('ws-sub-5')?.addEventListener('click', () => characterStore.modifyWildShapeHp(-5));
+  document.getElementById('ws-sub-1')?.addEventListener('click', () => characterStore.modifyWildShapeHp(-1));
+  document.getElementById('ws-add-1')?.addEventListener('click', () => characterStore.modifyWildShapeHp(1));
+  document.getElementById('ws-add-5')?.addEventListener('click', () => characterStore.modifyWildShapeHp(5));
+
+  // Revert
+  revertBtn?.addEventListener('click', () => {
+    characterStore.transformWildShape(null);
+  });
+
+  // Restore uses
+  document.getElementById('ws-restore-uses-btn')?.addEventListener('click', () => {
+    const char = characterStore.get();
+    if (char.wildShape) {
+      char.wildShape.usesRemaining = char.wildShape.usesTotal;
+      localStorage.setItem('dnd_active_character_v1', JSON.stringify(char));
+      window.dispatchEvent(new CustomEvent('character-updated', { detail: { character: char } }));
+    }
+  });
+
+  // Initial render
+  renderWildShape(characterStore.get());
+
+  window.addEventListener('character-updated', ((e: CustomEvent) => {
+    renderWildShape(e.detail.character);
+  }) as EventListener);
+</script>

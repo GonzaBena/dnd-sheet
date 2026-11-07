@@ -1,0 +1,57 @@
+---
+// src/components/modals/ResetConfirmModal.astro
+---
+
+<div id="reset-confirm-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
+  <div class="modal-content w-full max-w-sm rounded-2xl bg-[#121721] border border-rose-500/40 shadow-[0_15px_50px_rgba(0,0,0,0.9)] overflow-hidden flex flex-col">
+    <div class="p-4 bg-rose-950/20 border-b border-[#222f42] flex items-center gap-2.5">
+      <div class="w-8 h-8 rounded-lg bg-rose-500/20 text-rose-400 flex items-center justify-center border border-rose-500/30">
+        <span class="material-symbols-outlined text-[20px]">warning</span>
+      </div>
+      <div>
+        <h3 class="font-headline font-bold text-base text-[#f1f5f9]">¿Reiniciar Datos?</h3>
+        <span class="text-[10px] text-rose-400">Esta acción no se puede deshacer</span>
+      </div>
+    </div>
+
+    <div class="p-5 text-xs text-[#cbd5e1] space-y-3 leading-relaxed">
+      <p>
+        Se restaurará la ficha de <strong>Elysian Ventosombra</strong> a sus valores predeterminados de nivel 5 y se reiniciará la bitácora de la campaña.
+      </p>
+      <p class="text-[11px] text-[#94a3b8]">
+        Si no deseas perder tus cambios actuales, puedes pulsar primero en <em>"Exportar Copia (JSON)"</em> desde el menú superior.
+      </p>
+    </div>
+
+    <div class="p-4 bg-[#18202e] border-t border-[#222f42] flex items-center justify-end gap-2.5">
+      <button type="button" id="reset-cancel-btn" class="px-4 py-2 rounded-xl bg-[#121721] border border-[#222f42] text-[#94a3b8] hover:text-[#f1f5f9] cursor-pointer text-xs">
+        Cancelar
+      </button>
+      <button type="button" id="reset-confirm-btn" class="px-4 py-2 rounded-xl bg-gradient-to-r from-rose-600 to-rose-500 text-white font-bold shadow-[0_0_12px_rgba(239,68,68,0.3)] hover:brightness-110 active:scale-95 transition-all cursor-pointer text-xs">
+        Sí, Reiniciar Todo
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+  import { characterStore } from '../../scripts/state/characterStore';
+  import { journalStore } from '../../scripts/state/journalStore';
+  import { closeModal } from '../../scripts/animations/modalAnimations';
+
+  const modal = document.getElementById('reset-confirm-modal');
+  const backdrop = document.getElementById('modal-backdrop');
+  const cancelBtn = document.getElementById('reset-cancel-btn');
+  const confirmBtn = document.getElementById('reset-confirm-btn');
+
+  cancelBtn?.addEventListener('click', () => {
+    if (modal && backdrop) closeModal(modal, backdrop);
+  });
+
+  confirmBtn?.addEventListener('click', () => {
+    characterStore.resetToDefault();
+    journalStore.resetToDefault();
+    alert('Ficha y bitácora restauradas a los valores iniciales.');
+    if (modal && backdrop) closeModal(modal, backdrop);
+  });
+</script>

@@ -1,0 +1,105 @@
+---
+// src/components/character/SavingThrows.astro
+---
+
+<div class="rounded-xl bg-[#121721] border border-[#222f42] p-4 shadow-sm">
+  <div class="flex items-center justify-between mb-3">
+    <h3 class="text-xs font-headline font-bold text-[#f1f5f9] uppercase tracking-wider flex items-center gap-1.5">
+      <span class="material-symbols-outlined text-amber-500 text-[16px]">security</span>
+      <span>Tiradas de Salvación</span>
+    </h3>
+    <button
+      type="button"
+      id="open-saves-edit-btn"
+      class="text-[10px] text-amber-400 hover:text-amber-300 font-bold bg-amber-500/10 hover:bg-amber-500/20 px-2.5 py-1 rounded-lg border border-amber-500/30 flex items-center gap-1 cursor-pointer transition-colors"
+      title="Configurar competencias de salvación"
+    >
+      <span class="material-symbols-outlined text-[13px]">tune</span>
+      <span>Configurar</span>
+    </button>
+  </div>
+
+  <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs font-label" id="saving-throws-container">
+    <!-- Populated by JavaScript and updated reactively -->
+  </div>
+</div>
+
+<script>
+  import { characterStore } from '../../scripts/state/characterStore';
+  import { openModal } from '../../scripts/animations/modalAnimations';
+
+  const container = document.getElementById('saving-throws-container');
+  const editBtn = document.getElementById('open-saves-edit-btn');
+
+  editBtn?.addEventListener('click', () => {
+    window.dispatchEvent(new CustomEvent('open-skills-modal'));
+    const modal = document.getElementById('edit-skills-modal');
+    const backdrop = document.getElementById('modal-backdrop');
+    if (modal && backdrop) openModal(modal, backdrop);
+  });
+
+  function renderSaves(char: any) {
+    if (!container) return;
+    container.innerHTML = '';
+
+    const statLabels: Record<string, string> = {
+      str: 'Fuerza',
+      dex: 'Destreza',
+      con: 'Constitución',
+      int: 'Inteligencia',
+      wis: 'Sabiduría',
+      cha: 'Carisma'
+    };
+
+    const keys = ['str', 'dex', 'con', 'int', 'wis', 'cha'] as const;
+    keys.forEach((key) => {
+      const stat = char.stats[key];
+      const isProf = stat.savingProficient;
+      const totalMod = stat.modifier + (isProf ? char.proficiencyBonus : 0);
+      const modStr = totalMod >= 0 ? `+${totalMod}` : `${totalMod}`;
+
+      const item = document.createElement('div');
+      item.className = `p-2 rounded-lg bg-[#18202e] border ${isProf ? 'border-amber-500/30 text-[#f1f5f9]' : 'border-[#222f42] text-[#94a3b8]'} flex items-center justify-between hover:border-amber-500/50 cursor-pointer active:scale-95 transition-all`;
+      item.title = `Tirar Salvación de ${statLabels[key]} (${modStr}) • Clic derecho o Shift+Clic para Tirada Secreta`;
+      item.innerHTML = `
+        <div class="flex items-center gap-1.5">
+          <span class="text-[10px] ${isProf ? 'text-amber-400 font-bold' : 'text-[#334155]'}">●</span>
+          <span class="text-[11px] font-medium">${statLabels[key]}</span>
+        </div>
+        <span class="font-headline font-bold ${isProf ? 'text-amber-400' : 'text-[#94a3b8]'}">${modStr}</span>
+      `;
+
+      const triggerSaveRoll = (isSecret = false) => {
+        window.dispatchEvent(new CustomEvent('open-dice-roller', {
+          detail: {
+            die: 20,
+            count: 1,
+            modifier: totalMod,
+            label: isSecret ? `Salvación Secreta de ${statLabels[key]}` : `Salvación de ${statLabels[key]}`,
+            tag: isSecret ? '#Privado' : '#Tirada',
+            isSecret
+          }
+        }));
+      };
+
+      item.addEventListener('click', (e) => {
+        triggerSaveRoll(Boolean(e.shiftKey || e.altKey));
+      });
+
+      item.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        triggerSaveRoll(true);
+      });
+
+      container.appendChild(item);
+    });
+  }
+
+  // Initial render
+  renderSaves(characterStore.get());
+
+  // React on update
+  window.addEventListener('character-updated', ((e: CustomEvent) => {
+    renderSaves(e.detail.character);
+  }) as EventListener);
+</script>

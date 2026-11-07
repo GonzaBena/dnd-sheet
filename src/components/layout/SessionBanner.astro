@@ -1,0 +1,76 @@
+---
+// src/components/layout/SessionBanner.astro
+---
+
+<div id="session-banner-root" class="mb-6 flex flex-wrap items-center justify-between gap-4 p-4 rounded-xl bg-[#121721] border border-[#222f42] shadow-[0_4px_20px_rgba(0,0,0,0.4)]">
+  <div class="flex items-center gap-3 cursor-pointer group" id="open-campaign-edit-trigger" title="Haz clic para editar la campaña, clima y ubicación">
+    <span class="w-3 h-3 rounded-full bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.9)] animate-pulse"></span>
+    <div>
+      <div class="flex items-center gap-1.5">
+        <span class="text-xs uppercase tracking-wider font-bold text-amber-500">Campaña Activa</span>
+        <span class="material-symbols-outlined text-[14px] text-amber-500/70 group-hover:text-amber-400 transition-colors">edit</span>
+      </div>
+      <h2 id="banner-campaign-title" class="text-base font-headline font-bold text-[#f1f5f9] group-hover:text-amber-300 transition-colors">Maldición de Strahd • Sesión 15 en Curso</h2>
+    </div>
+  </div>
+
+  <div class="flex flex-wrap items-center gap-3 text-xs font-label">
+    <div class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#18202e] border border-[#222f42] text-[#94a3b8] hover:border-amber-500/40 cursor-pointer transition-colors" id="banner-weather-chip" title="Haz clic para editar clima">
+      <span class="material-symbols-outlined text-[16px] text-amber-500">wb_twilight</span>
+      <span id="banner-weather-text" class="text-[#cbd5e1]">Clima: Niebla Espesa / Anochecer</span>
+    </div>
+    <div class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#18202e] border border-[#222f42] text-[#94a3b8] hover:border-amber-500/40 cursor-pointer transition-colors" id="banner-location-chip" title="Haz clic para editar ubicación">
+      <span class="material-symbols-outlined text-[16px] text-rose-400">map</span>
+      <span id="banner-location-text" class="text-[#cbd5e1]">Ubicación: Valle de Barovia</span>
+    </div>
+
+    <!-- Milestone Celebration Button -->
+    <button
+      type="button"
+      id="open-milestone-btn"
+      class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-amber-600/20 via-amber-500/20 to-amber-600/20 border border-amber-500/40 text-amber-300 hover:text-amber-100 hover:border-amber-400 font-bold active:scale-95 transition-all cursor-pointer shadow-[0_0_12px_rgba(245,158,11,0.15)]"
+      title="Celebrar un logro o hito épico en la campaña"
+    >
+      <span class="material-symbols-outlined text-[16px] text-amber-400">military_tech</span>
+      <span>Celebrar Hito</span>
+    </button>
+  </div>
+</div>
+
+<script>
+  import { characterStore } from '../../scripts/state/characterStore';
+
+  // Open campaign modal on banner elements click
+  const openCampModal = () => {
+    window.dispatchEvent(new CustomEvent('open-campaign-modal'));
+  };
+  document.getElementById('open-campaign-edit-trigger')?.addEventListener('click', openCampModal);
+  document.getElementById('banner-weather-chip')?.addEventListener('click', openCampModal);
+  document.getElementById('banner-location-chip')?.addEventListener('click', openCampModal);
+
+  // Open milestone celebration trigger
+  document.getElementById('open-milestone-btn')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    window.dispatchEvent(new CustomEvent('open-new-milestone-modal'));
+  });
+
+  function renderBanner(char: any) {
+    if (!char) return;
+    const title = document.getElementById('banner-campaign-title');
+    const weather = document.getElementById('banner-weather-text');
+    const loc = document.getElementById('banner-location-text');
+    
+    if (title && char.sessionContext) {
+      title.textContent = `${char.sessionContext.campaignName} • Sesión ${char.sessionContext.sessionNumber} en Curso`;
+    }
+    if (weather && char.sessionContext) weather.textContent = `Clima: ${char.sessionContext.weather}`;
+    if (loc && char.sessionContext) loc.textContent = `Ubicación: ${char.sessionContext.location}`;
+  }
+
+  // Hydrate immediately
+  renderBanner(characterStore.get());
+
+  window.addEventListener('character-updated', ((e: CustomEvent) => {
+    renderBanner(e.detail.character);
+  }) as EventListener);
+</script>
