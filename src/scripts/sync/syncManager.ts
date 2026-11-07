@@ -91,8 +91,13 @@ class SyncManager {
   }
 
   public async saveConfig(newConfig: SyncConfig): Promise<{ success: boolean; message?: string }> {
+    const envApiKey = (typeof import.meta !== 'undefined' && (import.meta as any).env?.PUBLIC_FIREBASE_API_KEY) || '';
+    const envProjectId = (typeof import.meta !== 'undefined' && (import.meta as any).env?.PUBLIC_FIREBASE_PROJECT_ID) || '';
+
     this.config = {
       ...newConfig,
+      apiKey: newConfig.apiKey?.trim() || this.config.apiKey || envApiKey,
+      projectId: newConfig.projectId?.trim() || this.config.projectId || envProjectId,
       characterId: newConfig.characterId && newConfig.characterId.trim() ? newConfig.characterId.trim() : this.getEffectiveCharacterId()
     };
     if (typeof window !== 'undefined') {

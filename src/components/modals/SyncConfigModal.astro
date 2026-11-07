@@ -159,35 +159,6 @@
         </button>
       </div>
 
-      <!-- Firebase Credentials -->
-      <div class="space-y-3 pt-1 border-t border-[#222f42]">
-        <div class="flex items-center justify-between">
-          <label class="text-[#94a3b8] block">Credenciales de Firebase</label>
-          <span id="sync-env-badge" class="hidden px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[9px] font-bold">
-            ✓ Preconfigurado en el servidor (.env)
-          </span>
-        </div>
-        <div>
-          <label class="text-[#94a3b8] block mb-1">Firebase Project ID</label>
-          <input
-            type="text"
-            id="sync-project-id"
-            placeholder="ej: mi-dnd-campana"
-            class="w-full p-2.5 rounded-lg bg-[#18202e] border border-[#222f42] text-[#f1f5f9] focus:border-cyan-500 focus:outline-none font-mono"
-          />
-        </div>
-
-        <div>
-          <label class="text-[#94a3b8] block mb-1">Firebase Web API Key</label>
-          <input
-            type="password"
-            id="sync-api-key"
-            placeholder="AIzaSy..."
-            class="w-full p-2.5 rounded-lg bg-[#18202e] border border-[#222f42] text-[#f1f5f9] focus:border-cyan-500 focus:outline-none font-mono"
-          />
-        </div>
-      </div>
-
       <!-- Cloud Manual Actions -->
       <div class="pt-2 border-t border-[#222f42] space-y-2">
         <label class="text-[#94a3b8] block text-[10px] uppercase font-bold tracking-wider">Acciones Manuales con la Nube</label>
@@ -244,8 +215,6 @@
   const campaignInput = document.getElementById('sync-campaign-id') as HTMLInputElement;
   const characterInput = document.getElementById('sync-character-id') as HTMLInputElement;
   const pinInput = document.getElementById('sync-pin') as HTMLInputElement;
-  const projectInput = document.getElementById('sync-project-id') as HTMLInputElement;
-  const apiInput = document.getElementById('sync-api-key') as HTMLInputElement;
 
   const regenCharBtn = document.getElementById('sync-regen-char-btn');
   const copyCharBtn = document.getElementById('sync-copy-char-btn');
@@ -310,15 +279,6 @@
     if (campaignInput) campaignInput.value = cfg.campaignId || 'barovia-strahd';
     if (characterInput) characterInput.value = cfg.characterId || syncManager.getEffectiveCharacterId();
     if (pinInput) pinInput.value = cfg.pin || '';
-    if (projectInput) projectInput.value = cfg.projectId || '';
-    if (apiInput) apiInput.value = cfg.apiKey || '';
-
-    const envProj = (typeof import.meta !== 'undefined' && (import.meta as any).env?.PUBLIC_FIREBASE_PROJECT_ID) || '';
-    const envApi = (typeof import.meta !== 'undefined' && (import.meta as any).env?.PUBLIC_FIREBASE_API_KEY) || '';
-    const envBadge = document.getElementById('sync-env-badge');
-    if ((envProj || envApi) && envBadge) {
-      envBadge.classList.remove('hidden');
-    }
 
     renderStatus(syncManager.currentStatus, syncManager.currentMessage);
   }
@@ -378,8 +338,6 @@
     const campaignId = campaignInput?.value.trim() || 'barovia-strahd';
     const characterId = characterInput?.value.trim() || syncManager.getEffectiveCharacterId();
     const pin = pinInput?.value.trim() || '';
-    const projectId = projectInput?.value.trim() || '';
-    const apiKey = apiInput?.value.trim() || '';
 
     saveBtn?.setAttribute('disabled', 'true');
     saveBtn?.classList.add('opacity-60', 'pointer-events-none');
@@ -389,8 +347,8 @@
       campaignId,
       characterId,
       pin,
-      projectId,
-      apiKey
+      projectId: '',
+      apiKey: ''
     });
 
     if (forcePull) {
@@ -414,10 +372,9 @@
     const enabled = enabledToggle?.checked || false;
     const campaignId = campaignInput?.value.trim() || 'barovia-strahd';
     const characterId = characterInput?.value.trim() || syncManager.getEffectiveCharacterId();
-    const projectId = projectInput?.value.trim() || '';
-    const apiKey = apiInput?.value.trim() || '';
+    const cfg = syncManager.getConfig();
 
-    if (enabled && projectId && apiKey) {
+    if (enabled && cfg.projectId && cfg.apiKey) {
       const prev = syncManager.getConfig();
       // If this is a new connection or characterId has changed
       if (!prev.enabled || prev.characterId !== characterId || prev.campaignId !== campaignId) {
