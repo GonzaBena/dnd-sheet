@@ -4,12 +4,19 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 import Header from '../components/layout/Header.astro';
 import PartyView from '../components/party/PartyView.astro';
+import DiceRollerModal from '../components/modals/DiceRollerModal.astro';
 ---
 
 <BaseLayout title="Mesa de Partida - D&D 5e">
+  <!-- Backdrop global para modales -->
+  <div id="modal-backdrop" class="hidden fixed inset-0 bg-black/80 backdrop-blur-xs z-50 transition-opacity"></div>
+
   <Header />
 
   <main class="w-full pt-20 sm:pt-24 pb-16 bg-[#0a0d12] min-h-screen">
     <PartyView />
   </main>
+
+  <!-- Modal de Dados con Ruleta y soporte para dados físicos y objetivos -->
+  <DiceRollerModal />
 </BaseLayout>

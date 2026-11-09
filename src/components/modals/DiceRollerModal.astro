@@ -1,5 +1,6 @@
 ---
 // src/components/modals/DiceRollerModal.astro
+// Modal de tirada de dados con ruleta animada, soporte de objetivos de combate y entrada de dados físicos en mesa.
 ---
 
 <div id="dice-roller-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -12,7 +13,7 @@
         </div>
         <div>
           <h3 class="font-headline font-bold text-base text-[#f1f5f9]">Torre de Dados</h3>
-          <span class="text-[10px] text-[#94a3b8]">Elige tus dados y gira el tambor</span>
+          <span class="text-[10px] text-[#94a3b8]">Tiradas virtuales o dados físicos en mesa</span>
         </div>
       </div>
       <button id="dice-modal-close-btn" class="w-7 h-7 rounded-lg bg-[#10141d] border border-[#222f42] hover:border-rose-500/50 text-[#94a3b8] hover:text-rose-400 flex items-center justify-center text-xs transition-colors cursor-pointer">
@@ -21,7 +22,46 @@
     </div>
 
     <!-- Modal Body -->
-    <div class="p-5 space-y-4">
+    <div class="p-5 space-y-4 max-h-[85vh] overflow-y-auto">
+      <!-- Selector de Modo: Virtual vs Dado Físico -->
+      <div class="grid grid-cols-2 gap-1.5 p-1 bg-[#10141d] rounded-xl border border-[#222f42] text-xs font-bold font-label">
+        <button
+          type="button"
+          id="dice-mode-virtual-btn"
+          class="py-1.5 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/40 text-center transition-all cursor-pointer flex items-center justify-center gap-1.5"
+        >
+          <span class="material-symbols-outlined text-[15px]">casino</span>
+          <span>Tirar en App</span>
+        </button>
+        <button
+          type="button"
+          id="dice-mode-physical-btn"
+          class="py-1.5 rounded-lg text-[#94a3b8] hover:text-[#f1f5f9] text-center transition-all cursor-pointer flex items-center justify-center gap-1.5"
+        >
+          <span class="material-symbols-outlined text-[15px]">front_hand</span>
+          <span>Dado Físico (Mesa)</span>
+        </button>
+      </div>
+
+      <!-- Selector de Objetivo en Combate (si hay combate activo) -->
+      <div id="dice-target-container" class="hidden p-2.5 rounded-xl bg-[#18202e] border border-[#222f42] space-y-1.5">
+        <div class="flex items-center justify-between">
+          <span class="text-[10px] uppercase font-bold text-[#94a3b8] tracking-wider flex items-center gap-1">
+            <span class="material-symbols-outlined text-[14px] text-rose-400">my_location</span>
+            <span>Objetivo del Ataque / Conjuro</span>
+          </span>
+          <span id="dice-target-ac-badge" class="hidden px-1.5 py-0.2 rounded bg-[#10141d] border border-[#222f42] text-[10px] font-mono text-amber-300">
+            CA --
+          </span>
+        </div>
+        <select
+          id="dice-target-select"
+          class="w-full px-2.5 py-1.5 rounded-lg bg-[#10141d] border border-[#222f42] text-xs text-[#f1f5f9] focus:outline-hidden focus:border-amber-500 cursor-pointer"
+        >
+          <option value="">Sin objetivo específico (Tirada general)</option>
+        </select>
+      </div>
+
       <!-- 1. Dice Selector Grid (d4, d6, d8, d10, d12, d20, d100) -->
       <div>
         <label class="text-xs font-headline font-bold text-[#94a3b8] uppercase tracking-wider block mb-2">Selecciona Tipo de Dado</label>
@@ -55,8 +95,32 @@
             type="number"
             id="dice-modifier-input"
             value="3"
-            class="w-full text-center text-base font-headline font-bold p-1 rounded-lg bg-[#10141d] border border-[#222f42] text-amber-400 focus:outline-none focus:border-amber-500"
+            class="w-full text-center text-base font-headline font-bold p-1 rounded-lg bg-[#10141d] border border-[#222f42] text-amber-400 focus:outline-hidden focus:border-amber-500"
           />
+        </div>
+      </div>
+
+      <!-- Entrada de Dado Físico (solo visible en modo físico) -->
+      <div id="dice-physical-container" class="hidden p-3 rounded-xl bg-[#18202e] border border-amber-500/40 space-y-2">
+        <div class="flex items-center justify-between text-xs">
+          <span class="font-bold text-[#f1f5f9] flex items-center gap-1.5">
+            <span class="material-symbols-outlined text-[16px] text-amber-400">front_hand</span>
+            <span>Resultado del dado físico en mesa:</span>
+          </span>
+          <span class="text-[10px] text-[#94a3b8] font-mono">(Sin sumar modificador)</span>
+        </div>
+        <div class="flex items-center gap-3">
+          <input
+            type="number"
+            id="dice-physical-input"
+            placeholder="Ej. 14"
+            min="1"
+            class="w-24 text-center text-xl font-bold font-mono py-2 rounded-xl bg-[#10141d] border border-amber-500/50 text-amber-300 focus:outline-hidden focus:border-amber-400"
+          />
+          <div class="text-xs text-[#cbd5e1] font-mono leading-tight space-y-0.5">
+            <div>+ Modificador: <span id="dice-physical-mod-text" class="text-amber-400 font-bold">+3</span></div>
+            <div>= Total Final: <strong id="dice-physical-total-text" class="text-[#f1f5f9] text-sm">--</strong></div>
+          </div>
         </div>
       </div>
 
@@ -93,9 +157,8 @@
         />
       </div>
 
-      <!-- 3. Jackpot Roulette Reel Display Area -->
-      <div class="p-4 rounded-2xl bg-[#0a0d12] border-2 border-[#222f42] flex flex-col items-center justify-between shadow-inner h-[190px] relative overflow-hidden select-none">
-        <!-- Ambient slot glow -->
+      <!-- 3. Jackpot Roulette Reel Display Area (Modo Virtual) -->
+      <div id="dice-virtual-display-area" class="p-4 rounded-2xl bg-[#0a0d12] border-2 border-[#222f42] flex flex-col items-center justify-between shadow-inner h-[190px] relative overflow-hidden select-none">
         <div class="absolute inset-0 bg-gradient-to-b from-amber-500/5 via-transparent to-amber-500/5 pointer-events-none"></div>
 
         <!-- Reels Container (Anime.js target with stable height) -->
@@ -105,7 +168,7 @@
           </div>
         </div>
 
-        <!-- Result Breakdown Summary (Strict fixed height to eliminate layout shifts) -->
+        <!-- Result Breakdown Summary -->
         <div id="jackpot-summary-text" class="h-14 w-full flex flex-col items-center justify-center text-xs font-label text-[#94a3b8] z-10 font-medium text-center leading-tight">
           Pulsa "Lanzar Dados" para girar el tambor
         </div>
@@ -118,8 +181,8 @@
           id="jackpot-roll-trigger-btn"
           class="flex-1 py-3 rounded-xl bg-gradient-to-r from-amber-600 via-amber-500 to-amber-400 text-[#0a0d12] text-sm font-bold shadow-[0_0_20px_rgba(245,158,11,0.4)] hover:brightness-110 active:scale-98 transition-all flex items-center justify-center gap-2 cursor-pointer font-headline"
         >
-          <span class="material-symbols-outlined text-[20px]">casino</span>
-          <span>¡Lanzar Dados!</span>
+          <span class="material-symbols-outlined text-[20px]" id="roll-btn-icon">casino</span>
+          <span id="roll-btn-label">¡Lanzar Dados!</span>
         </button>
 
         <button
@@ -142,11 +205,14 @@
   import { journalStore } from '../../scripts/state/journalStore';
   import { campaignStore } from '../../scripts/state/campaignStore';
   import { characterStore } from '../../scripts/state/characterStore';
+  import { getCurrentCombat } from '../../scripts/data/combatService';
 
   const modal = document.getElementById('dice-roller-modal');
   const backdrop = document.getElementById('modal-backdrop');
   const closeBtn = document.getElementById('dice-modal-close-btn');
   const rollBtn = document.getElementById('jackpot-roll-trigger-btn');
+  const rollBtnLabel = document.getElementById('roll-btn-label');
+  const rollBtnIcon = document.getElementById('roll-btn-icon');
   const logBtn = document.getElementById('jackpot-log-btn');
   const reelsContainer = document.getElementById('jackpot-reels-container');
   const summaryText = document.getElementById('jackpot-summary-text');
@@ -158,6 +224,20 @@
   const secretIconWrap = document.getElementById('dice-secret-icon-wrap');
   const secretCard = document.getElementById('dice-secret-toggle-card');
 
+  // Modo físico y objetivos
+  const modeVirtualBtn = document.getElementById('dice-mode-virtual-btn');
+  const modePhysicalBtn = document.getElementById('dice-mode-physical-btn');
+  const virtualDisplayArea = document.getElementById('dice-virtual-display-area');
+  const physicalContainer = document.getElementById('dice-physical-container');
+  const physicalInput = document.getElementById('dice-physical-input') as HTMLInputElement;
+  const physicalModText = document.getElementById('dice-physical-mod-text');
+  const physicalTotalText = document.getElementById('dice-physical-total-text');
+
+  const targetContainer = document.getElementById('dice-target-container');
+  const targetSelect = document.getElementById('dice-target-select') as HTMLSelectElement;
+  const targetAcBadge = document.getElementById('dice-target-ac-badge');
+
+  let isPhysicalMode = false;
   let selectedDie = 20;
   let selectedCount = 1;
   let lastResult: RollResult | null = null;
@@ -166,7 +246,102 @@
     tag: string;
     isDmRoll?: boolean;
     isSecret?: boolean;
+    targetName?: string;
+    targetAc?: number;
   } = { label: 'Tirada de dados', tag: '#Tirada', isDmRoll: false, isSecret: false };
+
+  function setRollMode(physical: boolean) {
+    isPhysicalMode = physical;
+    if (physical) {
+      modePhysicalBtn?.classList.add('bg-amber-500/20', 'text-amber-300', 'border', 'border-amber-500/40');
+      modePhysicalBtn?.classList.remove('text-[#94a3b8]');
+      modeVirtualBtn?.classList.remove('bg-amber-500/20', 'text-amber-300', 'border', 'border-amber-500/40');
+      modeVirtualBtn?.classList.add('text-[#94a3b8]');
+      physicalContainer?.classList.remove('hidden');
+      if (rollBtnLabel) rollBtnLabel.textContent = 'Registrar Tirada Física';
+      if (rollBtnIcon) rollBtnIcon.textContent = 'edit_note';
+      updatePhysicalCalculations();
+      setTimeout(() => physicalInput?.focus(), 50);
+    } else {
+      modeVirtualBtn?.classList.add('bg-amber-500/20', 'text-amber-300', 'border', 'border-amber-500/40');
+      modeVirtualBtn?.classList.remove('text-[#94a3b8]');
+      modePhysicalBtn?.classList.remove('bg-amber-500/20', 'text-amber-300', 'border', 'border-amber-500/40');
+      modePhysicalBtn?.classList.add('text-[#94a3b8]');
+      physicalContainer?.classList.add('hidden');
+      if (rollBtnLabel) rollBtnLabel.textContent = '¡Lanzar Dados!';
+      if (rollBtnIcon) rollBtnIcon.textContent = 'casino';
+    }
+  }
+
+  modeVirtualBtn?.addEventListener('click', () => setRollMode(false));
+  modePhysicalBtn?.addEventListener('click', () => setRollMode(true));
+
+  function updatePhysicalCalculations() {
+    const mod = parseInt(modInput?.value || '0') || 0;
+    if (physicalModText) {
+      physicalModText.textContent = `${mod >= 0 ? '+' : ''}${mod}`;
+    }
+    const val = parseInt(physicalInput?.value || '0');
+    if (!isNaN(val) && val > 0 && physicalTotalText) {
+      physicalTotalText.textContent = String(val + mod);
+    } else if (physicalTotalText) {
+      physicalTotalText.textContent = '--';
+    }
+  }
+
+  physicalInput?.addEventListener('input', updatePhysicalCalculations);
+  modInput?.addEventListener('input', updatePhysicalCalculations);
+
+  function refreshCombatTargets(preselectedName?: string) {
+    const activeCampId = campaignStore.getActiveCampaignId();
+    const combat = activeCampId ? getCurrentCombat(activeCampId) : null;
+
+    if (!targetSelect || !targetContainer) return;
+
+    if (!combat || !combat.active || combat.combatants.length === 0) {
+      targetContainer.classList.add('hidden');
+      targetSelect.innerHTML = '<option value="">Sin objetivo específico (Tirada general)</option>';
+      if (targetAcBadge) targetAcBadge.classList.add('hidden');
+      return;
+    }
+
+    targetContainer.classList.remove('hidden');
+    const currentChar = characterStore.get();
+    const myName = currentChar?.name?.trim().toLowerCase();
+
+    let optionsHtml = '<option value="">Sin objetivo específico (Tirada general)</option>';
+    let matchedOption = false;
+
+    combat.combatants.forEach((c) => {
+      // No seleccionarse a uno mismo por defecto
+      if (myName && c.name.trim().toLowerCase() === myName) return;
+      const isSelected = Boolean(preselectedName && c.name.trim().toLowerCase() === preselectedName.trim().toLowerCase());
+      if (isSelected) matchedOption = true;
+
+      optionsHtml += `
+        <option value="${c.name}" data-ac="${c.ac || ''}" ${isSelected ? 'selected' : ''}>
+          ${c.isPlayer ? '🛡️ PJ: ' : '💀 '}${c.name} ${c.ac ? `(CA ${c.ac})` : ''}
+        </option>
+      `;
+    });
+
+    targetSelect.innerHTML = optionsHtml;
+    updateTargetAcBadge();
+  }
+
+  function updateTargetAcBadge() {
+    if (!targetSelect || !targetAcBadge) return;
+    const opt = targetSelect.selectedOptions[0];
+    const ac = opt ? opt.dataset.ac : null;
+    if (ac) {
+      targetAcBadge.textContent = `CA ${ac}`;
+      targetAcBadge.classList.remove('hidden');
+    } else {
+      targetAcBadge.classList.add('hidden');
+    }
+  }
+
+  targetSelect?.addEventListener('change', updateTargetAcBadge);
 
   function updateSecretUi(isSecret: boolean) {
     if (secretCheckbox) secretCheckbox.checked = isSecret;
@@ -219,9 +394,47 @@
   }
 
   function executeRoll() {
+    if (isPhysicalMode) {
+      executePhysicalRoll();
+    } else {
+      executeVirtualRoll();
+    }
+  }
+
+  function executePhysicalRoll() {
+    if (!summaryText) return;
+    const rawVal = parseInt(physicalInput?.value || '0');
+    if (isNaN(rawVal) || rawVal < 1) {
+      if (physicalInput) {
+        physicalInput.focus();
+        physicalInput.classList.add('border-rose-500');
+        setTimeout(() => physicalInput.classList.remove('border-rose-500'), 1500);
+      }
+      return;
+    }
+
+    const mod = parseInt(modInput?.value || '0') || 0;
+    const total = rawVal + mod;
+    const isCrit = (selectedDie === 20 && rawVal === 20);
+    const isFumble = (selectedDie === 20 && rawVal === 1);
+
+    const res: RollResult = {
+      total,
+      rolls: [rawVal],
+      modifier: mod,
+      dieType: selectedDie,
+      isCrit,
+      isFumble,
+    };
+
+    lastResult = res;
+    processRollResult(res, true, rawVal);
+  }
+
+  function executeVirtualRoll() {
     if (!reelsContainer || !summaryText) return;
     const mod = parseInt(modInput?.value || '0') || 0;
-    
+
     rollBtn?.setAttribute('disabled', 'true');
     rollBtn?.classList.add('opacity-60', 'pointer-events-none');
     summaryText.innerHTML = '<span class="text-amber-400 font-bold animate-pulse">¡Los dados están girando...!</span>';
@@ -230,99 +443,154 @@
       lastResult = res;
       rollBtn?.removeAttribute('disabled');
       rollBtn?.classList.remove('opacity-60', 'pointer-events-none');
+      processRollResult(res, false);
+    });
+  }
 
-      let rollDetails = res.rolls.join(' + ');
-      let modDetails = res.modifier !== 0 ? ` (${res.modifier >= 0 ? '+' : ''}${res.modifier})` : '';
-      let specialTag = '';
+  function processRollResult(res: RollResult, isPhysical: boolean, physicalVal?: number) {
+    if (!summaryText) return;
 
+    let rollDetails = isPhysical ? `${physicalVal}` : res.rolls.join(' + ');
+    let modDetails = res.modifier !== 0 ? ` (${res.modifier >= 0 ? '+' : ''}${res.modifier})` : '';
+    let specialTag = '';
+
+    if (res.isCrit) {
+      specialTag = '<span class="text-amber-400 font-bold block text-sm">✨ ¡20 NATURAL! ¡GOLPE CRÍTICO! ✨</span>';
+    } else if (res.isFumble) {
+      specialTag = '<span class="text-rose-500 font-bold block text-sm">💀 ¡1 NATURAL! ¡PIFIA! 💀</span>';
+    }
+
+    const isSecret = Boolean(secretCheckbox?.checked || rollContext.isSecret);
+    rollContext.isSecret = isSecret;
+    const isDm = Boolean(rollContext.isDmRoll);
+
+    // Objetivo seleccionado
+    const selectedTarget = targetSelect?.value || '';
+    const targetOpt = targetSelect?.selectedOptions[0];
+    const targetAc = targetOpt?.dataset.ac ? parseInt(targetOpt.dataset.ac) : null;
+
+    let targetHitEvaluation = '';
+    if (selectedTarget && res.dieType === 20) {
       if (res.isCrit) {
-        specialTag = '<span class="text-amber-400 font-bold block text-sm">✨ ¡20 NATURAL! ¡GOLPE CRÍTICO! ✨</span>';
+        targetHitEvaluation = `<span class="text-amber-400 font-bold block text-xs mt-0.5">🎯 ¡Impacto Crítico contra ${selectedTarget}!</span>`;
       } else if (res.isFumble) {
-        specialTag = '<span class="text-rose-500 font-bold block text-sm">💀 ¡1 NATURAL! ¡PIFIA! 💀</span>';
-      }
-
-      const isSecret = Boolean(secretCheckbox?.checked || rollContext.isSecret);
-      rollContext.isSecret = isSecret;
-      const isDm = Boolean(rollContext.isDmRoll);
-
-      let badgeHtml = '';
-      if (isDm) {
-        if (isSecret) {
-          badgeHtml = '<span class="px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 text-[10px] font-bold border border-rose-500/40 inline-flex items-center gap-1 mb-1"><span>🔒</span><span>Tirada Secreta del DM</span></span>';
+        targetHitEvaluation = `<span class="text-rose-400 font-bold block text-xs mt-0.5">❌ Pifia contra ${selectedTarget}</span>`;
+      } else if (targetAc) {
+        if (res.total >= targetAc) {
+          targetHitEvaluation = `<span class="text-emerald-400 font-bold block text-xs mt-0.5">🎯 ¡Impacta a ${selectedTarget}! (${res.total} vs CA ${targetAc})</span>`;
         } else {
-          badgeHtml = '<span class="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-[10px] font-bold border border-amber-500/40 inline-flex items-center gap-1 mb-1"><span>👑</span><span>Tirada Pública del DM en Mesa</span></span>';
+          targetHitEvaluation = `<span class="text-rose-300 font-bold block text-xs mt-0.5">🛡️ No supera la CA de ${selectedTarget} (${res.total} vs CA ${targetAc})</span>`;
         }
-      } else if (isSecret) {
-        badgeHtml = '<span class="px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 text-[10px] font-bold border border-purple-500/40 inline-flex items-center gap-1 mb-1"><span>🔒</span><span>Tirada Secreta (Privada)</span></span>';
       }
+    }
 
-      summaryText.innerHTML = `
+    let badgeHtml = '';
+    if (isDm) {
+      if (isSecret) {
+        badgeHtml = '<span class="px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 text-[10px] font-bold border border-rose-500/40 inline-flex items-center gap-1 mb-1"><span>🔒</span><span>Tirada Secreta del DM</span></span>';
+      } else {
+        badgeHtml = '<span class="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-[10px] font-bold border border-amber-500/40 inline-flex items-center gap-1 mb-1"><span>👑</span><span>Tirada Pública del DM en Mesa</span></span>';
+      }
+    } else if (isSecret) {
+      badgeHtml = '<span class="px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 text-[10px] font-bold border border-purple-500/40 inline-flex items-center gap-1 mb-1"><span>🔒</span><span>Tirada Secreta (Privada)</span></span>';
+    }
+
+    const physicalBadge = isPhysical
+      ? '<span class="px-1.5 py-0.2 rounded bg-amber-500/15 text-amber-300 border border-amber-500/30 text-[9px] font-bold inline-flex items-center gap-1 mr-1"><span>🖐️</span><span>Dado Físico</span></span>'
+      : '';
+
+    const targetLabel = selectedTarget ? `<span class="text-rose-300 font-bold"> ➜ ${selectedTarget}</span>` : '';
+
+    summaryText.innerHTML = `
+      <div class="flex items-center gap-1 justify-center flex-wrap">
         ${badgeHtml}
-        ${specialTag}
-        <div class="mt-0.5">
-          <span class="text-[#cbd5e1] text-xs">${rollContext.label} [${rollDetails}]${modDetails} = </span>
-          <strong class="text-xl font-headline font-bold ${res.isCrit ? 'text-amber-400' : 'text-[#f1f5f9]'}">${res.total}</strong>
-        </div>
-        <span class="${isSecret ? 'text-purple-300' : 'text-emerald-400'} block text-[11px] mt-1 font-bold flex items-center justify-center gap-1">
-          <span class="material-symbols-outlined text-[13px]">${isSecret ? 'lock' : 'check_circle'}</span>
-          <span>Registrado automáticamente en Bitácora ${isSecret ? '(Privada)' : ''}</span>
-        </span>
-      `;
+        ${physicalBadge}
+      </div>
+      ${specialTag}
+      ${targetHitEvaluation}
+      <div class="mt-0.5">
+        <span class="text-[#cbd5e1] text-xs">${rollContext.label}${targetLabel} [${rollDetails}]${modDetails} = </span>
+        <strong class="text-xl font-headline font-bold ${res.isCrit ? 'text-amber-400' : 'text-[#f1f5f9]'}">${res.total}</strong>
+      </div>
+      <span class="${isSecret ? 'text-purple-300' : 'text-emerald-400'} block text-[11px] mt-1 font-bold flex items-center justify-center gap-1">
+        <span class="material-symbols-outlined text-[13px]">${isSecret ? 'lock' : 'check_circle'}</span>
+        <span>Registrado automáticamente en Bitácora</span>
+      </span>
+    `;
 
-      // AUTOMATIC LOGGING TO JOURNAL
-      const modStr = res.modifier !== 0 ? ` ${res.modifier >= 0 ? '+' : ''}${res.modifier}` : '';
-      const formulaStr = `${selectedCount}d${res.dieType}${modStr}`;
-      const critFumbleText = res.isCrit ? ' ¡GOLPE CRÍTICO (20 Nat.)!' : res.isFumble ? ' ¡PIFIA (1 Nat.)!' : '';
-      
-      const tagsList = Array.from(new Set([
-        rollContext.tag,
-        '#Tirada',
-        ...(isSecret ? ['#Privado'] : [])
-      ]));
+    // AUTOMATIC LOGGING TO JOURNAL
+    const modStr = res.modifier !== 0 ? ` ${res.modifier >= 0 ? '+' : ''}${res.modifier}` : '';
+    const formulaStr = `${isPhysical ? '1' : selectedCount}d${res.dieType}${modStr}`;
+    const critFumbleText = res.isCrit ? ' ¡GOLPE CRÍTICO (20 Nat.)!' : res.isFumble ? ' ¡PIFIA (1 Nat.)!' : '';
 
-      const activeCampId = campaignStore.getActiveCampaignId();
-      const activeCamp = activeCampId ? campaignStore.getCampaign(activeCampId) : null;
-      const sessionNum = activeCamp?.sessionNumber || 1;
-      const currentChar = characterStore.get();
-      const rollTitle = isSecret ? `[Secreta] ${rollContext.label}: ${res.total}` : `${rollContext.label}: ${res.total}`;
+    const tagsList = Array.from(new Set([
+      rollContext.tag || '#Combate',
+      '#Tirada',
+      ...(isSecret ? ['#Privado'] : [])
+    ]));
 
-      journalStore.addEntry({
-        sessionNumber: sessionNum,
-        title: rollTitle,
-        content: `Tirada de ${formulaStr} con resultado ${res.total} (Dados: [${rollDetails}]${modDetails}).${critFumbleText}`,
-        tags: tagsList,
-        isSecret: isSecret,
-        isDmOnly: (isSecret && isDm) || undefined,
-        isPlayerOnly: (isSecret && !isDm) || undefined,
-        characterId: isDm ? undefined : currentChar?.id,
-        authorName: isDm ? (activeCamp?.dmName || 'Dungeon Master') : (currentChar?.name || 'Aventurero'),
-        diceRoll: {
-          formula: `${formulaStr} (${rollContext.label})`,
-          result: res.total,
-          breakdown: `[${rollDetails}]${modDetails}${critFumbleText}`
+    const activeCampId = campaignStore.getActiveCampaignId();
+    const activeCamp = activeCampId ? campaignStore.getCampaign(activeCampId) : null;
+    const sessionNum = activeCamp?.sessionNumber || 1;
+    const currentChar = characterStore.get();
+
+    let targetLogText = '';
+    if (selectedTarget) {
+      if (targetAc && res.dieType === 20) {
+        if (res.isCrit) targetLogText = ` (Objetivo: ${selectedTarget} • ¡GOLPE CRÍTICO!)`;
+        else if (res.isFumble) targetLogText = ` (Objetivo: ${selectedTarget} • ¡PIFIA!)`;
+        else if (res.total >= targetAc) targetLogText = ` (Objetivo: ${selectedTarget} • ¡IMPACTA vs CA ${targetAc}!)`;
+        else targetLogText = ` (Objetivo: ${selectedTarget} • Falla vs CA ${targetAc})`;
+      } else {
+        targetLogText = ` (Objetivo: ${selectedTarget})`;
+      }
+    }
+
+    const physicalPrefix = isPhysical ? '🎲 [Dado Físico] ' : '';
+    const rollTitle = isSecret
+      ? `[Secreta] ${rollContext.label}${selectedTarget ? ` contra ${selectedTarget}` : ''}: ${res.total}`
+      : `${physicalPrefix}${rollContext.label}${selectedTarget ? ` contra ${selectedTarget}` : ''}: ${res.total}`;
+
+    const rollOriginDesc = isPhysical
+      ? `Tirada física en mesa con resultado ${physicalVal}${modDetails} = ${res.total}`
+      : `Tirada de ${formulaStr} con resultado ${res.total} (Dados: [${rollDetails}]${modDetails})`;
+
+    journalStore.addEntry({
+      sessionNumber: sessionNum,
+      title: rollTitle,
+      content: `${rollOriginDesc}.${critFumbleText}${targetLogText}`,
+      tags: tagsList,
+      isSecret: isSecret,
+      isDmOnly: (isSecret && isDm) || undefined,
+      isPlayerOnly: (isSecret && !isDm) || undefined,
+      characterId: isDm ? undefined : currentChar?.id,
+      authorName: isDm ? (activeCamp?.dmName || 'Dungeon Master') : (currentChar?.name || 'Aventurero'),
+      campaignId: activeCampId || undefined,
+      diceRoll: {
+        formula: `${formulaStr} (${rollContext.label})`,
+        result: res.total,
+        breakdown: isPhysical ? `[Físico: ${physicalVal}]${modDetails}${critFumbleText}` : `[${rollDetails}]${modDetails}${critFumbleText}`
+      }
+    });
+
+    // If DM public roll, broadcast event to campaign
+    if (isDm && !isSecret && activeCampId) {
+      campaignStore.sendDmEvent(activeCampId, {
+        campaignId: activeCampId,
+        type: 'dice_roll',
+        dmName: activeCamp?.dmName || 'Dungeon Master',
+        payload: {
+          diceRoll: {
+            formula: formulaStr,
+            result: res.total,
+            isSecret: false
+          }
         }
       });
+    }
 
-      // If DM public roll, broadcast event to campaign
-      if (isDm && !isSecret && activeCampId) {
-        campaignStore.sendDmEvent(activeCampId, {
-          campaignId: activeCampId,
-          type: 'dice_roll',
-          dmName: activeCamp?.dmName || 'Dungeon Master',
-          payload: {
-            diceRoll: {
-              formula: formulaStr,
-              result: res.total,
-              isSecret: false
-            }
-          }
-        });
-      }
-
-      window.dispatchEvent(new CustomEvent('journal-updated'));
-
-      if (logBtn) logBtn.classList.add('hidden');
-    });
+    window.dispatchEvent(new CustomEvent('journal-updated'));
+    if (logBtn) logBtn.classList.add('hidden');
   }
 
   // Window event for opening with rich context from any component
@@ -332,22 +600,36 @@
     selectedCount = detail.count || 1;
     if (modInput) modInput.value = String(detail.modifier ?? 0);
     const isSecretVal = Boolean(detail.isSecret);
+
     rollContext = {
       label: detail.label || 'Tirada de dados',
       tag: detail.tag || '#Tirada',
       isDmRoll: detail.isDmRoll || false,
       isSecret: isSecretVal,
+      targetName: detail.targetName || detail.target,
+      targetAc: detail.targetAc,
     };
+
     if (countDisplay) countDisplay.textContent = String(selectedCount);
     updateActiveDieButtons();
     renderReelPlaceholders();
     updateSecretUi(isSecretVal);
+
+    // Actualizar objetivos del combate
+    refreshCombatTargets(rollContext.targetName);
+
+    // Restablecer a modo virtual por defecto a menos que se indique físico
+    setRollMode(Boolean(detail.isPhysical));
+    if (physicalInput) physicalInput.value = '';
+
     if (summaryText) {
-      summaryText.innerHTML = `<span class="text-[#94a3b8] text-xs">Preparado para: <strong class="text-amber-300">${rollContext.label}</strong> ${isSecretVal ? '<span class="text-purple-300 font-bold">(Secreta 🔒)</span>' : ''}</span>`;
+      const targetTxt = rollContext.targetName ? ` contra <strong class="text-rose-300">${rollContext.targetName}</strong>` : '';
+      summaryText.innerHTML = `<span class="text-[#94a3b8] text-xs">Preparado para: <strong class="text-amber-300">${rollContext.label}</strong>${targetTxt} ${isSecretVal ? '<span class="text-purple-300 font-bold">(Secreta 🔒)</span>' : ''}</span>`;
     }
+
     if (modal && backdrop) openModal(modal, backdrop);
 
-    if (detail.autoroll) {
+    if (detail.autoroll && !detail.isPhysical) {
       setTimeout(() => {
         executeRoll();
       }, 150);
@@ -365,6 +647,7 @@
       selectedDie = parseInt(btn.getAttribute('data-die') || '20');
       updateActiveDieButtons();
       renderReelPlaceholders();
+      updatePhysicalCalculations();
     });
   });
 

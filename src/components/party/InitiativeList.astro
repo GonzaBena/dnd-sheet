@@ -1,6 +1,6 @@
 ---
 // src/components/party/InitiativeList.astro
-// Vista de iniciativa y turnos para los jugadores en la mesa de partida (/partida).
+// Vista de iniciativa y turnos para los jugadores en la mesa de partida (/partida), con selector de ataque contra objetivos.
 ---
 
 <div
@@ -53,6 +53,57 @@
   >
     <!-- Se llena dinámicamente -->
   </div>
+
+  <!-- MODAL RÁPIDO DE ATAQUE A OBJETIVO -->
+  <div
+    id="party-attack-modal"
+    class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-xs"
+  >
+    <div class="relative w-full max-w-md rounded-2xl bg-[#121721] border border-[#222f42] shadow-2xl p-5 space-y-4 max-h-[85vh] overflow-y-auto">
+      <div class="flex items-center justify-between pb-3 border-b border-[#222f42]">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-lg bg-rose-500/20 text-rose-400 flex items-center justify-center border border-rose-500/30">
+            <span class="material-symbols-outlined text-[18px]">my_location</span>
+          </div>
+          <div>
+            <h3 class="font-headline font-bold text-sm text-[#f1f5f9] flex items-center gap-1.5 flex-wrap">
+              <span>Atacar a</span>
+              <span id="party-modal-target-name" class="text-rose-300">Oponente</span>
+            </h3>
+            <span id="party-modal-target-ac" class="text-[11px] text-[#94a3b8] font-mono">CA: --</span>
+          </div>
+        </div>
+        <button
+          type="button"
+          id="party-attack-modal-close"
+          class="w-7 h-7 rounded-lg bg-[#18202e] border border-[#222f42] text-[#94a3b8] hover:text-[#f1f5f9] flex items-center justify-center text-xs cursor-pointer"
+        >
+          ✕
+        </button>
+      </div>
+
+      <p class="text-xs text-[#94a3b8]">
+        Elige tu arma o magia para realizar el ataque contra este objetivo. Podrás tirar en la app o ingresar dados físicos en mesa.
+      </p>
+
+      <!-- Lista de Armas y Conjuros Disponibles -->
+      <div id="party-attack-actions-list" class="space-y-2.5 max-h-64 overflow-y-auto pr-1">
+        <!-- Generado dinámicamente -->
+      </div>
+
+      <!-- Tirada Libre -->
+      <div class="pt-2 border-t border-[#222f42] flex justify-end">
+        <button
+          type="button"
+          id="party-attack-custom-roll-btn"
+          class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#18202e] border border-[#222f42] hover:border-amber-500/40 text-xs font-bold text-amber-300 transition-colors cursor-pointer"
+        >
+          <span class="material-symbols-outlined text-[15px]">casino</span>
+          <span>Tirada libre contra este objetivo</span>
+        </button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -61,6 +112,7 @@
   import { visibleHp } from '../../scripts/vtt/initiative.ts';
   import { getConditionInfo } from '../../scripts/vtt/conditions.ts';
   import { campaignStore } from '../../scripts/state/campaignStore.ts';
+  import { characterStore } from '../../scripts/state/characterStore.ts';
   import { userStore } from '../../scripts/state/userStore.ts';
   import { animateHpBar } from '../../scripts/animations/hpAnimations.ts';
   import type { Combat, Combatant } from '../../scripts/models/combat.ts';
@@ -70,11 +122,22 @@
   let previousHpMap = new Map<string, number>();
   let previousTurnIndex = -1;
 
+  // Estado del modal de ataque
+  let activeTarget: { id: string; name: string; ac?: number } | null = null;
+
   const rootEl = document.getElementById('party-initiative-root');
   const roundBadgeEl = document.getElementById('party-round-badge');
   const roundTextEl = document.getElementById('party-round-text');
   const noCombatEl = document.getElementById('party-no-combat');
   const listEl = document.getElementById('party-combat-list');
+
+  // Modal de ataque
+  const attackModal = document.getElementById('party-attack-modal');
+  const attackModalClose = document.getElementById('party-attack-modal-close');
+  const modalTargetName = document.getElementById('party-modal-target-name');
+  const modalTargetAc = document.getElementById('party-modal-target-ac');
+  const attackActionsList = document.getElementById('party-attack-actions-list');
+  const attackCustomBtn = document.getElementById('party-attack-custom-roll-btn');
 
   function init() {
     const params = new URLSearchParams(window.location.search);
@@ -182,34 +245,56 @@
             </div>
           </div>
 
-          <!-- PG (RF-04: solo si visibleHp lo autoriza) -->
-          <div class="shrink-0 text-right min-w-[70px]">
+          <!-- LADO DERECHO: PG Y BOTÓN ATACAR -->
+          <div class="shrink-0 flex items-center gap-2.5">
+            <!-- Botón Atacar Objetivo (si no es el propio personaje) -->
             ${
-              hpData
+              !isOwnCharacter
                 ? `
-                <div class="text-xs font-bold font-mono text-[#cbd5e1]">
-                  <span id="hp-num-${c.id}">${hpData.hp}</span><span class="text-[#64748b]">/${hpData.maxHp}</span>
-                </div>
-                <div class="w-16 h-1.5 bg-[#10141d] rounded-full overflow-hidden mt-1 border border-[#222f42]">
-                  <div
-                    id="hp-bar-${c.id}"
-                    class="h-full rounded-full transition-all ${
-                      hpData.hp <= hpData.maxHp * 0.25
-                        ? 'bg-rose-500'
-                        : hpData.hp <= hpData.maxHp * 0.5
-                        ? 'bg-amber-500'
-                        : 'bg-emerald-500'
-                    }"
-                    style="width: ${Math.max(0, Math.min(100, (hpData.hp / hpData.maxHp) * 100))}%"
-                  ></div>
-                </div>
+                <button
+                  type="button"
+                  class="party-attack-target-btn inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-rose-500/15 border border-rose-500/30 hover:bg-rose-500/25 text-rose-300 text-[10px] font-bold transition-all cursor-pointer shadow-xs active:scale-95"
+                  data-target-id="${c.id}"
+                  data-target-name="${c.name}"
+                  data-target-ac="${c.ac || ''}"
+                  title="Declarar ataque contra ${c.name}"
+                >
+                  <span class="material-symbols-outlined text-[13px]">my_location</span>
+                  <span>Atacar</span>
+                </button>
               `
-                : `
-                <div class="text-xs font-bold font-mono text-[#64748b]" title="PG ocultos por el DM">
-                  —
-                </div>
-              `
+                : ''
             }
+
+            <!-- PG (RF-04: solo si visibleHp lo autoriza) -->
+            <div class="text-right min-w-[65px]">
+              ${
+                hpData
+                  ? `
+                  <div class="text-xs font-bold font-mono text-[#cbd5e1]">
+                    <span id="hp-num-${c.id}">${hpData.hp}</span><span class="text-[#64748b]">/${hpData.maxHp}</span>
+                  </div>
+                  <div class="w-16 h-1.5 bg-[#10141d] rounded-full overflow-hidden mt-1 border border-[#222f42]">
+                    <div
+                      id="hp-bar-${c.id}"
+                      class="h-full rounded-full transition-all ${
+                        hpData.hp <= hpData.maxHp * 0.25
+                          ? 'bg-rose-500'
+                          : hpData.hp <= hpData.maxHp * 0.5
+                          ? 'bg-amber-500'
+                          : 'bg-emerald-500'
+                      }"
+                      style="width: ${Math.max(0, Math.min(100, (hpData.hp / hpData.maxHp) * 100))}%"
+                    ></div>
+                  </div>
+                `
+                  : `
+                  <div class="text-xs font-bold font-mono text-[#64748b]" title="PG ocultos por el DM">
+                    —
+                  </div>
+                `
+              }
+            </div>
           </div>
         </div>
 
@@ -261,7 +346,249 @@
         });
       }
     });
+
+    bindAttackButtons();
   }
+
+  function bindAttackButtons() {
+    listEl?.querySelectorAll('.party-attack-target-btn').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        const target = e.currentTarget as HTMLElement;
+        const targetId = target.dataset.targetId || '';
+        const targetName = target.dataset.targetName || 'Oponente';
+        const targetAc = target.dataset.targetAc ? parseInt(target.dataset.targetAc) : undefined;
+
+        openAttackModal({ id: targetId, name: targetName, ac: targetAc });
+      });
+    });
+  }
+
+  function openAttackModal(target: { id: string; name: string; ac?: number }) {
+    activeTarget = target;
+    if (!attackModal || !modalTargetName || !modalTargetAc || !attackActionsList) return;
+
+    modalTargetName.textContent = target.name;
+    modalTargetAc.textContent = target.ac ? `CA: ${target.ac}` : 'CA: Oculta por DM';
+
+    const char = currentCampaignId
+      ? campaignStore.getMyCharacterForCampaign(currentCampaignId)
+      : characterStore.get();
+
+    attackActionsList.innerHTML = '';
+
+    const actions = char?.actions || [];
+    const spells = (char?.spellcasting?.spells || []).filter((s) => s.isAttack || s.damageDice || s.damageFormula);
+
+    if (actions.length === 0 && spells.length === 0) {
+      attackActionsList.innerHTML = `
+        <div class="p-3 rounded-xl bg-[#18202e] border border-[#222f42] text-xs text-[#94a3b8] italic">
+          No tienes armas ni conjuros configurados en tu ficha. Puedes usar la tirada libre abajo.
+        </div>
+      `;
+    } else {
+      // 1. Armas / Acciones
+      if (actions.length > 0) {
+        const header = document.createElement('div');
+        header.className = 'text-[10px] font-bold uppercase tracking-wider text-amber-400 mt-1';
+        header.textContent = 'Armas y Acciones de Ataque';
+        attackActionsList.appendChild(header);
+
+        actions.forEach((act) => {
+          const item = document.createElement('div');
+          item.className = 'flex items-center justify-between gap-2 p-2 rounded-xl bg-[#18202e] border border-[#222f42]';
+
+          const bonusNum = parseInt(act.bonus?.replace(/[^0-9-]/g, '') || '0') || 0;
+          const dmgMatch = (act.damage || '1d8').match(/(\d+)d(\d+)(?:\s*([+-])\s*(\d+))?/);
+          const dmgCount = dmgMatch ? parseInt(dmgMatch[1]) || 1 : 1;
+          const dmgDie = dmgMatch ? parseInt(dmgMatch[2]) || 8 : 8;
+          const sign = dmgMatch && dmgMatch[3] === '-' ? -1 : 1;
+          const dmgMod = dmgMatch && dmgMatch[4] ? sign * parseInt(dmgMatch[4]) : 0;
+
+          item.innerHTML = `
+            <div class="min-w-0">
+              <span class="text-xs font-bold text-[#f1f5f9] block truncate">${act.name}</span>
+              <span class="text-[10px] text-[#94a3b8] font-mono">${act.bonus || '+0'} • ${act.damage || '1d8'} ${act.damageType || ''}</span>
+            </div>
+            <div class="flex items-center gap-1.5 shrink-0">
+              <button
+                type="button"
+                class="party-modal-roll-atk px-2.5 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-[11px] font-bold transition-all cursor-pointer flex items-center gap-1"
+                title="Tirar ataque d20 contra ${target.name}"
+              >
+                <span>Ataque</span>
+                <span class="font-mono text-[10px]">(${act.bonus || '+0'})</span>
+              </button>
+              <button
+                type="button"
+                class="party-modal-roll-dmg px-2 py-1.5 rounded-lg bg-[#10141d] hover:bg-[#222f42] text-[#cbd5e1] border border-[#222f42] text-[11px] font-bold transition-all cursor-pointer"
+                title="Tirar daño contra ${target.name}"
+              >
+                <span>Daño</span>
+              </button>
+            </div>
+          `;
+
+          // Clic en Ataque
+          item.querySelector('.party-modal-roll-atk')?.addEventListener('click', () => {
+            closeAttackModal();
+            window.dispatchEvent(
+              new CustomEvent('open-dice-roller', {
+                detail: {
+                  die: 20,
+                  count: 1,
+                  modifier: bonusNum,
+                  label: `Ataque con ${act.name}`,
+                  tag: '#Combate',
+                  targetName: target.name,
+                  targetAc: target.ac,
+                },
+              })
+            );
+          });
+
+          // Clic en Daño
+          item.querySelector('.party-modal-roll-dmg')?.addEventListener('click', () => {
+            closeAttackModal();
+            window.dispatchEvent(
+              new CustomEvent('open-dice-roller', {
+                detail: {
+                  die: dmgDie,
+                  count: dmgCount,
+                  modifier: dmgMod,
+                  label: `Daño de ${act.name} (${act.damageType || 'Daño'})`,
+                  tag: '#Combate',
+                  targetName: target.name,
+                  targetAc: target.ac,
+                },
+              })
+            );
+          });
+
+          attackActionsList.appendChild(item);
+        });
+      }
+
+      // 2. Conjuros
+      if (spells.length > 0) {
+        const header = document.createElement('div');
+        header.className = 'text-[10px] font-bold uppercase tracking-wider text-purple-400 mt-2';
+        header.textContent = 'Conjuros y Magia de Ataque';
+        attackActionsList.appendChild(header);
+
+        spells.forEach((sp) => {
+          const item = document.createElement('div');
+          item.className = 'flex items-center justify-between gap-2 p-2 rounded-xl bg-[#18202e] border border-[#222f42]';
+
+          const formula = sp.damageFormula || sp.damageDice || '1d8';
+          const dmgMatch = formula.match(/(\d+)d(\d+)(?:\s*([+-])\s*(\d+))?/);
+          const dmgCount = dmgMatch ? parseInt(dmgMatch[1]) || 1 : 1;
+          const dmgDie = dmgMatch ? parseInt(dmgMatch[2]) || 8 : 8;
+          const sign = dmgMatch && dmgMatch[3] === '-' ? -1 : 1;
+          const dmgMod = dmgMatch && dmgMatch[4] ? sign * parseInt(dmgMatch[4]) : 0;
+          const atkBonus = char?.spellcasting?.attackBonus || 0;
+
+          item.innerHTML = `
+            <div class="min-w-0">
+              <span class="text-xs font-bold text-[#f1f5f9] block truncate">${sp.name}</span>
+              <span class="text-[10px] text-[#94a3b8] font-mono">${sp.isAttack ? `Atk +${atkBonus} • ` : ''}${formula} ${sp.damageType || ''}</span>
+            </div>
+            <div class="flex items-center gap-1.5 shrink-0">
+              ${
+                sp.isAttack
+                  ? `
+                <button
+                  type="button"
+                  class="party-modal-roll-spell-atk px-2.5 py-1.5 rounded-lg bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 border border-purple-500/40 text-[11px] font-bold transition-all cursor-pointer flex items-center gap-1"
+                >
+                  <span>Ataque</span>
+                </button>
+              `
+                  : ''
+              }
+              <button
+                type="button"
+                class="party-modal-roll-spell-dmg px-2 py-1.5 rounded-lg bg-[#10141d] hover:bg-[#222f42] text-[#cbd5e1] border border-[#222f42] text-[11px] font-bold transition-all cursor-pointer"
+              >
+                <span>Efecto/Daño</span>
+              </button>
+            </div>
+          `;
+
+          // Clic en Ataque de Conjuro
+          item.querySelector('.party-modal-roll-spell-atk')?.addEventListener('click', () => {
+            closeAttackModal();
+            window.dispatchEvent(
+              new CustomEvent('open-dice-roller', {
+                detail: {
+                  die: 20,
+                  count: 1,
+                  modifier: atkBonus,
+                  label: `Ataque de Conjuro: ${sp.name}`,
+                  tag: '#Magia',
+                  targetName: target.name,
+                  targetAc: target.ac,
+                },
+              })
+            );
+          });
+
+          // Clic en Daño de Conjuro
+          item.querySelector('.party-modal-roll-spell-dmg')?.addEventListener('click', () => {
+            closeAttackModal();
+            window.dispatchEvent(
+              new CustomEvent('open-dice-roller', {
+                detail: {
+                  die: dmgDie,
+                  count: dmgCount,
+                  modifier: dmgMod,
+                  label: `Daño/Efecto de ${sp.name} (${sp.damageType || 'Magia'})`,
+                  tag: '#Magia',
+                  targetName: target.name,
+                  targetAc: target.ac,
+                },
+              })
+            );
+          });
+
+          attackActionsList.appendChild(item);
+        });
+      }
+    }
+
+    attackModal.classList.remove('hidden');
+  }
+
+  function closeAttackModal() {
+    attackModal?.classList.add('hidden');
+    activeTarget = null;
+  }
+
+  attackModalClose?.addEventListener('click', closeAttackModal);
+
+  // Clic fuera del contenido para cerrar
+  attackModal?.addEventListener('click', (e) => {
+    if (e.target === attackModal) closeAttackModal();
+  });
+
+  // Tirada libre contra el objetivo
+  attackCustomBtn?.addEventListener('click', () => {
+    if (!activeTarget) return;
+    const target = activeTarget;
+    closeAttackModal();
+    window.dispatchEvent(
+      new CustomEvent('open-dice-roller', {
+        detail: {
+          die: 20,
+          count: 1,
+          modifier: 0,
+          label: `Ataque`,
+          tag: '#Combate',
+          targetName: target.name,
+          targetAc: target.ac,
+        },
+      })
+    );
+  });
 
   // Inicialización y eventos
   window.addEventListener('DOMContentLoaded', init);
