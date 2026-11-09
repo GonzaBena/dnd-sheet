@@ -28,18 +28,18 @@
         <button
           type="button"
           id="dice-mode-virtual-btn"
-          class="py-1.5 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/40 text-center transition-all cursor-pointer flex items-center justify-center gap-1.5"
+          class="py-2 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/40 text-center transition-all cursor-pointer flex items-center justify-center gap-1.5 shadow-xs"
         >
-          <span class="material-symbols-outlined text-[15px]">casino</span>
-          <span>Tirar en App</span>
+          <span class="material-symbols-outlined text-[16px]">casino</span>
+          <span>Tirar en App (Ruleta)</span>
         </button>
         <button
           type="button"
           id="dice-mode-physical-btn"
-          class="py-1.5 rounded-lg text-[#94a3b8] hover:text-[#f1f5f9] text-center transition-all cursor-pointer flex items-center justify-center gap-1.5"
+          class="py-2 rounded-lg text-[#94a3b8] hover:text-[#f1f5f9] text-center transition-all cursor-pointer flex items-center justify-center gap-1.5"
         >
-          <span class="material-symbols-outlined text-[15px]">front_hand</span>
-          <span>Dado Físico (Mesa)</span>
+          <span class="material-symbols-outlined text-[16px]">front_hand</span>
+          <span>Dado Físico en Mesa</span>
         </button>
       </div>
 
@@ -79,7 +79,7 @@
       <!-- 2. Controls: Quantity & Modifier -->
       <div class="grid grid-cols-2 gap-3">
         <!-- Quantity -->
-        <div class="p-2.5 rounded-xl bg-[#18202e] border border-[#222f42] flex flex-col justify-between">
+        <div id="dice-count-box" class="p-2.5 rounded-xl bg-[#18202e] border border-[#222f42] flex flex-col justify-between">
           <span class="text-[10px] uppercase font-bold text-[#94a3b8] tracking-wider mb-1">Cantidad de Dados</span>
           <div class="flex items-center justify-between">
             <button type="button" id="dice-count-dec" class="w-7 h-7 rounded-lg bg-[#10141d] border border-[#222f42] text-amber-400 font-bold hover:bg-[#222f42] active:scale-90 transition-all cursor-pointer">-</button>
@@ -97,30 +97,6 @@
             value="3"
             class="w-full text-center text-base font-headline font-bold p-1 rounded-lg bg-[#10141d] border border-[#222f42] text-amber-400 focus:outline-hidden focus:border-amber-500"
           />
-        </div>
-      </div>
-
-      <!-- Entrada de Dado Físico (solo visible en modo físico) -->
-      <div id="dice-physical-container" class="hidden p-3 rounded-xl bg-[#18202e] border border-amber-500/40 space-y-2">
-        <div class="flex items-center justify-between text-xs">
-          <span class="font-bold text-[#f1f5f9] flex items-center gap-1.5">
-            <span class="material-symbols-outlined text-[16px] text-amber-400">front_hand</span>
-            <span>Resultado del dado físico en mesa:</span>
-          </span>
-          <span class="text-[10px] text-[#94a3b8] font-mono">(Sin sumar modificador)</span>
-        </div>
-        <div class="flex items-center gap-3">
-          <input
-            type="number"
-            id="dice-physical-input"
-            placeholder="Ej. 14"
-            min="1"
-            class="w-24 text-center text-xl font-bold font-mono py-2 rounded-xl bg-[#10141d] border border-amber-500/50 text-amber-300 focus:outline-hidden focus:border-amber-400"
-          />
-          <div class="text-xs text-[#cbd5e1] font-mono leading-tight space-y-0.5">
-            <div>+ Modificador: <span id="dice-physical-mod-text" class="text-amber-400 font-bold">+3</span></div>
-            <div>= Total Final: <strong id="dice-physical-total-text" class="text-[#f1f5f9] text-sm">--</strong></div>
-          </div>
         </div>
       </div>
 
@@ -157,11 +133,11 @@
         />
       </div>
 
-      <!-- 3. Jackpot Roulette Reel Display Area (Modo Virtual) -->
+      <!-- 3A. ÁREA VIRTUAL: Ruleta de Dados Animada (solo visible en modo virtual) -->
       <div id="dice-virtual-display-area" class="p-4 rounded-2xl bg-[#0a0d12] border-2 border-[#222f42] flex flex-col items-center justify-between shadow-inner h-[190px] relative overflow-hidden select-none">
         <div class="absolute inset-0 bg-gradient-to-b from-amber-500/5 via-transparent to-amber-500/5 pointer-events-none"></div>
 
-        <!-- Reels Container (Anime.js target with stable height) -->
+        <!-- Reels Container (Anime.js target) -->
         <div id="jackpot-reels-container" class="h-20 sm:h-24 flex items-center justify-center gap-2.5 z-10 flex-wrap">
           <div class="w-16 h-20 sm:w-20 sm:h-24 rounded-2xl bg-[#10141d] border-2 border-amber-500/40 flex items-center justify-center text-2xl sm:text-3xl font-headline font-bold text-amber-300 shadow-[inset_0_2px_12px_rgba(0,0,0,0.8)] shrink-0">
             d20
@@ -171,6 +147,71 @@
         <!-- Result Breakdown Summary -->
         <div id="jackpot-summary-text" class="h-14 w-full flex flex-col items-center justify-center text-xs font-label text-[#94a3b8] z-10 font-medium text-center leading-tight">
           Pulsa "Lanzar Dados" para girar el tambor
+        </div>
+      </div>
+
+      <!-- 3B. ÁREA FÍSICA: Input Grande y Elegante (solo visible en modo físico) -->
+      <div
+        id="dice-physical-container"
+        class="hidden p-5 rounded-2xl bg-[#0a0d12] border-2 border-amber-500/50 shadow-inner flex flex-col items-center justify-between space-y-4 select-none min-h-[190px]"
+      >
+        <div class="text-center space-y-0.5">
+          <div class="flex items-center justify-center gap-1.5 text-xs font-bold text-amber-300">
+            <span class="material-symbols-outlined text-[18px]">front_hand</span>
+            <span id="dice-physical-header-text">Dado Físico en Mesa (d20)</span>
+          </div>
+          <p class="text-[11px] text-[#94a3b8]">
+            Ingresa el valor exacto que rodó en tu mesa física:
+          </p>
+        </div>
+
+        <!-- Ecuación Táctica Clara -->
+        <div class="flex items-center justify-center gap-3 w-full">
+          <!-- Input Principal del Dado Físico -->
+          <div class="flex flex-col items-center">
+            <span class="text-[9px] uppercase font-bold text-[#94a3b8] font-mono mb-1">Dado en Mesa</span>
+            <input
+              type="number"
+              id="dice-physical-input"
+              placeholder="15"
+              min="1"
+              max="100"
+              class="w-24 h-14 text-center text-2xl font-headline font-bold rounded-xl bg-[#121721] border-2 border-amber-500/60 text-amber-300 focus:outline-hidden focus:border-amber-400 focus:ring-2 focus:ring-amber-500/30 shadow-[0_0_15px_rgba(245,158,11,0.2)] [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+            />
+          </div>
+
+          <div class="text-xl font-bold text-[#64748b] pt-4">+</div>
+
+          <!-- Modificador -->
+          <div class="flex flex-col items-center">
+            <span class="text-[9px] uppercase font-bold text-[#94a3b8] font-mono mb-1">Modificador</span>
+            <div class="w-16 h-14 rounded-xl bg-[#121721] border border-[#222f42] flex items-center justify-center font-headline font-bold text-amber-400 text-lg">
+              <span id="dice-physical-mod-text">+3</span>
+            </div>
+          </div>
+
+          <div class="text-xl font-bold text-[#64748b] pt-4">=</div>
+
+          <!-- Total Calculado -->
+          <div class="flex flex-col items-center">
+            <span class="text-[9px] uppercase font-bold text-amber-300 font-mono mb-1">Total Final</span>
+            <div class="w-20 h-14 rounded-xl bg-amber-500/20 border-2 border-amber-500/60 shadow-[0_0_15px_rgba(245,158,11,0.25)] flex items-center justify-center font-headline font-bold text-[#f1f5f9] text-xl">
+              <span id="dice-physical-total-text">--</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Botones rápidos de números frecuentes para d20 -->
+        <div id="dice-physical-presets" class="flex items-center gap-1.5 justify-center flex-wrap">
+          <button type="button" class="phys-preset-btn px-2.5 py-1 rounded-lg bg-[#18202e] border border-[#222f42] hover:border-amber-500/50 text-[11px] font-bold text-[#cbd5e1] hover:text-amber-300 transition-colors cursor-pointer" data-val="1">1 (Pifia)</button>
+          <button type="button" class="phys-preset-btn px-2.5 py-1 rounded-lg bg-[#18202e] border border-[#222f42] hover:border-amber-500/50 text-[11px] font-bold text-[#cbd5e1] hover:text-amber-300 transition-colors cursor-pointer" data-val="10">10</button>
+          <button type="button" class="phys-preset-btn px-2.5 py-1 rounded-lg bg-[#18202e] border border-[#222f42] hover:border-amber-500/50 text-[11px] font-bold text-[#cbd5e1] hover:text-amber-300 transition-colors cursor-pointer" data-val="15">15</button>
+          <button type="button" class="phys-preset-btn px-2.5 py-1 rounded-lg bg-[#18202e] border border-amber-500/40 hover:border-amber-400 text-[11px] font-bold text-amber-300 hover:text-amber-200 transition-colors cursor-pointer" data-val="20">20 (Crítico!)</button>
+        </div>
+
+        <!-- Dynamic Live Feedback Badge (Crítico, Pifia, Impacto) -->
+        <div id="dice-physical-feedback" class="min-h-[22px] flex items-center justify-center text-xs font-bold text-center w-full">
+          <!-- Mensaje dinámico -->
         </div>
       </div>
 
@@ -217,6 +258,7 @@
   const reelsContainer = document.getElementById('jackpot-reels-container');
   const summaryText = document.getElementById('jackpot-summary-text');
   const countDisplay = document.getElementById('dice-count-display');
+  const countBox = document.getElementById('dice-count-box');
   const modInput = document.getElementById('dice-modifier-input') as HTMLInputElement;
   const secretCheckbox = document.getElementById('dice-secret-checkbox') as HTMLInputElement;
   const secretIcon = document.getElementById('dice-secret-icon');
@@ -229,9 +271,12 @@
   const modePhysicalBtn = document.getElementById('dice-mode-physical-btn');
   const virtualDisplayArea = document.getElementById('dice-virtual-display-area');
   const physicalContainer = document.getElementById('dice-physical-container');
+  const physicalHeader = document.getElementById('dice-physical-header-text');
   const physicalInput = document.getElementById('dice-physical-input') as HTMLInputElement;
   const physicalModText = document.getElementById('dice-physical-mod-text');
   const physicalTotalText = document.getElementById('dice-physical-total-text');
+  const physicalFeedback = document.getElementById('dice-physical-feedback');
+  const physicalPresets = document.getElementById('dice-physical-presets');
 
   const targetContainer = document.getElementById('dice-target-container');
   const targetSelect = document.getElementById('dice-target-select') as HTMLSelectElement;
@@ -254,21 +299,31 @@
   function setRollMode(physical: boolean) {
     isPhysicalMode = physical;
     if (physical) {
-      modePhysicalBtn?.classList.add('bg-amber-500/20', 'text-amber-300', 'border', 'border-amber-500/40');
+      modePhysicalBtn?.classList.add('bg-amber-500/20', 'text-amber-300', 'border', 'border-amber-500/40', 'shadow-xs');
       modePhysicalBtn?.classList.remove('text-[#94a3b8]');
-      modeVirtualBtn?.classList.remove('bg-amber-500/20', 'text-amber-300', 'border', 'border-amber-500/40');
+      modeVirtualBtn?.classList.remove('bg-amber-500/20', 'text-amber-300', 'border', 'border-amber-500/40', 'shadow-xs');
       modeVirtualBtn?.classList.add('text-[#94a3b8]');
+
+      // OCULTAR completamente el área de ruleta/lanzamiento automático
+      virtualDisplayArea?.classList.add('hidden');
+      // MOSTRAR el contenedor elegante de dados físicos
       physicalContainer?.classList.remove('hidden');
-      if (rollBtnLabel) rollBtnLabel.textContent = 'Registrar Tirada Física';
+
+      if (rollBtnLabel) rollBtnLabel.textContent = 'Registrar Tirada Física en Bitácora';
       if (rollBtnIcon) rollBtnIcon.textContent = 'edit_note';
+
       updatePhysicalCalculations();
-      setTimeout(() => physicalInput?.focus(), 50);
+      setTimeout(() => physicalInput?.focus(), 60);
     } else {
-      modeVirtualBtn?.classList.add('bg-amber-500/20', 'text-amber-300', 'border', 'border-amber-500/40');
+      modeVirtualBtn?.classList.add('bg-amber-500/20', 'text-amber-300', 'border', 'border-amber-500/40', 'shadow-xs');
       modeVirtualBtn?.classList.remove('text-[#94a3b8]');
-      modePhysicalBtn?.classList.remove('bg-amber-500/20', 'text-amber-300', 'border', 'border-amber-500/40');
+      modePhysicalBtn?.classList.remove('bg-amber-500/20', 'text-amber-300', 'border', 'border-amber-500/40', 'shadow-xs');
       modePhysicalBtn?.classList.add('text-[#94a3b8]');
+
+      // MOSTRAR área virtual y OCULTAR contenedor físico
+      virtualDisplayArea?.classList.remove('hidden');
       physicalContainer?.classList.add('hidden');
+
       if (rollBtnLabel) rollBtnLabel.textContent = '¡Lanzar Dados!';
       if (rollBtnIcon) rollBtnIcon.textContent = 'casino';
     }
@@ -277,16 +332,63 @@
   modeVirtualBtn?.addEventListener('click', () => setRollMode(false));
   modePhysicalBtn?.addEventListener('click', () => setRollMode(true));
 
+  // Presets rápidos (1, 10, 15, 20)
+  document.querySelectorAll('.phys-preset-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const val = btn.getAttribute('data-val');
+      if (val && physicalInput) {
+        physicalInput.value = val;
+        updatePhysicalCalculations();
+      }
+    });
+  });
+
   function updatePhysicalCalculations() {
     const mod = parseInt(modInput?.value || '0') || 0;
     if (physicalModText) {
       physicalModText.textContent = `${mod >= 0 ? '+' : ''}${mod}`;
     }
+    if (physicalHeader) {
+      physicalHeader.textContent = `Dado Físico en Mesa (d${selectedDie})`;
+    }
+    if (physicalPresets) {
+      if (selectedDie === 20) {
+        physicalPresets.classList.remove('hidden');
+      } else {
+        physicalPresets.classList.add('hidden');
+      }
+    }
+
     const val = parseInt(physicalInput?.value || '0');
-    if (!isNaN(val) && val > 0 && physicalTotalText) {
-      physicalTotalText.textContent = String(val + mod);
-    } else if (physicalTotalText) {
-      physicalTotalText.textContent = '--';
+    if (!isNaN(val) && val > 0) {
+      const total = val + mod;
+      if (physicalTotalText) physicalTotalText.textContent = String(total);
+
+      // Feedback en vivo (Crítico, Pifia o Impacto)
+      if (physicalFeedback) {
+        if (selectedDie === 20 && val === 20) {
+          physicalFeedback.innerHTML = '<span class="px-2.5 py-1 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/40 font-bold animate-pulse">✨ ¡20 NATURAL! ¡GOLPE CRÍTICO! ✨</span>';
+        } else if (selectedDie === 20 && val === 1) {
+          physicalFeedback.innerHTML = '<span class="px-2.5 py-1 rounded-lg bg-rose-500/20 text-rose-400 border border-rose-500/40 font-bold">💀 ¡1 NATURAL! ¡PIFIA! 💀</span>';
+        } else {
+          const selectedTarget = targetSelect?.value || '';
+          const targetOpt = targetSelect?.selectedOptions[0];
+          const targetAc = targetOpt?.dataset.ac ? parseInt(targetOpt.dataset.ac) : null;
+
+          if (selectedTarget && selectedDie === 20 && targetAc) {
+            if (total >= targetAc) {
+              physicalFeedback.innerHTML = `<span class="px-2.5 py-1 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-bold">🎯 ¡Impacta a ${selectedTarget}! (${total} vs CA ${targetAc})</span>`;
+            } else {
+              physicalFeedback.innerHTML = `<span class="px-2.5 py-1 rounded-lg bg-rose-500/20 text-rose-300 border border-rose-500/40 font-bold">🛡️ Falla contra ${selectedTarget} (${total} vs CA ${targetAc})</span>`;
+            }
+          } else {
+            physicalFeedback.innerHTML = '';
+          }
+        }
+      }
+    } else {
+      if (physicalTotalText) physicalTotalText.textContent = '--';
+      if (physicalFeedback) physicalFeedback.innerHTML = '';
     }
   }
 
@@ -311,13 +413,11 @@
     const myName = currentChar?.name?.trim().toLowerCase();
 
     let optionsHtml = '<option value="">Sin objetivo específico (Tirada general)</option>';
-    let matchedOption = false;
 
     combat.combatants.forEach((c) => {
       // No seleccionarse a uno mismo por defecto
       if (myName && c.name.trim().toLowerCase() === myName) return;
       const isSelected = Boolean(preselectedName && c.name.trim().toLowerCase() === preselectedName.trim().toLowerCase());
-      if (isSelected) matchedOption = true;
 
       optionsHtml += `
         <option value="${c.name}" data-ac="${c.ac || ''}" ${isSelected ? 'selected' : ''}>
@@ -340,6 +440,7 @@
     } else {
       targetAcBadge.classList.add('hidden');
     }
+    updatePhysicalCalculations();
   }
 
   targetSelect?.addEventListener('change', updateTargetAcBadge);
@@ -403,13 +504,12 @@
   }
 
   function executePhysicalRoll() {
-    if (!summaryText) return;
     const rawVal = parseInt(physicalInput?.value || '0');
     if (isNaN(rawVal) || rawVal < 1) {
       if (physicalInput) {
         physicalInput.focus();
-        physicalInput.classList.add('border-rose-500');
-        setTimeout(() => physicalInput.classList.remove('border-rose-500'), 1500);
+        physicalInput.classList.add('border-rose-500', 'ring-2', 'ring-rose-500/50');
+        setTimeout(() => physicalInput.classList.remove('border-rose-500', 'ring-2', 'ring-rose-500/50'), 1500);
       }
       return;
     }
@@ -449,8 +549,6 @@
   }
 
   function processRollResult(res: RollResult, isPhysical: boolean, physicalVal?: number) {
-    if (!summaryText) return;
-
     let rollDetails = isPhysical ? `${physicalVal}` : res.rolls.join(' + ');
     let modDetails = res.modifier !== 0 ? ` (${res.modifier >= 0 ? '+' : ''}${res.modifier})` : '';
     let specialTag = '';
@@ -502,22 +600,37 @@
 
     const targetLabel = selectedTarget ? `<span class="text-rose-300 font-bold"> ➜ ${selectedTarget}</span>` : '';
 
-    summaryText.innerHTML = `
-      <div class="flex items-center gap-1 justify-center flex-wrap">
-        ${badgeHtml}
-        ${physicalBadge}
-      </div>
-      ${specialTag}
-      ${targetHitEvaluation}
-      <div class="mt-0.5">
-        <span class="text-[#cbd5e1] text-xs">${rollContext.label}${targetLabel} [${rollDetails}]${modDetails} = </span>
-        <strong class="text-xl font-headline font-bold ${res.isCrit ? 'text-amber-400' : 'text-[#f1f5f9]'}">${res.total}</strong>
-      </div>
-      <span class="${isSecret ? 'text-purple-300' : 'text-emerald-400'} block text-[11px] mt-1 font-bold flex items-center justify-center gap-1">
-        <span class="material-symbols-outlined text-[13px]">${isSecret ? 'lock' : 'check_circle'}</span>
-        <span>Registrado automáticamente en Bitácora</span>
-      </span>
-    `;
+    if (summaryText && !isPhysical) {
+      summaryText.innerHTML = `
+        <div class="flex items-center gap-1 justify-center flex-wrap">
+          ${badgeHtml}
+          ${physicalBadge}
+        </div>
+        ${specialTag}
+        ${targetHitEvaluation}
+        <div class="mt-0.5">
+          <span class="text-[#cbd5e1] text-xs">${rollContext.label}${targetLabel} [${rollDetails}]${modDetails} = </span>
+          <strong class="text-xl font-headline font-bold ${res.isCrit ? 'text-amber-400' : 'text-[#f1f5f9]'}">${res.total}</strong>
+        </div>
+        <span class="${isSecret ? 'text-purple-300' : 'text-emerald-400'} block text-[11px] mt-1 font-bold flex items-center justify-center gap-1">
+          <span class="material-symbols-outlined text-[13px]">${isSecret ? 'lock' : 'check_circle'}</span>
+          <span>Registrado automáticamente en Bitácora</span>
+        </span>
+      `;
+    }
+
+    // Feedback en modo físico
+    if (isPhysical && physicalFeedback) {
+      physicalFeedback.innerHTML = `
+        <div class="flex flex-col items-center gap-1">
+          ${specialTag || targetHitEvaluation}
+          <span class="text-emerald-400 font-bold text-xs flex items-center gap-1">
+            <span class="material-symbols-outlined text-[14px]">check_circle</span>
+            <span>¡Registrado en Bitácora con éxito! Total: ${res.total}</span>
+          </span>
+        </div>
+      `;
+    }
 
     // AUTOMATIC LOGGING TO JOURNAL
     const modStr = res.modifier !== 0 ? ` ${res.modifier >= 0 ? '+' : ''}${res.modifier}` : '';
