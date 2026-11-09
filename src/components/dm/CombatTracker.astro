@@ -550,6 +550,10 @@
     if (!combatantsContainer) return;
     combatantsContainer.innerHTML = '';
 
+    const activeCombatant = combat.combatants[combat.turnIndex];
+    const isPlayerTurn = Boolean(activeCombatant?.isPlayer);
+    const isEnemyTurn = Boolean(activeCombatant && !activeCombatant.isPlayer);
+
     combat.combatants.forEach((c, idx) => {
       const isCurrentTurn = idx === combat.turnIndex;
       const isDead = c.hp <= 0;
@@ -598,7 +602,14 @@
                 </span>
                 ${
                   isCurrentTurn
-                    ? '<span class="px-1.5 py-0.2 rounded bg-amber-500/30 text-amber-300 border border-amber-500/50 text-[9px] font-bold animate-pulse">TURNO</span>'
+                    ? `<span class="px-2 py-0.5 rounded-full ${
+                        c.isPlayer
+                          ? 'bg-blue-500/25 text-blue-300 border border-blue-500/50'
+                          : 'bg-rose-500/25 text-rose-300 border border-rose-500/50'
+                      } text-[9px] font-bold inline-flex items-center gap-1 shadow-xs">
+                        <span class="w-1.5 h-1.5 rounded-full ${c.isPlayer ? 'bg-blue-400' : 'bg-rose-400'} animate-ping"></span>
+                        <span>⚔️ Actuando</span>
+                      </span>`
                     : ''
                 }
               </div>
@@ -707,19 +718,22 @@
               >+5</button>
             </div>
 
-            <!-- Botón Atacar (para Enemigos / Monstruos del DM) -->
+            <!-- Botón Atacar: Sólo en turnos de enemigo, y ÚNICAMENTE sobre los jugadores -->
             ${
-              !c.isPlayer
+              isEnemyTurn && c.isPlayer && !isDead && activeCombatant
                 ? `
                 <button
                   type="button"
-                  class="dm-enemy-attack-btn inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-rose-500/20 border border-rose-500/40 hover:bg-rose-500/30 text-rose-300 text-xs font-bold transition-all cursor-pointer shadow-xs active:scale-95"
-                  data-id="${c.id}"
-                  data-name="${c.name}"
-                  title="Hacer que ${c.name} ataque a un aventurero"
+                  class="dm-attack-player-btn inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-rose-600/30 to-rose-500/20 border border-rose-500/50 hover:bg-rose-500/35 text-rose-200 text-xs font-bold transition-all cursor-pointer shadow-[0_0_12px_rgba(244,63,94,0.2)] active:scale-95"
+                  data-attacker-id="${activeCombatant.id}"
+                  data-attacker-name="${activeCombatant.name}"
+                  data-target-id="${c.id}"
+                  data-target-name="${c.name}"
+                  data-target-ac="${c.ac || 10}"
+                  title="Hacer que ${activeCombatant.name} ataque a ${c.name}"
                 >
                   <span class="material-symbols-outlined text-[15px]">swords</span>
-                  <span>Atacar</span>
+                  <span>Atacar con ${activeCombatant.name}</span>
                 </button>
               `
                 : ''
@@ -921,14 +935,14 @@
       });
     });
 
-    // Ataque del enemigo a un aventurero (DM)
-    rootEl?.querySelectorAll('.dm-enemy-attack-btn').forEach((btn) => {
+    // Ataque del enemigo a un aventurero (DM en turno de monstruo)
+    rootEl?.querySelectorAll('.dm-attack-player-btn').forEach((btn) => {
       btn.addEventListener('click', (e) => {
         const target = e.currentTarget as HTMLElement;
-        const id = target.dataset.id;
-        const name = target.dataset.name || 'Enemigo';
-        if (!id) return;
-        openEnemyAttackModal(id, name);
+        const attackerId = target.dataset.attackerId || '';
+        const attackerName = target.dataset.attackerName || 'Enemigo';
+        const targetName = target.dataset.targetName || 'Aventurero';
+        openEnemyAttackModal(attackerId, attackerName, targetName);
       });
     });
   }
@@ -948,7 +962,7 @@
   const enemyRollAtkBtn = document.getElementById('dm-enemy-roll-attack-btn');
   const enemyRollDmgBtn = document.getElementById('dm-enemy-roll-damage-btn');
 
-  function openEnemyAttackModal(id: string, name: string) {
+  function openEnemyAttackModal(id: string, name: string, defaultTargetName?: string) {
     if (!currentCampaignId || !enemyAttackModal || !enemyModalEnemyName || !enemyTargetPlayerSelect) return;
     activeEnemyAttacker = { id, name };
     enemyModalEnemyName.textContent = name;
@@ -961,8 +975,11 @@
       if (enemyTargetAcBadge) enemyTargetAcBadge.textContent = 'CA --';
     } else {
       enemyTargetPlayerSelect.innerHTML = players
-        .map((p) => `<option value="${p.name}" data-ac="${p.ac || 10}">${p.name} (CA ${p.ac || 10})</option>`)
+        .map((p) => `<option value="${p.name}" data-ac="${p.ac || 10}" ${defaultTargetName === p.name ? 'selected' : ''}>${p.name} (CA ${p.ac || 10})</option>`)
         .join('');
+      if (defaultTargetName) {
+        enemyTargetPlayerSelect.value = defaultTargetName;
+      }
       updateEnemyTargetAcBadge();
     }
 

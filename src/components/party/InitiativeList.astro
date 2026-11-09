@@ -83,10 +83,62 @@
       </div>
 
       <p class="text-xs text-[#94a3b8]">
-        Elige tu arma o magia para realizar el ataque contra este objetivo. Podrás tirar en la app o ingresar dados físicos en mesa.
+        Elige tu arma, magia u objeto para realizar el ataque contra este objetivo según la distancia táctica. Podrás tirar en la app o ingresar dados físicos en mesa.
       </p>
 
-      <!-- Lista de Armas y Conjuros Disponibles -->
+      <!-- Selector de Distancia Táctica al Objetivo (5e Reach / Range) -->
+      <div class="p-3 rounded-xl bg-[#10141d] border border-[#222f42] space-y-2">
+        <div class="flex items-center justify-between">
+          <label class="text-[10px] font-bold text-[#cbd5e1] uppercase tracking-wider flex items-center gap-1.5">
+            <span class="material-symbols-outlined text-[15px] text-amber-400">straighten</span>
+            <span>Distancia al Objetivo:</span>
+          </label>
+          <div class="flex items-center gap-1 font-mono text-xs font-bold text-amber-300">
+            <span id="party-modal-distance-display">5</span>
+            <span class="text-[10px] text-[#94a3b8]">pies</span>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-1.5 flex-wrap" id="party-distance-presets">
+          <button
+            type="button"
+            class="party-dist-btn active px-2.5 py-1 rounded-lg bg-amber-500/20 border border-amber-500/60 text-amber-300 text-[11px] font-bold transition-all cursor-pointer shadow-xs"
+            data-feet="5"
+          >
+            5 pies (Melé)
+          </button>
+          <button
+            type="button"
+            class="party-dist-btn px-2.5 py-1 rounded-lg bg-[#18202e] border border-[#222f42] hover:border-slate-600 text-[#cbd5e1] text-[11px] font-bold transition-all cursor-pointer"
+            data-feet="10"
+          >
+            10 pies (Alcance)
+          </button>
+          <button
+            type="button"
+            class="party-dist-btn px-2.5 py-1 rounded-lg bg-[#18202e] border border-[#222f42] hover:border-slate-600 text-[#cbd5e1] text-[11px] font-bold transition-all cursor-pointer"
+            data-feet="30"
+          >
+            30 pies (Corto)
+          </button>
+          <button
+            type="button"
+            class="party-dist-btn px-2.5 py-1 rounded-lg bg-[#18202e] border border-[#222f42] hover:border-slate-600 text-[#cbd5e1] text-[11px] font-bold transition-all cursor-pointer"
+            data-feet="60"
+          >
+            60 pies (Medio)
+          </button>
+          <button
+            type="button"
+            class="party-dist-btn px-2.5 py-1 rounded-lg bg-[#18202e] border border-[#222f42] hover:border-slate-600 text-[#cbd5e1] text-[11px] font-bold transition-all cursor-pointer"
+            data-feet="120"
+          >
+            120 pies (Largo)
+          </button>
+        </div>
+      </div>
+
+      <!-- Lista de Armas, Conjuros y Objetos Disponibles -->
       <div id="party-attack-actions-list" class="space-y-2.5 max-h-64 overflow-y-auto pr-1">
         <!-- Generado dinámicamente -->
       </div>
@@ -111,6 +163,12 @@
   import { subscribeCombat } from '../../scripts/data/combatService.ts';
   import { visibleHp } from '../../scripts/vtt/initiative.ts';
   import { getConditionInfo } from '../../scripts/vtt/conditions.ts';
+  import {
+    getWeaponReachFeet,
+    getSpellRangeFeet,
+    getItemReachFeet,
+    validateActionForDistance,
+  } from '../../scripts/vtt/tacticalCombat.ts';
   import { campaignStore } from '../../scripts/state/campaignStore.ts';
   import { characterStore } from '../../scripts/state/characterStore.ts';
   import { userStore } from '../../scripts/state/userStore.ts';
@@ -122,8 +180,9 @@
   let previousHpMap = new Map<string, number>();
   let previousTurnIndex = -1;
 
-  // Estado del modal de ataque
+  // Estado del modal de ataque y distancia táctica (pies)
   let activeTarget: { id: string; name: string; ac?: number } | null = null;
+  let currentTargetDistanceFeet = 5;
 
   const rootEl = document.getElementById('party-initiative-root');
   const roundBadgeEl = document.getElementById('party-round-badge');
@@ -138,6 +197,8 @@
   const modalTargetAc = document.getElementById('party-modal-target-ac');
   const attackActionsList = document.getElementById('party-attack-actions-list');
   const attackCustomBtn = document.getElementById('party-attack-custom-roll-btn');
+  const distancePresetsContainer = document.getElementById('party-distance-presets');
+  const distanceDisplayEl = document.getElementById('party-modal-distance-display');
 
   function init() {
     const params = new URLSearchParams(window.location.search);
@@ -185,12 +246,30 @@
     const isNewTurn = previousTurnIndex !== combat.turnIndex;
     previousTurnIndex = combat.turnIndex;
 
+    const activeCombatant = combat.combatants[combat.turnIndex];
+    const myChar = currentCampaignId
+      ? campaignStore.getMyCharacterForCampaign(currentCampaignId)
+      : characterStore.get();
+
+    // Verificamos si el turno activo es de mi propio personaje
+    const isMyTurn = Boolean(
+      activeCombatant && (
+        (activeCombatant.ownerUid && viewer.uid && activeCombatant.ownerUid === viewer.uid) ||
+        (myChar && activeCombatant.characterId && activeCombatant.characterId === myChar.id) ||
+        (myChar && activeCombatant.name === myChar.name)
+      )
+    );
+
     if (!listEl) return;
     listEl.innerHTML = '';
 
     combat.combatants.forEach((c, idx) => {
       const isCurrentTurn = idx === combat.turnIndex;
-      const isOwnCharacter = Boolean(c.ownerUid && c.ownerUid === viewer.uid);
+      const isOwnCharacter = Boolean(
+        (c.ownerUid && viewer.uid && c.ownerUid === viewer.uid) ||
+        (myChar && c.characterId && c.characterId === myChar.id) ||
+        (myChar && c.name === myChar.name)
+      );
       const hpData = visibleHp(c, viewer);
       const isDead = hpData ? hpData.hp <= 0 : false;
 
@@ -249,25 +328,29 @@
           <div class="shrink-0 flex items-center gap-2.5">
             <!-- Acción / Estado del combatiente -->
             ${
-              isCurrentTurn && !c.isPlayer
+              isCurrentTurn
                 ? `
-                <span class="px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/40 text-[10px] font-bold inline-flex items-center gap-1">
-                  <span class="w-1.5 h-1.5 rounded-full bg-rose-400 animate-ping"></span>
+                <span class="px-2 py-0.5 rounded-full ${
+                  c.isPlayer
+                    ? 'bg-blue-500/20 text-blue-300 border border-blue-500/40'
+                    : 'bg-rose-500/20 text-rose-300 border border-rose-500/40'
+                } text-[10px] font-bold inline-flex items-center gap-1 shadow-xs">
+                  <span class="w-1.5 h-1.5 rounded-full ${c.isPlayer ? 'bg-blue-400' : 'bg-rose-400'} animate-ping"></span>
                   <span>Actuando</span>
                 </span>
               `
-                : !isOwnCharacter
+                : isMyTurn && !c.isPlayer && !isDead
                 ? `
                 <button
                   type="button"
-                  class="party-attack-target-btn inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-rose-500/15 border border-rose-500/30 hover:bg-rose-500/25 text-rose-300 text-[10px] font-bold transition-all cursor-pointer shadow-xs active:scale-95"
+                  class="party-attack-target-btn inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-rose-500/20 border border-rose-500/40 hover:bg-rose-500/30 text-rose-300 text-xs font-bold transition-all cursor-pointer shadow-xs active:scale-95"
                   data-target-id="${c.id}"
                   data-target-name="${c.name}"
                   data-target-ac="${c.ac || ''}"
                   title="Declarar ataque contra ${c.name}"
                 >
-                  <span class="material-symbols-outlined text-[13px]">my_location</span>
-                  <span>Atacar</span>
+                  <span class="material-symbols-outlined text-[14px]">my_location</span>
+                  <span>🎯 Atacar</span>
                 </button>
               `
                 : ''
@@ -377,49 +460,129 @@
     modalTargetName.textContent = target.name;
     modalTargetAc.textContent = target.ac ? `CA: ${target.ac}` : 'CA: Oculta por DM';
 
+    // Restablecer preset a 5 pies al abrir
+    currentTargetDistanceFeet = 5;
+    if (distanceDisplayEl) distanceDisplayEl.textContent = '5';
+    updateDistancePresetButtons(5);
+
+    renderTacticalAttackActions(target, currentTargetDistanceFeet);
+    attackModal.classList.remove('hidden');
+  }
+
+  function updateDistancePresetButtons(activeFeet: number) {
+    distancePresetsContainer?.querySelectorAll<HTMLButtonElement>('.party-dist-btn').forEach((btn) => {
+      const feet = parseInt(btn.dataset.feet || '5', 10);
+      if (feet === activeFeet) {
+        btn.classList.add('active', 'bg-amber-500/20', 'border-amber-500/60', 'text-amber-300', 'shadow-xs');
+        btn.classList.remove('bg-[#18202e]', 'border-[#222f42]', 'text-[#cbd5e1]');
+      } else {
+        btn.classList.remove('active', 'bg-amber-500/20', 'border-amber-500/60', 'text-amber-300', 'shadow-xs');
+        btn.classList.add('bg-[#18202e]', 'border-[#222f42]', 'text-[#cbd5e1]');
+      }
+    });
+  }
+
+  // Event listeners para los botones de distancia táctica
+  distancePresetsContainer?.querySelectorAll<HTMLButtonElement>('.party-dist-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const feet = parseInt(btn.dataset.feet || '5', 10);
+      currentTargetDistanceFeet = feet;
+      if (distanceDisplayEl) distanceDisplayEl.textContent = String(feet);
+      updateDistancePresetButtons(feet);
+
+      if (activeTarget) {
+        renderTacticalAttackActions(activeTarget, currentTargetDistanceFeet);
+      }
+    });
+  });
+
+  function renderTacticalAttackActions(target: { id: string; name: string; ac?: number }, currentDistance: number) {
+    if (!attackActionsList) return;
+    attackActionsList.innerHTML = '';
+
     const char = currentCampaignId
       ? campaignStore.getMyCharacterForCampaign(currentCampaignId)
       : characterStore.get();
 
-    attackActionsList.innerHTML = '';
-
     const actions = char?.actions || [];
     const spells = (char?.spellcasting?.spells || []).filter((s) => s.isAttack || s.damageDice || s.damageFormula);
+    const tacticalItems = (char?.inventory || []).filter(
+      (item) =>
+        item.quantity > 0 &&
+        (item.category === 'weapon' ||
+          item.usableType === 'usable' ||
+          item.usableType === 'drinkable' ||
+          item.usableType === 'potion' ||
+          item.name.toLowerCase().includes('fuego') ||
+          item.name.toLowerCase().includes('ácido') ||
+          item.name.toLowerCase().includes('bomba'))
+    );
 
-    if (actions.length === 0 && spells.length === 0) {
+    if (actions.length === 0 && spells.length === 0 && tacticalItems.length === 0) {
       attackActionsList.innerHTML = `
         <div class="p-3 rounded-xl bg-[#18202e] border border-[#222f42] text-xs text-[#94a3b8] italic">
-          No tienes armas ni conjuros configurados en tu ficha. Puedes usar la tirada libre abajo.
+          No tienes armas, conjuros ni objetos configurados en tu ficha. Puedes usar la tirada libre abajo.
         </div>
       `;
-    } else {
-      // 1. Armas / Acciones
-      if (actions.length > 0) {
-        const header = document.createElement('div');
-        header.className = 'text-[10px] font-bold uppercase tracking-wider text-amber-400 mt-1';
-        header.textContent = 'Armas y Acciones de Ataque';
-        attackActionsList.appendChild(header);
+      return;
+    }
 
-        actions.forEach((act) => {
-          const item = document.createElement('div');
-          item.className = 'flex items-center justify-between gap-2 p-2 rounded-xl bg-[#18202e] border border-[#222f42]';
+    // 1. Armas y Acciones de Ataque
+    if (actions.length > 0) {
+      const header = document.createElement('div');
+      header.className = 'text-[10px] font-bold uppercase tracking-wider text-amber-400 mt-1';
+      header.textContent = 'Armas y Ataques Físicos';
+      attackActionsList.appendChild(header);
 
-          const bonusNum = parseInt(act.bonus?.replace(/[^0-9-]/g, '') || '0') || 0;
-          const dmgMatch = (act.damage || '1d8').match(/(\d+)d(\d+)(?:\s*([+-])\s*(\d+))?/);
-          const dmgCount = dmgMatch ? parseInt(dmgMatch[1]) || 1 : 1;
-          const dmgDie = dmgMatch ? parseInt(dmgMatch[2]) || 8 : 8;
-          const sign = dmgMatch && dmgMatch[3] === '-' ? -1 : 1;
-          const dmgMod = dmgMatch && dmgMatch[4] ? sign * parseInt(dmgMatch[4]) : 0;
+      actions.forEach((act) => {
+        const reach = getWeaponReachFeet(act);
+        const validation = validateActionForDistance(reach, currentDistance);
 
+        const bonusNum = parseInt(act.bonus?.replace(/[^0-9-]/g, '') || '0') || 0;
+        const dmgMatch = (act.damage || '1d8').match(/(\d+)d(\d+)(?:\s*([+-])\s*(\d+))?/);
+        const dmgCount = dmgMatch ? parseInt(dmgMatch[1]) || 1 : 1;
+        const dmgDie = dmgMatch ? parseInt(dmgMatch[2]) || 8 : 8;
+        const sign = dmgMatch && dmgMatch[3] === '-' ? -1 : 1;
+        const dmgMod = dmgMatch && dmgMatch[4] ? sign * parseInt(dmgMatch[4]) : 0;
+
+        const item = document.createElement('div');
+
+        if (!validation.valid) {
+          // Arma fuera de alcance: deshabilitada y estilizada en gris apagado
+          item.className = 'flex items-center justify-between gap-2 p-2.5 rounded-xl bg-[#10141d]/80 border border-dashed border-[#222f42] opacity-45 cursor-not-allowed select-none transition-all';
+          item.title = validation.reason || 'Fuera de alcance';
           item.innerHTML = `
             <div class="min-w-0">
-              <span class="text-xs font-bold text-[#f1f5f9] block truncate">${act.name}</span>
+              <div class="flex items-center gap-1.5 flex-wrap">
+                <span class="text-xs font-bold text-[#94a3b8] line-through truncate">${act.name}</span>
+                <span class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-rose-500/15 text-rose-400 border border-rose-500/25">${validation.badgeText}</span>
+              </div>
+              <span class="text-[10px] text-[#64748b] font-mono">${reach.label} • ${act.damage || '1d8'} ${act.damageType || ''}</span>
+            </div>
+            <div class="flex items-center gap-1.5 shrink-0 opacity-30 pointer-events-none">
+              <button type="button" disabled class="px-2.5 py-1.5 rounded-lg bg-[#18202e] text-[#64748b] text-[11px] font-bold">Ataque</button>
+              <button type="button" disabled class="px-2 py-1.5 rounded-lg bg-[#18202e] text-[#64748b] text-[11px] font-bold">Daño</button>
+            </div>
+          `;
+        } else {
+          // Arma válida y lista para atacar
+          item.className = 'flex items-center justify-between gap-2 p-2.5 rounded-xl bg-[#18202e] border border-[#222f42] hover:border-amber-500/40 transition-all';
+          item.innerHTML = `
+            <div class="min-w-0">
+              <div class="flex items-center gap-1.5 flex-wrap">
+                <span class="text-xs font-bold text-[#f1f5f9] truncate">${act.name}</span>
+                <span class="px-1.5 py-0.2 rounded text-[9px] font-bold ${
+                  validation.disadvantage
+                    ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
+                    : 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30'
+                }">${validation.disadvantage ? validation.badgeText : reach.label}</span>
+              </div>
               <span class="text-[10px] text-[#94a3b8] font-mono">${act.bonus || '+0'} • ${act.damage || '1d8'} ${act.damageType || ''}</span>
             </div>
             <div class="flex items-center gap-1.5 shrink-0">
               <button
                 type="button"
-                class="party-modal-roll-atk px-2.5 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-[11px] font-bold transition-all cursor-pointer flex items-center gap-1"
+                class="party-modal-roll-atk px-2.5 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-[11px] font-bold transition-all cursor-pointer flex items-center gap-1 active:scale-95"
                 title="Tirar ataque d20 contra ${target.name}"
               >
                 <span>Ataque</span>
@@ -427,7 +590,7 @@
               </button>
               <button
                 type="button"
-                class="party-modal-roll-dmg px-2 py-1.5 rounded-lg bg-[#10141d] hover:bg-[#222f42] text-[#cbd5e1] border border-[#222f42] text-[11px] font-bold transition-all cursor-pointer"
+                class="party-modal-roll-dmg px-2 py-1.5 rounded-lg bg-[#10141d] hover:bg-[#222f42] text-[#cbd5e1] border border-[#222f42] text-[11px] font-bold transition-all cursor-pointer active:scale-95"
                 title="Tirar daño contra ${target.name}"
               >
                 <span>Daño</span>
@@ -444,7 +607,7 @@
                   die: 20,
                   count: 1,
                   modifier: bonusNum,
-                  label: `Ataque con ${act.name}`,
+                  label: `Ataque con ${act.name} (${currentDistance} pies)`,
                   tag: '#Combate',
                   targetName: target.name,
                   targetAc: target.ac,
@@ -470,33 +633,61 @@
               })
             );
           });
+        }
 
-          attackActionsList.appendChild(item);
-        });
-      }
+        attackActionsList.appendChild(item);
+      });
+    }
 
-      // 2. Conjuros
-      if (spells.length > 0) {
-        const header = document.createElement('div');
-        header.className = 'text-[10px] font-bold uppercase tracking-wider text-purple-400 mt-2';
-        header.textContent = 'Conjuros y Magia de Ataque';
-        attackActionsList.appendChild(header);
+    // 2. Conjuros y Magia de Ataque
+    if (spells.length > 0) {
+      const header = document.createElement('div');
+      header.className = 'text-[10px] font-bold uppercase tracking-wider text-purple-400 mt-2';
+      header.textContent = 'Conjuros y Magia de Ataque';
+      attackActionsList.appendChild(header);
 
-        spells.forEach((sp) => {
-          const item = document.createElement('div');
-          item.className = 'flex items-center justify-between gap-2 p-2 rounded-xl bg-[#18202e] border border-[#222f42]';
+      spells.forEach((sp) => {
+        const reach = getSpellRangeFeet(sp);
+        const validation = validateActionForDistance(reach, currentDistance);
 
-          const formula = sp.damageFormula || sp.damageDice || '1d8';
-          const dmgMatch = formula.match(/(\d+)d(\d+)(?:\s*([+-])\s*(\d+))?/);
-          const dmgCount = dmgMatch ? parseInt(dmgMatch[1]) || 1 : 1;
-          const dmgDie = dmgMatch ? parseInt(dmgMatch[2]) || 8 : 8;
-          const sign = dmgMatch && dmgMatch[3] === '-' ? -1 : 1;
-          const dmgMod = dmgMatch && dmgMatch[4] ? sign * parseInt(dmgMatch[4]) : 0;
-          const atkBonus = char?.spellcasting?.attackBonus || 0;
+        const formula = sp.damageFormula || sp.damageDice || '1d8';
+        const dmgMatch = formula.match(/(\d+)d(\d+)(?:\s*([+-])\s*(\d+))?/);
+        const dmgCount = dmgMatch ? parseInt(dmgMatch[1]) || 1 : 1;
+        const dmgDie = dmgMatch ? parseInt(dmgMatch[2]) || 8 : 8;
+        const sign = dmgMatch && dmgMatch[3] === '-' ? -1 : 1;
+        const dmgMod = dmgMatch && dmgMatch[4] ? sign * parseInt(dmgMatch[4]) : 0;
+        const atkBonus = char?.spellcasting?.attackBonus || 0;
 
+        const item = document.createElement('div');
+
+        if (!validation.valid) {
+          item.className = 'flex items-center justify-between gap-2 p-2.5 rounded-xl bg-[#10141d]/80 border border-dashed border-[#222f42] opacity-45 cursor-not-allowed select-none transition-all';
+          item.title = validation.reason || 'Fuera de alcance';
           item.innerHTML = `
             <div class="min-w-0">
-              <span class="text-xs font-bold text-[#f1f5f9] block truncate">${sp.name}</span>
+              <div class="flex items-center gap-1.5 flex-wrap">
+                <span class="text-xs font-bold text-[#94a3b8] line-through truncate">${sp.name}</span>
+                <span class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-rose-500/15 text-rose-400 border border-rose-500/25">${validation.badgeText}</span>
+              </div>
+              <span class="text-[10px] text-[#64748b] font-mono">${reach.label} • ${formula} ${sp.damageType || ''}</span>
+            </div>
+            <div class="flex items-center gap-1.5 shrink-0 opacity-30 pointer-events-none">
+              <button type="button" disabled class="px-2.5 py-1.5 rounded-lg bg-[#18202e] text-[#64748b] text-[11px] font-bold">Ataque</button>
+              <button type="button" disabled class="px-2 py-1.5 rounded-lg bg-[#18202e] text-[#64748b] text-[11px] font-bold">Efecto</button>
+            </div>
+          `;
+        } else {
+          item.className = 'flex items-center justify-between gap-2 p-2.5 rounded-xl bg-[#18202e] border border-[#222f42] hover:border-purple-500/40 transition-all';
+          item.innerHTML = `
+            <div class="min-w-0">
+              <div class="flex items-center gap-1.5 flex-wrap">
+                <span class="text-xs font-bold text-[#f1f5f9] truncate">${sp.name}</span>
+                <span class="px-1.5 py-0.2 rounded text-[9px] font-bold ${
+                  validation.disadvantage
+                    ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
+                    : 'bg-purple-500/20 text-purple-300 border border-purple-500/40'
+                }">${validation.disadvantage ? validation.badgeText : reach.label}</span>
+              </div>
               <span class="text-[10px] text-[#94a3b8] font-mono">${sp.isAttack ? `Atk +${atkBonus} • ` : ''}${formula} ${sp.damageType || ''}</span>
             </div>
             <div class="flex items-center gap-1.5 shrink-0">
@@ -505,7 +696,7 @@
                   ? `
                 <button
                   type="button"
-                  class="party-modal-roll-spell-atk px-2.5 py-1.5 rounded-lg bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 border border-purple-500/40 text-[11px] font-bold transition-all cursor-pointer flex items-center gap-1"
+                  class="party-modal-roll-spell-atk px-2.5 py-1.5 rounded-lg bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 border border-purple-500/40 text-[11px] font-bold transition-all cursor-pointer flex items-center gap-1 active:scale-95"
                 >
                   <span>Ataque</span>
                 </button>
@@ -514,7 +705,7 @@
               }
               <button
                 type="button"
-                class="party-modal-roll-spell-dmg px-2 py-1.5 rounded-lg bg-[#10141d] hover:bg-[#222f42] text-[#cbd5e1] border border-[#222f42] text-[11px] font-bold transition-all cursor-pointer"
+                class="party-modal-roll-spell-dmg px-2 py-1.5 rounded-lg bg-[#10141d] hover:bg-[#222f42] text-[#cbd5e1] border border-[#222f42] text-[11px] font-bold transition-all cursor-pointer active:scale-95"
               >
                 <span>Efecto/Daño</span>
               </button>
@@ -530,7 +721,7 @@
                   die: 20,
                   count: 1,
                   modifier: atkBonus,
-                  label: `Ataque de Conjuro: ${sp.name}`,
+                  label: `Ataque de Conjuro: ${sp.name} (${currentDistance} pies)`,
                   tag: '#Magia',
                   targetName: target.name,
                   targetAc: target.ac,
@@ -556,13 +747,80 @@
               })
             );
           });
+        }
 
-          attackActionsList.appendChild(item);
-        });
-      }
+        attackActionsList.appendChild(item);
+      });
     }
 
-    attackModal.classList.remove('hidden');
+    // 3. Objetos y Consumibles Tácticos
+    if (tacticalItems.length > 0) {
+      const header = document.createElement('div');
+      header.className = 'text-[10px] font-bold uppercase tracking-wider text-emerald-400 mt-2';
+      header.textContent = 'Objetos y Consumibles Tácticos';
+      attackActionsList.appendChild(header);
+
+      tacticalItems.forEach((item) => {
+        const reach = getItemReachFeet(item);
+        const validation = validateActionForDistance(reach, currentDistance);
+
+        const el = document.createElement('div');
+        if (!validation.valid) {
+          el.className = 'flex items-center justify-between gap-2 p-2.5 rounded-xl bg-[#10141d]/80 border border-dashed border-[#222f42] opacity-45 cursor-not-allowed select-none transition-all';
+          el.title = validation.reason || 'Fuera de alcance';
+          el.innerHTML = `
+            <div class="min-w-0">
+              <div class="flex items-center gap-1.5 flex-wrap">
+                <span class="text-xs font-bold text-[#94a3b8] line-through truncate">${item.name}</span>
+                <span class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-rose-500/15 text-rose-400 border border-rose-500/25">${validation.badgeText}</span>
+              </div>
+              <span class="text-[10px] text-[#64748b] font-mono">Cant: ${item.quantity} • ${reach.label}</span>
+            </div>
+            <div class="flex items-center gap-1.5 shrink-0 opacity-30 pointer-events-none">
+              <button type="button" disabled class="px-2.5 py-1.5 rounded-lg bg-[#18202e] text-[#64748b] text-[11px] font-bold">Usar</button>
+            </div>
+          `;
+        } else {
+          el.className = 'flex items-center justify-between gap-2 p-2.5 rounded-xl bg-[#18202e] border border-[#222f42] hover:border-emerald-500/40 transition-all';
+          el.innerHTML = `
+            <div class="min-w-0">
+              <div class="flex items-center gap-1.5 flex-wrap">
+                <span class="text-xs font-bold text-[#f1f5f9] truncate">${item.name}</span>
+                <span class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">${reach.label}</span>
+              </div>
+              <span class="text-[10px] text-[#94a3b8] font-mono">Cant: ${item.quantity}${item.healAmount ? ` • Cura ${item.healAmount} PG` : ''}</span>
+            </div>
+            <div class="flex items-center gap-1.5 shrink-0">
+              <button
+                type="button"
+                class="party-modal-use-item px-2.5 py-1.5 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 text-[11px] font-bold transition-all cursor-pointer active:scale-95 flex items-center gap-1"
+              >
+                <span>Usar / Lanzar</span>
+              </button>
+            </div>
+          `;
+
+          el.querySelector('.party-modal-use-item')?.addEventListener('click', () => {
+            closeAttackModal();
+            window.dispatchEvent(
+              new CustomEvent('open-dice-roller', {
+                detail: {
+                  die: 20,
+                  count: 1,
+                  modifier: 0,
+                  label: `Uso de ${item.name} contra ${target.name} (${currentDistance} pies)`,
+                  tag: '#Objetos',
+                  targetName: target.name,
+                  targetAc: target.ac,
+                },
+              })
+            );
+          });
+        }
+
+        attackActionsList.appendChild(el);
+      });
+    }
   }
 
   function closeAttackModal() {
@@ -588,7 +846,7 @@
           die: 20,
           count: 1,
           modifier: 0,
-          label: `Ataque`,
+          label: `Ataque contra ${target.name} (${currentTargetDistanceFeet} pies)`,
           tag: '#Combate',
           targetName: target.name,
           targetAc: target.ac,
