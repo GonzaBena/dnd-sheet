@@ -247,9 +247,16 @@
 
           <!-- LADO DERECHO: PG Y BOTÓN ATACAR -->
           <div class="shrink-0 flex items-center gap-2.5">
-            <!-- Botón Atacar Objetivo (si no es el propio personaje) -->
+            <!-- Acción / Estado del combatiente -->
             ${
-              !isOwnCharacter
+              isCurrentTurn && !c.isPlayer
+                ? `
+                <span class="px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/40 text-[10px] font-bold inline-flex items-center gap-1">
+                  <span class="w-1.5 h-1.5 rounded-full bg-rose-400 animate-ping"></span>
+                  <span>Actuando</span>
+                </span>
+              `
+                : !isOwnCharacter
                 ? `
                 <button
                   type="button"

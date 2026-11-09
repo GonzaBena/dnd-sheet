@@ -248,6 +248,7 @@
     isSecret?: boolean;
     targetName?: string;
     targetAc?: number;
+    authorName?: string;
   } = { label: 'Tirada de dados', tag: '#Tirada', isDmRoll: false, isSecret: false };
 
   function setRollMode(physical: boolean) {
@@ -564,7 +565,7 @@
       isDmOnly: (isSecret && isDm) || undefined,
       isPlayerOnly: (isSecret && !isDm) || undefined,
       characterId: isDm ? undefined : currentChar?.id,
-      authorName: isDm ? (activeCamp?.dmName || 'Dungeon Master') : (currentChar?.name || 'Aventurero'),
+      authorName: rollContext.authorName || (isDm ? (activeCamp?.dmName || 'Dungeon Master') : (currentChar?.name || 'Aventurero')),
       campaignId: activeCampId || undefined,
       diceRoll: {
         formula: `${formulaStr} (${rollContext.label})`,
@@ -608,6 +609,7 @@
       isSecret: isSecretVal,
       targetName: detail.targetName || detail.target,
       targetAc: detail.targetAc,
+      authorName: detail.authorName,
     };
 
     if (countDisplay) countDisplay.textContent = String(selectedCount);
