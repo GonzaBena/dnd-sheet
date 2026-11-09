@@ -125,6 +125,7 @@
   import { characterStore } from '../../scripts/state/characterStore';
   import { userStore } from '../../scripts/state/userStore';
   import { openModal, closeModal } from '../../scripts/animations/modalAnimations';
+  import { statusLabel } from '../../scripts/vtt/sessionStatus';
 
   const modal = document.getElementById('campaign-roster-modal');
   const backdrop = document.getElementById('modal-backdrop');
@@ -151,7 +152,7 @@
     const creatorUser = userStore.getUser(campaign.creatorId);
 
     if (titleEl) titleEl.textContent = `Grupo: ${campaign.name}`;
-    if (subEl) subEl.textContent = `${campaign.setting} • Sesión ${campaign.sessionNumber}`;
+    if (subEl) subEl.textContent = `${campaign.setting} • Sesión ${campaign.sessionNumber} • ${statusLabel(campaign.status)}`;
     if (dmEl) dmEl.textContent = campaign.dmName;
     if (creatorEl) creatorEl.textContent = creatorUser ? `${creatorUser.name} ${creatorUser.id === currentUser.id ? '(Tú)' : ''}` : campaign.creatorId;
 

@@ -181,6 +181,7 @@ import CompendiumModal from '../components/modals/CompendiumModal.astro';
   import { characterStore } from '../scripts/state/characterStore';
   import { userStore } from '../scripts/state/userStore';
   import { cloudSession } from '../scripts/data/cloudSync';
+  import { normalizeStatus } from '../scripts/vtt/sessionStatus';
 
   // Backwards compatibility: redirect explicit query parameters to /campaigns
   if (typeof window !== 'undefined') {
@@ -306,6 +307,31 @@ import CompendiumModal from '../components/modals/CompendiumModal.astro';
           const isActive = camp.id === activeCampId;
           const isDm = campaignStore.isCurrentUserDm(camp.id);
           const isCreator = camp.creatorId === currentUser.id;
+          const status = normalizeStatus(camp.status);
+
+          let statusBadgeHtml = '';
+          if (status === 'active') {
+            statusBadgeHtml = `
+              <span class="px-2 py-0.5 rounded-full bg-emerald-500/25 backdrop-blur-md border border-emerald-500/50 text-emerald-300 text-[10px] font-bold uppercase flex items-center gap-1 shadow-xs">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span>En Vivo</span>
+              </span>
+            `;
+          } else if (status === 'paused') {
+            statusBadgeHtml = `
+              <span class="px-2 py-0.5 rounded-full bg-amber-500/25 backdrop-blur-md border border-amber-500/50 text-amber-300 text-[10px] font-bold uppercase flex items-center gap-1 shadow-xs">
+                <span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+                <span>Pausada</span>
+              </span>
+            `;
+          } else {
+            statusBadgeHtml = `
+              <span class="px-2 py-0.5 rounded-full bg-rose-500/25 backdrop-blur-md border border-rose-500/50 text-rose-300 text-[10px] font-bold uppercase flex items-center gap-1 shadow-xs">
+                <span class="w-1.5 h-1.5 rounded-full bg-rose-400"></span>
+                <span>Terminada</span>
+              </span>
+            `;
+          }
 
           const card = document.createElement('div');
           card.className = `masonry-item group relative rounded-2xl bg-[#121721] border ${isActive ? 'border-amber-500/80 shadow-[0_0_25px_rgba(245,158,11,0.2)] ring-1 ring-amber-500/40' : 'border-[#222f42]'} hover:border-amber-500/60 shadow-[0_8px_30px_rgba(0,0,0,0.5)] transition-all flex flex-col justify-between overflow-hidden cursor-pointer`;
@@ -338,12 +364,13 @@ import CompendiumModal from '../components/modals/CompendiumModal.astro';
                   <span class="px-2 py-0.5 rounded-full bg-emerald-500/20 backdrop-blur-md border border-emerald-500/30 text-emerald-400 text-[10px] font-bold uppercase">
                     Sesión ${camp.sessionNumber}
                   </span>
+                  ${statusBadgeHtml}
                 </div>
 
                 ${isActive ? `
                   <span class="px-2 py-0.5 rounded-full bg-amber-500/20 backdrop-blur-md border border-amber-500/50 text-amber-300 text-[10px] font-bold flex items-center gap-1">
                     <span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
-                    <span>Activa</span>
+                    <span>Mesa Activa</span>
                   </span>
                 ` : ''}
               </div>
