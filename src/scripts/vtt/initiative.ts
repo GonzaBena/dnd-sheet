@@ -1,0 +1,241 @@
+// src/scripts/vtt/initiative.ts
+// Lógica pura para gestión de combate, iniciativa y turnos (VTT).
+// Todas las funciones son inmutables (devuelven objetos nuevos sin mutar el parámetro recibido).
+
+import type { Combat, Combatant } from '../models/combat.ts';
+
+/**
+ * Ordena combatientes según F1-2:
+ * 1. Iniciativa descendente (mayor a menor).
+ * 2. Desempate: jugador tiene prioridad sobre monstruo / PNJ.
+ * 3. Segundo desempate: alfabético por nombre.
+ */
+export function sortCombatants(list: Combatant[]): Combatant[] {
+  return [...list].sort((a, b) => {
+    if (b.initiative !== a.initiative) {
+      return b.initiative - a.initiative;
+    }
+    if (a.isPlayer !== b.isPlayer) {
+      return a.isPlayer ? -1 : 1;
+    }
+    return a.name.localeCompare(b.name, 'es', { sensitivity: 'base' });
+  });
+}
+
+/**
+ * Inserta un combatiente manteniendo el orden y preservando el turno del combatiente actual.
+ */
+export function insertCombatant(combat: Combat, combatant: Combatant): Combat {
+  const currentId = combat.combatants[combat.turnIndex]?.id;
+  const nextList = sortCombatants([...combat.combatants, combatant]);
+  let nextIndex = 0;
+
+  if (currentId) {
+    const found = nextList.findIndex(c => c.id === currentId);
+    if (found !== -1) nextIndex = found;
+  }
+
+  return {
+    ...combat,
+    combatants: nextList,
+    turnIndex: nextIndex,
+    updatedAt: Date.now(),
+  };
+}
+
+/**
+ * Quita un combatiente preservando el combatiente actual si sigue en la lista.
+ */
+export function removeCombatant(combat: Combat, id: string): Combat {
+  const currentCombatant = combat.combatants[combat.turnIndex];
+  const nextList = combat.combatants.filter(c => c.id !== id);
+
+  if (nextList.length === 0) {
+    return {
+      ...combat,
+      combatants: [],
+      turnIndex: 0,
+      updatedAt: Date.now(),
+    };
+  }
+
+  let nextIndex = combat.turnIndex;
+  if (currentCombatant && currentCombatant.id === id) {
+    // Si se eliminó el combatiente en turno, pasa al siguiente o vuelve a 0
+    if (nextIndex >= nextList.length) {
+      nextIndex = 0;
+    }
+  } else if (currentCombatant) {
+    const found = nextList.findIndex(c => c.id === currentCombatant.id);
+    nextIndex = found !== -1 ? found : Math.min(combat.turnIndex, nextList.length - 1);
+  } else {
+    nextIndex = 0;
+  }
+
+  return {
+    ...combat,
+    combatants: nextList,
+    turnIndex: nextIndex,
+    updatedAt: Date.now(),
+  };
+}
+
+/**
+ * Avanza al siguiente turno. Al pasar del último combatiente, vuelve al inicio y suma la ronda.
+ */
+export function nextTurn(combat: Combat): Combat {
+  if (combat.combatants.length === 0) return combat;
+
+  const nextIndex = combat.turnIndex + 1;
+  if (nextIndex >= combat.combatants.length) {
+    return {
+      ...combat,
+      round: combat.round + 1,
+      turnIndex: 0,
+      updatedAt: Date.now(),
+    };
+  }
+
+  return {
+    ...combat,
+    turnIndex: nextIndex,
+    updatedAt: Date.now(),
+  };
+}
+
+/**
+ * Retrocede el turno (útil si el DM avanzó por error).
+ */
+export function prevTurn(combat: Combat): Combat {
+  if (combat.combatants.length === 0) return combat;
+
+  if (combat.turnIndex > 0) {
+    return {
+      ...combat,
+      turnIndex: combat.turnIndex - 1,
+      updatedAt: Date.now(),
+    };
+  }
+
+  if (combat.round > 1) {
+    return {
+      ...combat,
+      round: combat.round - 1,
+      turnIndex: combat.combatants.length - 1,
+      updatedAt: Date.now(),
+    };
+  }
+
+  return combat;
+}
+
+/**
+ * Duplica un combatiente generando nombres secuenciales independientes (RF-03).
+ * Ejemplo: "Goblin" -> "Goblin 1", "Goblin 2", "Goblin 3".
+ */
+export function duplicateCombatant(combat: Combat, id: string, count: number): Combat {
+  if (count <= 0) return combat;
+  const original = combat.combatants.find(c => c.id === id);
+  if (!original) return combat;
+
+  const currentId = combat.combatants[combat.turnIndex]?.id;
+
+  // Analizar base del nombre y sufijo numérico
+  const match = original.name.match(/^(.*?)\s*(\d+)$/);
+  const baseName = match ? match[1].trim() : original.name.trim();
+
+  // Buscar todos los números existentes para este baseName
+  const regex = new RegExp(`^${baseName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*(\\d+)$`, 'i');
+  const usedNumbers = new Set<number>();
+
+  for (const c of combat.combatants) {
+    const m = c.name.match(regex);
+    if (m) {
+      usedNumbers.add(parseInt(m[1], 10));
+    }
+  }
+
+  // Si el original no tenía número y no hay duplicados numerados todavía, el original pasa a ser "1"
+  let updatedOriginal = original;
+  if (!match && !usedNumbers.has(1)) {
+    usedNumbers.add(1);
+    updatedOriginal = { ...original, name: `${baseName} 1` };
+  } else if (match) {
+    usedNumbers.add(parseInt(match[2], 10));
+  }
+
+  // Generar nuevos combatientes con el siguiente número disponible
+  const newCombatants: Combatant[] = [];
+  let nextNum = 1;
+
+  for (let i = 0; i < count; i++) {
+    while (usedNumbers.has(nextNum)) {
+      nextNum++;
+    }
+    usedNumbers.add(nextNum);
+
+    newCombatants.push({
+      ...original,
+      id: `c-${Date.now().toString(36)}-${Math.random().toString(36).substr(2, 5)}`,
+      name: `${baseName} ${nextNum}`,
+      conditions: [...original.conditions],
+      hp: original.hp,
+      maxHp: original.maxHp,
+      initiative: original.initiative,
+      ac: original.ac,
+      isPlayer: original.isPlayer,
+      hiddenHp: original.hiddenHp,
+    });
+  }
+
+  // Reemplazar el original (si se renombró) y agregar los nuevos
+  const replacedList = combat.combatants.map(c => (c.id === original.id ? updatedOriginal : c));
+  const nextList = sortCombatants([...replacedList, ...newCombatants]);
+
+  let nextIndex = combat.turnIndex;
+  if (currentId) {
+    const found = nextList.findIndex(c => c.id === currentId);
+    if (found !== -1) nextIndex = found;
+  }
+
+  return {
+    ...combat,
+    combatants: nextList,
+    turnIndex: nextIndex,
+    updatedAt: Date.now(),
+  };
+}
+
+/**
+ * Modifica los PG de un combatiente limitando el resultado entre 0 y maxHp.
+ */
+export function applyDamage(c: Combatant, delta: number): Combatant {
+  const nextHp = Math.max(0, Math.min(c.maxHp, c.hp + delta));
+  return {
+    ...c,
+    hp: nextHp,
+  };
+}
+
+/**
+ * Determina los PG visibles para un usuario observador según RF-04:
+ * - DM ve todos los PG.
+ * - Dueño del personaje ve sus propios PG.
+ * - Si hiddenHp es false, cualquiera los ve.
+ * - Si hiddenHp es true, devuelve null ("—" o estado oculto).
+ */
+export function visibleHp(
+  c: Combatant,
+  viewer: { uid?: string | null; isDm: boolean }
+): { hp: number; maxHp: number } | null {
+  if (viewer.isDm) {
+    return { hp: c.hp, maxHp: c.maxHp };
+  }
+  if (viewer.uid && c.ownerUid && c.ownerUid === viewer.uid) {
+    return { hp: c.hp, maxHp: c.maxHp };
+  }
+  if (!c.hiddenHp) {
+    return { hp: c.hp, maxHp: c.maxHp };
+  }
+  return null;
+}

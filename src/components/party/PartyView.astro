@@ -2,6 +2,7 @@
 // src/components/party/PartyView.astro
 // Vista compartida de la partida (VTT) para todos los miembros de la mesa: grupo, bitácora y slots reservados.
 import StatusBanner from './StatusBanner.astro';
+import InitiativeList from './InitiativeList.astro';
 ---
 
 <div id="party-view-root" class="w-full max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
@@ -113,23 +114,7 @@ import StatusBanner from './StatusBanner.astro';
 
       <!-- TRACKER DE INICIATIVA Y COMBATE (Fase 1) -->
       <div class="lg:col-span-1">
-        <div
-          id="party-initiative-slot"
-          class="w-full h-full min-h-[380px] rounded-2xl bg-[#121721] border border-[#222f42] p-6 flex flex-col items-center justify-center text-center space-y-3 shadow-inner"
-        >
-          <div class="w-14 h-14 rounded-2xl bg-[#18202e] border border-rose-500/30 text-rose-400 flex items-center justify-center shadow-lg">
-            <span class="material-symbols-outlined text-[28px]">swords</span>
-          </div>
-          <div class="space-y-1 max-w-xs">
-            <h3 class="font-headline font-bold text-sm text-[#f1f5f9]">Orden de Iniciativa</h3>
-            <p class="text-xs text-[#94a3b8] leading-relaxed">
-              Turnos en vivo, asaltos y condiciones tácticas compartidas con el DM. Próximamente en Fase 1.
-            </p>
-          </div>
-          <span class="text-[10px] uppercase font-bold tracking-wider px-2.5 py-1 rounded-full bg-[#18202e] border border-[#222f42] text-[#94a3b8]">
-            Próximamente • Fase 1
-          </span>
-        </div>
+        <InitiativeList />
       </div>
     </div>
 

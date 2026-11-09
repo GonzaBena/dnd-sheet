@@ -179,6 +179,6 @@ La regla de `journal` exige `canPlay()`, y la partida está `active` porque el c
 - Sincronizar los PG con la ficha.
 
 ## 10. Checklist de cierre
-- [ ] T-10 … T-14 marcadas en la spec.
-- [ ] `// DECISION:` para F1-1, F1-2 y F1-3.
-- [ ] Tests verdes y build estático OK.
+- [x] T-10 … T-14 marcadas en la spec.
+- [x] `// DECISION:` para F1-1, F1-2 y F1-3.
+- [x] Tests verdes y build estático OK.

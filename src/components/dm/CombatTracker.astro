@@ -1,0 +1,1071 @@
+---
+// src/components/dm/CombatTracker.astro
+// Panel táctico de gestión de combate e iniciativa para el Dungeon Master (Fase 1).
+---
+
+<section
+  id="dm-combat-tracker-root"
+  class="w-full rounded-2xl bg-[#121721] border border-[#222f42] p-5 lg:p-7 shadow-[0_4px_25px_rgba(0,0,0,0.4)] space-y-5"
+>
+  <!-- AVISO DE PARTIDA PAUSADA O TERMINADA (D7) -->
+  <div
+    id="dm-combat-status-lock"
+    class="hidden p-3 rounded-xl bg-amber-950/40 border border-amber-500/40 text-amber-200 text-xs flex items-center justify-between gap-3"
+  >
+    <div class="flex items-center gap-2">
+      <span class="material-symbols-outlined text-[18px] text-amber-400">lock</span>
+      <span><strong>Partida en pausa:</strong> El combate está en modo solo lectura. Reanuda la sesión para modificar turnos o PG.</span>
+    </div>
+  </div>
+
+  <!-- ENCABEZADO Y CONTROLES PRINCIPALES -->
+  <div class="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-[#222f42]">
+    <div class="flex items-center gap-3">
+      <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-rose-500/20 to-amber-500/20 border border-rose-500/40 flex items-center justify-center text-rose-400 shadow-xs">
+        <span class="material-symbols-outlined text-[26px]">swords</span>
+      </div>
+      <div>
+        <div class="flex items-center gap-2">
+          <h2 class="text-lg font-headline font-bold text-[#f1f5f9]">
+            Iniciativa y Combate
+          </h2>
+          <span
+            id="dm-combat-round-badge"
+            class="hidden px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 text-xs font-bold font-label items-center gap-1.5"
+          >
+            <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+            <span id="dm-combat-round-text">Ronda 1</span>
+          </span>
+        </div>
+        <p class="text-xs text-[#94a3b8] font-label">
+          Control táctico de turnos, PG, CA y condiciones en tiempo real
+        </p>
+      </div>
+    </div>
+
+    <!-- BOTONES DE ACCIÓN PRINCIPALES -->
+    <div class="flex items-center gap-2 flex-wrap">
+      <!-- Botón Iniciar Combate (cuando no hay activo) -->
+      <button
+        type="button"
+        id="dm-start-combat-btn"
+        class="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-600 via-amber-500 to-amber-600 hover:from-amber-500 hover:to-amber-400 text-[#0a0d12] font-bold text-xs shadow-[0_0_20px_rgba(245,158,11,0.4)] active:scale-95 transition-all cursor-pointer"
+      >
+        <span class="material-symbols-outlined text-[18px]">play_arrow</span>
+        <span>Iniciar Combate</span>
+      </button>
+
+      <!-- Botones cuando SÍ hay combate activo -->
+      <div id="dm-active-combat-controls" class="hidden flex items-center gap-2 flex-wrap">
+        <button
+          type="button"
+          id="dm-prev-turn-btn"
+          class="flex items-center gap-1 px-3 py-2 rounded-xl bg-[#18202e] border border-[#222f42] hover:border-amber-500/50 text-[#cbd5e1] hover:text-[#f1f5f9] text-xs font-bold active:scale-95 transition-all cursor-pointer"
+          title="Retroceder al turno anterior"
+        >
+          <span class="material-symbols-outlined text-[18px]">skip_previous</span>
+          <span class="hidden sm:inline">Anterior</span>
+        </button>
+
+        <button
+          type="button"
+          id="dm-next-turn-btn"
+          class="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-[#0a0d12] text-xs font-bold shadow-[0_0_15px_rgba(245,158,11,0.35)] active:scale-95 transition-all cursor-pointer"
+          title="Avanzar al siguiente turno"
+        >
+          <span>Siguiente Turno</span>
+          <span class="material-symbols-outlined text-[18px]">skip_next</span>
+        </button>
+
+        <button
+          type="button"
+          id="dm-add-monster-btn"
+          class="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#18202e] border border-[#222f42] hover:border-purple-500/50 text-purple-300 text-xs font-bold active:scale-95 transition-all cursor-pointer"
+          title="Agregar monstruo u oponente al combate"
+        >
+          <span class="material-symbols-outlined text-[16px]">add</span>
+          <span>+ Oponente</span>
+        </button>
+
+        <button
+          type="button"
+          id="dm-end-combat-btn"
+          class="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-rose-950/30 border border-rose-800/40 hover:bg-rose-900/40 text-rose-300 text-xs font-bold active:scale-95 transition-all cursor-pointer"
+          title="Finalizar el combate actual"
+        >
+          <span class="material-symbols-outlined text-[16px]">stop</span>
+          <span>Terminar</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ESTADO SIN COMBATE -->
+  <div
+    id="dm-no-combat-box"
+    class="py-12 px-6 rounded-xl bg-[#10141d] border border-dashed border-[#222f42] text-center space-y-3"
+  >
+    <div class="w-12 h-12 mx-auto rounded-2xl bg-[#18202e] border border-[#222f42] flex items-center justify-center text-[#94a3b8]">
+      <span class="material-symbols-outlined text-[28px] text-amber-500/70">sports_martial_arts</span>
+    </div>
+    <div class="space-y-1">
+      <h3 class="text-sm font-headline font-bold text-[#f1f5f9]">No hay combate activo</h3>
+      <p class="text-xs text-[#94a3b8] max-w-sm mx-auto leading-relaxed">
+        Comienza un nuevo encuentro cargando automáticamente los aventureros de la campaña y agregando monstruos con su iniciativa.
+      </p>
+    </div>
+    <button
+      type="button"
+      id="dm-start-combat-empty-btn"
+      class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#18202e] border border-amber-500/40 hover:border-amber-500 text-amber-300 text-xs font-bold transition-all cursor-pointer"
+    >
+      <span class="material-symbols-outlined text-[16px]">play_arrow</span>
+      <span>Configurar e Iniciar Encuentro</span>
+    </button>
+  </div>
+
+  <!-- TABLA / LISTA DE COMBATIENTES ORDENADA -->
+  <div
+    id="dm-combatants-container"
+    class="hidden space-y-2.5 max-h-[620px] overflow-y-auto pr-1"
+  >
+    <!-- Se llena dinámicamente -->
+  </div>
+
+  <!-- MODAL: INICIAR COMBATE -->
+  <div
+    id="dm-start-combat-modal"
+    class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-xs"
+  >
+    <div class="relative w-full max-w-lg rounded-2xl bg-[#121721] border border-[#222f42] shadow-2xl p-6 space-y-5 max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between pb-3 border-b border-[#222f42]">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-lg bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400">
+            <span class="material-symbols-outlined text-[20px]">swords</span>
+          </div>
+          <h3 class="font-headline font-bold text-base text-[#f1f5f9]">Iniciar Nuevo Combate</h3>
+        </div>
+        <button
+          type="button"
+          id="dm-modal-close-btn"
+          class="p-1 rounded-lg text-[#94a3b8] hover:text-[#f1f5f9] hover:bg-[#18202e] transition-colors"
+        >
+          <span class="material-symbols-outlined text-[20px]">close</span>
+        </button>
+      </div>
+
+      <p class="text-xs text-[#94a3b8]">
+        Ingresa las iniciativas de los aventureros y define si deseas incluir oponentes al inicio del combate.
+      </p>
+
+      <!-- Lista de Aventureros a precargar -->
+      <div class="space-y-3">
+        <div class="flex items-center justify-between text-xs font-bold text-[#cbd5e1]">
+          <span>Aventureros en la mesa</span>
+          <button
+            type="button"
+            id="dm-roll-all-initiatives-btn"
+            class="text-amber-400 hover:text-amber-300 font-label flex items-center gap-1 cursor-pointer"
+          >
+            <span class="material-symbols-outlined text-[14px]">casino</span>
+            <span>Tirar d20 para todos</span>
+          </button>
+        </div>
+
+        <div id="dm-modal-players-list" class="space-y-2 max-h-48 overflow-y-auto pr-1">
+          <!-- Jugadores generados por JS -->
+        </div>
+      </div>
+
+      <!-- Sección de Oponentes Iniciales -->
+      <div class="space-y-3 pt-3 border-t border-[#222f42]">
+        <h4 class="text-xs font-bold text-[#cbd5e1] flex items-center gap-1.5">
+          <span class="material-symbols-outlined text-[16px] text-purple-400">smart_toy</span>
+          <span>Agregar oponentes iniciales (opcional)</span>
+        </h4>
+
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          <div class="col-span-2">
+            <label class="block text-[10px] text-[#94a3b8] mb-1">Nombre</label>
+            <input
+              type="text"
+              id="dm-init-monster-name"
+              placeholder="Ej. Goblin"
+              class="w-full px-2.5 py-1.5 rounded-lg bg-[#18202e] border border-[#222f42] text-xs text-[#f1f5f9] focus:border-amber-500 focus:outline-hidden"
+            />
+          </div>
+          <div>
+            <label class="block text-[10px] text-[#94a3b8] mb-1">Iniciativa</label>
+            <input
+              type="number"
+              id="dm-init-monster-init"
+              placeholder="10"
+              class="w-full px-2.5 py-1.5 rounded-lg bg-[#18202e] border border-[#222f42] text-xs text-[#f1f5f9] focus:border-amber-500 focus:outline-hidden"
+            />
+          </div>
+          <div>
+            <label class="block text-[10px] text-[#94a3b8] mb-1">PG Máx</label>
+            <input
+              type="number"
+              id="dm-init-monster-hp"
+              placeholder="12"
+              class="w-full px-2.5 py-1.5 rounded-lg bg-[#18202e] border border-[#222f42] text-xs text-[#f1f5f9] focus:border-amber-500 focus:outline-hidden"
+            />
+          </div>
+          <div>
+            <label class="block text-[10px] text-[#94a3b8] mb-1">CA</label>
+            <input
+              type="number"
+              id="dm-init-monster-ac"
+              placeholder="13"
+              class="w-full px-2.5 py-1.5 rounded-lg bg-[#18202e] border border-[#222f42] text-xs text-[#f1f5f9] focus:border-amber-500 focus:outline-hidden"
+            />
+          </div>
+          <div>
+            <label class="block text-[10px] text-[#94a3b8] mb-1">Cantidad</label>
+            <input
+              type="number"
+              id="dm-init-monster-qty"
+              value="1"
+              min="1"
+              max="20"
+              class="w-full px-2.5 py-1.5 rounded-lg bg-[#18202e] border border-[#222f42] text-xs text-[#f1f5f9] focus:border-amber-500 focus:outline-hidden"
+            />
+          </div>
+        </div>
+      </div>
+
+      <!-- Acciones del Modal -->
+      <div class="flex items-center justify-end gap-2.5 pt-3 border-t border-[#222f42]">
+        <button
+          type="button"
+          id="dm-modal-cancel-btn"
+          class="px-4 py-2 rounded-xl bg-[#18202e] border border-[#222f42] hover:border-slate-600 text-[#cbd5e1] text-xs font-bold transition-colors cursor-pointer"
+        >
+          Cancelar
+        </button>
+        <button
+          type="button"
+          id="dm-modal-confirm-start-btn"
+          class="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-[#0a0d12] text-xs font-bold transition-all shadow-md cursor-pointer"
+        >
+          ¡Comenzar Combate!
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- POPOVER DE CONDICIONES (flotante) -->
+  <div
+    id="dm-condition-popover"
+    class="hidden fixed z-50 w-72 rounded-xl bg-[#121721] border border-[#222f42] p-3 shadow-2xl space-y-2 backdrop-blur-md"
+  >
+    <div class="flex items-center justify-between pb-1.5 border-b border-[#222f42]">
+      <span class="text-xs font-bold text-[#cbd5e1]">Condiciones (5e)</span>
+      <button
+        type="button"
+        id="dm-condition-popover-close"
+        class="text-[#94a3b8] hover:text-[#f1f5f9] text-xs p-0.5"
+      >
+        ✕
+      </button>
+    </div>
+    <div id="dm-condition-popover-list" class="grid grid-cols-2 gap-1.5 max-h-56 overflow-y-auto pr-1">
+      <!-- Generado dinámicamente -->
+    </div>
+  </div>
+</section>
+
+<script>
+  import anime from 'animejs';
+  import {
+    subscribeCombat,
+    getCurrentCombat,
+    startCombat,
+    endCombat,
+    advanceTurn,
+    previousTurn,
+    addCombatant,
+    updateCombatant,
+    applyDamageToCombatant,
+    removeCombatantFromCombat,
+    duplicateCombatantInCombat,
+    buildPlayerCombatants,
+    checkCanPlay,
+  } from '../../scripts/data/combatService.ts';
+  import { DND_CONDITIONS, getConditionInfo } from '../../scripts/vtt/conditions.ts';
+  import { campaignStore } from '../../scripts/state/campaignStore.ts';
+  import { showConfirm, showForm, showAlert } from '../../scripts/ui/notify.ts';
+  import { animateHpBar } from '../../scripts/animations/hpAnimations.ts';
+  import type { Combat, Combatant } from '../../scripts/models/combat.ts';
+
+  let currentCampaignId: string | null = null;
+  let unsubscribe: (() => void) | null = null;
+  let previousHpMap = new Map<string, number>();
+  let previousTurnIndex = -1;
+  let activeConditionCombatantId: string | null = null;
+
+  // Elementos DOM
+  const rootEl = document.getElementById('dm-combat-tracker-root');
+  const lockNoticeEl = document.getElementById('dm-combat-status-lock');
+  const roundBadgeEl = document.getElementById('dm-combat-round-badge');
+  const roundTextEl = document.getElementById('dm-combat-round-text');
+  const startCombatBtn = document.getElementById('dm-start-combat-btn');
+  const activeControlsEl = document.getElementById('dm-active-combat-controls');
+  const prevTurnBtn = document.getElementById('dm-prev-turn-btn');
+  const nextTurnBtn = document.getElementById('dm-next-turn-btn');
+  const addMonsterBtn = document.getElementById('dm-add-monster-btn');
+  const endCombatBtn = document.getElementById('dm-end-combat-btn');
+  const noCombatBoxEl = document.getElementById('dm-no-combat-box');
+  const startEmptyBtn = document.getElementById('dm-start-combat-empty-btn');
+  const combatantsContainer = document.getElementById('dm-combatants-container');
+
+  // Modal Iniciar
+  const startModal = document.getElementById('dm-start-combat-modal');
+  const modalCloseBtn = document.getElementById('dm-modal-close-btn');
+  const modalCancelBtn = document.getElementById('dm-modal-cancel-btn');
+  const modalConfirmBtn = document.getElementById('dm-modal-confirm-start-btn');
+  const modalPlayersList = document.getElementById('dm-modal-players-list');
+  const rollAllInitBtn = document.getElementById('dm-roll-all-initiatives-btn');
+
+  // Popover de Condiciones
+  const conditionPopover = document.getElementById('dm-condition-popover');
+  const conditionCloseBtn = document.getElementById('dm-condition-popover-close');
+  const conditionList = document.getElementById('dm-condition-popover-list');
+
+  function getActiveCampaignId(): string | null {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('id') || params.get('campaign') || campaignStore.getActiveCampaignId();
+  }
+
+  function init() {
+    const cid = getActiveCampaignId();
+    if (!cid) return;
+
+    if (cid !== currentCampaignId) {
+      if (unsubscribe) {
+        unsubscribe();
+        unsubscribe = null;
+      }
+      currentCampaignId = cid;
+      unsubscribe = subscribeCombat(cid, (combat) => {
+        render(combat);
+      });
+    }
+
+    updateStatusLock();
+  }
+
+  function updateStatusLock() {
+    if (!currentCampaignId) return;
+    const canPlay = checkCanPlay(currentCampaignId);
+
+    if (!canPlay) {
+      lockNoticeEl?.classList.remove('hidden');
+      disableControls(true);
+    } else {
+      lockNoticeEl?.classList.add('hidden');
+      disableControls(false);
+    }
+  }
+
+  function disableControls(disabled: boolean) {
+    const buttons = rootEl?.querySelectorAll('button') || [];
+    buttons.forEach((btn) => {
+      // No deshabilitamos modal close si está abierto
+      if (btn.id === 'dm-modal-close-btn' || btn.id === 'dm-modal-cancel-btn') return;
+      if (disabled) {
+        btn.setAttribute('disabled', 'true');
+        btn.classList.add('opacity-50', 'pointer-events-none');
+      } else {
+        btn.removeAttribute('disabled');
+        btn.classList.remove('opacity-50', 'pointer-events-none');
+      }
+    });
+  }
+
+  function render(combat: Combat | null) {
+    const isActive = Boolean(combat && combat.active && combat.combatants.length > 0);
+
+    if (!isActive) {
+      roundBadgeEl?.classList.add('hidden');
+      roundBadgeEl?.classList.remove('inline-flex');
+      startCombatBtn?.classList.remove('hidden');
+      activeControlsEl?.classList.add('hidden');
+      noCombatBoxEl?.classList.remove('hidden');
+      if (combatantsContainer) {
+        combatantsContainer.classList.add('hidden');
+        combatantsContainer.innerHTML = '';
+      }
+      previousTurnIndex = -1;
+      updateStatusLock();
+      return;
+    }
+
+    // Combate activo
+    startCombatBtn?.classList.add('hidden');
+    activeControlsEl?.classList.remove('hidden');
+    noCombatBoxEl?.classList.add('hidden');
+    if (roundBadgeEl) {
+      roundBadgeEl.classList.remove('hidden');
+      roundBadgeEl.classList.add('inline-flex');
+    }
+    if (roundTextEl && combat) roundTextEl.textContent = `Ronda ${combat.round}`;
+    if (combatantsContainer) combatantsContainer.classList.remove('hidden');
+
+    const isNewTurn = combat ? previousTurnIndex !== combat.turnIndex : false;
+    if (combat) previousTurnIndex = combat.turnIndex;
+
+    renderCombatantsList(combat!, isNewTurn);
+    updateStatusLock();
+  }
+
+  function renderCombatantsList(combat: Combat, isNewTurn: boolean) {
+    if (!combatantsContainer) return;
+    combatantsContainer.innerHTML = '';
+
+    combat.combatants.forEach((c, idx) => {
+      const isCurrentTurn = idx === combat.turnIndex;
+      const isDead = c.hp <= 0;
+
+      const row = document.createElement('div');
+      row.id = `dm-combatant-${c.id}`;
+      row.className = [
+        'group relative rounded-xl p-3 border transition-all duration-200',
+        isCurrentTurn
+          ? 'bg-amber-500/10 border-amber-500/70 shadow-[0_0_15px_rgba(245,158,11,0.25)]'
+          : 'bg-[#18202e] border-[#222f42] hover:border-slate-700',
+        isDead ? 'opacity-50 grayscale-20' : '',
+      ].filter(Boolean).join(' ');
+
+      row.innerHTML = `
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <!-- LADO IZQUIERDO: INICIATIVA, NOMBRE Y CONDICIONES -->
+          <div class="flex items-center gap-3 min-w-0 flex-1">
+            <!-- Iniciativa editable al clic -->
+            <button
+              type="button"
+              class="dm-edit-init-btn w-9 h-9 rounded-lg shrink-0 flex items-center justify-center font-bold text-xs cursor-pointer ${
+                isCurrentTurn
+                  ? 'bg-amber-500 text-[#0a0d12] shadow-xs'
+                  : 'bg-[#10141d] border border-[#222f42] text-[#cbd5e1] hover:border-amber-500/40'
+              }"
+              data-id="${c.id}"
+              data-init="${c.initiative}"
+              title="Iniciativa: ${c.initiative} (clic para cambiar)"
+            >
+              ${c.initiative}
+            </button>
+
+            <!-- Datos del combatiente -->
+            <div class="min-w-0 space-y-0.5">
+              <div class="flex items-center gap-1.5 flex-wrap">
+                <span class="text-xs font-bold text-[#f1f5f9] truncate">
+                  ${c.name}
+                </span>
+                <span class="px-1.5 py-0.2 rounded text-[9px] font-bold ${
+                  c.isPlayer
+                    ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
+                    : 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
+                }">
+                  ${c.isPlayer ? 'PJ' : 'NPC'}
+                </span>
+                ${
+                  isCurrentTurn
+                    ? '<span class="px-1.5 py-0.2 rounded bg-amber-500/30 text-amber-300 border border-amber-500/50 text-[9px] font-bold animate-pulse">TURNO</span>'
+                    : ''
+                }
+              </div>
+
+              <!-- CA y Condiciones activas -->
+              <div class="flex items-center gap-2 flex-wrap text-[10px] text-[#94a3b8] font-label">
+                <span class="px-1.5 py-0.5 rounded bg-[#10141d] border border-[#222f42] text-[#cbd5e1] font-mono">
+                  CA ${c.ac || 10}
+                </span>
+
+                <!-- Chips de condiciones -->
+                <div class="flex items-center gap-1 flex-wrap">
+                  ${
+                    c.conditions && c.conditions.length > 0
+                      ? c.conditions
+                          .map((condId) => {
+                            const info = getConditionInfo(condId);
+                            return `
+                        <button
+                          type="button"
+                          class="dm-remove-condition-btn inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded text-[9px] font-bold border ${info.color} hover:opacity-80 transition-opacity cursor-pointer"
+                          data-id="${c.id}"
+                          data-cond="${condId}"
+                          title="Quitar ${info.name}"
+                        >
+                          <span class="material-symbols-outlined text-[11px]">${info.icon}</span>
+                          <span>${info.name}</span>
+                          <span class="text-[9px] ml-0.5">×</span>
+                        </button>
+                      `;
+                          })
+                          .join('')
+                      : ''
+                  }
+                  <button
+                    type="button"
+                    class="dm-add-condition-btn px-1.5 py-0.5 rounded bg-[#10141d] border border-[#222f42] hover:border-amber-500/40 text-[#94a3b8] hover:text-amber-300 text-[10px] cursor-pointer"
+                    data-id="${c.id}"
+                    title="Agregar condición a ${c.name}"
+                  >
+                    + Condición
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- LADO DERECHO: CONTROLES DE PG Y ACCIONES -->
+          <div class="flex items-center gap-3 shrink-0 flex-wrap">
+            <!-- Barra y Contador de PG -->
+            <div class="flex flex-col items-end min-w-[90px]">
+              <div class="text-xs font-bold font-mono text-[#cbd5e1] flex items-center gap-1">
+                <span id="dm-hp-num-${c.id}">${c.hp}</span>
+                <span class="text-[#64748b]">/${c.maxHp}</span>
+              </div>
+              <div class="w-24 h-1.5 bg-[#10141d] rounded-full overflow-hidden mt-1 border border-[#222f42]">
+                <div
+                  id="dm-hp-bar-${c.id}"
+                  class="h-full rounded-full transition-all ${
+                    c.hp <= c.maxHp * 0.25
+                      ? 'bg-rose-500'
+                      : c.hp <= c.maxHp * 0.5
+                      ? 'bg-amber-500'
+                      : 'bg-emerald-500'
+                  }"
+                  style="width: ${Math.max(0, Math.min(100, (c.hp / c.maxHp) * 100))}%"
+                ></div>
+              </div>
+            </div>
+
+            <!-- Botones de PG Rápido -->
+            <div class="flex items-center gap-1">
+              <button
+                type="button"
+                class="dm-hp-delta-btn w-6 h-6 rounded bg-[#10141d] border border-rose-900/40 hover:bg-rose-950/60 text-rose-300 text-[10px] font-bold font-mono flex items-center justify-center cursor-pointer"
+                data-id="${c.id}"
+                data-delta="-5"
+                title="Quitar 5 PG"
+              >-5</button>
+              <button
+                type="button"
+                class="dm-hp-delta-btn w-6 h-6 rounded bg-[#10141d] border border-rose-900/40 hover:bg-rose-950/60 text-rose-300 text-[10px] font-bold font-mono flex items-center justify-center cursor-pointer"
+                data-id="${c.id}"
+                data-delta="-1"
+                title="Quitar 1 PG"
+              >-1</button>
+              <button
+                type="button"
+                class="dm-hp-custom-btn px-1.5 h-6 rounded bg-[#10141d] border border-[#222f42] hover:border-amber-500/40 text-[#cbd5e1] text-[10px] font-bold flex items-center justify-center cursor-pointer"
+                data-id="${c.id}"
+                title="Aplicar daño o curación manual"
+              >Daño</button>
+              <button
+                type="button"
+                class="dm-hp-delta-btn w-6 h-6 rounded bg-[#10141d] border border-emerald-900/40 hover:bg-emerald-950/60 text-emerald-300 text-[10px] font-bold font-mono flex items-center justify-center cursor-pointer"
+                data-id="${c.id}"
+                data-delta="1"
+                title="Curar 1 PG"
+              >+1</button>
+              <button
+                type="button"
+                class="dm-hp-delta-btn w-6 h-6 rounded bg-[#10141d] border border-emerald-900/40 hover:bg-emerald-950/60 text-emerald-300 text-[10px] font-bold font-mono flex items-center justify-center cursor-pointer"
+                data-id="${c.id}"
+                data-delta="5"
+                title="Curar 5 PG"
+              >+5</button>
+            </div>
+
+            <!-- Acciones secundarias: Hidden HP, Duplicar, Eliminar -->
+            <div class="flex items-center gap-1 border-l border-[#222f42] pl-2">
+              <!-- Toggle Hidden HP (RF-04) -->
+              <button
+                type="button"
+                class="dm-toggle-hidden-hp-btn w-7 h-7 rounded-lg text-xs flex items-center justify-center transition-colors cursor-pointer ${
+                  c.hiddenHp
+                    ? 'text-[#94a3b8] hover:text-[#f1f5f9] bg-[#10141d]'
+                    : 'text-amber-400 bg-amber-500/15 border border-amber-500/30'
+                }"
+                data-id="${c.id}"
+                data-hidden="${c.hiddenHp}"
+                title="${c.hiddenHp ? 'PG ocultos a jugadores (clic para hacer visible)' : 'PG visibles a jugadores (clic para ocultar)'}"
+              >
+                <span class="material-symbols-outlined text-[16px]">${c.hiddenHp ? 'visibility_off' : 'visibility'}</span>
+              </button>
+
+              <!-- Duplicar combatiente (RF-03) -->
+              <button
+                type="button"
+                class="dm-duplicate-btn w-7 h-7 rounded-lg text-[#94a3b8] hover:text-[#f1f5f9] hover:bg-[#10141d] text-xs flex items-center justify-center transition-colors cursor-pointer"
+                data-id="${c.id}"
+                title="Duplicar combatiente (+1 copia)"
+              >
+                <span class="material-symbols-outlined text-[16px]">content_copy</span>
+              </button>
+
+              <!-- Eliminar combatiente -->
+              <button
+                type="button"
+                class="dm-remove-combatant-btn w-7 h-7 rounded-lg text-rose-400/80 hover:text-rose-300 hover:bg-rose-950/40 text-xs flex items-center justify-center transition-colors cursor-pointer"
+                data-id="${c.id}"
+                data-name="${c.name}"
+                title="Eliminar de este combate"
+              >
+                <span class="material-symbols-outlined text-[16px]">close</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+
+      combatantsContainer.appendChild(row);
+
+      // Animación de PG si cambió
+      const prevHp = previousHpMap.get(c.id);
+      if (prevHp !== undefined && prevHp !== c.hp) {
+        const barEl = row.querySelector(`#dm-hp-bar-${c.id}`) as HTMLElement;
+        const numEl = row.querySelector(`#dm-hp-num-${c.id}`) as HTMLElement;
+        if (barEl && numEl) {
+          animateHpBar(barEl, numEl, prevHp, c.hp, c.maxHp);
+        }
+      }
+      previousHpMap.set(c.id, c.hp);
+
+      // Pulso al cambiar de turno (T-13)
+      if (isCurrentTurn && isNewTurn) {
+        row.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        anime({
+          targets: row,
+          scale: [1, 1.025, 1],
+          duration: 400,
+          easing: 'easeOutQuad',
+        });
+      }
+    });
+
+    bindRowEvents();
+  }
+
+  function bindRowEvents() {
+    if (!currentCampaignId) return;
+    const cid = currentCampaignId;
+
+    // Modificar iniciativa
+    rootEl?.querySelectorAll('.dm-edit-init-btn').forEach((btn) => {
+      btn.addEventListener('click', async (e) => {
+        const target = e.currentTarget as HTMLElement;
+        const id = target.dataset.id;
+        const currentInit = target.dataset.init || '10';
+        if (!id) return;
+
+        const val = await showForm([
+          { name: 'init', label: 'Nueva Iniciativa', type: 'number', value: Number(currentInit), required: true }
+        ], { title: 'Modificar Iniciativa' });
+
+        if (val && val.init !== undefined) {
+          await updateCombatant(cid, id, { initiative: Number(val.init) });
+        }
+      });
+    });
+
+    // Delta PG (±1, ±5)
+    rootEl?.querySelectorAll('.dm-hp-delta-btn').forEach((btn) => {
+      btn.addEventListener('click', async (e) => {
+        const target = e.currentTarget as HTMLElement;
+        const id = target.dataset.id;
+        const delta = Number(target.dataset.delta);
+        if (!id || isNaN(delta)) return;
+        await applyDamageToCombatant(cid, id, delta);
+      });
+    });
+
+    // Daño manual
+    rootEl?.querySelectorAll('.dm-hp-custom-btn').forEach((btn) => {
+      btn.addEventListener('click', async (e) => {
+        const target = e.currentTarget as HTMLElement;
+        const id = target.dataset.id;
+        if (!id) return;
+
+        const val = await showForm([
+          { name: 'amount', label: 'Puntos (positivo = daño, negativo = curar)', type: 'number', required: true }
+        ], { title: 'Aplicar Daño / Curación' });
+
+        if (val && val.amount !== undefined) {
+          const dmg = Number(val.amount);
+          if (!isNaN(dmg)) {
+            // daño resta vida, curación suma
+            await applyDamageToCombatant(cid, id, -dmg);
+          }
+        }
+      });
+    });
+
+    // Quitar condición
+    rootEl?.querySelectorAll('.dm-remove-condition-btn').forEach((btn) => {
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const target = e.currentTarget as HTMLElement;
+        const id = target.dataset.id;
+        const cond = target.dataset.cond;
+        if (!id || !cond) return;
+
+        const combat = getCurrentCombat(cid);
+        const combatant = combat?.combatants.find((c) => c.id === id);
+        if (combatant) {
+          const newConditions = combatant.conditions.filter((c) => c !== cond);
+          await updateCombatant(cid, id, { conditions: newConditions });
+        }
+      });
+    });
+
+    // Abrir popover de condiciones
+    rootEl?.querySelectorAll('.dm-add-condition-btn').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const target = e.currentTarget as HTMLElement;
+        const id = target.dataset.id;
+        if (!id) return;
+
+        activeConditionCombatantId = id;
+        openConditionPopover(target);
+      });
+    });
+
+    // Toggle Hidden HP
+    rootEl?.querySelectorAll('.dm-toggle-hidden-hp-btn').forEach((btn) => {
+      btn.addEventListener('click', async (e) => {
+        const target = e.currentTarget as HTMLElement;
+        const id = target.dataset.id;
+        const currentlyHidden = target.dataset.hidden === 'true';
+        if (!id) return;
+        await updateCombatant(cid, id, { hiddenHp: !currentlyHidden });
+      });
+    });
+
+    // Duplicar combatiente
+    rootEl?.querySelectorAll('.dm-duplicate-btn').forEach((btn) => {
+      btn.addEventListener('click', async (e) => {
+        const target = e.currentTarget as HTMLElement;
+        const id = target.dataset.id;
+        if (!id) return;
+        await duplicateCombatantInCombat(cid, id, 1);
+      });
+    });
+
+    // Eliminar combatiente
+    rootEl?.querySelectorAll('.dm-remove-combatant-btn').forEach((btn) => {
+      btn.addEventListener('click', async (e) => {
+        const target = e.currentTarget as HTMLElement;
+        const id = target.dataset.id;
+        const name = target.dataset.name || 'combatiente';
+        if (!id) return;
+
+        const ok = await showConfirm(`¿Eliminar a ${name} del combate?`, {
+          title: 'Quitar combatiente',
+          danger: true,
+          confirmText: 'Eliminar',
+        });
+
+        if (ok) {
+          await removeCombatantFromCombat(cid, id);
+        }
+      });
+    });
+  }
+
+  function openConditionPopover(triggerEl: HTMLElement) {
+    if (!conditionPopover || !conditionList || !currentCampaignId || !activeConditionCombatantId) return;
+
+    const combat = getCurrentCombat(currentCampaignId);
+    const combatant = combat?.combatants.find((c) => c.id === activeConditionCombatantId);
+    const currentConds = new Set(combatant?.conditions || []);
+
+    conditionList.innerHTML = '';
+    DND_CONDITIONS.forEach((cond) => {
+      const active = currentConds.has(cond.id);
+      const item = document.createElement('button');
+      item.type = 'button';
+      item.className = `flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-[11px] font-bold border text-left cursor-pointer transition-colors ${
+        active
+          ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+          : 'bg-[#18202e] border-[#222f42] text-[#94a3b8] hover:text-[#f1f5f9]'
+      }`;
+
+      item.innerHTML = `
+        <span class="material-symbols-outlined text-[14px]">${cond.icon}</span>
+        <span class="truncate">${cond.name}</span>
+        ${active ? '<span class="ml-auto text-[10px]">✓</span>' : ''}
+      `;
+
+      item.addEventListener('click', async () => {
+        if (!currentCampaignId || !activeConditionCombatantId) return;
+        const targetCombatant = getCurrentCombat(currentCampaignId)?.combatants.find(
+          (c) => c.id === activeConditionCombatantId
+        );
+        if (!targetCombatant) return;
+
+        let nextConds: string[];
+        if (targetCombatant.conditions.includes(cond.id)) {
+          nextConds = targetCombatant.conditions.filter((c) => c !== cond.id);
+        } else {
+          nextConds = [...targetCombatant.conditions, cond.id];
+        }
+
+        await updateCombatant(currentCampaignId, activeConditionCombatantId, {
+          conditions: nextConds,
+        });
+
+        closeConditionPopover();
+      });
+
+      conditionList.appendChild(item);
+    });
+
+    const rect = triggerEl.getBoundingClientRect();
+    conditionPopover.style.top = `${Math.min(window.innerHeight - 300, rect.bottom + 8)}px`;
+    conditionPopover.style.left = `${Math.max(16, Math.min(window.innerWidth - 300, rect.left - 100))}px`;
+    conditionPopover.classList.remove('hidden');
+  }
+
+  function closeConditionPopover() {
+    conditionPopover?.classList.add('hidden');
+    activeConditionCombatantId = null;
+  }
+
+  // --- Modal Iniciar Combate ---
+  function openStartModal() {
+    if (!currentCampaignId || !modalPlayersList || !startModal) return;
+
+    const players = buildPlayerCombatants(currentCampaignId);
+    modalPlayersList.innerHTML = '';
+
+    if (players.length === 0) {
+      modalPlayersList.innerHTML = `
+        <p class="text-xs text-[#94a3b8] italic p-2 bg-[#18202e] rounded-lg">
+          No hay aventureros asignados a esta campaña. Podés agregar oponentes abajo.
+        </p>
+      `;
+    } else {
+      players.forEach((p) => {
+        const item = document.createElement('div');
+        item.className = 'flex items-center justify-between gap-3 p-2 rounded-lg bg-[#18202e] border border-[#222f42]';
+        item.innerHTML = `
+          <div class="min-w-0">
+            <span class="text-xs font-bold text-[#f1f5f9] truncate block">${p.name}</span>
+            <span class="text-[10px] text-[#94a3b8]">PG: ${p.hp}/${p.maxHp} • CA: ${p.ac || 10}</span>
+          </div>
+          <div class="flex items-center gap-1.5 shrink-0">
+            <label class="text-[10px] text-[#94a3b8]">Inic:</label>
+            <input
+              type="number"
+              class="dm-player-init-input w-14 px-2 py-1 rounded bg-[#10141d] border border-[#222f42] text-xs font-bold text-[#cbd5e1] text-center"
+              data-char-id="${p.characterId}"
+              data-name="${p.name}"
+              data-hp="${p.hp}"
+              data-max-hp="${p.maxHp}"
+              data-ac="${p.ac}"
+              data-owner="${p.ownerUid || ''}"
+              value="${p.initiative}"
+            />
+          </div>
+        `;
+        modalPlayersList.appendChild(item);
+      });
+    }
+
+    startModal.classList.remove('hidden');
+  }
+
+  function closeStartModal() {
+    startModal?.classList.add('hidden');
+  }
+
+  // --- Event listeners de controles ---
+  startCombatBtn?.addEventListener('click', openStartModal);
+  startEmptyBtn?.addEventListener('click', openStartModal);
+  modalCloseBtn?.addEventListener('click', closeStartModal);
+  modalCancelBtn?.addEventListener('click', closeStartModal);
+
+  conditionCloseBtn?.addEventListener('click', closeConditionPopover);
+  document.addEventListener('click', (e) => {
+    if (conditionPopover && !conditionPopover.contains(e.target as Node)) {
+      closeConditionPopover();
+    }
+  });
+
+  // Tirar d20 para todos en el modal
+  rollAllInitBtn?.addEventListener('click', () => {
+    const inputs = modalPlayersList?.querySelectorAll<HTMLInputElement>('.dm-player-init-input');
+    inputs?.forEach((input) => {
+      const roll = Math.floor(Math.random() * 20) + 1;
+      input.value = String(roll);
+    });
+  });
+
+  // Confirmar inicio de combate
+  modalConfirmBtn?.addEventListener('click', async () => {
+    if (!currentCampaignId) return;
+
+    const combatants: Combatant[] = [];
+
+    // 1. Jugadores
+    const playerInputs = modalPlayersList?.querySelectorAll<HTMLInputElement>('.dm-player-init-input');
+    playerInputs?.forEach((input) => {
+      const charId = input.dataset.charId || '';
+      const name = input.dataset.name || 'Aventurero';
+      const initVal = Number(input.value) || 10;
+      const hp = Number(input.dataset.hp) || 10;
+      const maxHp = Number(input.dataset.maxHp) || 10;
+      const ac = Number(input.dataset.ac) || 10;
+      const ownerUid = input.dataset.owner || undefined;
+
+      combatants.push({
+        id: `pc-${charId}-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+        name,
+        initiative: initVal,
+        hp,
+        maxHp,
+        ac,
+        conditions: [],
+        isPlayer: true,
+        hiddenHp: false,
+        ownerUid,
+        characterId: charId,
+      });
+    });
+
+    // 2. Monstruo inicial si se completó
+    const monsterNameInput = document.getElementById('dm-init-monster-name') as HTMLInputElement;
+    const monsterInitInput = document.getElementById('dm-init-monster-init') as HTMLInputElement;
+    const monsterHpInput = document.getElementById('dm-init-monster-hp') as HTMLInputElement;
+    const monsterAcInput = document.getElementById('dm-init-monster-ac') as HTMLInputElement;
+    const monsterQtyInput = document.getElementById('dm-init-monster-qty') as HTMLInputElement;
+
+    const mName = monsterNameInput?.value.trim();
+    if (mName) {
+      const mInit = Number(monsterInitInput?.value) || 10;
+      const mHp = Number(monsterHpInput?.value) || 10;
+      const mAc = Number(monsterAcInput?.value) || 10;
+      const mQty = Math.max(1, Number(monsterQtyInput?.value) || 1);
+
+      for (let i = 1; i <= mQty; i++) {
+        combatants.push({
+          id: `npc-${Date.now()}-${i}-${Math.random().toString(36).substring(2, 6)}`,
+          name: mQty > 1 ? `${mName} ${i}` : mName,
+          initiative: mInit,
+          hp: mHp,
+          maxHp: mHp,
+          ac: mAc,
+          conditions: [],
+          isPlayer: false,
+          hiddenHp: true,
+        });
+      }
+    }
+
+    if (combatants.length === 0) {
+      await showAlert('Debes incluir al menos un combatiente para iniciar el encuentro.', { kind: 'warning' });
+      return;
+    }
+
+    try {
+      await startCombat(currentCampaignId, combatants);
+      closeStartModal();
+      // Limpiar campos de monstruo inicial
+      if (monsterNameInput) monsterNameInput.value = '';
+      if (monsterInitInput) monsterInitInput.value = '';
+      if (monsterHpInput) monsterHpInput.value = '';
+      if (monsterAcInput) monsterAcInput.value = '';
+      if (monsterQtyInput) monsterQtyInput.value = '1';
+    } catch (err: any) {
+      await showAlert(err?.message || 'Error al iniciar combate.', { kind: 'error' });
+    }
+  });
+
+  // Siguiente Turno
+  nextTurnBtn?.addEventListener('click', async () => {
+    if (!currentCampaignId) return;
+    try {
+      await advanceTurn(currentCampaignId);
+    } catch (err: any) {
+      console.warn('Error avanzando turno:', err);
+    }
+  });
+
+  // Turno Anterior
+  prevTurnBtn?.addEventListener('click', async () => {
+    if (!currentCampaignId) return;
+    try {
+      await previousTurn(currentCampaignId);
+    } catch (err: any) {
+      console.warn('Error retrocediendo turno:', err);
+    }
+  });
+
+  // Agregar Monstruo durante el combate
+  addMonsterBtn?.addEventListener('click', async () => {
+    if (!currentCampaignId) return;
+
+    const formResult = await showForm([
+      { name: 'name', label: 'Nombre del Oponente / Monstruo', type: 'text', placeholder: 'Ej. Orco', required: true },
+      { name: 'init', label: 'Iniciativa', type: 'number', placeholder: '12', value: 10, required: true },
+      { name: 'hp', label: 'Puntos de Golpe (PG Máx)', type: 'number', placeholder: '15', value: 15, required: true },
+      { name: 'ac', label: 'Clase de Armadura (CA)', type: 'number', placeholder: '13', value: 13 },
+      { name: 'qty', label: 'Cantidad', type: 'number', value: 1, min: 1 },
+    ], { title: 'Agregar Oponente al Combate' });
+
+    if (!formResult || !formResult.name) return;
+
+    const qty = Math.max(1, Number(formResult.qty) || 1);
+    const mName = String(formResult.name).trim();
+    const mInit = Number(formResult.init) || 10;
+    const mHp = Number(formResult.hp) || 10;
+    const mAc = Number(formResult.ac) || 10;
+
+    for (let i = 1; i <= qty; i++) {
+      const newCombatant: Combatant = {
+        id: `npc-${Date.now()}-${i}-${Math.random().toString(36).substring(2, 6)}`,
+        name: qty > 1 ? `${mName} ${i}` : mName,
+        initiative: mInit,
+        hp: mHp,
+        maxHp: mHp,
+        ac: mAc,
+        conditions: [],
+        isPlayer: false,
+        hiddenHp: true,
+      };
+      await addCombatant(currentCampaignId, newCombatant);
+    }
+  });
+
+  // Terminar Combate
+  endCombatBtn?.addEventListener('click', async () => {
+    if (!currentCampaignId) return;
+
+    const ok = await showConfirm('¿Estás seguro de finalizar el combate? Se guardará el registro en la bitácora pública.', {
+      title: 'Terminar Combate',
+      danger: true,
+      confirmText: 'Finalizar Combate',
+    });
+
+    if (ok) {
+      await endCombat(currentCampaignId);
+    }
+  });
+
+  // Escuchar eventos globales
+  window.addEventListener('DOMContentLoaded', init);
+  window.addEventListener('popstate', init);
+  window.addEventListener('campaign-activated', init);
+  window.addEventListener('campaigns-updated', init);
+  window.addEventListener('session-status-changed', updateStatusLock);
+
+  if (document.readyState === 'complete' || document.readyState === 'interactive') {
+    init();
+  }
+</script>

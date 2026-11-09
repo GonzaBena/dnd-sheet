@@ -1,0 +1,275 @@
+---
+// src/components/party/InitiativeList.astro
+// Vista de iniciativa y turnos para los jugadores en la mesa de partida (/partida).
+---
+
+<div
+  id="party-initiative-root"
+  class="w-full rounded-2xl bg-[#121721] border border-[#222f42] p-5 shadow-sm space-y-4"
+>
+  <!-- ENCABEZADO -->
+  <div class="flex items-center justify-between gap-3 pb-3 border-b border-[#222f42]">
+    <div class="flex items-center gap-2.5">
+      <div class="w-9 h-9 rounded-xl bg-rose-500/15 border border-rose-500/30 flex items-center justify-center text-rose-400">
+        <span class="material-symbols-outlined text-[20px]">swords</span>
+      </div>
+      <div>
+        <h3 class="text-sm font-headline font-bold text-[#f1f5f9] leading-tight">
+          Iniciativa y Turnos
+        </h3>
+        <p class="text-[11px] text-[#94a3b8] font-label">
+          Combate en tiempo real
+        </p>
+      </div>
+    </div>
+
+    <!-- BADGE DE ESTADO / RONDA -->
+    <div id="party-round-badge" class="hidden items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 text-xs font-bold font-label">
+      <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+      <span id="party-round-text">Ronda 1</span>
+    </div>
+  </div>
+
+  <!-- ESTADO SIN COMBATE -->
+  <div
+    id="party-no-combat"
+    class="py-12 px-4 text-center space-y-3"
+  >
+    <div class="w-12 h-12 mx-auto rounded-2xl bg-[#18202e] border border-[#222f42] flex items-center justify-center text-[#94a3b8]">
+      <span class="material-symbols-outlined text-[24px]">shield</span>
+    </div>
+    <div class="space-y-1">
+      <p class="text-xs font-bold text-[#cbd5e1]">Sin combate en curso</p>
+      <p class="text-[11px] text-[#94a3b8] max-w-xs mx-auto leading-relaxed">
+        El orden de turnos, asaltos y condiciones aparecerán acá cuando el Dungeon Master inicie un encuentro.
+      </p>
+    </div>
+  </div>
+
+  <!-- LISTA DE COMBATIENTES -->
+  <div
+    id="party-combat-list"
+    class="hidden space-y-2.5 max-h-[550px] overflow-y-auto pr-1"
+  >
+    <!-- Se llena dinámicamente -->
+  </div>
+</div>
+
+<script>
+  import anime from 'animejs';
+  import { subscribeCombat } from '../../scripts/data/combatService.ts';
+  import { visibleHp } from '../../scripts/vtt/initiative.ts';
+  import { getConditionInfo } from '../../scripts/vtt/conditions.ts';
+  import { campaignStore } from '../../scripts/state/campaignStore.ts';
+  import { userStore } from '../../scripts/state/userStore.ts';
+  import { animateHpBar } from '../../scripts/animations/hpAnimations.ts';
+  import type { Combat, Combatant } from '../../scripts/models/combat.ts';
+
+  let currentCampaignId: string | null = null;
+  let unsubscribe: (() => void) | null = null;
+  let previousHpMap = new Map<string, number>();
+  let previousTurnIndex = -1;
+
+  const rootEl = document.getElementById('party-initiative-root');
+  const roundBadgeEl = document.getElementById('party-round-badge');
+  const roundTextEl = document.getElementById('party-round-text');
+  const noCombatEl = document.getElementById('party-no-combat');
+  const listEl = document.getElementById('party-combat-list');
+
+  function init() {
+    const params = new URLSearchParams(window.location.search);
+    const cid = params.get('id') || params.get('campaign') || campaignStore.getActiveCampaignId();
+
+    if (cid && cid !== currentCampaignId) {
+      if (unsubscribe) {
+        unsubscribe();
+        unsubscribe = null;
+      }
+      currentCampaignId = cid;
+      unsubscribe = subscribeCombat(cid, (combat) => {
+        renderCombat(combat);
+      });
+    }
+  }
+
+  function renderCombat(combat: Combat | null) {
+    if (!combat || !combat.active || combat.combatants.length === 0) {
+      if (roundBadgeEl) roundBadgeEl.classList.add('hidden');
+      if (roundBadgeEl) roundBadgeEl.classList.remove('flex');
+      if (noCombatEl) noCombatEl.classList.remove('hidden');
+      if (listEl) {
+        listEl.classList.add('hidden');
+        listEl.innerHTML = '';
+      }
+      previousTurnIndex = -1;
+      return;
+    }
+
+    if (noCombatEl) noCombatEl.classList.add('hidden');
+    if (roundBadgeEl) {
+      roundBadgeEl.classList.remove('hidden');
+      roundBadgeEl.classList.add('flex');
+    }
+    if (roundTextEl) roundTextEl.textContent = `Ronda ${combat.round}`;
+    if (listEl) listEl.classList.remove('hidden');
+
+    const currentUser = userStore.getCurrentUser();
+    const viewer = {
+      uid: currentUser?.id || '',
+      isDm: currentCampaignId ? campaignStore.isCurrentUserDm(currentCampaignId) : false,
+    };
+
+    const isNewTurn = previousTurnIndex !== combat.turnIndex;
+    previousTurnIndex = combat.turnIndex;
+
+    if (!listEl) return;
+    listEl.innerHTML = '';
+
+    combat.combatants.forEach((c, idx) => {
+      const isCurrentTurn = idx === combat.turnIndex;
+      const isOwnCharacter = Boolean(c.ownerUid && c.ownerUid === viewer.uid);
+      const hpData = visibleHp(c, viewer);
+      const isDead = hpData ? hpData.hp <= 0 : false;
+
+      const itemEl = document.createElement('div');
+      itemEl.id = `party-combatant-${c.id}`;
+      itemEl.className = [
+        'relative rounded-xl p-3 border transition-all duration-200',
+        isCurrentTurn
+          ? 'bg-amber-500/10 border-amber-500/70 shadow-[0_0_15px_rgba(245,158,11,0.25)]'
+          : 'bg-[#18202e] border-[#222f42] hover:border-slate-700',
+        isOwnCharacter ? 'ring-1 ring-blue-500/40' : '',
+        isDead ? 'opacity-50 grayscale-20' : '',
+      ].filter(Boolean).join(' ');
+
+      // Contenido principal
+      itemEl.innerHTML = `
+        <div class="flex items-center justify-between gap-2.5">
+          <div class="flex items-center gap-2.5 min-w-0">
+            <!-- Píldora de iniciativa -->
+            <div class="w-8 h-8 rounded-lg shrink-0 flex items-center justify-center font-bold text-xs ${
+              isCurrentTurn
+                ? 'bg-amber-500 text-[#0a0d12] shadow-xs'
+                : 'bg-[#10141d] border border-[#222f42] text-[#cbd5e1]'
+            }" title="Iniciativa: ${c.initiative}">
+              ${c.initiative}
+            </div>
+
+            <!-- Nombre e identificadores -->
+            <div class="min-w-0">
+              <div class="flex items-center gap-1.5 flex-wrap">
+                <span class="text-xs font-bold text-[#f1f5f9] truncate">
+                  ${c.name}
+                </span>
+                ${
+                  isOwnCharacter
+                    ? '<span class="px-1.5 py-0.2 rounded bg-blue-500/20 text-blue-300 border border-blue-500/40 text-[9px] font-bold">TÚ</span>'
+                    : ''
+                }
+                ${
+                  isCurrentTurn
+                    ? '<span class="px-1.5 py-0.2 rounded bg-amber-500/25 text-amber-300 border border-amber-500/50 text-[9px] font-bold animate-pulse">TURNO</span>'
+                    : ''
+                }
+              </div>
+
+              <!-- CA y Estado básico -->
+              <div class="flex items-center gap-2 text-[10px] text-[#94a3b8] font-label mt-0.5">
+                ${c.ac !== undefined ? `<span>CA ${c.ac}</span> • ` : ''}
+                <span>${c.isPlayer ? 'Personaje' : 'Oponente'}</span>
+                ${isDead ? '<span class="text-rose-400 font-bold">• Inconsciente</span>' : ''}
+              </div>
+            </div>
+          </div>
+
+          <!-- PG (RF-04: solo si visibleHp lo autoriza) -->
+          <div class="shrink-0 text-right min-w-[70px]">
+            ${
+              hpData
+                ? `
+                <div class="text-xs font-bold font-mono text-[#cbd5e1]">
+                  <span id="hp-num-${c.id}">${hpData.hp}</span><span class="text-[#64748b]">/${hpData.maxHp}</span>
+                </div>
+                <div class="w-16 h-1.5 bg-[#10141d] rounded-full overflow-hidden mt-1 border border-[#222f42]">
+                  <div
+                    id="hp-bar-${c.id}"
+                    class="h-full rounded-full transition-all ${
+                      hpData.hp <= hpData.maxHp * 0.25
+                        ? 'bg-rose-500'
+                        : hpData.hp <= hpData.maxHp * 0.5
+                        ? 'bg-amber-500'
+                        : 'bg-emerald-500'
+                    }"
+                    style="width: ${Math.max(0, Math.min(100, (hpData.hp / hpData.maxHp) * 100))}%"
+                  ></div>
+                </div>
+              `
+                : `
+                <div class="text-xs font-bold font-mono text-[#64748b]" title="PG ocultos por el DM">
+                  —
+                </div>
+              `
+            }
+          </div>
+        </div>
+
+        <!-- Condiciones activas -->
+        ${
+          c.conditions && c.conditions.length > 0
+            ? `
+          <div class="flex flex-wrap gap-1 mt-2 pt-2 border-t border-[#222f42]/60">
+            ${c.conditions
+              .map((condId) => {
+                const info = getConditionInfo(condId);
+                return `
+                <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold border ${info.color}">
+                  <span class="material-symbols-outlined text-[12px]">${info.icon}</span>
+                  <span>${info.name}</span>
+                </span>
+              `;
+              })
+              .join('')}
+          </div>
+        `
+            : ''
+        }
+      `;
+
+      listEl.appendChild(itemEl);
+
+      // Animación de PG con animateHpBar si cambió el valor numérico
+      if (hpData) {
+        const prevHp = previousHpMap.get(c.id);
+        if (prevHp !== undefined && prevHp !== hpData.hp) {
+          const barEl = itemEl.querySelector(`#hp-bar-${c.id}`) as HTMLElement;
+          const numEl = itemEl.querySelector(`#hp-num-${c.id}`) as HTMLElement;
+          if (barEl && numEl) {
+            animateHpBar(barEl, numEl, prevHp, hpData.hp, hpData.maxHp);
+          }
+        }
+        previousHpMap.set(c.id, hpData.hp);
+      }
+
+      // Animación de pulso si es el turno activo y acaba de cambiar de turno (T-13)
+      if (isCurrentTurn && isNewTurn) {
+        itemEl.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        anime({
+          targets: itemEl,
+          scale: [1, 1.025, 1],
+          duration: 400,
+          easing: 'easeOutQuad',
+        });
+      }
+    });
+  }
+
+  // Inicialización y eventos
+  window.addEventListener('DOMContentLoaded', init);
+  window.addEventListener('popstate', init);
+  window.addEventListener('campaign-activated', init);
+  window.addEventListener('campaigns-updated', init);
+
+  if (document.readyState === 'complete' || document.readyState === 'interactive') {
+    init();
+  }
+</script>

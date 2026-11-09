@@ -338,11 +338,11 @@ Orden pensado para tener algo usable en cada fase. Cada fase termina con un buil
 
 Es la parte más usada por un DM y valida el flujo en vivo con la menor complejidad.
 
-- [ ] T-10 `combatService.ts`: suscripción a `combat/current` y funciones para agregar, editar y quitar combatientes.
-- [ ] T-11 UI del DM: lista ordenada, turno actual resaltado, HP y condiciones editables, botón siguiente turno.
-- [ ] T-12 Vista de jugador: orden de turnos y propio HP (RF-04).
-- [ ] T-13 Animación anime.js al cambiar de turno y al bajar el HP.
-- [ ] T-14 Registrar en la bitácora el inicio y fin del combate.
+- [x] T-10 `combatService.ts`: suscripción a `combat/current` y funciones para agregar, editar y quitar combatientes.
+- [x] T-11 UI del DM: lista ordenada, turno actual resaltado, HP y condiciones editables, botón siguiente turno.
+- [x] T-12 Vista de jugador: orden de turnos y propio HP (RF-04).
+- [x] T-13 Animación anime.js al cambiar de turno y al bajar el HP.
+- [x] T-14 Registrar en la bitácora el inicio y fin del combate.
 
 ### Fase 2 — Mapa estático
 
