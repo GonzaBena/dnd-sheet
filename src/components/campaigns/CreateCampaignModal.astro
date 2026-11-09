@@ -189,6 +189,7 @@ import { CAMPAIGN_PRESET_IMAGES } from '../../scripts/state/campaignStore';
 </div>
 
 <script>
+  import { showAlert, showConfirm, showForm } from '../../scripts/ui/notify';
   import { campaignStore, CAMPAIGN_PRESET_IMAGES } from '../../scripts/state/campaignStore';
   import { userStore } from '../../scripts/state/userStore';
   import { openModal, closeModal } from '../../scripts/animations/modalAnimations';
@@ -213,17 +214,26 @@ import { CAMPAIGN_PRESET_IMAGES } from '../../scripts/state/campaignStore';
   const submitTextEl = document.getElementById('campaign-form-submit-text');
   const deleteBtn = document.getElementById('btn-delete-campaign-from-modal');
 
-  function populateDmSelect(selectedUserId?: string) {
+  const addUserBtn = document.getElementById('btn-add-user-to-system');
+  if (campaignStore.isCloudMode()) {
+    // Con cuentas reales no se crean usuarios a mano: entran con el código de invitación.
+    addUserBtn?.classList.add('hidden');
+  }
+
+  function populateDmSelect(selectedUserId?: string, campaignId?: string) {
     if (!dmSelect) return;
     dmSelect.innerHTML = '';
-    const users = userStore.getUsers();
     const currentUser = userStore.getCurrentUser();
+    // En la nube quien crea es el DM (lo exigen las rules); al editar, el DM sale de los miembros.
+    const users = campaignStore.isCloudMode()
+      ? (campaignId ? campaignStore.getCampaignMembers(campaignId) : [currentUser])
+      : userStore.getUsers();
 
     users.forEach(u => {
       const opt = document.createElement('option');
       opt.value = u.id;
       const isMe = u.id === currentUser.id;
-      opt.textContent = `${u.name} ${isMe ? '(Tú)' : ''} [${u.email}]`;
+      opt.textContent = `${u.name} ${isMe ? '(Tú)' : ''}${u.email ? ` [${u.email}]` : ''}`;
       if (selectedUserId ? u.id === selectedUserId : isMe) {
         opt.selected = true;
       }
@@ -232,11 +242,15 @@ import { CAMPAIGN_PRESET_IMAGES } from '../../scripts/state/campaignStore';
   }
 
   // Add new user button
-  document.getElementById('btn-add-user-to-system')?.addEventListener('click', () => {
-    const name = prompt('Nombre del nuevo usuario/jugador:');
-    if (!name || !name.trim()) return;
-    const email = prompt('Email del nuevo usuario (opcional):', `${name.toLowerCase().replace(/\s+/g, '')}@dnd.local`);
-    const newUser = userStore.createUser(name, email || undefined);
+  addUserBtn?.addEventListener('click', async () => {
+    const values = await showForm([
+      { name: 'name', label: 'Nombre', placeholder: 'ej: Elena V.', required: true },
+      { name: 'email', label: 'Email (opcional)', type: 'email', placeholder: 'elena@dnd.local' },
+    ], { title: 'Añadir nuevo usuario', confirmText: 'Añadir' });
+    if (!values || !values.name.trim()) return;
+    const name = values.name.trim();
+    const email = values.email.trim() || `${name.toLowerCase().replace(/\s+/g, '')}@dnd.local`;
+    const newUser = userStore.createUser(name, email);
     populateDmSelect(newUser.id);
   });
 
@@ -276,7 +290,7 @@ import { CAMPAIGN_PRESET_IMAGES } from '../../scripts/state/campaignStore';
     if (nameInp) nameInp.value = camp.name;
     if (descInp) descInp.value = camp.description;
     if (settingInp) settingInp.value = camp.setting;
-    populateDmSelect(camp.dmId);
+    populateDmSelect(camp.dmId, camp.id);
     if (imgInp) imgInp.value = camp.imageUrl;
     if (sessionInp) sessionInp.value = String(camp.sessionNumber);
     if (weatherInp) weatherInp.value = camp.weather;
@@ -306,19 +320,21 @@ import { CAMPAIGN_PRESET_IMAGES } from '../../scripts/state/campaignStore';
   closeBtn?.addEventListener('click', closeMe);
   cancelBtn?.addEventListener('click', closeMe);
 
-  deleteBtn?.addEventListener('click', () => {
+  deleteBtn?.addEventListener('click', async () => {
     const editId = editIdInp.value;
     if (!editId) return;
     const camp = campaignStore.getCampaign(editId);
     if (!camp) return;
-    if (!confirm(`⚠️ ¿Cerrar y eliminar la campaña "${camp.name}"?\nTodos los personajes quedarán como independientes para sus usuarios.`)) return;
+    if (!(await showConfirm('Todos los personajes quedarán como independientes para sus usuarios.', {
+      title: `¿Eliminar "${camp.name}"?`, confirmText: 'Eliminar campaña', danger: true,
+    }))) return;
     try {
       campaignStore.deleteCampaign(editId);
       closeMe();
       window.dispatchEvent(new CustomEvent('campaigns-updated'));
-      alert(`La campaña "${camp.name}" ha sido eliminada.`);
+      showAlert(`La campaña "${camp.name}" ha sido eliminada.`, { kind: 'success' });
     } catch (err: any) {
-      alert(`Error al eliminar campaña: ${err?.message || err}`);
+      showAlert(`Error al eliminar campaña: ${err?.message || err}`, { kind: 'error' });
     }
   });
 

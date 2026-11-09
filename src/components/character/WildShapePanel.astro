@@ -4,8 +4,9 @@
 
 <div class="rounded-xl bg-[#121721] border border-emerald-500/30 p-5 shadow-sm" id="wild-shape-panel">
   <!-- Header -->
-  <div class="flex flex-wrap items-center justify-between gap-2 mb-4 pb-3 border-b border-[#222f42]">
+  <div class="flex flex-wrap items-center justify-between gap-2 mb-4 pb-3 border-b border-[#222f42] select-none section-header-bar">
     <div class="flex items-center gap-2">
+      <span class="section-drag-handle material-symbols-outlined text-[#64748b] hover:text-emerald-400 cursor-grab text-[18px] transition-colors" title="Arrastrar para reordenar">drag_indicator</span>
       <div class="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center border border-emerald-500/30">
         <span class="material-symbols-outlined text-[20px]">pets</span>
       </div>
@@ -30,11 +31,24 @@
       >
         Descanso
       </button>
+      <button
+        type="button"
+        class="section-collapse-btn w-6 h-6 rounded-md bg-[#18202e] border border-[#222f42] hover:border-emerald-500/40 text-[#94a3b8] hover:text-[#f1f5f9] flex items-center justify-center transition-colors cursor-pointer"
+        title="Colapsar / Expandir sección"
+        aria-label="Colapsar o expandir"
+      >
+        <span class="material-symbols-outlined section-collapse-icon text-[18px]">expand_less</span>
+      </button>
     </div>
   </div>
 
-  <!-- Active Transformation Card (if transformed) -->
-  <div id="ws-active-card" class="hidden mb-4 p-4 rounded-xl bg-gradient-to-r from-emerald-950/30 via-[#18202e] to-[#18202e] border-2 border-emerald-500/60 shadow-[0_0_20px_rgba(16,185,129,0.15)]">
+  <div class="section-collapsed-summary hidden text-[11px] text-emerald-400/80 font-label pb-2">
+    Formas salvajes y bestiario druídico disponible
+  </div>
+
+  <div class="section-body space-y-4">
+    <!-- Active Transformation Card (if transformed) -->
+    <div id="ws-active-card" class="hidden p-4 rounded-xl bg-gradient-to-r from-emerald-950/30 via-[#18202e] to-[#18202e] border-2 border-emerald-500/60 shadow-[0_0_20px_rgba(16,185,129,0.15)]">
     <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
       <div class="flex items-center gap-2.5">
         <span class="material-symbols-outlined text-emerald-400 text-[24px]">cruelty_free</span>
@@ -89,13 +103,15 @@
   <!-- Beast Selection Grid (When not transformed or choosing next form) -->
   <div class="space-y-2">
     <span class="text-xs font-headline font-bold text-[#94a3b8] uppercase tracking-wider block">Transformarse en Bestia:</span>
-    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs font-label" id="ws-beasts-grid">
+    <div class="masonry-layout-2 text-xs font-label" id="ws-beasts-grid">
       <!-- Populated by JS -->
     </div>
+  </div>
   </div>
 </div>
 
 <script>
+  import { showAlert } from '../../scripts/ui/notify';
   import { characterStore } from '../../scripts/state/characterStore';
   import { openModal } from '../../scripts/animations/modalAnimations';
 
@@ -211,7 +227,7 @@
       beastsGrid.innerHTML = '';
       PRESET_BEASTS.forEach((b) => {
         const card = document.createElement('div');
-        card.className = 'p-2.5 rounded-lg bg-[#18202e] border border-[#222f42] hover:border-emerald-500/40 flex items-center justify-between transition-colors';
+        card.className = 'masonry-item p-2.5 rounded-lg bg-[#18202e] border border-[#222f42] hover:border-emerald-500/40 flex items-center justify-between transition-colors';
         card.innerHTML = `
           <div>
             <div class="flex items-center gap-1.5">
@@ -227,7 +243,7 @@
 
         card.querySelector('.transform-btn')?.addEventListener('click', () => {
           if (ws.usesRemaining <= 0) {
-            alert('No te quedan usos de Forma Salvaje. Realiza un descanso corto para recuperar.');
+            showAlert('No te quedan usos de Forma Salvaje. Realiza un descanso corto para recuperar.', { kind: 'warning', title: 'Forma Salvaje' });
             return;
           }
           characterStore.transformWildShape(JSON.parse(JSON.stringify(b)));

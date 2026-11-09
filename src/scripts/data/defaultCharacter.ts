@@ -10,6 +10,7 @@ export const defaultCharacter: CharacterData = {
   subclass: 'Cónclave Umbrío',
   level: 5,
   proficiencyBonus: 3,
+  rulesEdition: '2024',
   inspiration: true,
   avatarUrl: 'https://lh3.googleusercontent.com/aida/ALJJyrBB58Th1LIT7lpeirKCc7greaknxjOFNsUVNXZz77F5UWABzUCxDIFrQsVH-v4M8A0YgzwBmDWfYKMutfm3_bdT3-V88pDbTqbx_y9NSuqyMrjiqmBJFvMng6gAO_JzyQ-W01nJjgrp1Vet0W6NkBOEMRrfEvwxOJ23tXexyZedPfyPSJf0S-NEBKVoih8xE_7kPjBiWbV5F_mIeuzrCDq9-2Qj9c1VoQCcRXRuCkddZQ',
   quote: '"Superviviente de los Bosques Olvidados. Juramentado a cazar los terrores que se ocultan en la niebla perpetua."',
@@ -208,7 +209,13 @@ export const defaultCharacter: CharacterData = {
     showInventory: true,
     showJournal: true,
     showSkills: true,
-    classPreset: 'custom'
+    classPreset: 'custom',
+    sectionOrder: {
+      col1: ['abilities', 'saves', 'skills', 'features'],
+      col2: ['weapons', 'wildshape', 'currency', 'backpack', 'spells'],
+      unifiedOrder: ['abilities', 'saves', 'skills', 'features', 'weapons', 'wildshape', 'currency', 'backpack', 'spells']
+    },
+    collapsedSections: []
   },
   
   features: [

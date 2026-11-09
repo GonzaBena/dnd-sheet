@@ -29,6 +29,7 @@ export interface AttackAction {
   damageDice?: string;
   damageBonusMod?: number;
   addAbilityToDamage?: boolean;
+  mastery?: string;
   notes?: string;
 }
 
@@ -78,6 +79,12 @@ export interface WildShapeForm {
   attacks: { name: string; bonus: string; damage: string }[];
 }
 
+export interface SectionOrderConfig {
+  col1: string[];
+  col2: string[];
+  unifiedOrder?: string[];
+}
+
 export interface LayoutConfig {
   activeTab: 'all' | 'combat' | 'skills' | 'spells' | 'wildshape' | 'inventory' | 'journal';
   showSpells: boolean;
@@ -87,6 +94,8 @@ export interface LayoutConfig {
   showJournal: boolean;
   showSkills: boolean;
   classPreset?: 'custom' | 'wizard' | 'druid' | 'fighter' | 'rogue' | 'cleric';
+  sectionOrder?: SectionOrderConfig;
+  collapsedSections?: string[];
 }
 
 export interface CharacterData {
@@ -102,6 +111,7 @@ export interface CharacterData {
   subclass: string;
   level: number;
   proficiencyBonus: number;
+  rulesEdition?: '2024' | '2014';
   inspiration: boolean;
   avatarUrl: string;
   quote: string;

@@ -292,8 +292,9 @@
         content: `Tirada de ${formulaStr} con resultado ${res.total} (Dados: [${rollDetails}]${modDetails}).${critFumbleText}`,
         tags: tagsList,
         isSecret: isSecret,
-        isPrivate: isSecret,
-        characterId: currentChar?.id,
+        isDmOnly: (isSecret && isDm) || undefined,
+        isPlayerOnly: (isSecret && !isDm) || undefined,
+        characterId: isDm ? undefined : currentChar?.id,
         authorName: isDm ? (activeCamp?.dmName || 'Dungeon Master') : (currentChar?.name || 'Aventurero'),
         diceRoll: {
           formula: `${formulaStr} (${rollContext.label})`,

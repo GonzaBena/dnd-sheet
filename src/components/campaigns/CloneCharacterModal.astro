@@ -93,6 +93,7 @@
 </div>
 
 <script>
+  import { showAlert } from '../../scripts/ui/notify';
   import { campaignStore } from '../../scripts/state/campaignStore';
   import { characterStore } from '../../scripts/state/characterStore';
   import { userStore } from '../../scripts/state/userStore';
@@ -108,6 +109,8 @@
   const targetSelect = document.getElementById('clone-target-campaign-select') as HTMLSelectElement;
   const nameInput = document.getElementById('clone-name-input') as HTMLInputElement;
 
+  const TEMPLATE_SOURCE_ID = '__template__';
+
   function populateOptions(preselectSourceId?: string, preselectTargetCampId?: string) {
     if (!sourceSelect || !targetSelect) return;
 
@@ -115,6 +118,12 @@
     const chars = campaignStore.getAllCharacters();
     const currentUser = userStore.getCurrentUser();
     sourceSelect.innerHTML = '';
+    // Siempre se puede arrancar de cero (una cuenta nueva no tiene fichas para copiar).
+    const templateOpt = document.createElement('option');
+    templateOpt.value = TEMPLATE_SOURCE_ID;
+    templateOpt.textContent = '✨ Ficha nueva (plantilla base)';
+    templateOpt.selected = !preselectSourceId || !chars.some(c => c.id === preselectSourceId);
+    sourceSelect.appendChild(templateOpt);
     chars.forEach(char => {
       const opt = document.createElement('option');
       opt.value = char.id;
@@ -159,6 +168,8 @@
     const selectedChar = campaignStore.getCharacter(sourceSelect.value);
     if (selectedChar) {
       nameInput.value = `${selectedChar.name} (Copia)`;
+    } else if (sourceSelect.value === TEMPLATE_SOURCE_ID) {
+      nameInput.value = 'Nuevo Aventurero';
     }
   }
 
@@ -190,7 +201,7 @@
     if (targetCampId) {
       const existing = campaignStore.getMyCharacterForCampaign(targetCampId, currentUser.id);
       if (existing) {
-        alert(`Una campaña no permite más de 1 personaje del mismo usuario. Ya tienes a "${existing.name}" en esta campaña.`);
+        showAlert(`Una campaña no permite más de 1 personaje del mismo usuario. Ya tienes a "${existing.name}" en esta campaña.`, { kind: 'warning' });
         return;
       }
     }
@@ -199,11 +210,11 @@
       const cloned = campaignStore.cloneCharacter(sourceCharId, targetCampId, newName);
       closeMe();
       // Notify user
-      alert(`¡Personaje "${cloned.name}" copiado exitosamente con ID único: [${cloned.id}]!`);
+      showAlert(`¡Personaje "${cloned.name}" copiado exitosamente con ID único: [${cloned.id}]!`, { kind: 'success', title: 'Personaje copiado' });
       // Refresh campaigns UI if on campaigns page
       window.dispatchEvent(new CustomEvent('campaigns-updated'));
     } catch (err: any) {
-      alert(`Error al clonar personaje: ${err?.message || err}`);
+      showAlert(`Error al clonar personaje: ${err?.message || err}`, { kind: 'error' });
     }
   });
 </script>

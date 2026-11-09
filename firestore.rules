@@ -1,0 +1,173 @@
+rules_version = '2';
+
+// Permisos de la app. Espejan las reglas de negocio de src/scripts/state/campaignStore.ts:
+// - El DM y el creador gestionan la campaña; el borrado sigue la regla de canUserDeleteCampaign.
+// - Cada jugador edita solo su ficha; el DM puede ajustar PG/inspiración y desvincular fichas.
+// - Diario: 'party' lo ve la mesa, 'dm' solo el DM, 'player' solo su autor (ni el DM),
+//   'to_dm' (mensaje al DM) su autor y el DM.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() { return request.auth != null; }
+    function uid() { return request.auth.uid; }
+
+    function campaignPath(id) { return /databases/$(database)/documents/campaigns/$(id); }
+    function campaign(id) { return get(campaignPath(id)).data; }
+    function campaignExists(id) { return exists(campaignPath(id)); }
+    function isMember(id) { return campaignExists(id) && uid() in campaign(id).memberUserIds; }
+    function isDm(id) { return campaignExists(id) && campaign(id).dmId == uid(); }
+    function isCreator(id) { return campaignExists(id) && campaign(id).creatorId == uid(); }
+
+    function changedKeys() { return request.resource.data.diff(resource.data).affectedKeys(); }
+
+    // ---------------------------------------------------------------- usuarios
+    match /users/{userId} {
+      // Perfil público: nombre y avatar de los compañeros de mesa.
+      allow read: if signedIn();
+      allow create, update: if signedIn() && uid() == userId
+        && request.resource.data.keys().hasOnly(['name', 'avatarUrl', 'createdAt', 'migratedAt'])
+        && request.resource.data.name is string
+        && request.resource.data.name.size() <= 80;
+
+      // Diario de personajes sin campaña: solo su dueño.
+      match /notes/{noteId} {
+        allow read, delete: if signedIn() && uid() == userId;
+        allow create, update: if signedIn() && uid() == userId
+          && request.resource.data.authorUid == uid();
+      }
+    }
+
+    // ---------------------------------------------------------------- invitaciones
+    match /invites/{code} {
+      // Conocer el código es la credencial: se puede leer por id, pero no listar.
+      allow get: if signedIn();
+      allow list: if false;
+      // Se crea junto con la campaña (mismo batch), por eso se mira el estado posterior.
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly(['campaignId', 'createdBy', 'createdAt'])
+        && request.resource.data.createdBy == uid()
+        && getAfter(campaignPath(request.resource.data.campaignId)).data.dmId == uid()
+        && getAfter(campaignPath(request.resource.data.campaignId)).data.inviteCode == code;
+      allow update: if false;
+      allow delete: if signedIn() && (isDm(resource.data.campaignId) || isCreator(resource.data.campaignId));
+    }
+
+    // ---------------------------------------------------------------- campañas
+    match /campaigns/{campaignId} {
+      allow read: if signedIn() && uid() in resource.data.memberUserIds;
+
+      allow create: if signedIn()
+        && request.resource.data.creatorId == uid()
+        && request.resource.data.dmId == uid()
+        && request.resource.data.memberUserIds == [uid()];
+
+      // DM o creador: editan todo. El creador no cambia y el DM tiene que ser miembro.
+      allow update: if signedIn()
+        && (uid() == resource.data.dmId || uid() == resource.data.creatorId)
+        && request.resource.data.creatorId == resource.data.creatorId
+        && request.resource.data.dmId in request.resource.data.memberUserIds;
+
+      // Unirse con código: solo se agrega a sí mismo y el código tiene que ser de esta campaña.
+      allow update: if signedIn()
+        && !(uid() in resource.data.memberUserIds)
+        && changedKeys().hasOnly(['memberUserIds', 'joinedWith'])
+        && request.resource.data.memberUserIds.toSet() == resource.data.memberUserIds.toSet().union([uid()].toSet())
+        && request.resource.data.joinedWith == resource.data.inviteCode
+        && get(/databases/$(database)/documents/invites/$(request.resource.data.joinedWith)).data.campaignId == campaignId;
+
+      // Abandonar: solo se quita a sí mismo, sin tocar nada más.
+      allow update: if signedIn()
+        && uid() in resource.data.memberUserIds
+        && changedKeys().hasOnly(['memberUserIds'])
+        && request.resource.data.memberUserIds.toSet() == resource.data.memberUserIds.toSet().difference([uid()].toSet());
+
+      // Borrar: si el creador sigue en la mesa, solo él; si se fue, el DM.
+      // El último miembro también puede cerrarla al irse.
+      allow delete: if signedIn() && (
+        (resource.data.creatorId in resource.data.memberUserIds && uid() == resource.data.creatorId)
+        || (!(resource.data.creatorId in resource.data.memberUserIds) && uid() == resource.data.dmId)
+        || resource.data.memberUserIds == [uid()]
+      );
+
+      // -------------------------------------------------------------- diario
+      match /journal/{entryId} {
+        function canSee(entry) {
+          return (entry.visibility == 'party' && isMember(campaignId))
+            || (entry.visibility == 'dm' && isDm(campaignId))
+            || (entry.visibility == 'player' && entry.authorUid == uid())
+            || (entry.visibility == 'to_dm' && (entry.authorUid == uid() || isDm(campaignId)));
+        }
+        function validVisibility(entry) {
+          return entry.visibility in ['party', 'dm', 'player', 'to_dm']
+            && (entry.visibility != 'dm' || isDm(campaignId));
+        }
+
+        allow read: if signedIn() && canSee(resource.data);
+
+        allow create: if signedIn() && isMember(campaignId)
+          && request.resource.data.authorUid == uid()
+          && request.resource.data.campaignId == campaignId
+          && validVisibility(request.resource.data);
+
+        allow update: if signedIn() && isMember(campaignId)
+          && resource.data.authorUid == uid()
+          && request.resource.data.authorUid == uid()
+          && validVisibility(request.resource.data);
+
+        // El DM puede moderar entradas de la mesa, las suyas y los mensajes que recibe,
+        // pero nunca las notas privadas de un jugador.
+        allow delete: if signedIn() && (
+          resource.data.authorUid == uid()
+          || (isDm(campaignId) && resource.data.visibility != 'player')
+        );
+      }
+
+      // -------------------------------------------------------------- eventos del DM
+      match /dm_events/{eventId} {
+        allow read: if signedIn() && isMember(campaignId);
+        allow create: if signedIn() && isDm(campaignId)
+          && request.resource.data.campaignId == campaignId
+          && request.resource.data.timestamp is number;
+        allow update, delete: if false;
+      }
+    }
+
+    // ---------------------------------------------------------------- personajes
+    match /characters/{characterId} {
+      function attachable(data) {
+        return data.campaignId == null || isMember(data.campaignId);
+      }
+
+      allow read: if signedIn() && (
+        resource.data.userId == uid()
+        || (resource.data.campaignId != null && isMember(resource.data.campaignId))
+      );
+
+      allow create: if signedIn()
+        && request.resource.data.userId == uid()
+        && attachable(request.resource.data);
+
+      // Dueño: edita su ficha (no la puede regalar a otro usuario).
+      allow update: if signedIn()
+        && resource.data.userId == uid()
+        && request.resource.data.userId == uid()
+        && attachable(request.resource.data);
+
+      // DM de la campaña: PG e inspiración en vivo (descansos, daño, recompensas).
+      allow update: if signedIn()
+        && resource.data.campaignId != null
+        && isDm(resource.data.campaignId)
+        && request.resource.data.campaignId == resource.data.campaignId
+        && changedKeys().hasOnly(['hp', 'inspiration', 'updatedAt']);
+
+      // DM o creador: desvincular la ficha al quitar a un jugador o cerrar la campaña.
+      allow update: if signedIn()
+        && resource.data.campaignId != null
+        && (isDm(resource.data.campaignId) || isCreator(resource.data.campaignId))
+        && request.resource.data.campaignId == null
+        && changedKeys().hasOnly(['campaignId', 'sessionContext', 'updatedAt']);
+
+      allow delete: if signedIn() && resource.data.userId == uid();
+    }
+  }
+}

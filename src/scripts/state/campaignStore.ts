@@ -2,7 +2,9 @@
 import type { Campaign, DmEvent } from '../models/campaign.ts';
 import type { CharacterData } from '../models/character.ts';
 import { defaultCharacter } from '../data/defaultCharacter.ts';
-import { generateCharacterSyncId, syncManager } from '../sync/syncManager.ts';
+import { generateInviteCode } from '../utils/ids.ts';
+import { isFirebaseConfigured } from '../firebase/client.ts';
+import { diffDocs, hasChanges, toPlain, type CampaignCloudWriter } from '../data/cloudTypes.ts';
 import { userStore } from './userStore.ts';
 
 const CAMPAIGNS_STORAGE_KEY = 'dnd_campaigns_v1';
@@ -266,69 +268,157 @@ export const LEGACY_TEST_CHARACTERS: CharacterData[] = [
   }
 ];
 
+/** Campos que no se guardan en Firestore: `characterIds` se deriva de los personajes. */
+function serializeCampaign(c: Campaign): Record<string, any> {
+  const { characterIds, isCurrentUserDm, ...rest } = c as any;
+  return toPlain(rest);
+}
+
+function serializeCharacter(c: CharacterData): Record<string, any> {
+  const { updatedAt, ...rest } = c as any;
+  return toPlain(rest);
+}
+
 class CampaignStoreManager {
   private campaigns: Campaign[] = [];
   private characters: CharacterData[] = [];
   private activeCampaignId: string | null = null;
+  private channel: any = null;
+
+  // ---- Modo nube ----
+  private cloud: CampaignCloudWriter | null = null;
+  private syncedCampaigns = new Map<string, string>();
+  private syncedCharacters = new Map<string, string>();
+  private remoteCharacterScopes = new Map<string, CharacterData[]>();
+  private campaignsLoaded = false;
+  /** Campaña activa guardada en localStorage, que se valida cuando llegan las campañas de la nube. */
+  private storedActiveCampaignId: string | null = null;
+  /**
+   * Con Firebase configurado los datos vienen de la nube: antes del login no se lee ni se pisa
+   * localStorage (ahí quedan los datos viejos que se importan en el primer login).
+   */
+  private readonly cloudExpected = isFirebaseConfigured();
 
   constructor() {
     this.campaigns = this.loadCampaigns();
     this.characters = this.loadCharacters();
     this.activeCampaignId = this.loadActiveCampaignId();
+    this.initBroadcastChannel();
     if (typeof window !== 'undefined') {
       window.addEventListener('character-updated', ((e: CustomEvent<{ character: CharacterData }>) => {
-        if (e.detail?.character) {
-          this.saveCharacter(e.detail.character);
+        const char = e.detail?.character;
+        if (!char) return;
+        // En la nube la ficha activa solo se guarda si es un personaje propio ya existente:
+        // así la ficha por defecto de un dispositivo nuevo no crea documentos fantasma.
+        if (this.cloud) {
+          const known = this.getCharacter(char.id);
+          if (!known || !this.isCharacterOwner(known)) return;
         }
+        this.saveCharacter(char);
       }) as EventListener);
+    }
+  }
+
+  private initBroadcastChannel() {
+    if (typeof BroadcastChannel !== 'undefined') {
+      try {
+        this.channel = new BroadcastChannel('dnd_campaign_bus_v1');
+        if (typeof (this.channel as any).unref === 'function') {
+          (this.channel as any).unref();
+        }
+        this.channel.onmessage = (event: MessageEvent) => {
+          const data = event.data;
+          if (!data || !data.type) return;
+          // En la nube las pestañas comparten la cache de Firestore; el bus local solo sirve offline.
+          if (this.cloud && data.type !== 'active-campaign-sync') return;
+
+          if (data.type === 'campaigns-sync' && Array.isArray(data.campaigns)) {
+            this.campaigns = data.campaigns;
+            if (typeof window !== 'undefined') {
+              window.dispatchEvent(new CustomEvent('campaigns-updated', { detail: { campaigns: this.campaigns } }));
+            }
+          } else if (data.type === 'characters-sync' && Array.isArray(data.characters)) {
+            this.characters = data.characters;
+            if (typeof window !== 'undefined') {
+              window.dispatchEvent(new CustomEvent('all-characters-updated', { detail: { characters: this.characters } }));
+            }
+          } else if (data.type === 'active-campaign-sync') {
+            this.activeCampaignId = data.campaignId;
+            if (typeof window !== 'undefined') {
+              window.dispatchEvent(new CustomEvent('active-campaign-changed', {
+                detail: {
+                  campaignId: data.campaignId,
+                  campaign: this.getActiveCampaign()
+                }
+              }));
+            }
+          } else if (data.type === 'dm-event' && data.detail) {
+            if (typeof window !== 'undefined') {
+              window.dispatchEvent(new CustomEvent('dm-event-received', { detail: data.detail }));
+            }
+          }
+        };
+      } catch (_) {}
     }
   }
 
   private loadCampaigns(): Campaign[] {
     if (typeof window === 'undefined') return DEFAULT_CAMPAIGNS;
+    if (this.cloudExpected) return [];
     try {
       const saved = localStorage.getItem(CAMPAIGNS_STORAGE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          // Clean all created/demo campaigns as requested
-          this.persistCampaigns([]);
-          return [];
+        if (Array.isArray(parsed)) {
+          const legacyCampaignsCleanKey = 'dnd_legacy_campaigns_cleaned_v2';
+          if (!localStorage.getItem(legacyCampaignsCleanKey)) {
+            const legacyCampIds = new Set(['barovia-strahd', 'phandelver-mine', 'avernus-descent']);
+            const cleaned = parsed.filter((c: any) => !legacyCampIds.has(c.id));
+            localStorage.setItem(legacyCampaignsCleanKey, 'true');
+            this.persistCampaigns(cleaned);
+            return cleaned;
+          }
+          return parsed;
         }
       }
     } catch (e) {
       console.warn('[CampaignStore] Failed to load campaigns from storage', e);
     }
-    this.persistCampaigns(DEFAULT_CAMPAIGNS);
     return DEFAULT_CAMPAIGNS;
   }
 
   private loadCharacters(): CharacterData[] {
     if (typeof window === 'undefined') return SEED_CHARACTERS;
+    if (this.cloudExpected) return [];
     try {
       const saved = localStorage.getItem(ALL_CHARACTERS_STORAGE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          // Keep only Atlas (or migrate user's character to Atlas)
-          const myChar = parsed.find((c: CharacterData) => c.id === 'atlas' || c.name === 'Atlas') ||
-                         parsed.find((c: CharacterData) => c.userId === 'user-me' || c.id === 'elysian-ventosombra');
-          if (myChar) {
-            myChar.id = 'atlas';
-            myChar.name = 'Atlas';
-            myChar.userId = 'user-me';
-            myChar.campaignId = null;
-            myChar.playerName = 'Gonzo (Tú)';
-            const finalChars = [myChar];
-            this.persistCharacters(finalChars);
-            return finalChars;
+        if (Array.isArray(parsed)) {
+          if (parsed.length === 0) {
+            return [];
           }
+          const legacyCharsCleanKey = 'dnd_legacy_chars_cleaned_v2';
+          if (!localStorage.getItem(legacyCharsCleanKey)) {
+            const legacyCharIds = new Set([
+              'elysian-ventosombra', 'morgana-espinaoscura', 'thorin-rompehierro',
+              'liara-hojaargenta', 'varis-galanodel', 'bryan-martillofirme',
+              'kaeroc-cuernonegro', 'selene-sombraluna', 'grommash-el-feroz', 'geralt-vagabundo'
+            ]);
+            let cleaned = parsed.filter((c: any) => !legacyCharIds.has(c.id));
+            if (!cleaned.some(c => c.id === 'atlas' || c.name === 'Atlas')) {
+              cleaned = [...SEED_CHARACTERS, ...cleaned];
+            }
+            localStorage.setItem(legacyCharsCleanKey, 'true');
+            this.persistCharacters(cleaned);
+            return cleaned;
+          }
+          return parsed;
         }
       }
     } catch (e) {
       console.warn('[CampaignStore] Failed to load characters from storage', e);
     }
-    this.persistCharacters(SEED_CHARACTERS);
     return SEED_CHARACTERS;
   }
 
@@ -336,6 +426,7 @@ class CampaignStoreManager {
     if (typeof window === 'undefined') return null;
     try {
       const saved = localStorage.getItem(ACTIVE_CAMPAIGN_KEY);
+      this.storedActiveCampaignId = saved && saved !== 'none' ? saved : null;
       if (saved !== null && saved !== 'none') {
         if (this.campaigns.some(c => c.id === saved)) return saved;
       }
@@ -345,6 +436,10 @@ class CampaignStoreManager {
 
   public seedLegacyFixtures() {
     userStore.seedLegacyFixtures();
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('dnd_legacy_campaigns_cleaned_v2', 'true');
+      localStorage.setItem('dnd_legacy_chars_cleaned_v2', 'true');
+    }
     this.campaigns = JSON.parse(JSON.stringify(LEGACY_TEST_CAMPAIGNS));
     this.characters = JSON.parse(JSON.stringify(LEGACY_TEST_CHARACTERS));
     this.activeCampaignId = 'barovia-strahd';
@@ -356,19 +451,181 @@ class CampaignStoreManager {
     }
   }
 
-  private persistCampaigns(campaigns: Campaign[]) {
-    this.campaigns = campaigns;
+  // ---------------------------------------------------------------------------
+  // Modo nube: los arrays en memoria siguen siendo la vista que lee la UI; las mutaciones
+  // se convierten en un diff contra lo último sincronizado y los snapshots de Firestore
+  // reemplazan los arrays.
+  // ---------------------------------------------------------------------------
+
+  public isCloudMode(): boolean {
+    return this.cloud !== null;
+  }
+
+  public attachCloud(writer: CampaignCloudWriter) {
+    this.cloud = writer;
+    this.syncedCampaigns.clear();
+    this.syncedCharacters.clear();
+    this.remoteCharacterScopes.clear();
+    this.campaignsLoaded = false;
+    this.campaigns = [];
+    this.characters = [];
+    this.activeCampaignId = null;
+    this.emitCampaigns();
+    this.emitCharacters();
+  }
+
+  public detachCloud() {
+    this.cloud = null;
+    this.syncedCampaigns.clear();
+    this.syncedCharacters.clear();
+    this.remoteCharacterScopes.clear();
+    this.campaigns = this.loadCampaigns();
+    this.characters = this.loadCharacters();
+    this.activeCampaignId = this.loadActiveCampaignId();
+    this.emitCampaigns();
+    this.emitCharacters();
+  }
+
+  public hasLoadedCampaigns(): boolean {
+    return !this.cloud || this.campaignsLoaded;
+  }
+
+  public applyRemoteCampaigns(remote: Campaign[]) {
+    if (!this.cloud) return;
+    this.syncedCampaigns = new Map(remote.map(c => [c.id, JSON.stringify(serializeCampaign(c))]));
+    this.campaigns = remote
+      .map(c => ({ ...c, memberUserIds: c.memberUserIds || [], characterIds: [] }))
+      .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+    this.refreshCharacterIds();
+    this.campaignsLoaded = true;
+
+    const previousActive = this.activeCampaignId;
+    if (this.activeCampaignId && !this.getCampaign(this.activeCampaignId)) {
+      this.activeCampaignId = null;
+    }
+    if (!this.activeCampaignId && this.storedActiveCampaignId && this.getCampaign(this.storedActiveCampaignId)) {
+      this.activeCampaignId = this.storedActiveCampaignId;
+    }
+    this.emitCampaigns();
+    if (previousActive !== this.activeCampaignId) {
+      this.emitActiveCampaign();
+    }
+  }
+
+  /** `scope` identifica el listener: 'mine' o 'campaign:{id}'. `null` lo da de baja. */
+  public applyRemoteCharacters(scope: string, remote: CharacterData[] | null) {
+    if (!this.cloud) return;
+    if (remote === null) {
+      this.remoteCharacterScopes.delete(scope);
+    } else {
+      this.remoteCharacterScopes.set(scope, remote);
+    }
+
+    const local = new Map(this.characters.map(c => [c.id, c]));
+    const merged = new Map<string, CharacterData>();
+    for (const list of this.remoteCharacterScopes.values()) {
+      for (const c of list) {
+        this.syncedCharacters.set(c.id, JSON.stringify(serializeCharacter(c)));
+        // Si hay una escritura local pendiente (debounce), la versión local manda.
+        const pendingLocal = this.cloud.isCharacterPending(c.id) ? local.get(c.id) : undefined;
+        merged.set(c.id, pendingLocal || c);
+      }
+    }
+    for (const id of Array.from(this.syncedCharacters.keys())) {
+      if (!merged.has(id)) this.syncedCharacters.delete(id);
+    }
+    this.characters = Array.from(merged.values());
+    this.refreshCharacterIds();
+    this.emitCharacters();
+    this.emitCampaigns();
+  }
+
+  private refreshCharacterIds() {
+    for (const camp of this.campaigns) {
+      camp.characterIds = this.characters.filter(c => c.campaignId === camp.id).map(c => c.id);
+    }
+  }
+
+  private emitCampaigns() {
     if (typeof window !== 'undefined') {
-      localStorage.setItem(CAMPAIGNS_STORAGE_KEY, JSON.stringify(this.campaigns));
       window.dispatchEvent(new CustomEvent('campaigns-updated', { detail: { campaigns: this.campaigns } }));
     }
   }
 
-  private persistCharacters(chars: CharacterData[]) {
+  private emitCharacters() {
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('all-characters-updated', { detail: { characters: this.characters } }));
+    }
+  }
+
+  private emitActiveCampaign() {
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('active-campaign-changed', {
+        detail: { campaignId: this.activeCampaignId, campaign: this.getActiveCampaign() }
+      }));
+    }
+  }
+
+  private persistCampaigns(campaigns: Campaign[], broadcast = true) {
+    this.campaigns = campaigns;
+    if (this.cloud) {
+      const changes = diffDocs(this.syncedCampaigns, campaigns, serializeCampaign);
+      if (hasChanges(changes)) {
+        for (const c of changes.creates) this.syncedCampaigns.set(c.id, JSON.stringify(c.data));
+        for (const u of changes.updates) {
+          const camp = campaigns.find(c => c.id === u.id);
+          if (camp) this.syncedCampaigns.set(u.id, JSON.stringify(serializeCampaign(camp)));
+        }
+        for (const id of changes.deletes) this.syncedCampaigns.delete(id);
+        this.cloud.applyCampaignChanges(changes);
+      }
+      this.refreshCharacterIds();
+      this.emitCampaigns();
+      return;
+    }
+    if (this.cloudExpected) {
+      this.emitCampaigns();
+      return;
+    }
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(CAMPAIGNS_STORAGE_KEY, JSON.stringify(this.campaigns));
+      window.dispatchEvent(new CustomEvent('campaigns-updated', { detail: { campaigns: this.campaigns } }));
+    }
+    if (broadcast && this.channel) {
+      try {
+        this.channel.postMessage({ type: 'campaigns-sync', campaigns: this.campaigns });
+      } catch (_) {}
+    }
+  }
+
+  private persistCharacters(chars: CharacterData[], broadcast = true) {
     this.characters = chars;
+    if (this.cloud) {
+      const changes = diffDocs(this.syncedCharacters, chars, serializeCharacter);
+      if (hasChanges(changes)) {
+        for (const c of changes.creates) this.syncedCharacters.set(c.id, JSON.stringify(c.data));
+        for (const u of changes.updates) {
+          const char = chars.find(c => c.id === u.id);
+          if (char) this.syncedCharacters.set(u.id, JSON.stringify(serializeCharacter(char)));
+        }
+        for (const id of changes.deletes) this.syncedCharacters.delete(id);
+        this.cloud.applyCharacterChanges(changes);
+      }
+      this.emitCharacters();
+      return;
+    }
+    if (this.cloudExpected) {
+      this.emitCharacters();
+      return;
+    }
     if (typeof window !== 'undefined') {
       localStorage.setItem(ALL_CHARACTERS_STORAGE_KEY, JSON.stringify(this.characters));
       window.dispatchEvent(new CustomEvent('all-characters-updated', { detail: { characters: this.characters } }));
+    }
+    if (broadcast && this.channel) {
+      try {
+        this.channel.postMessage({ type: 'characters-sync', characters: this.characters });
+      } catch (_) {}
     }
   }
 
@@ -389,7 +646,7 @@ class CampaignStoreManager {
     return this.getCampaign(this.activeCampaignId) || null;
   }
 
-  public setActiveCampaign(campaignId: string | null) {
+  public setActiveCampaign(campaignId: string | null, broadcast = true) {
     this.activeCampaignId = campaignId;
     if (typeof window !== 'undefined') {
       localStorage.setItem(ACTIVE_CAMPAIGN_KEY, campaignId || 'none');
@@ -399,6 +656,11 @@ class CampaignStoreManager {
           campaign: this.getActiveCampaign()
         }
       }));
+    }
+    if (broadcast && this.channel) {
+      try {
+        this.channel.postMessage({ type: 'active-campaign-sync', campaignId });
+      } catch (_) {}
     }
   }
 
@@ -412,6 +674,11 @@ class CampaignStoreManager {
 
     const currentUserId = userStore.getCurrentUser().id;
     const creatorId = currentUserId;
+    // En la nube las Security Rules exigen que quien crea sea DM y único miembro;
+    // el resto se suma con el código de invitación.
+    if (this.cloud) {
+      data = { ...data, memberUserIds: [currentUserId], dmId: currentUserId };
+    }
     let memberUserIds = data.memberUserIds && data.memberUserIds.length > 0
       ? [...data.memberUserIds]
       : [currentUserId];
@@ -447,11 +714,13 @@ class CampaignStoreManager {
       location: data.location || 'Posada del Aventurero',
       status: data.status || 'active',
       characterIds: data.characterIds || [],
-      createdAt: Date.now()
+      createdAt: Date.now(),
+      ...(this.cloud ? { inviteCode: generateInviteCode() } : {})
     };
 
     const next = [newCampaign, ...this.campaigns];
     this.persistCampaigns(next);
+    this.setActiveCampaign(newCampaign.id);
     return newCampaign;
   }
 
@@ -806,6 +1075,14 @@ class CampaignStoreManager {
     });
   }
 
+  /** Nuevo código de invitación; el anterior deja de funcionar. Solo DM o creador. */
+  public regenerateInviteCode(campaignId: string): string | null {
+    if (!this.cloud || !this.canUserManageMembers(campaignId)) return null;
+    const inviteCode = generateInviteCode();
+    this.updateCampaign(campaignId, { inviteCode });
+    return inviteCode;
+  }
+
   public getCampaignMembers(campaignId: string) {
     const camp = this.getCampaign(campaignId);
     const allUsers = userStore.getUsers();
@@ -824,10 +1101,13 @@ class CampaignStoreManager {
     };
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('dm-event-received', { detail: fullEvent }));
+    }
+    if (this.channel) {
       try {
-        syncManager.pushDmEventToRemote(fullEvent);
+        this.channel.postMessage({ type: 'dm-event', detail: fullEvent });
       } catch (_) {}
     }
+    this.cloud?.sendDmEvent(fullEvent);
   }
 }
 

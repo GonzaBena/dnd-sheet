@@ -211,17 +211,18 @@
       </div>
     </form>
 
-    <!-- Chronological Journal Feed -->
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="grimoire-journal-feed">
+    <!-- Chronological Journal Feed (Masonry 2-col layout) -->
+    <div class="masonry-layout-2" id="grimoire-journal-feed">
       <!-- Populated via JavaScript -->
     </div>
   </section>
 </div>
 
 <script>
+  import { showAlert, showConfirm, showForm } from '../../scripts/ui/notify';
   import { campaignStore } from '../../scripts/state/campaignStore';
   import { characterStore } from '../../scripts/state/characterStore';
-  import { journalStore } from '../../scripts/state/journalStore';
+  import { journalStore, getEntryVisibility } from '../../scripts/state/journalStore';
   import { userStore } from '../../scripts/state/userStore';
   import { congratulationBanner } from '../../scripts/ui/congratulationBanner';
 
@@ -256,10 +257,12 @@
       playersGrid.innerHTML = '';
       if (chars.length === 0) {
         playersGrid.innerHTML = `
-          <div class="col-span-full py-10 text-center text-xs text-[#64748b] bg-[#121721] rounded-2xl border border-[#222f42] p-6">
-            <span class="material-symbols-outlined text-[32px] text-amber-500/40 block mb-2">group_off</span>
-            <p>No hay aventureros asignados a esta campaña actualmente.</p>
-            <p class="text-[11px] text-amber-500/80 mt-1">Puedes agregar o copiar personajes desde la pantalla de Gestión de Campañas.</p>
+          <div class="col-span-full w-full py-10 px-6 text-center text-xs text-[#64748b] bg-[#121721] rounded-2xl border border-[#222f42] space-y-2 shadow-sm">
+            <span class="material-symbols-outlined text-[36px] text-amber-500/50 block mb-1">group_off</span>
+            <p class="font-headline font-bold text-sm text-[#f1f5f9]">No hay aventureros asignados a esta campaña actualmente</p>
+            <p class="text-xs text-[#94a3b8] max-w-md mx-auto leading-relaxed">
+              Como Dungeon Master, verás aquí las tarjetas tácticas de tus jugadores en tiempo real en cuanto se unan a la campaña o agregues personajes.
+            </p>
           </div>
         `;
       } else {
@@ -404,13 +407,13 @@
 
     const filtered = entries.filter(e => {
       if (activeFilter === 'all') return true;
-      if (activeFilter === '#Privado') return e.isPrivate || e.tags?.includes('#Privado');
+      if (activeFilter === '#Privado') return ['dm', 'to_dm'].includes(getEntryVisibility(e));
       return e.tags?.includes(activeFilter);
     });
 
     if (filtered.length === 0) {
       journalFeed.innerHTML = `
-        <div class="col-span-full py-8 text-center text-xs text-[#64748b]">
+        <div class="[column-span:_all] w-full py-8 text-center text-xs text-[#64748b]">
           No hay entradas en la bitácora que coincidan con el filtro actual.
         </div>
       `;
@@ -419,9 +422,10 @@
 
     filtered.slice(0, 10).forEach(entry => {
       const card = document.createElement('div');
-      const isPrivate = entry.isPrivate || entry.tags?.includes('#Privado');
+      const isPrivate = getEntryVisibility(entry) === 'dm';
+      const isForDm = getEntryVisibility(entry) === 'to_dm';
 
-      card.className = `p-4 rounded-xl ${isPrivate ? 'bg-[#181a28] border-purple-500/40 ring-1 ring-purple-500/20' : 'bg-[#18202e] border-[#222f42]'} border shadow-xs space-y-2 text-xs font-body`;
+      card.className = `masonry-item p-4 rounded-xl ${isPrivate || isForDm ? 'bg-[#181a28] border-purple-500/40 ring-1 ring-purple-500/20' : 'bg-[#18202e] border-[#222f42]'} border shadow-xs space-y-2 text-xs font-body`;
 
       const tagsHtml = (entry.tags || []).map(t => {
         let tagColor = 'bg-[#10141d] text-[#94a3b8] border-[#222f42]';
@@ -437,6 +441,7 @@
           <div class="flex items-center gap-1.5 flex-wrap">
             <h5 class="font-headline font-bold text-sm text-[#f1f5f9]">${entry.title}</h5>
             ${isPrivate ? '<span class="px-1.5 py-0.2 rounded bg-purple-500/30 text-purple-200 text-[9px] font-bold uppercase border border-purple-400/40">🔒 Solo DM</span>' : ''}
+            ${isForDm ? `<span class="px-1.5 py-0.2 rounded bg-purple-500/30 text-purple-200 text-[9px] font-bold uppercase border border-purple-400/40">📨 De ${entry.authorName || 'un jugador'}</span>` : ''}
           </div>
           <span class="text-[10px] text-[#64748b] font-label shrink-0">${entry.timestamp ? new Date(entry.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}</span>
         </div>
@@ -475,12 +480,17 @@
   });
 
   // Milestone Celebration Button
-  document.getElementById('grimoire-milestone-btn')?.addEventListener('click', () => {
+  document.getElementById('grimoire-milestone-btn')?.addEventListener('click', async () => {
     const activeCampId = campaignStore.getActiveCampaignId();
-    const title = prompt('Título del Hito conseguido por el grupo:', '¡Hazaña Heroica de la Mesa!');
-    if (!title) return;
-    const banner = prompt('Texto del Banderín (en mayúsculas):', '¡VICTORIA ÉPICA!') || '¡FELICIDADES!';
-    const desc = prompt('Descripción del Logro:', 'El grupo ha triunfado ante el peligro y grabado su nombre en las crónicas.') || '¡Logro conseguido!';
+    const values = await showForm([
+      { name: 'title', label: 'Título del hito', value: '¡Hazaña Heroica de la Mesa!', required: true },
+      { name: 'banner', label: 'Texto del banderín', value: '¡VICTORIA ÉPICA!', hint: 'Se muestra en mayúsculas sobre el título.' },
+      { name: 'desc', label: 'Descripción del logro', type: 'textarea', value: 'El grupo ha triunfado ante el peligro y grabado su nombre en las crónicas.' },
+    ], { title: 'Celebrar un hito', message: 'Se le muestra a toda la mesa en vivo.', confirmText: 'Celebrar' });
+    if (!values) return;
+    const title = values.title.trim();
+    const banner = values.banner.trim() || '¡FELICIDADES!';
+    const desc = values.desc.trim() || '¡Logro conseguido!';
 
     if (activeCampId) {
       campaignStore.sendDmEvent(activeCampId, {
@@ -509,10 +519,10 @@
   });
 
   // Short Rest Group
-  document.getElementById('grimoire-short-rest-btn')?.addEventListener('click', () => {
+  document.getElementById('grimoire-short-rest-btn')?.addEventListener('click', async () => {
     const activeCampId = campaignStore.getActiveCampaignId();
     if (!activeCampId) return;
-    if (confirm('¿Aplicar Descanso Corto a todos los personajes de esta campaña (+8 PG)?')) {
+    if (await showConfirm('Cada personaje de la campaña recupera +8 PG.', { title: '¿Descanso Corto para todo el grupo?', confirmText: 'Aplicar' })) {
       const chars = campaignStore.getCharactersForCampaign(activeCampId);
       chars.forEach(c => {
         c.hp.current = Math.min(c.hp.max, c.hp.current + 8);
@@ -524,15 +534,15 @@
         ['#Descanso']
       );
       renderGrimoire();
-      alert('¡Descanso corto aplicado a todos los aventureros!');
+      showAlert('¡Descanso corto aplicado a todos los aventureros!', { kind: 'success', title: 'Descanso corto' });
     }
   });
 
   // Long Rest Group
-  document.getElementById('grimoire-long-rest-btn')?.addEventListener('click', () => {
+  document.getElementById('grimoire-long-rest-btn')?.addEventListener('click', async () => {
     const activeCampId = campaignStore.getActiveCampaignId();
     if (!activeCampId) return;
-    if (confirm('¿Aplicar Descanso Largo a toda la mesa (Restauración completa de PG)?')) {
+    if (await showConfirm('Todos los personajes recuperan sus PG al máximo.', { title: '¿Descanso Largo para toda la mesa?', confirmText: 'Aplicar' })) {
       const chars = campaignStore.getCharactersForCampaign(activeCampId);
       chars.forEach(c => {
         c.hp.current = c.hp.max;
@@ -545,20 +555,26 @@
         ['#Descanso']
       );
       renderGrimoire();
-      alert('¡Descanso largo completado! Todos los aventureros tienen la salud restaurada.');
+      showAlert('¡Descanso largo completado! Todos los aventureros tienen la salud restaurada.', { kind: 'success', title: 'Descanso largo' });
     }
   });
 
   // Quick Session Edit
-  document.getElementById('grimoire-edit-session-btn')?.addEventListener('click', () => {
+  document.getElementById('grimoire-edit-session-btn')?.addEventListener('click', async () => {
     const activeCampId = campaignStore.getActiveCampaignId();
     if (!activeCampId) return;
     const camp = campaignStore.getCampaign(activeCampId);
     if (!camp) return;
 
-    const newLoc = prompt('Ubicación de la Sesión:', camp.location) || camp.location;
-    const newWeather = prompt('Clima y Atmósfera:', camp.weather) || camp.weather;
-    const newSession = prompt('Número de Sesión:', String(camp.sessionNumber)) || String(camp.sessionNumber);
+    const values = await showForm([
+      { name: 'location', label: 'Ubicación', value: camp.location },
+      { name: 'weather', label: 'Clima y atmósfera', value: camp.weather },
+      { name: 'session', label: 'Número de sesión', type: 'number', value: camp.sessionNumber, min: 1 },
+    ], { title: 'Editar sesión', confirmText: 'Guardar' });
+    if (!values) return;
+    const newLoc = values.location.trim() || camp.location;
+    const newWeather = values.weather.trim() || camp.weather;
+    const newSession = values.session.trim() || String(camp.sessionNumber);
 
     campaignStore.updateCampaign(camp.id, {
       location: newLoc,
@@ -618,15 +634,10 @@
       detectedTags.push('#Mundo');
     }
 
-    journalStore.log(
-      title,
-      content,
-      detectedTags,
-      undefined,
-      isPrivate,
-      undefined,
-      'Dungeon Master'
-    );
+    journalStore.log(title, content, detectedTags, undefined, {
+      visibility: isPrivate ? 'dm' : 'party',
+      authorName: 'Dungeon Master'
+    });
 
     if (titleInput) titleInput.value = '';
     if (descInput) descInput.value = '';

@@ -87,6 +87,7 @@
 </div>
 
 <script>
+  import { showAlert, showConfirm, showForm } from '../../scripts/ui/notify';
   import { characterStore } from '../../scripts/state/characterStore';
   import { animateHpBar } from '../../scripts/animations/hpAnimations';
   import { openModal } from '../../scripts/animations/modalAnimations';
@@ -149,13 +150,15 @@
   });
 
   // Manual HP edit
-  document.getElementById('hp-clickable-area')?.addEventListener('click', () => {
+  document.getElementById('hp-clickable-area')?.addEventListener('click', async () => {
     const char = characterStore.get();
-    const cur = prompt('Puntos de Golpe actuales:', String(char.hp.current));
-    if (cur !== null) {
-      const max = prompt('Puntos de Golpe máximos:', String(char.hp.max));
-      const temp = prompt('Puntos de Golpe temporales:', String(char.hp.temp));
-      characterStore.setHp(Number(cur) || 0, Number(max) || char.hp.max, Number(temp) || 0);
+    const values = await showForm([
+      { name: 'cur', label: 'Actuales', type: 'number', value: char.hp.current, min: 0 },
+      { name: 'max', label: 'Máximos', type: 'number', value: char.hp.max, min: 1 },
+      { name: 'temp', label: 'Temporales', type: 'number', value: char.hp.temp, min: 0 },
+    ], { title: 'Puntos de Golpe', confirmText: 'Guardar' });
+    if (values) {
+      characterStore.setHp(Number(values.cur) || 0, Number(values.max) || char.hp.max, Number(values.temp) || 0);
     }
   });
 
@@ -176,17 +179,17 @@
   document.getElementById('rest-short-btn')?.addEventListener('click', () => {
     const char = characterStore.get();
     if (char.hitDice.remaining <= 0) {
-      alert('No te quedan Dados de Golpe disponibles para gastar. Necesitas un Descanso Largo.');
+      showAlert('No te quedan Dados de Golpe disponibles para gastar. Necesitas un Descanso Largo.', { kind: 'warning' });
       return;
     }
     const res = characterStore.shortRest(1);
-    alert(`¡Descanso Corto completado! Has gastado 1 Dado de Golpe y recuperado +${res.healed} PG.`);
+    showAlert(`¡Descanso Corto completado! Has gastado 1 Dado de Golpe y recuperado +${res.healed} PG.`, { kind: 'success', title: 'Descanso corto' });
   });
 
-  document.getElementById('rest-long-btn')?.addEventListener('click', () => {
-    if (confirm('¿Completar Descanso Largo? Restaura todos tus PG al 100%, espacios de conjuro y recupera dados de golpe.')) {
+  document.getElementById('rest-long-btn')?.addEventListener('click', async () => {
+    if (await showConfirm('Restaura todos tus PG al 100%, los espacios de conjuro y recupera dados de golpe.', { title: '¿Completar Descanso Largo?', confirmText: 'Descansar' })) {
       characterStore.longRest();
-      alert(`¡Descanso Largo completado! Tus PG están al máximo (${characterStore.get().hp.max}/${characterStore.get().hp.max}) y tus recursos al 100%.`);
+      showAlert(`¡Descanso Largo completado! Tus PG están al máximo (${characterStore.get().hp.max}/${characterStore.get().hp.max}) y tus recursos al 100%.`, { kind: 'success', title: 'Descanso largo' });
     }
   });
 

@@ -75,6 +75,7 @@
 </div>
 
 <script>
+  import { showAlert, showChoice, showPrompt } from '../../scripts/ui/notify';
   import { characterStore } from '../../scripts/state/characterStore';
   import { openModal } from '../../scripts/animations/modalAnimations';
 
@@ -104,7 +105,7 @@
   const portraitEl = document.getElementById('hero-portrait-container');
   const photoInput = document.getElementById('hero-photo-input') as HTMLInputElement;
 
-  portraitEl?.addEventListener('click', (e) => {
+  portraitEl?.addEventListener('click', async (e) => {
     // If the click originated from or inside the inspiration button or level seal, do not open avatar prompt
     if (
       (e.target as HTMLElement)?.closest('#hero-inspiration-btn') ||
@@ -113,11 +114,24 @@
       return;
     }
 
-    const method = prompt('Cambiar imagen de personaje:\n1. Pega la URL de una imagen en internet.\n2. O pulsa "Cancelar" para subir una foto desde tu galería o PC.');
-    if (method && method.trim().startsWith('http')) {
-      characterStore.updateProfile({ avatarUrl: method.trim() });
-    } else if (method === null) {
+    const method = await showChoice('¿De dónde querés sacar la imagen?', [
+      { value: 'upload', label: 'Subir una foto', description: 'Desde tu galería o tu PC', icon: 'photo_library' },
+      { value: 'url', label: 'Pegar un enlace', description: 'URL de una imagen en internet', icon: 'link' },
+    ], { title: 'Cambiar imagen del personaje' });
+    if (method === 'upload') {
       photoInput?.click();
+    } else if (method === 'url') {
+      const url = await showPrompt('URL de la imagen', {
+        type: 'url',
+        placeholder: 'https://…',
+        value: characterStore.get().avatarUrl?.startsWith('http') ? characterStore.get().avatarUrl : '',
+        required: true,
+      });
+      if (url && url.trim().startsWith('http')) {
+        characterStore.updateProfile({ avatarUrl: url.trim() });
+      } else if (url) {
+        showAlert('El enlace tiene que empezar con http:// o https://', { kind: 'warning' });
+      }
     }
   });
 

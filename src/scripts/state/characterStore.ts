@@ -1,4 +1,4 @@
-import type { CharacterData } from '../models/character.ts';
+import type { CharacterData, SectionOrderConfig } from '../models/character.ts';
 import { defaultCharacter } from '../data/defaultCharacter.ts';
 import { recalculateCharacter, calculateLevelUpHpGain } from '../dnd/calculations.ts';
 import { journalStore } from './journalStore.ts';
@@ -7,15 +7,41 @@ const STORAGE_KEY = 'dnd_active_character_v1';
 
 class CharacterStoreManager {
   private character: CharacterData;
+  private channel: any = null;
 
   constructor() {
     this.character = this.loadFromStorage();
+    this.initBroadcastChannel();
     if (typeof window === 'undefined') return;
     setTimeout(() => {
       window.dispatchEvent(new CustomEvent('character-updated', {
         detail: { character: this.character }
       }));
     }, 0);
+  }
+
+  private initBroadcastChannel() {
+    if (typeof BroadcastChannel !== 'undefined') {
+      try {
+        this.channel = new BroadcastChannel('dnd_character_bus_v1');
+        if (typeof (this.channel as any).unref === 'function') {
+          (this.channel as any).unref();
+        }
+        this.channel.onmessage = (event: MessageEvent) => {
+          if (event.data?.type === 'character-sync' && event.data.character) {
+            const incoming = event.data.character;
+            if (this.character && this.character.id === incoming.id) {
+              this.character = recalculateCharacter(incoming);
+              if (typeof window !== 'undefined') {
+                window.dispatchEvent(new CustomEvent('character-updated', {
+                  detail: { character: this.character }
+                }));
+              }
+            }
+          }
+        };
+      } catch (_) {}
+    }
   }
 
   private loadFromStorage(): CharacterData {
@@ -47,13 +73,18 @@ class CharacterStoreManager {
     return this.character;
   }
 
-  private saveAndNotify() {
+  private saveAndNotify(broadcast = true) {
     this.character = recalculateCharacter(this.character);
     if (typeof window !== 'undefined') {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(this.character));
       window.dispatchEvent(new CustomEvent('character-updated', {
         detail: { character: this.character }
       }));
+    }
+    if (broadcast && this.channel) {
+      try {
+        this.channel.postMessage({ type: 'character-sync', character: this.character });
+      } catch (_) {}
     }
   }
 
@@ -640,6 +671,77 @@ class CharacterStoreManager {
       `Preferencias de visualización de módulos guardadas.`,
       ['#Configuración']
     );
+  }
+
+  public updateSectionOrder(order: Partial<SectionOrderConfig>) {
+    if (!this.character.layoutConfig) this.updateLayoutConfig({});
+
+    // Sincronizar unifiedOrder y columnas
+    let col1 = order.col1 ? [...order.col1] : undefined;
+    let col2 = order.col2 ? [...order.col2] : undefined;
+    let unified = order.unifiedOrder && order.unifiedOrder.length > 0 
+      ? [...order.unifiedOrder] 
+      : undefined;
+
+    if (!col1 || !col2) {
+      if (unified && unified.length > 0) {
+        col1 = unified.slice(0, 4);
+        col2 = unified.slice(4);
+      } else {
+        col1 = this.character.layoutConfig?.sectionOrder?.col1 ? [...this.character.layoutConfig.sectionOrder.col1] : ['abilities', 'saves', 'skills', 'features'];
+        col2 = this.character.layoutConfig?.sectionOrder?.col2 ? [...this.character.layoutConfig.sectionOrder.col2] : ['weapons', 'wildshape', 'currency', 'backpack', 'spells'];
+      }
+    }
+
+    if (!unified) {
+      unified = [...col1, ...col2];
+    }
+
+    this.character.layoutConfig!.sectionOrder = {
+      col1,
+      col2,
+      unifiedOrder: unified
+    };
+    this.saveAndNotify();
+  }
+
+  public resetSectionOrder() {
+    this.updateSectionOrder({
+      col1: ['abilities', 'saves', 'skills', 'features'],
+      col2: ['weapons', 'wildshape', 'currency', 'backpack', 'spells'],
+      unifiedOrder: ['abilities', 'saves', 'skills', 'features', 'weapons', 'wildshape', 'currency', 'backpack', 'spells']
+    });
+  }
+
+  public toggleSectionCollapsed(sectionId: string, force?: boolean): boolean {
+    if (!this.character.layoutConfig) this.updateLayoutConfig({});
+    if (!Array.isArray(this.character.layoutConfig!.collapsedSections)) {
+      this.character.layoutConfig!.collapsedSections = [];
+    }
+
+    const list = this.character.layoutConfig!.collapsedSections;
+    const idx = list.indexOf(sectionId);
+    const shouldCollapse = force !== undefined ? force : idx === -1;
+
+    if (shouldCollapse && idx === -1) {
+      list.push(sectionId);
+    } else if (!shouldCollapse && idx !== -1) {
+      list.splice(idx, 1);
+    }
+
+    this.saveAndNotify();
+    return shouldCollapse;
+  }
+
+  public setAllSectionsCollapsed(collapsed: boolean) {
+    if (!this.character.layoutConfig) this.updateLayoutConfig({});
+    const allSections = ['abilities', 'saves', 'skills', 'features', 'weapons', 'wildshape', 'currency', 'backpack', 'spells'];
+    this.character.layoutConfig!.collapsedSections = collapsed ? [...allSections] : [];
+    this.saveAndNotify();
+  }
+
+  public isSectionCollapsed(sectionId: string): boolean {
+    return Boolean(this.character.layoutConfig?.collapsedSections?.includes(sectionId));
   }
 
   public setActiveTab(tab: any) {

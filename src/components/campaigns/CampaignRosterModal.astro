@@ -50,6 +50,36 @@
       </span>
     </div>
 
+    <!-- Invitación (modo nube, solo DM / creador) -->
+    <div id="roster-invite-box" class="hidden px-5 py-3 bg-[#10141d] border-b border-[#222f42] text-xs font-label space-y-2">
+      <div class="flex items-center justify-between gap-2">
+        <span class="text-[#94a3b8] font-bold flex items-center gap-1.5">
+          <span class="material-symbols-outlined text-[16px] text-amber-500">key</span>
+          <span>Código de invitación</span>
+        </span>
+        <button
+          type="button"
+          id="roster-invite-regenerate-btn"
+          class="text-[10px] text-[#94a3b8] hover:text-amber-300 underline cursor-pointer"
+          title="Genera un código nuevo; el anterior deja de funcionar"
+        >
+          Regenerar
+        </button>
+      </div>
+      <div class="flex items-center gap-2">
+        <code id="roster-invite-code" class="flex-1 px-3 py-2 rounded-lg bg-[#18202e] border border-amber-500/30 text-amber-300 font-bold tracking-[0.3em] text-sm text-center select-all">-------</code>
+        <button
+          type="button"
+          id="roster-invite-copy-btn"
+          class="px-3 py-2 rounded-lg bg-amber-500/15 border border-amber-500/40 text-amber-300 hover:bg-amber-500/25 font-bold transition-colors cursor-pointer flex items-center gap-1"
+        >
+          <span class="material-symbols-outlined text-[15px]">link</span>
+          <span>Copiar link</span>
+        </button>
+      </div>
+      <span class="text-[10px] text-[#64748b] block">Compartilo con tus jugadores: entran con su cuenta y quedan en la mesa.</span>
+    </div>
+
     <!-- Body / List of Characters -->
     <div class="p-4 sm:p-5 overflow-y-auto space-y-2.5 max-h-[60vh] custom-scrollbar" id="roster-characters-list">
       <!-- Populated via JavaScript -->
@@ -90,6 +120,7 @@
 </div>
 
 <script>
+  import { showAlert, showConfirm, showPrompt, showChoice } from '../../scripts/ui/notify';
   import { campaignStore } from '../../scripts/state/campaignStore';
   import { characterStore } from '../../scripts/state/characterStore';
   import { userStore } from '../../scripts/state/userStore';
@@ -128,6 +159,12 @@
     const canDelete = campaignStore.canUserDeleteCampaign(campaignId, currentUser.id);
 
     if (changeDmBtn) changeDmBtn.classList.toggle('hidden', !canManage);
+
+    const inviteBox = document.getElementById('roster-invite-box');
+    const inviteCodeEl = document.getElementById('roster-invite-code');
+    const showInvite = campaignStore.isCloudMode() && canManage && Boolean(campaign.inviteCode);
+    inviteBox?.classList.toggle('hidden', !showInvite);
+    if (inviteCodeEl) inviteCodeEl.textContent = campaign.inviteCode || '';
     if (deleteCampaignBtn) deleteCampaignBtn.classList.toggle('hidden', !canDelete);
 
     const chars = campaignStore.getCharactersForCampaign(campaignId);
@@ -237,7 +274,7 @@
           e.stopPropagation();
           campaignStore.setActiveCampaign(campaignId);
           characterStore.loadCharacter(char);
-          window.location.href = `/?campaign=${encodeURIComponent(campaignId)}&character=${encodeURIComponent(char.id)}`;
+          window.location.href = `/campaigns?campaign=${encodeURIComponent(campaignId)}&character=${encodeURIComponent(char.id)}`;
         });
       }
 
@@ -259,21 +296,21 @@
         const mCard = document.createElement('div');
         mCard.className = 'p-2.5 rounded-xl bg-[#10141d] border border-[#222f42] flex items-center justify-between gap-3 text-xs';
         mCard.innerHTML = `
-          <div class="flex items-center gap-2.5">
-            <div class="w-8 h-8 rounded-lg bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400">
+          <div class="flex items-center gap-2.5 min-w-0">
+            <div class="w-8 h-8 rounded-lg bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 shrink-0">
               <span class="material-symbols-outlined text-[16px]">${isThisDm ? 'crown' : 'person'}</span>
             </div>
-            <div>
+            <div class="min-w-0">
               <div class="flex items-center gap-1.5 flex-wrap">
-                <span class="font-bold text-[#f1f5f9]">${mUser ? mUser.name : mUid}</span>
-                ${isThisMe ? '<span class="text-[9px] text-amber-400 font-bold">(Tú)</span>' : ''}
-                ${isThisCreator ? '<span class="px-1.5 py-0.2 rounded bg-amber-500/15 text-amber-400 text-[8px] font-bold border border-amber-500/30">👑 Creador</span>' : ''}
-                ${isThisDm ? '<span class="px-1.5 py-0.2 rounded bg-purple-500/15 text-purple-300 text-[8px] font-bold border border-purple-500/30">👑 DM</span>' : ''}
+                <span class="font-bold text-[#f1f5f9] truncate">${mUser ? mUser.name : mUid}</span>
+                ${isThisMe ? '<span class="text-[9px] text-amber-400 font-bold shrink-0">(Tú)</span>' : ''}
+                ${isThisCreator ? '<span class="px-1.5 py-0.2 rounded bg-amber-500/15 text-amber-400 text-[8px] font-bold border border-amber-500/30 shrink-0">👑 Creador</span>' : ''}
+                ${isThisDm ? '<span class="px-1.5 py-0.2 rounded bg-purple-500/15 text-purple-300 text-[8px] font-bold border border-purple-500/30 shrink-0">👑 DM</span>' : ''}
               </div>
-              <span class="text-[10px] text-[#64748b]">${isThisDm ? 'Dungeon Master Activo' : 'Miembro sin personaje'}</span>
+              <span class="text-[10px] text-[#64748b] truncate block">${isThisDm ? 'Dungeon Master Activo' : 'Miembro sin personaje'}</span>
             </div>
           </div>
-          <div class="flex items-center gap-1.5">
+          <div class="flex items-center gap-1.5 shrink-0">
             ${isThisMe ? `
               <button
                 type="button"
@@ -304,36 +341,40 @@
 
     // Attach listeners for remove and leave buttons
     listContainer.querySelectorAll('.remove-char-btn').forEach(btn => {
-      btn.addEventListener('click', (e) => {
+      btn.addEventListener('click', async (e) => {
         e.stopPropagation();
         const targetUid = btn.getAttribute('data-user-id');
         const targetName = btn.getAttribute('data-user-name');
         if (!currentCampaignId || !targetUid) return;
-        if (!confirm(`¿Estás seguro de quitar a "${targetName}" de la campaña?\nSi tiene un personaje asignado, este se convertirá en un personaje independiente sin perder datos.`)) return;
+        if (!(await showConfirm('Si tiene un personaje asignado, pasa a ser un personaje independiente sin perder datos.', {
+          title: `¿Quitar a "${targetName}" de la campaña?`, confirmText: 'Quitar', danger: true,
+        }))) return;
         try {
           campaignStore.removeCampaignMember(currentCampaignId, targetUid);
           renderRoster(currentCampaignId);
           window.dispatchEvent(new CustomEvent('campaigns-updated'));
-          alert(`"${targetName}" ha sido retirado de la campaña.`);
+          showAlert(`"${targetName}" ha sido retirado de la campaña.`, { kind: 'success' });
         } catch (err: any) {
-          alert(err?.message || err);
+          showAlert(err?.message || err, { kind: 'error' });
         }
       });
     });
 
     listContainer.querySelectorAll('.leave-char-btn').forEach(btn => {
-      btn.addEventListener('click', (e) => {
+      btn.addEventListener('click', async (e) => {
         e.stopPropagation();
         if (!currentCampaignId) return;
         const camp = campaignStore.getCampaign(currentCampaignId);
-        if (!confirm(`¿Estás seguro de abandonar la campaña "${camp?.name || ''}"?\nTu personaje se desvinculará y pasará a ser un personaje independiente sin perder stats ni inventario.`)) return;
+        if (!(await showConfirm('Tu personaje se desvincula y pasa a ser independiente, sin perder stats ni inventario.', {
+          title: `¿Abandonar "${camp?.name || 'la campaña'}"?`, confirmText: 'Abandonar', danger: true,
+        }))) return;
         try {
           campaignStore.leaveCampaign(currentCampaignId);
           closeMe();
           window.dispatchEvent(new CustomEvent('campaigns-updated'));
-          alert(`Has abandonado la campaña. Tu personaje ahora es independiente.`);
+          showAlert(`Has abandonado la campaña. Tu personaje ahora es independiente.`, { kind: 'success' });
         } catch (err: any) {
-          alert(err?.message || err);
+          showAlert(err?.message || err, { kind: 'error' });
         }
       });
     });
@@ -347,19 +388,62 @@
     }
   }) as EventListener);
 
-  // Change DM button
-  document.getElementById('roster-modal-change-dm-btn')?.addEventListener('click', () => {
+  document.getElementById('roster-invite-copy-btn')?.addEventListener('click', async () => {
     if (!currentCampaignId) return;
-    const users = userStore.getUsers();
-    const userNames = users.map((u, i) => `${i + 1}. ${u.name} [${u.id}]`).join('\n');
-    const choice = prompt(`Elige el nuevo Dungeon Master ingresando el número:\n${userNames}`);
-    if (!choice) return;
-    const idx = parseInt(choice) - 1;
-    if (idx >= 0 && idx < users.length) {
-      const selectedUser = users[idx];
+    const code = campaignStore.getCampaign(currentCampaignId)?.inviteCode;
+    if (!code) return;
+    const link = `${window.location.origin}/?join=${encodeURIComponent(code)}`;
+    try {
+      await navigator.clipboard.writeText(link);
+      window.dispatchEvent(new CustomEvent('cloud-toast', { detail: { message: 'Link de invitación copiado.' } }));
+    } catch (_) {
+      // Sin permiso de portapapeles: se muestra el link seleccionado para copiarlo a mano.
+      showPrompt('Copiá este link y compartilo con tus jugadores.', {
+        title: 'Link de invitación', value: link, readonly: true, confirmText: 'Listo',
+      });
+    }
+  });
+
+  document.getElementById('roster-invite-regenerate-btn')?.addEventListener('click', async () => {
+    if (!currentCampaignId) return;
+    if (!(await showConfirm('El código y el link anteriores dejarán de funcionar.', {
+      title: '¿Generar un código nuevo?', confirmText: 'Regenerar',
+    }))) return;
+    campaignStore.regenerateInviteCode(currentCampaignId);
+    renderRoster(currentCampaignId);
+  });
+
+  // Re-render si cambia la campaña abierta (p.ej. un jugador se unió)
+  window.addEventListener('campaigns-updated', () => {
+    if (currentCampaignId && modal && !modal.classList.contains('hidden') && campaignStore.getCampaign(currentCampaignId)) {
+      renderRoster(currentCampaignId);
+    }
+  });
+  window.addEventListener('users-updated', () => {
+    if (currentCampaignId && modal && !modal.classList.contains('hidden') && campaignStore.getCampaign(currentCampaignId)) {
+      renderRoster(currentCampaignId);
+    }
+  });
+
+  // Change DM button
+  document.getElementById('roster-modal-change-dm-btn')?.addEventListener('click', async () => {
+    if (!currentCampaignId) return;
+    // Con cuentas reales solo puede ser DM alguien que ya está en la mesa.
+    const users = campaignStore.isCloudMode() ? campaignStore.getCampaignMembers(currentCampaignId) : userStore.getUsers();
+    const camp = campaignStore.getCampaign(currentCampaignId);
+    const me = userStore.getCurrentUser();
+    const choice = await showChoice('Solo el DM ve el Grimorio del Control y las notas secretas.', users.map(u => ({
+      value: u.id,
+      label: `${u.name}${u.id === me.id ? ' (Tú)' : ''}`,
+      description: u.id === camp?.dmId ? 'DM actual' : (u.email || undefined),
+      icon: u.id === camp?.dmId ? 'crown' : 'person',
+    })), { title: 'Elegí el nuevo Dungeon Master' });
+    if (!choice || !currentCampaignId) return;
+    const selectedUser = users.find(u => u.id === choice);
+    if (selectedUser) {
       campaignStore.setCampaignDm(currentCampaignId, selectedUser.id);
       renderRoster(currentCampaignId);
-      alert(`¡${selectedUser.name} ha sido asignado como el nuevo Dungeon Master de esta campaña!`);
+      showAlert(`¡${selectedUser.name} ha sido asignado como el nuevo Dungeon Master de esta campaña!`, { kind: 'success', title: 'Nuevo Dungeon Master' });
       window.dispatchEvent(new CustomEvent('campaigns-updated'));
     }
   });
@@ -371,18 +455,21 @@
   closeBtn?.addEventListener('click', closeMe);
   closeBottomBtn?.addEventListener('click', closeMe);
 
-  deleteCampaignBtn?.addEventListener('click', () => {
+  deleteCampaignBtn?.addEventListener('click', async () => {
     if (!currentCampaignId) return;
     const camp = campaignStore.getCampaign(currentCampaignId);
     if (!camp) return;
-    if (!confirm(`⚠️ ACCIÓN DESTRUCTIVA ⚠️\n\n¿Estás seguro de cerrar y eliminar la campaña "${camp.name}"?\n\n• Todos los personajes de los jugadores se convertirán en personajes independientes autónomos.\n• No se perderán puntos de golpe, inventario, conjuros ni notas.\n• Esta acción no se puede deshacer.`)) return;
+    if (!(await showConfirm(
+      '• Los personajes de los jugadores pasan a ser independientes.\n• No se pierden PG, inventario, conjuros ni notas.\n• Esta acción no se puede deshacer.',
+      { title: `¿Cerrar y eliminar "${camp.name}"?`, confirmText: 'Eliminar campaña', danger: true }
+    ))) return;
     try {
       campaignStore.deleteCampaign(currentCampaignId);
       closeMe();
       window.dispatchEvent(new CustomEvent('campaigns-updated'));
-      alert(`La campaña "${camp.name}" ha sido cerrada. Todos los personajes ahora son independientes.`);
+      showAlert(`La campaña "${camp.name}" ha sido cerrada. Todos los personajes ahora son independientes.`, { kind: 'success', title: 'Campaña cerrada' });
     } catch (err: any) {
-      alert(`Error al eliminar campaña: ${err?.message || err}`);
+      showAlert(`Error al eliminar campaña: ${err?.message || err}`, { kind: 'error' });
     }
   });
 

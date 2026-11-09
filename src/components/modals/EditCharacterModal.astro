@@ -36,7 +36,18 @@
           </div>
 
           <div>
-            <label class="text-[#94a3b8] block mb-1">Clase y Subclase</label>
+            <div class="flex items-center justify-between mb-1">
+              <label class="text-[#94a3b8]">Clase y Subclase</label>
+              <button
+                type="button"
+                id="char-open-compendium-btn"
+                class="text-[10px] text-amber-400 hover:text-amber-300 font-bold flex items-center gap-1 bg-amber-500/10 hover:bg-amber-500/20 px-2 py-0.5 rounded-lg border border-amber-500/30 transition-all cursor-pointer"
+                title="Consultar clases y especies en el SRD"
+              >
+                <span class="material-symbols-outlined text-[13px]">menu_book</span>
+                <span>SRD</span>
+              </button>
+            </div>
             <div class="grid grid-cols-2 gap-2">
               <input type="text" id="edit-char-class" placeholder="Clase" class="w-full p-2.5 rounded-lg bg-[#18202e] border border-[#222f42] text-[#f1f5f9] focus:border-amber-500 focus:outline-none" />
               <input type="text" id="edit-char-subclass" placeholder="Subclase" class="w-full p-2.5 rounded-lg bg-[#18202e] border border-[#222f42] text-[#f1f5f9] focus:border-amber-500 focus:outline-none" />
@@ -54,13 +65,20 @@
           ></textarea>
         </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
+        <div class="grid grid-cols-1 sm:grid-cols-5 gap-3">
+          <div>
+            <label class="text-[#94a3b8] block mb-1">Edición Reglas</label>
+            <select id="edit-char-edition" class="w-full p-2.5 rounded-lg bg-[#18202e] border border-[#222f42] text-[#f1f5f9] focus:border-amber-500 focus:outline-none">
+              <option value="2024">2024 (Nuevo)</option>
+              <option value="2014">2014 (Clásico)</option>
+            </select>
+          </div>
           <div>
             <label class="text-[#94a3b8] block mb-1">Nivel (1-20)</label>
             <input type="number" id="edit-char-level" min="1" max="20" class="w-full p-2.5 rounded-lg bg-[#18202e] border border-[#222f42] text-[#f1f5f9] focus:border-amber-500 focus:outline-none" />
           </div>
           <div>
-            <label class="text-[#94a3b8] block mb-1">Raza</label>
+            <label class="text-[#94a3b8] block mb-1">Especie / Raza</label>
             <input type="text" id="edit-char-race" class="w-full p-2.5 rounded-lg bg-[#18202e] border border-[#222f42] text-[#f1f5f9] focus:border-amber-500 focus:outline-none" />
           </div>
           <div>
@@ -177,6 +195,7 @@
   const quoteInp = document.getElementById('edit-char-quote') as HTMLTextAreaElement;
   const levelInp = document.getElementById('edit-char-level') as HTMLInputElement;
   const raceInp = document.getElementById('edit-char-race') as HTMLInputElement;
+  const editionInp = document.getElementById('edit-char-edition') as HTMLSelectElement;
   const alignInp = document.getElementById('edit-char-alignment') as HTMLInputElement;
   const avatarInp = document.getElementById('edit-char-avatar-url') as HTMLInputElement;
   const maxHpInp = document.getElementById('edit-char-max-hp') as HTMLInputElement;
@@ -207,6 +226,7 @@
     if (titleInp) titleInp.value = char.title || '';
     if (quoteInp) quoteInp.value = char.quote || '';
     if (levelInp) levelInp.value = String(char.level);
+    if (editionInp) editionInp.value = char.rulesEdition || '2024';
     if (raceInp) raceInp.value = char.race;
     if (alignInp) alignInp.value = char.alignment;
     if (avatarInp) avatarInp.value = char.avatarUrl || '';
@@ -270,6 +290,13 @@
   });
   if (modal) observer.observe(modal, { attributes: true });
 
+  document.getElementById('char-open-compendium-btn')?.addEventListener('click', () => {
+    if (modal && backdrop) closeModal(modal, backdrop);
+    window.dispatchEvent(new CustomEvent('open-compendium-modal', {
+      detail: { scope: 'classes', category: 'classes' }
+    }));
+  });
+
   // Close
   closeBtn?.addEventListener('click', () => {
     if (modal && backdrop) closeModal(modal, backdrop);
@@ -299,6 +326,7 @@
     char.subclass = subclassInp?.value.trim() || char.subclass;
     char.title = titleInp?.value.trim() || char.title;
     char.quote = quoteInp?.value.trim() || char.quote;
+    char.rulesEdition = (editionInp?.value as any) || '2024';
     char.level = newLevel;
     char.race = raceInp?.value.trim() || char.race;
     char.alignment = alignInp?.value.trim() || char.alignment;

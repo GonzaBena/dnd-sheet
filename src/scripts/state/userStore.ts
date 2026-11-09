@@ -62,6 +62,8 @@ export const LEGACY_TEST_USERS: AppUser[] = [
 class UserStoreManager {
   private users: AppUser[] = [];
   private currentUserId: string = 'user-me';
+  /** En modo nube el usuario actual es el de Firebase Auth y `users` es un cache de perfiles. */
+  private cloudMode = false;
 
   constructor() {
     this.users = this.loadUsers();
@@ -75,24 +77,86 @@ class UserStoreManager {
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          // Keep only user-me
-          const onlyMe = parsed.filter(u => u.id === 'user-me');
-          if (onlyMe.length > 0) {
-            this.persistUsers(onlyMe);
-            return onlyMe;
+          const legacyUsersCleanKey = 'dnd_legacy_users_cleaned_v2';
+          if (!localStorage.getItem(legacyUsersCleanKey)) {
+            const legacyUserIds = new Set(['user-raven', 'user-elena', 'user-marcos', 'user-sofia', 'user-gundren']);
+            let cleaned = parsed.filter((u: any) => !legacyUserIds.has(u.id));
+            if (!cleaned.some(u => u.id === 'user-me')) {
+              cleaned = [...SEED_USERS, ...cleaned];
+            }
+            localStorage.setItem(legacyUsersCleanKey, 'true');
+            this.persistUsers(cleaned);
+            return cleaned;
           }
+          return parsed;
         }
       }
     } catch (e) {
       console.warn('[UserStore] Error loading users', e);
     }
-    this.persistUsers(SEED_USERS);
     return SEED_USERS;
   }
 
   public seedLegacyFixtures() {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('dnd_legacy_users_cleaned_v2', 'true');
+    }
     this.persistUsers(LEGACY_TEST_USERS);
     this.currentUserId = 'user-me';
+  }
+
+  // ---- Modo nube ----
+
+  public isCloudMode(): boolean {
+    return this.cloudMode;
+  }
+
+  public enterCloudMode(me: AppUser) {
+    this.cloudMode = true;
+    this.users = [me];
+    this.currentUserId = me.id;
+    this.notifyUsers();
+    this.notifyCurrentUser();
+  }
+
+  public exitCloudMode() {
+    this.cloudMode = false;
+    this.users = this.loadUsers();
+    this.currentUserId = this.loadCurrentUserId();
+    this.notifyUsers();
+    this.notifyCurrentUser();
+  }
+
+  /** Perfiles de `users/{uid}` de los miembros de mis campañas. */
+  public upsertProfiles(profiles: AppUser[]) {
+    if (!this.cloudMode || profiles.length === 0) return;
+    const byId = new Map(this.users.map(u => [u.id, u]));
+    let changed = false;
+    for (const p of profiles) {
+      const prev = byId.get(p.id);
+      if (!prev || JSON.stringify(prev) !== JSON.stringify({ ...prev, ...p })) {
+        byId.set(p.id, { ...prev, ...p });
+        changed = true;
+      }
+    }
+    if (!changed) return;
+    this.users = Array.from(byId.values());
+    this.notifyUsers();
+    if (profiles.some(p => p.id === this.currentUserId)) this.notifyCurrentUser();
+  }
+
+  private notifyUsers() {
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('users-updated', { detail: { users: this.users } }));
+    }
+  }
+
+  private notifyCurrentUser() {
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('current-user-changed', {
+        detail: { userId: this.currentUserId, user: this.getCurrentUser() }
+      }));
+    }
   }
 
   private loadCurrentUserId(): string {
@@ -106,7 +170,7 @@ class UserStoreManager {
 
   private persistUsers(users: AppUser[]) {
     this.users = users;
-    if (typeof window !== 'undefined') {
+    if (typeof window !== 'undefined' && !this.cloudMode) {
       localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(this.users));
       window.dispatchEvent(new CustomEvent('users-updated', { detail: { users: this.users } }));
     }
@@ -125,6 +189,7 @@ class UserStoreManager {
   }
 
   public setCurrentUser(userId: string) {
+    if (this.cloudMode) return; // la sesión la define Firebase Auth
     if (!this.users.some(u => u.id === userId)) return;
     this.currentUserId = userId;
     if (typeof window !== 'undefined') {
@@ -139,6 +204,9 @@ class UserStoreManager {
   }
 
   public createUser(name: string, email?: string): AppUser {
+    if (this.cloudMode) {
+      throw new Error('Con cuentas reales los jugadores se suman con el código de invitación de la campaña.');
+    }
     const slug = (name || 'usuario')
       .toLowerCase()
       .normalize('NFD')

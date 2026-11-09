@@ -3,12 +3,17 @@
 @tailwind utilities;
 
 @layer base {
+  *, *::before, *::after {
+    overflow-anchor: none;
+  }
+
   html, body {
     margin: 0;
     padding: 0;
     background-color: #0a0d12;
     color: #f1f5f9;
     font-family: 'Nunito Sans', sans-serif;
+    overflow-anchor: none;
   }
   
   body {
@@ -48,4 +53,58 @@
 .no-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
+}
+
+/* ==========================================================================
+   MASONRY GRID SYSTEM (Elimina estiramientos verticales y huecos en cuadrículas)
+   ========================================================================== */
+.masonry-layout-2 {
+  column-count: 1;
+  column-gap: 0.625rem;
+}
+@media (min-width: 640px) {
+  .masonry-layout-2 {
+    column-count: 2;
+  }
+}
+
+.masonry-layout-3 {
+  column-count: 1;
+  column-gap: 0.875rem;
+}
+@media (min-width: 640px) {
+  .masonry-layout-3 {
+    column-count: 2;
+  }
+}
+@media (min-width: 1024px) {
+  .masonry-layout-3 {
+    column-count: 3;
+  }
+}
+
+.masonry-item {
+  break-inside: avoid;
+  page-break-inside: avoid;
+  -webkit-column-break-inside: avoid;
+  display: inline-block;
+  width: 100%;
+  margin-bottom: 0.625rem;
+  vertical-align: top;
+}
+
+.masonry-layout-3 > .col-span-full,
+.masonry-layout-2 > .col-span-full {
+  column-span: all;
+  -webkit-column-span: all;
+  width: 100%;
+  display: block;
+  break-inside: avoid;
+  -webkit-column-break-inside: avoid;
+}
+
+/* Los bloques a ancho completo que se maquetan con flex (p. ej. estados vacíos) lo conservan. */
+.masonry-layout-3 > .col-span-full.flex,
+.masonry-layout-2 > .col-span-full.flex {
+  display: flex;
 }

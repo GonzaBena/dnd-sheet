@@ -5,7 +5,7 @@
 <header class="fixed top-0 w-full z-40 bg-[#0a0d12]/95 backdrop-blur-xl border-b border-[#222f42] shadow-[0_4px_25px_rgba(0,0,0,0.6)]">
   <div class="h-16 sm:h-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-3">
     <!-- Brand / Title -->
-    <div class="flex items-center gap-3 shrink-0">
+    <a href="/" class="flex items-center gap-3 shrink-0 hover:opacity-90 transition-opacity" title="Ir a Campañas">
       <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-500 to-amber-700 flex items-center justify-center shadow-[0_0_12px_rgba(245,158,11,0.5)] border border-amber-400/40">
         <span class="material-symbols-outlined text-[#0a0d12] text-xl font-bold">auto_stories</span>
       </div>
@@ -13,10 +13,10 @@
         <span class="text-sm font-headline font-bold text-[#f1f5f9] leading-tight tracking-tight">Crónicas del Aventurero</span>
         <span id="header-app-subtitle" class="text-[10px] font-label text-amber-500 uppercase tracking-wider font-semibold">Grimorio de Campaña</span>
       </div>
-    </div>
+    </a>
 
     <!-- Active Campaign Badge (Clean center) -->
-    <a href="/campaigns" class="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#121721] border border-[#222f42] hover:border-amber-500/50 hover:bg-[#18202e] transition-all text-[11px] font-label shrink-0" title="Ver y gestionar campañas">
+    <a href="/" class="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#121721] border border-[#222f42] hover:border-amber-500/50 hover:bg-[#18202e] transition-all text-[11px] font-label shrink-0" title="Ver y gestionar campañas">
       <div class="flex items-center gap-1.5 text-[#94a3b8]">
         <span class="material-symbols-outlined text-[14px] text-amber-500">castle</span>
         <span class="font-medium text-[#e2e8f0]" id="header-campaign-name">Maldición de Strahd</span>
@@ -30,15 +30,15 @@
 
     <!-- Quick Utilities & Actions -->
     <div class="flex items-center gap-2 shrink-0">
-      <!-- DM Mode shortcut -->
+      <!-- Compendio SRD Trigger -->
       <button
-        id="header-open-dm-btn"
-        class="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-amber-600 to-amber-500 text-[#0a0d12] hover:brightness-110 active:scale-95 transition-all text-xs font-bold font-label shadow-sm cursor-pointer"
-        title="Alternar entre el Grimorio del Control y la Ficha de Personaje"
+        id="header-open-compendium-btn"
+        class="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg bg-[#18202e] border border-amber-500/30 text-amber-300 hover:bg-amber-500/15 hover:border-amber-500/60 transition-all text-xs font-bold font-label active:scale-95 shadow-sm cursor-pointer"
+        title="Explorar Compendio Oficial SRD D&D 5e (2024 / 2014)"
         type="button"
       >
-        <span class="material-symbols-outlined text-[16px]" id="header-dm-btn-icon">crown</span>
-        <span id="header-dm-btn-text">Grimorio del Control</span>
+        <span class="material-symbols-outlined text-[16px] text-amber-400">menu_book</span>
+        <span class="hidden md:inline">Compendio SRD</span>
       </button>
 
       <!-- Tirar Dados Modal Trigger -->
@@ -91,7 +91,7 @@
           class="hidden absolute right-0 mt-2 w-56 rounded-xl bg-[#121721] border border-[#222f42] shadow-[0_10px_30px_rgba(0,0,0,0.8)] py-1.5 z-50 text-xs font-medium backdrop-blur-md"
         >
           <a
-            href="/campaigns"
+            href="/"
             class="w-full text-left px-3.5 py-2 text-[#e2e8f0] hover:bg-[#18202e] hover:text-amber-400 flex items-center gap-2.5 transition-colors font-medium"
           >
             <span class="material-symbols-outlined text-[16px] text-amber-500">castle</span>
@@ -141,14 +141,14 @@
           </button>
           
           <button
-            id="menu-sync-btn"
-            class="w-full text-left px-3.5 py-2 text-[#e2e8f0] hover:bg-[#18202e] hover:text-amber-400 flex items-center justify-between transition-colors"
+            id="menu-signout-btn"
+            class="hidden w-full text-left px-3.5 py-2 text-[#e2e8f0] hover:bg-[#18202e] hover:text-rose-400 flex items-center justify-between gap-2 transition-colors"
           >
-            <div class="flex items-center gap-2.5">
-              <span class="material-symbols-outlined text-[16px] text-cyan-400">sync</span>
-              <span>Sincronizar Móvil / PC</span>
+            <div class="flex items-center gap-2.5 min-w-0">
+              <span class="material-symbols-outlined text-[16px] text-cyan-400">logout</span>
+              <span class="truncate">Cerrar sesión <span id="menu-signout-name" class="text-[#64748b]"></span></span>
             </div>
-            <span id="header-sync-dot" class="w-2 h-2 rounded-full bg-slate-500" title="Estado de sincronización"></span>
+            <span id="header-sync-dot" class="w-2 h-2 rounded-full bg-emerald-400 shrink-0" title="Sincronizado en la nube"></span>
           </button>
 
           <button
@@ -184,9 +184,12 @@
 </header>
 
 <script>
+  import { showAlert } from '../../scripts/ui/notify';
   import { characterStore } from '../../scripts/state/characterStore';
   import { campaignStore } from '../../scripts/state/campaignStore';
   import { openModal } from '../../scripts/animations/modalAnimations';
+  import { userStore } from '../../scripts/state/userStore';
+  import { cloudSession } from '../../scripts/data/cloudSync';
 
   // Toggle profile menu
   const profileBtn = document.getElementById('header-profile-btn');
@@ -198,6 +201,11 @@
 
   document.addEventListener('click', () => {
     profileMenu?.classList.add('hidden');
+  });
+
+  // Open Compendium Modal
+  document.getElementById('header-open-compendium-btn')?.addEventListener('click', () => {
+    window.dispatchEvent(new CustomEvent('open-compendium-modal'));
   });
 
   // Open Dice Modal (Public)
@@ -236,25 +244,6 @@
     triggerSecretDiceModal();
   });
 
-  // DM button trigger: toggles between Grimorio del Control and Hoja de Personaje
-  document.getElementById('header-open-dm-btn')?.addEventListener('click', () => {
-    const activeCampId = campaignStore.getActiveCampaignId();
-    if (!activeCampId) return;
-    const isDm = campaignStore.isCurrentUserDm(activeCampId);
-    if (!isDm) return;
-
-    const url = new URL(window.location.href);
-    const currentMode = url.searchParams.get('mode');
-
-    // Toggle between DM Grimoire and Player Sheet
-    if (currentMode === 'player') {
-      url.searchParams.set('mode', 'dm');
-    } else {
-      url.searchParams.set('mode', 'player');
-    }
-    window.location.href = url.toString();
-  });
-
   // Open Roster modal trigger
   document.getElementById('menu-roster-btn')?.addEventListener('click', () => {
     profileMenu?.classList.add('hidden');
@@ -280,12 +269,20 @@
     if (editModal && backdrop) openModal(editModal, backdrop);
   });
 
-  // Sync config trigger
-  document.getElementById('menu-sync-btn')?.addEventListener('click', () => {
+  // Sesión en la nube: solo con Firebase configurado
+  const signOutBtn = document.getElementById('menu-signout-btn');
+  const renderSessionItem = () => {
+    const active = userStore.isCloudMode();
+    signOutBtn?.classList.toggle('hidden', !active);
+    signOutBtn?.classList.toggle('flex', active);
+    const nameEl = document.getElementById('menu-signout-name');
+    if (nameEl) nameEl.textContent = active ? `(${userStore.getCurrentUser().name})` : '';
+  };
+  renderSessionItem();
+  window.addEventListener('current-user-changed', renderSessionItem);
+  signOutBtn?.addEventListener('click', () => {
     profileMenu?.classList.add('hidden');
-    const syncModal = document.getElementById('sync-config-modal');
-    const backdrop = document.getElementById('modal-backdrop');
-    if (syncModal && backdrop) openModal(syncModal, backdrop);
+    cloudSession.signOut();
   });
 
   // Reset confirmation trigger
@@ -323,9 +320,9 @@
       reader.onload = (event) => {
         const text = event.target?.result as string;
         if (characterStore.importJson(text)) {
-          alert('¡Personaje importado exitosamente!');
+          showAlert('¡Personaje importado exitosamente!', { kind: 'success' });
         } else {
-          alert('Error al importar el archivo JSON.');
+          showAlert('Error al importar el archivo JSON.', { kind: 'error' });
         }
       };
       reader.readAsText(file);
@@ -349,9 +346,6 @@
     const levelEl = document.getElementById('header-char-level');
     const classEl = document.getElementById('header-char-class');
     const campEl = document.getElementById('header-campaign-name');
-    const dmBtn = document.getElementById('header-open-dm-btn');
-    const dmBtnIcon = document.getElementById('header-dm-btn-icon');
-    const dmBtnText = document.getElementById('header-dm-btn-text');
     const appSubtitle = document.getElementById('header-app-subtitle');
     const charChip = document.getElementById('header-char-chip');
 
@@ -364,35 +358,37 @@
       campEl.textContent = activeCamp ? activeCamp.name : (char?.sessionContext?.campaignName || 'Sin Campaña');
     }
 
+    const editCharBtn = document.getElementById('menu-edit-char-btn');
+    const cloneBtn = document.getElementById('menu-clone-btn');
+    const panelsBtn = document.getElementById('menu-panels-btn');
+    const restBtn = document.getElementById('header-rest-btn');
+
     if (isDmMode) {
       if (appSubtitle) appSubtitle.textContent = 'Grimorio del Control';
       if (charChip) {
         charChip.innerHTML = '<span class="font-bold text-amber-400 flex items-center gap-1"><span>👑</span><span>Dungeon Master</span></span>';
       }
-      if (dmBtn) {
-        const myCharInCamp = activeCamp ? campaignStore.getMyCharacterForCampaign(activeCamp.id) : null;
-        if (myCharInCamp) {
-          dmBtn.classList.remove('hidden');
-          if (dmBtnIcon) dmBtnIcon.textContent = 'person';
-          if (dmBtnText) dmBtnText.textContent = `Ver Ficha (${myCharInCamp.name.split(' ')[0]})`;
-        } else {
-          dmBtn.classList.add('hidden');
-        }
+      const myCharInCamp = activeCamp ? campaignStore.getMyCharacterForCampaign(activeCamp.id) : null;
+      if (!myCharInCamp) {
+        editCharBtn?.classList.add('hidden');
+        cloneBtn?.classList.add('hidden');
+        panelsBtn?.classList.add('hidden');
+        restBtn?.classList.add('hidden');
+      } else {
+        editCharBtn?.classList.remove('hidden');
+        cloneBtn?.classList.remove('hidden');
+        panelsBtn?.classList.remove('hidden');
+        restBtn?.classList.remove('hidden');
       }
     } else {
       if (appSubtitle) appSubtitle.textContent = 'Grimorio de Campaña';
       if (charChip && char) {
         charChip.innerHTML = `<span class="font-semibold text-amber-400" id="header-char-level">Nvl. ${char.level}</span><span class="text-[#cbd5e1]" id="header-char-class">${char.className}</span>`;
       }
-      if (dmBtn) {
-        if (isDm) {
-          dmBtn.classList.remove('hidden');
-          if (dmBtnIcon) dmBtnIcon.textContent = 'crown';
-          if (dmBtnText) dmBtnText.textContent = 'Grimorio del Control';
-        } else {
-          dmBtn.classList.add('hidden');
-        }
-      }
+      editCharBtn?.classList.remove('hidden');
+      cloneBtn?.classList.remove('hidden');
+      panelsBtn?.classList.remove('hidden');
+      restBtn?.classList.remove('hidden');
     }
   }
 
@@ -413,18 +409,16 @@
     renderHeader(characterStore.get());
   });
 
-  // Listen to sync status to update the dot in header
-  window.addEventListener('sync-status-changed', ((e: CustomEvent<any>) => {
+  // Estado de conexión con Firestore (offline / online)
+  const syncDot = () => {
     const dot = document.getElementById('header-sync-dot');
     if (!dot) return;
-    if (e.detail.state === 'connected') {
-      dot.className = 'w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)] animate-pulse';
-    } else if (e.detail.state === 'connecting') {
-      dot.className = 'w-2 h-2 rounded-full bg-amber-400 animate-ping';
-    } else if (e.detail.state === 'error') {
-      dot.className = 'w-2 h-2 rounded-full bg-rose-500';
-    } else {
-      dot.className = 'w-2 h-2 rounded-full bg-slate-500';
-    }
-  }) as EventListener);
+    dot.className = navigator.onLine
+      ? 'w-2 h-2 rounded-full bg-emerald-400 shrink-0'
+      : 'w-2 h-2 rounded-full bg-amber-400 animate-pulse shrink-0';
+    dot.title = navigator.onLine ? 'Sincronizado en la nube' : 'Sin conexión: los cambios se suben al reconectar';
+  };
+  syncDot();
+  window.addEventListener('online', syncDot);
+  window.addEventListener('offline', syncDot);
 </script>

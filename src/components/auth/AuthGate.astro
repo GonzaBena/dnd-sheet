@@ -1,0 +1,200 @@
+---
+// src/components/auth/AuthGate.astro
+// Pantalla de ingreso (solo con Firebase configurado) + avisos globales de la nube.
+---
+
+<div id="auth-gate" class="hidden fixed inset-0 z-[80] flex items-center justify-center p-4 bg-[#0a0d12]/95 backdrop-blur-sm">
+  <div class="w-full max-w-sm rounded-2xl bg-[#121721] border border-[#222f42] shadow-[0_20px_60px_rgba(0,0,0,0.95)] overflow-hidden">
+    <div class="p-5 bg-gradient-to-r from-[#18202e] via-[#1b2434] to-[#18202e] border-b border-[#222f42] flex items-center gap-3">
+      <div class="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center border border-amber-500/40 shadow-[0_0_12px_rgba(245,158,11,0.25)]">
+        <span class="material-symbols-outlined text-[22px]">casino</span>
+      </div>
+      <div>
+        <h2 id="auth-title" class="font-headline font-bold text-base text-[#f1f5f9]">Entrá a tu mesa</h2>
+        <span class="text-[11px] text-[#94a3b8]">Tus campañas y fichas, en todos tus dispositivos</span>
+      </div>
+    </div>
+
+    <div id="auth-loading" class="p-6 text-center text-xs text-[#94a3b8] flex items-center justify-center gap-2">
+      <span class="material-symbols-outlined text-[18px] text-amber-400 animate-spin">progress_activity</span>
+      <span>Conectando…</span>
+    </div>
+
+    <div id="auth-body" class="hidden p-5 space-y-4 text-xs font-label">
+      <button
+        type="button"
+        id="auth-google-btn"
+        class="w-full py-2.5 rounded-xl bg-[#f1f5f9] hover:bg-white text-[#0a0d12] font-bold flex items-center justify-center gap-2 transition-all cursor-pointer active:scale-[0.98]"
+      >
+        <svg width="16" height="16" viewBox="0 0 48 48" aria-hidden="true">
+          <path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.8 2.4 30.3 0 24 0 14.6 0 6.6 5.4 2.6 13.3l7.9 6.1C12.4 13.7 17.7 9.5 24 9.5z"/>
+          <path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.6 3-2.3 5.5-4.8 7.2l7.7 6c4.5-4.2 6.9-10.3 6.9-17.7z"/>
+          <path fill="#FBBC05" d="M10.5 28.6c-.5-1.4-.8-3-.8-4.6s.3-3.2.8-4.6l-7.9-6.1C1 16.6 0 20.2 0 24s1 7.4 2.6 10.7l7.9-6.1z"/>
+          <path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.7-6c-2.2 1.5-5 2.3-8.2 2.3-6.3 0-11.6-4.2-13.5-10l-7.9 6.1C6.6 42.6 14.6 48 24 48z"/>
+        </svg>
+        <span>Continuar con Google</span>
+      </button>
+
+      <div class="flex items-center gap-2 text-[10px] text-[#64748b] uppercase tracking-wider font-bold">
+        <span class="flex-1 h-px bg-[#222f42]"></span>
+        <span>o con email</span>
+        <span class="flex-1 h-px bg-[#222f42]"></span>
+      </div>
+
+      <form id="auth-email-form" class="space-y-3" novalidate>
+        <div id="auth-name-row" class="hidden">
+          <label for="auth-name" class="text-[#94a3b8] block mb-1 font-bold">Nombre visible</label>
+          <input id="auth-name" type="text" autocomplete="nickname" maxlength="80" placeholder="ej: Elena V."
+            class="w-full p-2.5 rounded-lg bg-[#18202e] border border-[#222f42] text-[#f1f5f9] focus:border-amber-500 focus:outline-none" />
+        </div>
+        <div>
+          <label for="auth-email" class="text-[#94a3b8] block mb-1 font-bold">Email</label>
+          <input id="auth-email" type="email" autocomplete="email" required placeholder="tu@email.com"
+            class="w-full p-2.5 rounded-lg bg-[#18202e] border border-[#222f42] text-[#f1f5f9] focus:border-amber-500 focus:outline-none" />
+        </div>
+        <div id="auth-password-row">
+          <label for="auth-password" class="text-[#94a3b8] block mb-1 font-bold">Contraseña</label>
+          <input id="auth-password" type="password" autocomplete="current-password" minlength="6" placeholder="Mínimo 6 caracteres"
+            class="w-full p-2.5 rounded-lg bg-[#18202e] border border-[#222f42] text-[#f1f5f9] focus:border-amber-500 focus:outline-none" />
+        </div>
+
+        <p id="auth-error" class="hidden p-2.5 rounded-lg bg-rose-500/10 border border-rose-500/30 text-rose-300" role="alert"></p>
+        <p id="auth-info" class="hidden p-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-300" role="status"></p>
+
+        <button type="submit" id="auth-submit"
+          class="w-full py-2.5 rounded-xl bg-gradient-to-r from-amber-600 to-amber-500 text-[#0a0d12] font-bold shadow-[0_0_12px_rgba(245,158,11,0.3)] hover:brightness-110 active:scale-[0.98] transition-all cursor-pointer disabled:opacity-60 disabled:cursor-wait">
+          Iniciar sesión
+        </button>
+      </form>
+
+      <div class="flex items-center justify-between text-[11px]">
+        <button type="button" id="auth-toggle-mode" class="text-amber-400 hover:text-amber-300 font-bold cursor-pointer">Crear cuenta</button>
+        <button type="button" id="auth-forgot" class="text-[#94a3b8] hover:text-[#f1f5f9] cursor-pointer">Olvidé mi contraseña</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="cloud-toast" class="hidden fixed bottom-4 left-1/2 -translate-x-1/2 z-[90] max-w-[calc(100vw-2rem)] px-4 py-2.5 rounded-xl border text-xs font-label shadow-[0_10px_30px_rgba(0,0,0,0.6)]" role="status"></div>
+
+<script>
+  import { cloudSession } from '../../scripts/data/cloudSync';
+  import {
+    signInWithGoogle, signInWithEmail, signUpWithEmail, sendPasswordReset, describeAuthError,
+  } from '../../scripts/firebase/authService';
+
+  const gate = document.getElementById('auth-gate');
+  const loading = document.getElementById('auth-loading');
+  const body = document.getElementById('auth-body');
+  const title = document.getElementById('auth-title');
+  const form = document.getElementById('auth-email-form') as HTMLFormElement;
+  const nameRow = document.getElementById('auth-name-row');
+  const nameInp = document.getElementById('auth-name') as HTMLInputElement;
+  const emailInp = document.getElementById('auth-email') as HTMLInputElement;
+  const passwordInp = document.getElementById('auth-password') as HTMLInputElement;
+  const submitBtn = document.getElementById('auth-submit') as HTMLButtonElement;
+  const toggleBtn = document.getElementById('auth-toggle-mode');
+  const forgotBtn = document.getElementById('auth-forgot');
+  const errorEl = document.getElementById('auth-error');
+  const infoEl = document.getElementById('auth-info');
+  const toast = document.getElementById('cloud-toast');
+
+  let mode: 'login' | 'signup' = 'login';
+  let toastTimer: ReturnType<typeof setTimeout> | undefined;
+
+  function showToast(message: string, kind: 'error' | 'ok' = 'ok') {
+    if (!toast) return;
+    toast.textContent = message;
+    toast.className = `fixed bottom-4 left-1/2 -translate-x-1/2 z-[90] max-w-[calc(100vw-2rem)] px-4 py-2.5 rounded-xl border text-xs font-label shadow-[0_10px_30px_rgba(0,0,0,0.6)] ${
+      kind === 'error'
+        ? 'bg-[#2a1218] border-rose-500/40 text-rose-200'
+        : 'bg-[#10221c] border-emerald-500/40 text-emerald-200'
+    }`;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toast.classList.add('hidden'), 5000);
+  }
+
+  function setMessage(el: HTMLElement | null, text: string) {
+    if (!el) return;
+    el.textContent = text;
+    el.classList.toggle('hidden', !text);
+  }
+
+  function setMode(next: 'login' | 'signup') {
+    mode = next;
+    nameRow?.classList.toggle('hidden', mode !== 'signup');
+    if (title) title.textContent = mode === 'signup' ? 'Creá tu cuenta' : 'Entrá a tu mesa';
+    submitBtn.textContent = mode === 'signup' ? 'Crear cuenta' : 'Iniciar sesión';
+    if (toggleBtn) toggleBtn.textContent = mode === 'signup' ? 'Ya tengo cuenta' : 'Crear cuenta';
+    passwordInp.autocomplete = mode === 'signup' ? 'new-password' : 'current-password';
+    setMessage(errorEl, '');
+    setMessage(infoEl, '');
+  }
+
+  function render(state: string) {
+    if (!gate) return;
+    const visible = state === 'loading' || state === 'signed-out';
+    gate.classList.toggle('hidden', !visible);
+    gate.classList.toggle('flex', visible);
+    loading?.classList.toggle('hidden', state !== 'loading');
+    body?.classList.toggle('hidden', state !== 'signed-out');
+    if (state === 'signed-out') emailInp?.focus();
+  }
+
+  async function run(action: () => Promise<void>) {
+    setMessage(errorEl, '');
+    setMessage(infoEl, '');
+    submitBtn.disabled = true;
+    try {
+      await action();
+    } catch (err) {
+      setMessage(errorEl, describeAuthError(err));
+    } finally {
+      submitBtn.disabled = false;
+    }
+  }
+
+  if (cloudSession.isCloud()) {
+    render(cloudSession.state);
+    window.addEventListener('cloud-session-changed', ((e: CustomEvent<{ state: string }>) => {
+      render(e.detail.state);
+    }) as EventListener);
+  }
+  cloudSession.start();
+
+  document.getElementById('auth-google-btn')?.addEventListener('click', () => run(signInWithGoogle));
+
+  toggleBtn?.addEventListener('click', () => setMode(mode === 'login' ? 'signup' : 'login'));
+
+  forgotBtn?.addEventListener('click', () => run(async () => {
+    if (!emailInp.value.trim()) {
+      throw { code: 'auth/invalid-email' };
+    }
+    await sendPasswordReset(emailInp.value);
+    setMessage(infoEl, 'Te enviamos un email para restablecer la contraseña.');
+  }));
+
+  form?.addEventListener('submit', (e) => {
+    e.preventDefault();
+    run(async () => {
+      if (mode === 'signup') {
+        await signUpWithEmail(nameInp.value, emailInp.value, passwordInp.value);
+      } else {
+        await signInWithEmail(emailInp.value, passwordInp.value);
+      }
+    });
+  });
+
+  window.addEventListener('cloud-error', ((e: CustomEvent<{ message: string }>) => {
+    showToast(e.detail.message, 'error');
+  }) as EventListener);
+
+  window.addEventListener('cloud-migration-done', ((e: CustomEvent<{ campaigns: number; characters: number; entries: number }>) => {
+    const { campaigns, characters, entries } = e.detail;
+    showToast(`Se importaron ${campaigns} campaña(s), ${characters} personaje(s) y ${entries} entrada(s) del diario a tu cuenta.`);
+  }) as EventListener);
+
+  window.addEventListener('cloud-toast', ((e: CustomEvent<{ message: string; kind?: 'error' | 'ok' }>) => {
+    showToast(e.detail.message, e.detail.kind || 'ok');
+  }) as EventListener);
+</script>

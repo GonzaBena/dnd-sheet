@@ -90,6 +90,7 @@
 </div>
 
 <script>
+  import { showAlert } from '../../scripts/ui/notify';
   import { openModal, closeModal } from '../../scripts/animations/modalAnimations';
   import { characterStore } from '../../scripts/state/characterStore';
 
@@ -121,18 +122,18 @@
   shortBtn?.addEventListener('click', () => {
     const char = characterStore.get();
     if (char.hitDice.remaining <= 0) {
-      alert('No te quedan Dados de Golpe disponibles para gastar. Necesitas un Descanso Largo.');
+      showAlert('No te quedan Dados de Golpe disponibles para gastar. Necesitas un Descanso Largo.', { kind: 'warning' });
       return;
     }
     const res = characterStore.shortRest(1);
-    alert(`¡Descanso Corto completado! Has gastado 1 Dado de Golpe y recuperado +${res.healed} PG.`);
+    showAlert(`¡Descanso Corto completado! Has gastado 1 Dado de Golpe y recuperado +${res.healed} PG.`, { kind: 'success', title: 'Descanso corto' });
     hideModal();
   });
 
   // Long rest handler
   longBtn?.addEventListener('click', () => {
     characterStore.longRest();
-    alert(`¡Descanso Largo completado! Tus PG están al 100% (${characterStore.get().hp.max}/${characterStore.get().hp.max}) y todos los recursos restaurados.`);
+    showAlert(`¡Descanso Largo completado! Tus PG están al 100% (${characterStore.get().hp.max}/${characterStore.get().hp.max}) y todos los recursos restaurados.`, { kind: 'success', title: 'Descanso largo' });
     hideModal();
   });
 

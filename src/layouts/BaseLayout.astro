@@ -1,5 +1,6 @@
 ---
 import '../styles/global.css';
+import AuthGate from '../components/auth/AuthGate.astro';
 
 interface Props {
   title?: string;
@@ -42,5 +43,6 @@ const {
   </head>
   <body class="bg-[#0a0d12] font-body text-[#f1f5f9] min-h-screen selection:bg-amber-500/30 selection:text-amber-200 antialiased overflow-x-hidden">
     <slot />
+    <AuthGate />
   </body>
 </html>

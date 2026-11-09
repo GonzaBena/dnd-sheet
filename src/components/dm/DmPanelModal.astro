@@ -119,6 +119,7 @@
 </div>
 
 <script>
+  import { showAlert, showConfirm, showForm } from '../../scripts/ui/notify';
   import { campaignStore } from '../../scripts/state/campaignStore';
   import { characterStore } from '../../scripts/state/characterStore';
   import { journalStore } from '../../scripts/state/journalStore';
@@ -155,7 +156,7 @@
 
     if (chars.length === 0) {
       gridContainer.innerHTML = `
-        <div class="col-span-full py-12 text-center text-xs text-[#64748b]">
+        <div class="col-span-full w-full py-12 text-center text-xs text-[#64748b]">
           No hay aventureros en esta campaña aún. Añade o copia personajes desde la pantalla de campañas.
         </div>
       `;
@@ -277,7 +278,7 @@
         campaignStore.setActiveCampaign(campaignId);
         characterStore.loadCharacter(char);
         closeMe();
-        window.location.href = `/?campaign=${encodeURIComponent(campaignId)}&character=${encodeURIComponent(char.id)}`;
+        window.location.href = `/campaigns?campaign=${encodeURIComponent(campaignId)}&character=${encodeURIComponent(char.id)}`;
       });
 
       gridContainer.appendChild(card);
@@ -297,7 +298,7 @@
       }
 
       if (isSecret) {
-        alert(`🎲 Tirada Oculta del DM (${formula}): Resultado = ${total}`);
+        showAlert(`🎲 Tirada Oculta del DM (${formula}): Resultado = ${total}`, { kind: 'info', title: 'Tirada oculta del DM' });
       } else {
         // Broadcast public roll
         if (activeDmCampaignId) {
@@ -316,17 +317,22 @@
           ['#Tirada'],
           { formula, result: total }
         );
-        alert(`🎲 ¡Tirada del DM publicada a la mesa! (${formula}): ${total}`);
+        showAlert(`🎲 ¡Tirada del DM publicada a la mesa! (${formula}): ${total}`, { kind: 'success', title: 'Tirada publicada' });
       }
     });
   });
 
   // Launch milestone button
-  document.getElementById('dm-launch-milestone-btn')?.addEventListener('click', () => {
-    const title = prompt('Título del Hito conseguido por el grupo:', '¡Hazaña Heroica de la Mesa!');
-    if (!title) return;
-    const banner = prompt('Texto del Banderín (en mayúsculas):', '¡VICTORIA ÉPICA!') || '¡FELICIDADES!';
-    const desc = prompt('Descripción del Logro:', 'El grupo ha triunfado ante el peligro y grabado su nombre en las crónicas.') || '¡Logro conseguido!';
+  document.getElementById('dm-launch-milestone-btn')?.addEventListener('click', async () => {
+    const values = await showForm([
+      { name: 'title', label: 'Título del hito', value: '¡Hazaña Heroica de la Mesa!', required: true },
+      { name: 'banner', label: 'Texto del banderín', value: '¡VICTORIA ÉPICA!', hint: 'Se muestra en mayúsculas sobre el título.' },
+      { name: 'desc', label: 'Descripción del logro', type: 'textarea', value: 'El grupo ha triunfado ante el peligro y grabado su nombre en las crónicas.' },
+    ], { title: 'Celebrar un hito', message: 'Se le muestra a toda la mesa en vivo.', confirmText: 'Celebrar' });
+    if (!values) return;
+    const title = values.title.trim();
+    const banner = values.banner.trim() || '¡FELICIDADES!';
+    const desc = values.desc.trim() || '¡Logro conseguido!';
 
     if (activeDmCampaignId) {
       campaignStore.sendDmEvent(activeDmCampaignId, {
@@ -346,9 +352,9 @@
   });
 
   // Group rest button
-  document.getElementById('dm-group-rest-btn')?.addEventListener('click', () => {
+  document.getElementById('dm-group-rest-btn')?.addEventListener('click', async () => {
     if (!activeDmCampaignId) return;
-    if (confirm('¿Aplicar Descanso Corto a todos los personajes de esta campaña?')) {
+    if (await showConfirm('Cada personaje de la campaña recupera +8 PG.', { title: '¿Descanso Corto para todo el grupo?', confirmText: 'Aplicar' })) {
       const chars = campaignStore.getCharactersForCampaign(activeDmCampaignId);
       chars.forEach(c => {
         c.hp.current = Math.min(c.hp.max, c.hp.current + 8);
@@ -360,7 +366,7 @@
         ['#Descanso']
       );
       renderDmPanel(activeDmCampaignId);
-      alert('¡Descanso de grupo completado!');
+      showAlert('¡Descanso de grupo completado!', { kind: 'success' });
     }
   });
 
@@ -372,7 +378,7 @@
 
     // Strict access control: only the assigned DM user can open this panel
     if (camp && camp.dmId !== currentUser.id) {
-      alert(`Acceso Restringido: Solo el Dungeon Master (${camp.dmName}) tiene permiso para acceder a esta pantalla.`);
+      showAlert(`Solo el Dungeon Master (${camp.dmName}) tiene permiso para acceder a esta pantalla.`, { kind: 'error', title: 'Acceso restringido' });
       return;
     }
 

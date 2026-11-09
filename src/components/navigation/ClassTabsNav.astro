@@ -71,6 +71,7 @@
     <button
       type="button"
       data-tab="journal"
+      id="tab-btn-journal"
       class="tab-btn px-3.5 py-2 rounded-xl text-xs font-headline font-bold transition-all flex items-center gap-1.5 shrink-0 cursor-pointer text-[#94a3b8] hover:bg-[#18202e] hover:text-[#f1f5f9]"
     >
       <span class="material-symbols-outlined text-[16px]">history_edu</span>
@@ -99,6 +100,7 @@
 
   const spellsTabBtn = document.getElementById('tab-btn-spells');
   const wildShapeTabBtn = document.getElementById('tab-btn-wildshape');
+  const journalTabBtn = document.getElementById('tab-btn-journal');
   const customizeBtn = document.getElementById('open-customize-panels-btn');
 
   customizeBtn?.addEventListener('click', () => {
@@ -120,6 +122,17 @@
     if (wildShapeTabBtn) {
       if (cfg.showWildShape) wildShapeTabBtn.classList.remove('hidden');
       else wildShapeTabBtn.classList.add('hidden');
+    }
+
+    if (journalTabBtn) {
+      if (cfg.showJournal !== false) journalTabBtn.classList.remove('hidden');
+      else journalTabBtn.classList.add('hidden');
+    }
+
+    const fabRoot = document.getElementById('journal-fab-root');
+    if (fabRoot) {
+      if (cfg.showJournal !== false) fabRoot.classList.remove('hidden');
+      else fabRoot.classList.add('hidden');
     }
 
     // Highlight active tab
@@ -174,27 +187,36 @@
     setVis(secSpells, cfg.showSpells && (showAll || tab === 'spells'));
     setVis(secJournal, (showAll && cfg.showJournal) || tab === 'journal');
 
-    // DYNAMIC LAYOUT REORGANIZATION (Eliminates empty 50% column gap)
+    // DYNAMIC LAYOUT REORGANIZATION (Adapts cleanly based on which columns have visible sections)
     if (grid && col1 && col2) {
       if (tab === 'journal') {
         grid.classList.add('hidden');
       } else {
         grid.classList.remove('hidden');
 
-        if (tab === 'inventory' || tab === 'spells' || tab === 'wildshape') {
-          // Hide Column 1, expand Column 2 centered
-          col1.classList.add('hidden');
+        const hasVisibleCol1 = Array.from(col1.children).some((el) => !el.classList.contains('hidden') && el.id !== 'section-drop-placeholder');
+        const hasVisibleCol2 = Array.from(col2.children).some((el) => !el.classList.contains('hidden') && el.id !== 'section-drop-placeholder');
+
+        if (hasVisibleCol1 && hasVisibleCol2) {
+          // Both have content: standard 2-column layout
+          col1.classList.remove('hidden');
           col2.classList.remove('hidden');
-          col2.className = 'space-y-6 w-full max-w-4xl mx-auto col-span-full';
-          grid.className = 'grid grid-cols-1 gap-6 items-start';
-        } else if (tab === 'skills') {
-          // Hide Column 2, expand Column 1 centered
+          col1.className = 'space-y-6 w-full';
+          col2.className = 'space-y-6 w-full';
+          grid.className = 'grid grid-cols-1 lg:grid-cols-2 gap-6 items-start';
+        } else if (hasVisibleCol1 && !hasVisibleCol2) {
+          // Only col1 has content: expand centered
           col2.classList.add('hidden');
           col1.classList.remove('hidden');
           col1.className = 'space-y-6 w-full max-w-4xl mx-auto col-span-full';
           grid.className = 'grid grid-cols-1 gap-6 items-start';
+        } else if (!hasVisibleCol1 && hasVisibleCol2) {
+          // Only col2 has content: expand centered
+          col1.classList.add('hidden');
+          col2.classList.remove('hidden');
+          col2.className = 'space-y-6 w-full max-w-4xl mx-auto col-span-full';
+          grid.className = 'grid grid-cols-1 gap-6 items-start';
         } else {
-          // 'all' or 'combat': 2-column balanced desktop layout
           col1.classList.remove('hidden');
           col2.classList.remove('hidden');
           col1.className = 'space-y-6 w-full';
@@ -209,6 +231,10 @@
   document.querySelectorAll('.tab-btn').forEach((btn) => {
     btn.addEventListener('click', () => {
       const tabName = btn.getAttribute('data-tab');
+      if (tabName === 'journal') {
+        window.dispatchEvent(new CustomEvent('open-journal-modal'));
+        return;
+      }
       if (tabName) {
         characterStore.setActiveTab(tabName);
       }

@@ -38,6 +38,8 @@ export interface Campaign {
   status: 'active' | 'paused' | 'completed';
   characterIds: string[];
   createdAt: number;
+  /** Código para unirse (modo nube). Solo lo ven los miembros. */
+  inviteCode?: string;
 }
 
 export interface DmEvent {

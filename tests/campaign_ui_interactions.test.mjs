@@ -43,7 +43,7 @@ test('Campaign UI Interactions & Navbar Resolution Tests', async (t) => {
     const isDm = campaignStore.isCurrentUserDm(activeCampId);
     assert.equal(isDm, true, 'User is DM of Avernus');
 
-    // Simulate navbar resolution logic from campaigns.astro
+    // Simulate navbar resolution logic from index.astro (Campaigns page)
     let buttonMode = '';
     let buttonText = '';
     let buttonHref = '';
@@ -51,17 +51,17 @@ test('Campaign UI Interactions & Navbar Resolution Tests', async (t) => {
     if (isDm) {
       buttonMode = 'dm';
       buttonText = 'Grimorio del Control';
-      buttonHref = `/?campaign=${encodeURIComponent(activeCampId)}&mode=dm`;
+      buttonHref = `/campaigns?campaign=${encodeURIComponent(activeCampId)}&mode=dm`;
     } else {
       const myChar = campaignStore.getMyCharacterForCampaign(activeCampId, 'user-me');
       buttonMode = 'player';
       buttonText = myChar ? `Hoja (${myChar.name})` : 'Unirse';
-      buttonHref = myChar ? `/?campaign=${activeCampId}&character=${myChar.id}` : '#';
+      buttonHref = myChar ? `/campaigns?campaign=${activeCampId}&character=${myChar.id}` : '#';
     }
 
     assert.equal(buttonMode, 'dm', 'Mode is DM');
     assert.equal(buttonText, 'Grimorio del Control');
-    assert.equal(buttonHref, '/?campaign=avernus-descent&mode=dm');
+    assert.equal(buttonHref, '/campaigns?campaign=avernus-descent&mode=dm');
     // Ensure it does NOT show Elysian from Barovia!
     assert.equal(buttonText.includes('Elysian'), false, 'Does not mention Elysian');
   });
@@ -85,11 +85,11 @@ test('Campaign UI Interactions & Navbar Resolution Tests', async (t) => {
       buttonText = 'Grimorio del Control';
     } else if (myChar) {
       buttonText = `Hoja (${myChar.name.split(' ')[0]})`;
-      buttonHref = `/?campaign=${encodeURIComponent(activeCampId)}&character=${encodeURIComponent(myChar.id)}`;
+      buttonHref = `/campaigns?campaign=${encodeURIComponent(activeCampId)}&character=${encodeURIComponent(myChar.id)}`;
     }
 
     assert.equal(buttonText, 'Hoja (Elysian)');
-    assert.equal(buttonHref, '/?campaign=barovia-strahd&character=elysian-ventosombra');
+    assert.equal(buttonHref, '/campaigns?campaign=barovia-strahd&character=elysian-ventosombra');
   });
 
   await t.test('3. Card click ONLY activates campaign without triggering modal or navigating', () => {

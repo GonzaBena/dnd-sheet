@@ -2,26 +2,26 @@
 // src/components/modals/ConfigurePanelsModal.astro
 ---
 
-<div id="configure-panels-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
-  <div class="modal-content w-full max-w-lg rounded-2xl bg-[#121721] border border-[#222f42] shadow-[0_20px_60px_rgba(0,0,0,0.9)] overflow-hidden flex flex-col">
+<div id="configure-panels-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4">
+  <div class="modal-content w-full max-w-2xl max-h-[90vh] rounded-2xl bg-[#121721] border border-[#222f42] shadow-[0_20px_60px_rgba(0,0,0,0.9)] overflow-hidden flex flex-col">
     <!-- Header -->
-    <div class="p-4 bg-[#18202e] border-b border-[#222f42] flex items-center justify-between">
+    <div class="p-4 bg-[#18202e] border-b border-[#222f42] flex items-center justify-between shrink-0">
       <div class="flex items-center gap-2">
         <div class="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center border border-amber-500/30">
           <span class="material-symbols-outlined text-[20px]">tune</span>
         </div>
         <div>
-          <h3 class="font-headline font-bold text-base text-[#f1f5f9]">Personalizar Pestañas y Módulos</h3>
-          <span class="text-[10px] text-[#94a3b8]">Adapta la ficha a tu clase (Druida, Mago, Guerrero...)</span>
+          <h3 class="font-headline font-bold text-base text-[#f1f5f9]">Personalizar Secciones y Módulos</h3>
+          <span class="text-[10px] text-[#94a3b8]">Reordena con Drag & Drop, cambia columnas y adapta a tu clase</span>
         </div>
       </div>
-      <button id="config-panels-close-btn" class="w-7 h-7 rounded-lg bg-[#10141d] border border-[#222f42] hover:border-rose-500/50 text-[#94a3b8] hover:text-rose-400 flex items-center justify-center text-xs transition-colors cursor-pointer">
+      <button id="config-panels-close-btn" class="w-7 h-7 rounded-lg bg-[#10141d] border border-[#222f42] hover:border-rose-500/50 text-[#94a3b8] hover:text-rose-400 flex items-center justify-center text-xs transition-colors cursor-pointer" aria-label="Cerrar modal">
         <span class="material-symbols-outlined text-[16px]">close</span>
       </button>
     </div>
 
-    <!-- Body -->
-    <div class="p-5 space-y-4 text-xs font-label">
+    <!-- Scrollable Body -->
+    <div class="p-5 space-y-5 text-xs font-label overflow-y-auto max-h-[calc(90vh-140px)] custom-scrollbar">
       <!-- 1. Presets de Clase Rápidos -->
       <div>
         <label class="text-[#94a3b8] block mb-2 font-headline font-bold uppercase tracking-wider text-[11px]">
@@ -72,9 +72,105 @@
         </div>
       </div>
 
-      <div class="h-px bg-[#222f42] my-2"></div>
+      <div class="h-px bg-[#222f42]"></div>
 
-      <!-- 2. Toggles individuales de Módulos -->
+      <!-- 2. REORDENAR SECCIONES (ADAPTATIVO 1 COLUMNA / 2 COLUMNAS) -->
+      <div>
+        <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
+          <div>
+            <label class="text-[#94a3b8] block font-headline font-bold uppercase tracking-wider text-[11px]" id="modal-order-title">
+              Organización y Orden de Secciones:
+            </label>
+            <span class="text-[10px] text-[#64748b]" id="modal-order-subtitle">
+              Arrastra con el tirador o usa las flechas para ordenar de arriba a abajo
+            </span>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <!-- View Mode Switcher (1 Columna vs 2 Columnas) -->
+            <div class="flex items-center bg-[#10141d] p-0.5 rounded-lg border border-[#222f42] text-[10px]">
+              <button
+                type="button"
+                id="btn-mode-1col"
+                class="px-2.5 py-1 rounded-md font-bold transition-all cursor-pointer flex items-center gap-1 bg-amber-500 text-[#0a0d12]"
+                title="Vista de 1 Columna (recomendada para móviles y tablets)"
+              >
+                <span class="material-symbols-outlined text-[13px]">view_agenda</span>
+                <span>1 Columna</span>
+              </button>
+              <button
+                type="button"
+                id="btn-mode-2col"
+                class="px-2.5 py-1 rounded-md font-bold transition-all cursor-pointer flex items-center gap-1 text-[#94a3b8] hover:text-[#f1f5f9]"
+                title="Vista de 2 Columnas (para pantallas de escritorio)"
+              >
+                <span class="material-symbols-outlined text-[13px]">view_column</span>
+                <span>2 Columnas</span>
+              </button>
+            </div>
+
+            <!-- Reset order button -->
+            <button
+              type="button"
+              id="btn-reset-section-order"
+              class="text-[10px] text-amber-400 hover:text-amber-300 font-bold bg-[#18202e] border border-amber-500/30 hover:border-amber-500/60 px-2 py-1 rounded-lg flex items-center gap-1 cursor-pointer transition-colors"
+              title="Restablecer distribución por defecto"
+            >
+              <span class="material-symbols-outlined text-[13px]">restart_alt</span>
+              <span class="hidden xs:inline">Restablecer</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 1-Column Unified List Container (Default on mobile / 1-column screens) -->
+        <div id="modal-order-1col-container" class="rounded-xl bg-[#18202e]/60 border border-[#222f42] p-3 space-y-2 mt-3">
+          <div class="flex items-center justify-between pb-1.5 border-b border-[#222f42]/60">
+            <span class="font-headline font-bold text-[11px] text-[#f1f5f9] flex items-center gap-1.5">
+              <span class="material-symbols-outlined text-amber-500 text-[14px]">format_list_numbered</span>
+              <span>Orden de las Secciones en la Ficha (de arriba hacia abajo)</span>
+            </span>
+            <span class="text-[10px] text-[#64748b]" id="count-unified">9 secciones</span>
+          </div>
+          <div class="space-y-1.5 min-h-[140px]" id="modal-order-unified">
+            <!-- Rendered via JavaScript -->
+          </div>
+        </div>
+
+        <!-- 2-Columns Container (Desktop view) -->
+        <div id="modal-order-2col-container" class="hidden grid-cols-1 md:grid-cols-2 gap-3 mt-3">
+          <!-- Columna 1 (Izquierda) -->
+          <div class="rounded-xl bg-[#18202e]/60 border border-[#222f42] p-3 space-y-2">
+            <div class="flex items-center justify-between pb-1.5 border-b border-[#222f42]/60">
+              <span class="font-headline font-bold text-[11px] text-[#f1f5f9] flex items-center gap-1">
+                <span class="material-symbols-outlined text-amber-500 text-[14px]">view_column</span>
+                <span>Columna 1 (Izquierda)</span>
+              </span>
+              <span class="text-[10px] text-[#64748b]" id="count-col1">4 secciones</span>
+            </div>
+            <div class="space-y-1.5 min-h-[140px]" id="modal-order-col1" data-modal-col="col1">
+              <!-- Rendered via JavaScript -->
+            </div>
+          </div>
+
+          <!-- Columna 2 (Derecha) -->
+          <div class="rounded-xl bg-[#18202e]/60 border border-[#222f42] p-3 space-y-2">
+            <div class="flex items-center justify-between pb-1.5 border-b border-[#222f42]/60">
+              <span class="font-headline font-bold text-[11px] text-[#f1f5f9] flex items-center gap-1">
+                <span class="material-symbols-outlined text-amber-500 text-[14px]">view_column</span>
+                <span>Columna 2 (Derecha)</span>
+              </span>
+              <span class="text-[10px] text-[#64748b]" id="count-col2">5 secciones</span>
+            </div>
+            <div class="space-y-1.5 min-h-[140px]" id="modal-order-col2" data-modal-col="col2">
+              <!-- Rendered via JavaScript -->
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="h-px bg-[#222f42]"></div>
+
+      <!-- 3. Toggles individuales de Módulos -->
       <div class="space-y-2">
         <label class="text-[#94a3b8] block mb-1 font-headline font-bold uppercase tracking-wider text-[11px]">
           Módulos Activos en la Ficha:
@@ -137,7 +233,7 @@
     </div>
 
     <!-- Footer -->
-    <div class="p-4 bg-[#18202e] border-t border-[#222f42] flex items-center justify-end gap-2.5">
+    <div class="p-4 bg-[#18202e] border-t border-[#222f42] flex items-center justify-end gap-2.5 shrink-0">
       <button type="button" id="config-panels-cancel-btn" class="px-4 py-2 rounded-xl bg-[#121721] border border-[#222f42] text-[#94a3b8] hover:text-[#f1f5f9] cursor-pointer text-xs">
         Cancelar
       </button>
@@ -151,12 +247,21 @@
 <script>
   import { characterStore } from '../../scripts/state/characterStore';
   import { closeModal } from '../../scripts/animations/modalAnimations';
+  import { SECTIONS_META } from '../../scripts/ui/sectionOrganizer';
 
   const modal = document.getElementById('configure-panels-modal');
   const backdrop = document.getElementById('modal-backdrop');
   const closeBtn = document.getElementById('config-panels-close-btn');
   const cancelBtn = document.getElementById('config-panels-cancel-btn');
   const saveBtn = document.getElementById('config-panels-save-btn');
+  const resetOrderBtn = document.getElementById('btn-reset-section-order');
+
+  const btnMode1Col = document.getElementById('btn-mode-1col');
+  const btnMode2Col = document.getElementById('btn-mode-2col');
+  const container1Col = document.getElementById('modal-order-1col-container');
+  const container2Col = document.getElementById('modal-order-2col-container');
+  const unifiedContainer = document.getElementById('modal-order-unified');
+  const countUnified = document.getElementById('count-unified');
 
   const spellsCheck = document.getElementById('cfg-show-spells') as HTMLInputElement;
   const wildShapeCheck = document.getElementById('cfg-show-wildshape') as HTMLInputElement;
@@ -165,17 +270,403 @@
   const invCheck = document.getElementById('cfg-show-inventory') as HTMLInputElement;
   const journalCheck = document.getElementById('cfg-show-journal') as HTMLInputElement;
 
-  function loadToggles() {
+  const col1Container = document.getElementById('modal-order-col1');
+  const col2Container = document.getElementById('modal-order-col2');
+  const countCol1 = document.getElementById('count-col1');
+  const countCol2 = document.getElementById('count-col2');
+
+  let currentViewMode: '1col' | '2col' = '1col';
+  let draftUnified: string[] = ['abilities', 'saves', 'skills', 'features', 'weapons', 'wildshape', 'currency', 'backpack', 'spells'];
+  let draftCol1: string[] = ['abilities', 'saves', 'skills', 'features'];
+  let draftCol2: string[] = ['weapons', 'wildshape', 'currency', 'backpack', 'spells'];
+  let draggedModalSecId: string | null = null;
+  let draggedModalSourceCol: 'col1' | 'col2' | 'unified' | null = null;
+
+  function setViewMode(mode: '1col' | '2col') {
+    currentViewMode = mode;
+    if (mode === '1col') {
+      container1Col?.classList.remove('hidden');
+      container2Col?.classList.add('hidden');
+      container2Col?.classList.remove('grid');
+
+      btnMode1Col?.classList.add('bg-amber-500', 'text-[#0a0d12]');
+      btnMode1Col?.classList.remove('text-[#94a3b8]');
+      btnMode2Col?.classList.remove('bg-amber-500', 'text-[#0a0d12]');
+      btnMode2Col?.classList.add('text-[#94a3b8]');
+    } else {
+      container1Col?.classList.add('hidden');
+      container2Col?.classList.remove('hidden');
+      container2Col?.classList.add('grid');
+
+      btnMode2Col?.classList.add('bg-amber-500', 'text-[#0a0d12]');
+      btnMode2Col?.classList.remove('text-[#94a3b8]');
+      btnMode1Col?.classList.remove('bg-amber-500', 'text-[#0a0d12]');
+      btnMode1Col?.classList.add('text-[#94a3b8]');
+    }
+  }
+
+  btnMode1Col?.addEventListener('click', () => setViewMode('1col'));
+  btnMode2Col?.addEventListener('click', () => setViewMode('2col'));
+
+  function loadState() {
     const char = characterStore.get();
     if (!char.layoutConfig) return;
     const cfg = char.layoutConfig;
+
     if (spellsCheck) spellsCheck.checked = cfg.showSpells;
     if (wildShapeCheck) wildShapeCheck.checked = cfg.showWildShape;
     if (weaponsCheck) weaponsCheck.checked = cfg.showWeapons;
     if (skillsCheck) skillsCheck.checked = cfg.showSkills;
     if (invCheck) invCheck.checked = cfg.showInventory;
     if (journalCheck) journalCheck.checked = cfg.showJournal;
+
+    if (cfg.sectionOrder) {
+      draftCol1 = [...cfg.sectionOrder.col1];
+      draftCol2 = [...cfg.sectionOrder.col2];
+      draftUnified = cfg.sectionOrder.unifiedOrder && cfg.sectionOrder.unifiedOrder.length > 0
+        ? [...cfg.sectionOrder.unifiedOrder]
+        : [...draftCol1, ...draftCol2];
+    } else {
+      draftCol1 = ['abilities', 'saves', 'skills', 'features'];
+      draftCol2 = ['weapons', 'wildshape', 'currency', 'backpack', 'spells'];
+      draftUnified = ['abilities', 'saves', 'skills', 'features', 'weapons', 'wildshape', 'currency', 'backpack', 'spells'];
+    }
+
+    // Auto-detect mode on open: If viewport is mobile/single column (< 1024px), use 1col mode
+    const isMobileViewport = typeof window !== 'undefined' && window.innerWidth < 1024;
+    setViewMode(isMobileViewport ? '1col' : '2col');
+
+    renderModalOrderLists();
   }
+
+  function renderModalOrderLists() {
+    renderUnifiedList();
+    renderTwoColumnLists();
+  }
+
+  // 1. Render Unified List for 1-column mode
+  function renderUnifiedList() {
+    if (!unifiedContainer) return;
+    unifiedContainer.innerHTML = '';
+    if (countUnified) countUnified.textContent = `${draftUnified.length} secciones`;
+
+    draftUnified.forEach((secId, index) => {
+      const meta = SECTIONS_META[secId] || { name: secId, icon: 'view_in_ar' };
+      const itemEl = document.createElement('div');
+      itemEl.className = 'group flex items-center justify-between p-2 rounded-lg bg-[#121721] border border-[#222f42] hover:border-amber-500/50 transition-all select-none';
+      itemEl.setAttribute('draggable', 'true');
+      itemEl.setAttribute('data-unified-id', secId);
+
+      itemEl.innerHTML = `
+        <div class="flex items-center gap-2.5 min-w-0 flex-1">
+          <span class="material-symbols-outlined text-[#64748b] group-hover:text-amber-400 cursor-grab text-[18px] select-none shrink-0" title="Arrastrar para reordenar">drag_indicator</span>
+          <span class="text-[10px] font-mono px-1.5 py-0.2 rounded bg-[#18202e] border border-[#222f42] text-amber-400/90 font-bold shrink-0">#${index + 1}</span>
+          <span class="material-symbols-outlined text-amber-500 text-[16px] shrink-0">${meta.icon}</span>
+          <span class="text-xs font-medium text-[#f1f5f9] truncate">${meta.name}</span>
+        </div>
+
+        <div class="flex items-center gap-1 shrink-0 ml-1">
+          <!-- Move Up -->
+          <button
+            type="button"
+            class="btn-unified-up w-6 h-6 rounded bg-[#18202e] border border-[#222f42] hover:border-amber-500/40 text-[#94a3b8] hover:text-amber-300 flex items-center justify-center cursor-pointer transition-colors ${index === 0 ? 'opacity-30 cursor-not-allowed' : ''}"
+            title="Subir de posición"
+            data-index="${index}"
+            ${index === 0 ? 'disabled' : ''}
+          >
+            <span class="material-symbols-outlined text-[14px]">arrow_upward</span>
+          </button>
+
+          <!-- Move Down -->
+          <button
+            type="button"
+            class="btn-unified-down w-6 h-6 rounded bg-[#18202e] border border-[#222f42] hover:border-amber-500/40 text-[#94a3b8] hover:text-amber-300 flex items-center justify-center cursor-pointer transition-colors ${index === draftUnified.length - 1 ? 'opacity-30 cursor-not-allowed' : ''}"
+            title="Bajar de posición"
+            data-index="${index}"
+            ${index === draftUnified.length - 1 ? 'disabled' : ''}
+          >
+            <span class="material-symbols-outlined text-[14px]">arrow_downward</span>
+          </button>
+        </div>
+      `;
+
+      // Drag and drop for unified list
+      itemEl.addEventListener('dragstart', (e) => {
+        draggedModalSecId = secId;
+        draggedModalSourceCol = 'unified';
+        if (e.dataTransfer) {
+          e.dataTransfer.effectAllowed = 'move';
+          e.dataTransfer.setData('text/plain', secId);
+        }
+        itemEl.classList.add('opacity-40');
+      });
+
+      itemEl.addEventListener('dragend', () => {
+        itemEl.classList.remove('opacity-40');
+        draggedModalSecId = null;
+        draggedModalSourceCol = null;
+      });
+
+      unifiedContainer.appendChild(itemEl);
+    });
+
+    unifiedContainer.ondragover = (e) => {
+      e.preventDefault();
+      if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+    };
+
+    unifiedContainer.ondrop = (e) => {
+      e.preventDefault();
+      if (!draggedModalSecId || draggedModalSourceCol !== 'unified') return;
+
+      const targetEl = (e.target as HTMLElement).closest('[data-unified-id]') as HTMLElement | null;
+      if (!targetEl) return;
+
+      const targetId = targetEl.getAttribute('data-unified-id');
+      if (!targetId || targetId === draggedModalSecId) return;
+
+      draftUnified = draftUnified.filter(id => id !== draggedModalSecId);
+      const targetIdx = draftUnified.indexOf(targetId);
+      if (targetIdx !== -1) {
+        draftUnified.splice(targetIdx, 0, draggedModalSecId);
+      } else {
+        draftUnified.push(draggedModalSecId);
+      }
+
+      // Sync to col1 and col2
+      draftCol1 = draftUnified.slice(0, 4);
+      draftCol2 = draftUnified.slice(4);
+
+      renderModalOrderLists();
+    };
+  }
+
+  // 2. Render Two-Column Lists for desktop mode
+  function renderTwoColumnLists() {
+    if (!col1Container || !col2Container) return;
+
+    if (countCol1) countCol1.textContent = `${draftCol1.length} secciones`;
+    if (countCol2) countCol2.textContent = `${draftCol2.length} secciones`;
+
+    renderColumnItems(col1Container, draftCol1, 'col1');
+    renderColumnItems(col2Container, draftCol2, 'col2');
+  }
+
+  function renderColumnItems(container: HTMLElement, items: string[], colName: 'col1' | 'col2') {
+    container.innerHTML = '';
+
+    if (items.length === 0) {
+      container.innerHTML = `
+        <div class="h-20 rounded-lg border border-dashed border-[#222f42] flex items-center justify-center text-[10px] text-[#64748b]">
+          Arrastra o mueve secciones aquí
+        </div>
+      `;
+      return;
+    }
+
+    items.forEach((secId, index) => {
+      const meta = SECTIONS_META[secId] || { name: secId, icon: 'view_in_ar' };
+      const itemEl = document.createElement('div');
+      itemEl.className = 'group flex items-center justify-between p-2 rounded-lg bg-[#121721] border border-[#222f42] hover:border-amber-500/50 transition-all select-none';
+      itemEl.setAttribute('draggable', 'true');
+      itemEl.setAttribute('data-sec-id', secId);
+      itemEl.setAttribute('data-col', colName);
+
+      itemEl.innerHTML = `
+        <div class="flex items-center gap-2 min-w-0 flex-1">
+          <span class="material-symbols-outlined text-[#64748b] group-hover:text-amber-400 cursor-grab text-[18px] select-none shrink-0" title="Arrastrar para reordenar">drag_indicator</span>
+          <span class="material-symbols-outlined text-amber-500 text-[16px] shrink-0">${meta.icon}</span>
+          <span class="text-xs font-medium text-[#f1f5f9] truncate">${meta.name}</span>
+        </div>
+
+        <div class="flex items-center gap-1 shrink-0 ml-1">
+          <!-- Move Up -->
+          <button
+            type="button"
+            class="btn-order-up w-6 h-6 rounded bg-[#18202e] border border-[#222f42] hover:border-amber-500/40 text-[#94a3b8] hover:text-amber-300 flex items-center justify-center cursor-pointer transition-colors ${index === 0 ? 'opacity-30 cursor-not-allowed' : ''}"
+            title="Subir posición"
+            data-index="${index}"
+            data-col="${colName}"
+            ${index === 0 ? 'disabled' : ''}
+          >
+            <span class="material-symbols-outlined text-[14px]">arrow_upward</span>
+          </button>
+
+          <!-- Move Down -->
+          <button
+            type="button"
+            class="btn-order-down w-6 h-6 rounded bg-[#18202e] border border-[#222f42] hover:border-amber-500/40 text-[#94a3b8] hover:text-amber-300 flex items-center justify-center cursor-pointer transition-colors ${index === items.length - 1 ? 'opacity-30 cursor-not-allowed' : ''}"
+            title="Bajar posición"
+            data-index="${index}"
+            data-col="${colName}"
+            ${index === items.length - 1 ? 'disabled' : ''}
+          >
+            <span class="material-symbols-outlined text-[14px]">arrow_downward</span>
+          </button>
+
+          <!-- Swap Column -->
+          <button
+            type="button"
+            class="btn-swap-col w-6 h-6 rounded bg-[#18202e] border border-[#222f42] hover:border-amber-500/40 text-[#94a3b8] hover:text-amber-300 flex items-center justify-center cursor-pointer transition-colors"
+            title="${colName === 'col1' ? 'Mover a Columna 2' : 'Mover a Columna 1'}"
+            data-index="${index}"
+            data-col="${colName}"
+          >
+            <span class="material-symbols-outlined text-[14px]">swap_horiz</span>
+          </button>
+        </div>
+      `;
+
+      // Drag events for modal items
+      itemEl.addEventListener('dragstart', (e) => {
+        draggedModalSecId = secId;
+        draggedModalSourceCol = colName;
+        if (e.dataTransfer) {
+          e.dataTransfer.effectAllowed = 'move';
+          e.dataTransfer.setData('text/plain', secId);
+        }
+        itemEl.classList.add('opacity-40');
+      });
+
+      itemEl.addEventListener('dragend', () => {
+        itemEl.classList.remove('opacity-40');
+        draggedModalSecId = null;
+        draggedModalSourceCol = null;
+      });
+
+      container.appendChild(itemEl);
+    });
+
+    container.ondragover = (e) => {
+      e.preventDefault();
+      if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+    };
+
+    container.ondrop = (e) => {
+      e.preventDefault();
+      if (!draggedModalSecId || (draggedModalSourceCol !== 'col1' && draggedModalSourceCol !== 'col2')) return;
+
+      // Remove from source
+      if (draggedModalSourceCol === 'col1') {
+        draftCol1 = draftCol1.filter((id) => id !== draggedModalSecId);
+      } else {
+        draftCol2 = draftCol2.filter((id) => id !== draggedModalSecId);
+      }
+
+      // Insert into target column
+      const targetCard = (e.target as HTMLElement).closest('[data-sec-id]') as HTMLElement | null;
+      const targetList = colName === 'col1' ? draftCol1 : draftCol2;
+
+      if (targetCard) {
+        const targetId = targetCard.getAttribute('data-sec-id');
+        const targetIdx = targetId ? targetList.indexOf(targetId) : -1;
+        if (targetIdx !== -1) {
+          targetList.splice(targetIdx, 0, draggedModalSecId);
+        } else {
+          targetList.push(draggedModalSecId);
+        }
+      } else {
+        targetList.push(draggedModalSecId);
+      }
+
+      // Sync unified list
+      draftUnified = [...draftCol1, ...draftCol2];
+
+      renderModalOrderLists();
+    };
+  }
+
+  // Unified list Up / Down buttons
+  document.addEventListener('click', (e) => {
+    const target = e.target as HTMLElement;
+
+    const uniUp = target.closest<HTMLButtonElement>('.btn-unified-up');
+    if (uniUp) {
+      const idx = Number(uniUp.getAttribute('data-index'));
+      if (idx > 0) {
+        const temp = draftUnified[idx];
+        draftUnified[idx] = draftUnified[idx - 1];
+        draftUnified[idx - 1] = temp;
+        // Sync col1/col2
+        draftCol1 = draftUnified.slice(0, 4);
+        draftCol2 = draftUnified.slice(4);
+        renderModalOrderLists();
+      }
+      return;
+    }
+
+    const uniDown = target.closest<HTMLButtonElement>('.btn-unified-down');
+    if (uniDown) {
+      const idx = Number(uniDown.getAttribute('data-index'));
+      if (idx < draftUnified.length - 1) {
+        const temp = draftUnified[idx];
+        draftUnified[idx] = draftUnified[idx + 1];
+        draftUnified[idx + 1] = temp;
+        // Sync col1/col2
+        draftCol1 = draftUnified.slice(0, 4);
+        draftCol2 = draftUnified.slice(4);
+        renderModalOrderLists();
+      }
+      return;
+    }
+
+    // 2-column Move Up
+    const upBtn = target.closest<HTMLButtonElement>('.btn-order-up');
+    if (upBtn) {
+      const idx = Number(upBtn.getAttribute('data-index'));
+      const col = upBtn.getAttribute('data-col');
+      const list = col === 'col1' ? draftCol1 : draftCol2;
+      if (idx > 0) {
+        const temp = list[idx];
+        list[idx] = list[idx - 1];
+        list[idx - 1] = temp;
+        draftUnified = [...draftCol1, ...draftCol2];
+        renderModalOrderLists();
+      }
+      return;
+    }
+
+    // 2-column Move Down
+    const downBtn = target.closest<HTMLButtonElement>('.btn-order-down');
+    if (downBtn) {
+      const idx = Number(downBtn.getAttribute('data-index'));
+      const col = downBtn.getAttribute('data-col');
+      const list = col === 'col1' ? draftCol1 : draftCol2;
+      if (idx < list.length - 1) {
+        const temp = list[idx];
+        list[idx] = list[idx + 1];
+        list[idx + 1] = temp;
+        draftUnified = [...draftCol1, ...draftCol2];
+        renderModalOrderLists();
+      }
+      return;
+    }
+
+    // 2-column Swap Column
+    const swapBtn = target.closest<HTMLButtonElement>('.btn-swap-col');
+    if (swapBtn) {
+      const idx = Number(swapBtn.getAttribute('data-index'));
+      const col = swapBtn.getAttribute('data-col');
+      if (col === 'col1') {
+        const [item] = draftCol1.splice(idx, 1);
+        if (item) draftCol2.push(item);
+      } else {
+        const [item] = draftCol2.splice(idx, 1);
+        if (item) draftCol1.push(item);
+      }
+      draftUnified = [...draftCol1, ...draftCol2];
+      renderModalOrderLists();
+      return;
+    }
+  });
+
+  // Reset Order button
+  resetOrderBtn?.addEventListener('click', () => {
+    draftCol1 = ['abilities', 'saves', 'skills', 'features'];
+    draftCol2 = ['weapons', 'wildshape', 'currency', 'backpack', 'spells'];
+    draftUnified = ['abilities', 'saves', 'skills', 'features', 'weapons', 'wildshape', 'currency', 'backpack', 'spells'];
+    renderModalOrderLists();
+  });
 
   // Presets in 1 click
   document.querySelectorAll('.preset-btn').forEach((btn) => {
@@ -183,14 +674,14 @@
       const preset = btn.getAttribute('data-preset') as any;
       if (preset) {
         characterStore.applyClassPreset(preset);
-        loadToggles();
+        loadState();
         if (modal && backdrop) closeModal(modal, backdrop);
       }
     });
   });
 
-  loadToggles();
-  window.addEventListener('character-updated', loadToggles);
+  loadState();
+  window.addEventListener('character-updated', loadState);
 
   closeBtn?.addEventListener('click', () => {
     if (modal && backdrop) closeModal(modal, backdrop);
@@ -200,6 +691,14 @@
   });
 
   saveBtn?.addEventListener('click', () => {
+    // 1. Guardar orden de secciones (sincronizando 1 columna y 2 columnas)
+    characterStore.updateSectionOrder({
+      col1: draftCol1,
+      col2: draftCol2,
+      unifiedOrder: draftUnified
+    });
+
+    // 2. Guardar visibilidad de módulos
     characterStore.updateLayoutConfig({
       showSpells: spellsCheck?.checked ?? true,
       showWildShape: wildShapeCheck?.checked ?? false,

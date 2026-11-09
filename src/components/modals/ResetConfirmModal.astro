@@ -35,6 +35,7 @@
 </div>
 
 <script>
+  import { showAlert } from '../../scripts/ui/notify';
   import { characterStore } from '../../scripts/state/characterStore';
   import { journalStore } from '../../scripts/state/journalStore';
   import { closeModal } from '../../scripts/animations/modalAnimations';
@@ -51,7 +52,7 @@
   confirmBtn?.addEventListener('click', () => {
     characterStore.resetToDefault();
     journalStore.resetToDefault();
-    alert('Ficha y bitácora restauradas a los valores iniciales.');
+    showAlert('Ficha y bitácora restauradas a los valores iniciales.', { kind: 'success' });
     if (modal && backdrop) closeModal(modal, backdrop);
   });
 </script>

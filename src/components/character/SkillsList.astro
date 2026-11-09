@@ -3,8 +3,9 @@
 ---
 
 <div class="rounded-xl bg-[#121721] border border-[#222f42] p-4 shadow-sm">
-  <div class="flex items-center justify-between mb-3">
+  <div class="flex items-center justify-between mb-3 select-none section-header-bar">
     <h3 class="text-xs font-headline font-bold text-[#f1f5f9] uppercase tracking-wider flex items-center gap-1.5">
+      <span class="section-drag-handle material-symbols-outlined text-[#64748b] hover:text-amber-400 cursor-grab text-[16px] mr-0.5 transition-colors" title="Arrastrar para reordenar">drag_indicator</span>
       <span class="material-symbols-outlined text-amber-500 text-[16px]">verified</span>
       <span>Habilidades Calculadas</span>
     </h3>
@@ -19,10 +20,22 @@
         <span class="material-symbols-outlined text-[13px]">tune</span>
         <span>Configurar</span>
       </button>
+      <button
+        type="button"
+        class="section-collapse-btn w-6 h-6 rounded-md bg-[#18202e] border border-[#222f42] hover:border-amber-500/40 text-[#94a3b8] hover:text-[#f1f5f9] flex items-center justify-center transition-colors cursor-pointer"
+        title="Colapsar / Expandir sección"
+        aria-label="Colapsar o expandir"
+      >
+        <span class="material-symbols-outlined section-collapse-icon text-[18px]">expand_less</span>
+      </button>
     </div>
   </div>
 
-  <div class="space-y-1.5" id="skills-list-container">
+  <div class="section-collapsed-summary hidden text-[11px] text-[#94a3b8] font-label py-1">
+    18 habilidades de D&D 5e calculadas con pericias
+  </div>
+
+  <div class="section-body space-y-1.5" id="skills-list-container">
     <!-- Populated and reactively refreshed via JavaScript -->
   </div>
 </div>

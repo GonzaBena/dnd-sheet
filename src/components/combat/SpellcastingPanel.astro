@@ -3,8 +3,9 @@
 ---
 
 <div class="rounded-xl bg-[#121721] border border-[#222f42] p-5 shadow-sm">
-  <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+  <div class="flex items-center justify-between mb-4 flex-wrap gap-2 select-none section-header-bar">
     <div class="flex items-center gap-2">
+      <span class="section-drag-handle material-symbols-outlined text-[#64748b] hover:text-amber-400 cursor-grab text-[18px] transition-colors" title="Arrastrar para reordenar">drag_indicator</span>
       <span class="material-symbols-outlined text-amber-500 text-[20px]">auto_fix_high</span>
       <h3 class="text-sm font-headline font-bold text-[#f1f5f9] uppercase tracking-wider">Magia y Conjuros</h3>
     </div>
@@ -15,44 +16,67 @@
       <span class="text-[#94a3b8]">Ataque: <strong class="text-amber-400 font-bold" id="spell-atk-num">+5</strong></span>
       <button
         type="button"
-        id="open-add-spell-btn"
+        id="open-compendium-spells-btn"
         class="text-[10px] text-amber-400 hover:text-amber-300 font-bold bg-amber-500/10 hover:bg-amber-500/20 px-2 py-0.5 rounded-lg border border-amber-500/30 flex items-center gap-1 cursor-pointer transition-colors ml-1"
+        title="Buscar conjuros en el Compendio SRD"
+      >
+        <span class="material-symbols-outlined text-[12px]">menu_book</span>
+        <span>Compendio</span>
+      </button>
+      <button
+        type="button"
+        id="open-add-spell-btn"
+        class="text-[10px] text-amber-400 hover:text-amber-300 font-bold bg-amber-500/10 hover:bg-amber-500/20 px-2 py-0.5 rounded-lg border border-amber-500/30 flex items-center gap-1 cursor-pointer transition-colors"
         title="Añadir nuevo conjuro o truco"
       >
         <span class="material-symbols-outlined text-[12px]">add</span>
         <span>Añadir</span>
       </button>
+      <button
+        type="button"
+        class="section-collapse-btn w-6 h-6 rounded-md bg-[#18202e] border border-[#222f42] hover:border-amber-500/40 text-[#94a3b8] hover:text-[#f1f5f9] flex items-center justify-center transition-colors cursor-pointer"
+        title="Colapsar / Expandir sección"
+        aria-label="Colapsar o expandir"
+      >
+        <span class="material-symbols-outlined section-collapse-icon text-[18px]">expand_less</span>
+      </button>
     </div>
   </div>
 
-  <!-- Spell Slots Tracker -->
-  <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
-    <!-- Level 1 Slots -->
-    <div class="p-3 rounded-xl bg-[#18202e] border border-[#222f42] flex items-center justify-between">
-      <div>
-        <span class="text-xs font-headline font-bold text-[#f1f5f9] block">Espacios Nivel 1</span>
-        <span class="text-[10px] text-[#94a3b8]" id="slot-l1-label">2 / 4 Disponibles</span>
-      </div>
-      <div class="flex items-center gap-1.5" id="slot-l1-pips">
-        <!-- Pips rendered by JS -->
-      </div>
-    </div>
-
-    <!-- Level 2 Slots -->
-    <div class="p-3 rounded-xl bg-[#18202e] border border-[#222f42] flex items-center justify-between">
-      <div>
-        <span class="text-xs font-headline font-bold text-[#f1f5f9] block">Espacios Nivel 2</span>
-        <span class="text-[10px] text-[#94a3b8]" id="slot-l2-label">1 / 2 Disponibles</span>
-      </div>
-      <div class="flex items-center gap-1.5" id="slot-l2-pips">
-        <!-- Pips rendered by JS -->
-      </div>
-    </div>
+  <div class="section-collapsed-summary hidden text-[11px] text-[#94a3b8] font-label py-1">
+    Espacios de conjuro y lista de hechizos preparados
   </div>
 
-  <!-- Prepared Spells & Cantrips List -->
-  <div class="space-y-2 text-xs font-label" id="spells-list-container">
-    <!-- Populated by JavaScript -->
+  <div class="section-body space-y-4">
+    <!-- Spell Slots Tracker -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <!-- Level 1 Slots -->
+      <div class="p-3 rounded-xl bg-[#18202e] border border-[#222f42] flex items-center justify-between">
+        <div>
+          <span class="text-xs font-headline font-bold text-[#f1f5f9] block">Espacios Nivel 1</span>
+          <span class="text-[10px] text-[#94a3b8]" id="slot-l1-label">2 / 4 Disponibles</span>
+        </div>
+        <div class="flex items-center gap-1.5" id="slot-l1-pips">
+          <!-- Pips rendered by JS -->
+        </div>
+      </div>
+
+      <!-- Level 2 Slots -->
+      <div class="p-3 rounded-xl bg-[#18202e] border border-[#222f42] flex items-center justify-between">
+        <div>
+          <span class="text-xs font-headline font-bold text-[#f1f5f9] block">Espacios Nivel 2</span>
+          <span class="text-[10px] text-[#94a3b8]" id="slot-l2-label">1 / 2 Disponibles</span>
+        </div>
+        <div class="flex items-center gap-1.5" id="slot-l2-pips">
+          <!-- Pips rendered by JS -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Prepared Spells & Cantrips List -->
+    <div class="space-y-2 text-xs font-label" id="spells-list-container">
+      <!-- Populated by JavaScript -->
+    </div>
   </div>
 </div>
 
@@ -70,6 +94,12 @@
 
   addSpellBtn?.addEventListener('click', () => {
     window.dispatchEvent(new CustomEvent('open-add-spell-modal'));
+  });
+
+  document.getElementById('open-compendium-spells-btn')?.addEventListener('click', () => {
+    window.dispatchEvent(new CustomEvent('open-compendium-modal', {
+      detail: { scope: 'spells', category: 'spells', targetModal: 'add-spell' }
+    }));
   });
 
   function renderSpellSlots(char: any) {
@@ -297,15 +327,32 @@
         onTrigger: triggerSpellDelete
       });
 
-      // Expand / Collapse details
+      // Expand / Collapse details in-place without rebuilding DOM or causing scroll shifts
       const toggleExpand = (e: Event) => {
+        e.preventDefault();
         e.stopPropagation();
+        const panel = card.querySelector('.expand-spell-panel');
+        const icon = card.querySelector('.expand-spell-btn .material-symbols-outlined');
+        const btn = card.querySelector('.expand-spell-btn');
+        if (!panel) return;
+
         if (expandedSpells.has(spellKey)) {
           expandedSpells.delete(spellKey);
+          panel.classList.add('hidden');
+          panel.classList.remove('block');
+          if (icon) {
+            icon.classList.remove('rotate-180', 'text-amber-400');
+          }
+          if (btn) btn.setAttribute('title', 'Ver detalles y notas');
         } else {
           expandedSpells.add(spellKey);
+          panel.classList.remove('hidden');
+          panel.classList.add('block');
+          if (icon) {
+            icon.classList.add('rotate-180', 'text-amber-400');
+          }
+          if (btn) btn.setAttribute('title', 'Ocultar detalles');
         }
-        renderSpells(characterStore.get());
       };
 
       card.querySelector('.expand-spell-btn')?.addEventListener('click', toggleExpand);

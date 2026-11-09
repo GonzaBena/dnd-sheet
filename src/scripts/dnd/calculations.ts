@@ -45,6 +45,9 @@ export function calculateLevelUpHpGain(die: string, conModifier: number, levelsG
 }
 
 export function recalculateCharacter(char: CharacterData): CharacterData {
+  if (!char.rulesEdition) {
+    char.rulesEdition = '2024';
+  }
   const prof = calculateProficiencyBonus(char.level);
   char.proficiencyBonus = prof;
 
@@ -149,8 +152,48 @@ export function recalculateCharacter(char: CharacterData): CharacterData {
       showInventory: true,
       showJournal: true,
       showSkills: true,
-      classPreset: 'custom'
+      classPreset: 'custom',
+      sectionOrder: {
+        col1: ['abilities', 'saves', 'skills', 'features'],
+        col2: ['weapons', 'wildshape', 'currency', 'backpack', 'spells'],
+        unifiedOrder: ['abilities', 'saves', 'skills', 'features', 'weapons', 'wildshape', 'currency', 'backpack', 'spells']
+      },
+      collapsedSections: []
     };
+  }
+
+  // Ensure sectionOrder and collapsedSections are defined
+  const knownSections = ['abilities', 'saves', 'skills', 'features', 'weapons', 'wildshape', 'currency', 'backpack', 'spells'];
+
+  if (!char.layoutConfig.sectionOrder || !Array.isArray(char.layoutConfig.sectionOrder.col1) || !Array.isArray(char.layoutConfig.sectionOrder.col2)) {
+    char.layoutConfig.sectionOrder = {
+      col1: ['abilities', 'saves', 'skills', 'features'],
+      col2: ['weapons', 'wildshape', 'currency', 'backpack', 'spells'],
+      unifiedOrder: [...knownSections]
+    };
+  } else {
+    // Ensure all 9 known sections exist in sectionOrder
+    const current = new Set([...char.layoutConfig.sectionOrder.col1, ...char.layoutConfig.sectionOrder.col2]);
+    for (const sec of knownSections) {
+      if (!current.has(sec)) {
+        char.layoutConfig.sectionOrder.col2.push(sec);
+      }
+    }
+
+    if (!Array.isArray(char.layoutConfig.sectionOrder.unifiedOrder) || char.layoutConfig.sectionOrder.unifiedOrder.length === 0) {
+      char.layoutConfig.sectionOrder.unifiedOrder = [...char.layoutConfig.sectionOrder.col1, ...char.layoutConfig.sectionOrder.col2];
+    } else {
+      const currentUnified = new Set(char.layoutConfig.sectionOrder.unifiedOrder);
+      for (const sec of knownSections) {
+        if (!currentUnified.has(sec)) {
+          char.layoutConfig.sectionOrder.unifiedOrder.push(sec);
+        }
+      }
+    }
+  }
+
+  if (!Array.isArray(char.layoutConfig.collapsedSections)) {
+    char.layoutConfig.collapsedSections = [];
   }
 
   if (!char.wildShape) {

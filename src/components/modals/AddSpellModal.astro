@@ -25,7 +25,18 @@
       <input type="hidden" id="spell-edit-id" value="" />
 
       <div>
-        <label class="text-[#94a3b8] block mb-1">Nombre del Truco / Conjuro</label>
+        <div class="flex items-center justify-between mb-1">
+          <label class="text-[#94a3b8]">Nombre del Truco / Conjuro</label>
+          <button
+            type="button"
+            id="spell-open-compendium-btn"
+            class="text-[10px] text-amber-400 hover:text-amber-300 font-bold flex items-center gap-1 bg-amber-500/10 hover:bg-amber-500/20 px-2 py-0.5 rounded-lg border border-amber-500/30 transition-all cursor-pointer"
+            title="Buscar en la base de datos oficial del SRD (2024 o 2014)"
+          >
+            <span class="material-symbols-outlined text-[13px]">menu_book</span>
+            <span>Buscar en Compendio SRD</span>
+          </button>
+        </div>
         <input
           type="text"
           id="spell-name-input"
@@ -387,9 +398,24 @@
     if (submitBtn) submitBtn.textContent = 'Guardar Cambios';
   }
 
-  window.addEventListener('open-add-spell-modal', () => {
+  window.addEventListener('open-add-spell-modal', ((e: CustomEvent) => {
     resetForm();
+    if (e.detail?.prefill) {
+      loadSpellForEdit(e.detail.prefill);
+      editIdInp.value = ''; // Ensure it creates a new spell, not editing an existing one
+      if (modalTitle) modalTitle.textContent = 'Añadir Conjuro desde Compendio';
+      if (modalSubtitle) modalSubtitle.textContent = 'Revisa y ajusta los datos antes de guardarlo en tu grimorio';
+      if (submitBtn) submitBtn.textContent = 'Añadir Conjuro';
+    }
     if (modal && backdrop) openModal(modal, backdrop);
+  }) as EventListener);
+
+  document.getElementById('spell-open-compendium-btn')?.addEventListener('click', () => {
+    const q = nameInp.value.trim();
+    if (modal && backdrop) closeModal(modal, backdrop);
+    window.dispatchEvent(new CustomEvent('open-compendium-modal', {
+      detail: { scope: 'spells', category: 'spells', query: q, targetModal: 'add-spell' }
+    }));
   });
 
   window.addEventListener('open-edit-spell-modal', ((e: CustomEvent) => {
