@@ -58,7 +58,18 @@ PORT=4321
 # Credenciales de Firebase (opcionales para preconfigurar a todos los jugadores)
 PUBLIC_FIREBASE_PROJECT_ID=tu-proyecto-firebase
 PUBLIC_FIREBASE_API_KEY=AIzaSy...
+# Realtime Database (tokens en vivo y presencia del VTT)
+PUBLIC_FIREBASE_DATABASE_URL=https://tu-proyecto-firebase-default-rtdb.firebaseio.com
 ```
+
+#### Realtime Database
+Las funciones de mesa virtual (tokens en vivo, presencia) usan Realtime Database además de Firestore:
+
+1. En la consola de Firebase, en el mismo proyecto, abrí **Realtime Database → Crear base de datos** (región por defecto, modo bloqueado).
+2. Copiá la URL que aparece arriba del árbol de datos a `PUBLIC_FIREBASE_DATABASE_URL`.
+3. Publicá las reglas con `pnpm deploy:rules` (sube `firestore.rules` y `database.rules.json`).
+
+Con emuladores (`pnpm emulators`) se usa `PUBLIC_FIREBASE_DATABASE_URL=http://127.0.0.1:9000?ns=demo-dnd-sheet-default-rtdb`.
 
 ### Iniciar servidor de desarrollo
 ```bash
@@ -83,6 +94,7 @@ Basta con configurar las siguientes variables de entorno en el panel de tu hosti
 - `PORT` (usualmente inyectado por el proveedor).
 - `PUBLIC_FIREBASE_PROJECT_ID` (el ID de tu proyecto en Firebase).
 - `PUBLIC_FIREBASE_API_KEY` (la Web API Key pública de Firebase).
+- `PUBLIC_FIREBASE_DATABASE_URL` (la URL de Realtime Database del proyecto).
 
 ---
 

@@ -40,6 +40,10 @@ export interface Campaign {
   createdAt: number;
   /** Código para unirse (modo nube). Solo lo ven los miembros. */
   inviteCode?: string;
+  /** Mapa que ven los jugadores en la vista de partida (VTT). */
+  activeMapId?: string;
+  /** Id secreto de la sala en Realtime Database (/rooms/{liveRoomId}). Lo genera el DM. */
+  liveRoomId?: string;
 }
 
 export interface DmEvent {

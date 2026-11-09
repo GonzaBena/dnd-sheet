@@ -8,6 +8,7 @@
 //   campaigns/{id}/journal/{entryId}    diario con visibility 'party' | 'dm' | 'player'
 //   campaigns/{id}/dm_events/{eventId}  tiradas e hitos del DM en vivo
 //   invites/{code}                      { campaignId } para unirse con código
+//   (RTDB) rooms/{liveRoomId}           sala en vivo del VTT, ver roomService.ts
 //   characters/{id}                     ficha completa (userId = dueño, campaignId)
 import type { Firestore, Unsubscribe } from 'firebase/firestore';
 import type { User } from 'firebase/auth';
@@ -25,6 +26,7 @@ import { onAuthChange, signOut as authSignOut, toAppUser } from '../firebase/aut
 import { normalizeInviteCode } from '../utils/ids.ts';
 import { toPlain, type DocChanges } from './cloudTypes.ts';
 import { migrateLocalData } from './migrateLocalData.ts';
+import { startRoomSync } from './roomService.ts';
 
 export type CloudSessionState = 'local' | 'loading' | 'signed-out' | 'ready';
 
@@ -73,6 +75,11 @@ class CloudSession {
 
   public isCloud(): boolean {
     return isFirebaseConfigured();
+  }
+
+  /** uid de Firebase Auth en modo nube; null en modo local o sin sesión. */
+  public getUid(): string | null {
+    return this.uid;
   }
 
   public start() {
@@ -145,6 +152,8 @@ class CloudSession {
 
     await this.subscribeBase();
     this.bindStoreEvents();
+    // Sala RTDB del VTT (/rooms/{liveRoomId}) de cada campaña donde el usuario es DM.
+    startRoomSync(() => this.uid);
 
     if (migration?.activeCharacter) {
       characterStore.loadCharacter(migration.activeCharacter);
@@ -598,3 +607,11 @@ function waitFor(check: () => boolean, eventName: string, timeoutMs: number): Pr
 }
 
 export const cloudSession = new CloudSession();
+
+/**
+ * uid del usuario logueado (= userStore.getCurrentUser().id en modo nube). Los servicios del VTT
+ * lo usan para no depender de userStore. Esperar `cloudSession.ready()` antes de llamarla.
+ */
+export function getCurrentUid(): string | null {
+  return cloudSession.getUid();
+}

@@ -2,6 +2,9 @@ import type { CharacterData, SectionOrderConfig } from '../models/character.ts';
 import { defaultCharacter } from '../data/defaultCharacter.ts';
 import { recalculateCharacter, calculateLevelUpHpGain } from '../dnd/calculations.ts';
 import { journalStore } from './journalStore.ts';
+import { campaignStore } from './campaignStore.ts';
+import { userStore } from './userStore.ts';
+import { generateCharacterSyncId } from '../utils/ids.ts';
 
 const STORAGE_KEY = 'dnd_active_character_v1';
 
@@ -869,11 +872,42 @@ class CharacterStoreManager {
     );
   }
 
+  /**
+   * Importa una ficha exportada. El JSON aporta el contenido, nunca la identidad: su id/userId/campaignId
+   * pueden venir de otro dispositivo, del modo local o de otra cuenta, y en la nube eso impedía guardarla.
+   * - Si la ficha abierta es propia, se reemplaza su contenido conservando id, dueño y campaña.
+   * - Si no (p.ej. la ficha por defecto de una cuenta nueva), se crea un personaje nuevo sin campaña.
+   */
   public importJson(jsonString: string): boolean {
     try {
       const parsed = JSON.parse(jsonString);
       if (parsed && parsed.name && parsed.stats) {
-        this.character = recalculateCharacter(parsed);
+        const current = this.character;
+        const known = campaignStore.getCharacter(current.id);
+        const ownsCurrent = !!known && campaignStore.isCharacterOwner(known);
+
+        if (ownsCurrent) {
+          this.character = recalculateCharacter({
+            ...parsed,
+            id: known.id,
+            userId: known.userId,
+            playerName: known.playerName,
+            campaignId: known.campaignId ?? null,
+            sessionContext: known.sessionContext,
+          });
+        } else {
+          const me = userStore.getCurrentUser();
+          this.character = recalculateCharacter({
+            ...parsed,
+            id: generateCharacterSyncId(parsed.name),
+            userId: me.id,
+            playerName: me.name,
+            campaignId: null,
+            sessionContext: { ...defaultCharacter.sessionContext },
+          });
+          // Se registra antes de notificar: el listener de campaignStore solo guarda fichas propias conocidas.
+          campaignStore.saveCharacter(this.character);
+        }
         this.saveAndNotify();
         journalStore.log(
           'Perfil importado desde JSON',

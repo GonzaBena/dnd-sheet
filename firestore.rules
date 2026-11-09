@@ -130,6 +130,75 @@ service cloud.firestore {
           && request.resource.data.timestamp is number;
         allow update, delete: if false;
       }
+
+      // ============================================================== VTT (mesa virtual)
+      // Gating por estado de la partida (active | paused | ended). La Fase 0B reemplaza el cuerpo:
+      // - canPlay: acciones de juego (mover tokens, combate). Solo con la partida 'active'.
+      // - canPrepare: preparar contenido (mapas, tokens, notas). Todo menos 'ended'.
+      function canPlay() { return true; }
+      function canPrepare() { return true; }
+
+      // Límites (F0-3). La validación profunda de cada token no se puede iterar en las reglas:
+      // DECISION: se valida el token tocado por un jugador (vía lastMove) y se confía en el DM
+      // para el resto del documento.
+      function validMap(d) {
+        return d.name is string && d.name.size() <= 80
+          && d.imageUrl is string && d.imageUrl.size() <= 2048
+          && d.tokens is map && d.tokens.size() <= 200
+          && d.fogRevealed is list && d.fogRevealed.size() <= 500;
+      }
+
+      // -------------------------------------------------------------- mapas
+      match /maps/{mapId} {
+        allow read: if signedIn() && isMember(campaignId);
+
+        // DM: crea, edita y borra todo.
+        allow create, update: if signedIn() && isDm(campaignId) && canPrepare()
+          && validMap(request.resource.data);
+        allow delete: if signedIn() && isDm(campaignId) && canPrepare();
+
+        // Jugador: solo x/y de un token propio.
+        // DECISION (F0-1): las reglas no pueden extraer "cuál" token cambió de affectedKeys(),
+        // así que el cliente escribe lastMove = { tokenId, by, at } junto con la posición y la
+        // regla valida contra lastMove.tokenId: tiene que ser el único token tocado y ser suyo.
+        allow update: if signedIn() && isMember(campaignId) && canPlay()
+          && changedKeys().hasOnly(['tokens', 'lastMove', 'updatedAt'])
+          && request.resource.data.lastMove.by == uid()
+          && request.resource.data.lastMove.tokenId is string
+          && request.resource.data.tokens.diff(resource.data.tokens).affectedKeys()
+               .hasOnly([request.resource.data.lastMove.tokenId])
+          && resource.data.tokens[request.resource.data.lastMove.tokenId].ownerUid == uid()
+          && request.resource.data.tokens[request.resource.data.lastMove.tokenId]
+               .diff(resource.data.tokens[request.resource.data.lastMove.tokenId]).affectedKeys().hasOnly(['x', 'y'])
+          && request.resource.data.tokens[request.resource.data.lastMove.tokenId].x is number
+          && request.resource.data.tokens[request.resource.data.lastMove.tokenId].y is number;
+
+        // Tokens ocultos y demás datos que los jugadores no ven.
+        match /private/{docId} {
+          allow read: if signedIn() && isDm(campaignId);
+          allow write: if signedIn() && isDm(campaignId) && canPrepare();
+        }
+      }
+
+      // -------------------------------------------------------------- combate
+      match /combat/{docId} {
+        allow read: if signedIn() && isMember(campaignId);
+        allow create, update: if signedIn() && isDm(campaignId) && canPlay()
+          && docId == 'current'
+          && request.resource.data.combatants is list
+          && request.resource.data.combatants.size() <= 50;
+        allow delete: if signedIn() && isDm(campaignId) && canPlay();
+      }
+
+      // -------------------------------------------------------------- notas privadas del DM
+      match /notes/{noteId} {
+        // Se leen también con la partida terminada (solo lectura).
+        allow read: if signedIn() && isDm(campaignId);
+        allow create, update: if signedIn() && isDm(campaignId) && canPrepare()
+          && request.resource.data.title is string && request.resource.data.title.size() <= 120
+          && request.resource.data.body is string && request.resource.data.body.size() <= 20000;
+        allow delete: if signedIn() && isDm(campaignId) && canPrepare();
+      }
     }
 
     // ---------------------------------------------------------------- personajes

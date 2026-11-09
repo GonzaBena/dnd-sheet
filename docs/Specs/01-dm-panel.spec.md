@@ -321,11 +321,11 @@ Orden pensado para tener algo usable en cada fase. Cada fase termina con un buil
 
 ### Fase 0 — Base y seguridad
 
-- [ ] T-01 Habilitar Realtime Database en el proyecto Firebase existente (el mismo de Firestore) y exportar `rtdb` desde `src/lib/firebase.ts`.
-- [ ] T-02 Agregar Auth (anónimo o Google) y exponer `uid` actual.
-- [ ] T-03 Asegurar en `campaigns/{cid}` los campos `dmUid` y `memberUids` (migrar campañas existentes).
-- [ ] T-04 Escribir reglas de Firestore y RTDB según la sección *Seguridad*, con tests en el emulador.
-- [ ] T-05 Definir los tipos de `src/types/` (`MapDoc`, `Token`, `Combat`, `Combatant`, `DmNote`).
+- [x] T-01 Habilitar Realtime Database en el proyecto Firebase existente (el mismo de Firestore) y exportar `rtdb` desde `src/lib/firebase.ts`.
+- [x] T-02 Agregar Auth (anónimo o Google) y exponer `uid` actual.
+- [x] T-03 Asegurar en `campaigns/{cid}` los campos `dmUid` y `memberUids` (migrar campañas existentes).
+- [x] T-04 Escribir reglas de Firestore y RTDB según la sección *Seguridad*, con tests en el emulador.
+- [x] T-05 Definir los tipos de `src/types/` (`MapDoc`, `Token`, `Combat`, `Combatant`, `DmNote`).
 
 ### Fase 0B — Vista de partida y estado de la sesión
 
@@ -420,15 +420,24 @@ Con eso se puede jugar varias sesiones por día dentro de las 20.000 escrituras 
 
 ## Preguntas abiertas
 
-Decisiones que conviene cerrar antes de que el agente llegue a la fase correspondiente.
+Decisiones que conviene cerrar antes de que el agente llegue a la fase correspondiente. Resueltas el 8 nov 2026; los planes por fase están en `docs/Plans/01-dm-panel/`.
 
-- [ ] **Imágenes de mapas (Fase 2).** Firebase Storage ahora puede exigir el plan Blaze (de pago) para buckets nuevos: verificarlo en la consola. Alternativas gratuitas: Cloudinary, Cloudflare R2, o imágenes en `public/` para mapas fijos. ¿Cuál preferís?
-- [ ] **Login (Fase 0).** ¿Auth anónimo (entran con un link o código de campaña) o Google? Anónimo es más fácil para jugadores, pero pierden su identidad si borran los datos del navegador.
-- [ ] **Jugadores ya existentes.** ¿Los personajes actuales tienen un `uid` asociado o hay que vincular cada jugador a su personaje?
-- [ ] **Monstruos (Fase 1).** ¿Solo carga manual o también usar la API abierta de D&D 5e para traer estadísticas?
-- [ ] **Alcance de la niebla.** ¿Alcanzan los rectángulos en v1 o querés polígonos desde el principio?
-- [ ] **Unidades de distancia.** ¿5 pies por celda o metros (1,5 m)?
+- [x] **Imágenes de mapas (Fase 2).** Firebase Storage ahora puede exigir el plan Blaze (de pago) para buckets nuevos: verificarlo en la consola. Alternativas gratuitas: Cloudinary, Cloudflare R2, o imágenes en `public/` para mapas fijos. ¿Cuál preferís?
+  → **URL externa `https://`** pegada por el DM, sin almacenamiento propio.
+- [x] **Login (Fase 0).** ¿Auth anónimo (entran con un link o código de campaña) o Google? Anónimo es más fácil para jugadores, pero pierden su identidad si borran los datos del navegador.
+  → **Se mantiene lo existente**: Google + email/contraseña (`src/scripts/firebase/authService.ts`).
+- [x] **Jugadores ya existentes.** ¿Los personajes actuales tienen un `uid` asociado o hay que vincular cada jugador a su personaje?
+  → Ya tienen `characters/{id}.userId` (uid del dueño); no hace falta vincular.
+- [x] **Monstruos (Fase 1).** ¿Solo carga manual o también usar la API abierta de D&D 5e para traer estadísticas?
+  → **Solo carga manual** en v1.
+- [x] **Alcance de la niebla.** ¿Alcanzan los rectángulos en v1 o querés polígonos desde el principio?
+  → **Rectángulos en v1**; polígonos en Fase 5 (T-54).
+- [x] **Unidades de distancia.** ¿5 pies por celda o metros (1,5 m)?
+  → **5 ft por celda**.
 - [ ] **Hosting.** Confirmar dónde se despliega (Firebase Hosting, Netlify u otro) para ajustar las reglas de dominio autorizado en Auth.
-- [ ] **DM en pausada.** Asumí que el DM puede preparar contenido (mapas nuevos, tokens, notas privadas) pero no manejar combate ni bitácora. ¿O pausada es solo lectura también para el DM?
-- [ ] **Hoja de personaje y panel del DM.** La hoja solo la modifica su dueño, pero el panel del DM ya gestiona nombre, raza y nivel de los miembros. ¿Son los mismos datos? Si lo son, ¿el DM sigue pudiendo editarlos desde el panel?
-- [ ] **Hoja en partida terminada.** Según lo pedido, el dueño puede editar su hoja siempre, también en `ended`. ¿Querés congelarla para conservar el registro?
+- [x] **DM en pausada.** Asumí que el DM puede preparar contenido (mapas nuevos, tokens, notas privadas) pero no manejar combate ni bitácora. ¿O pausada es solo lectura también para el DM?
+  → **Confirmado**: en pausada el DM prepara contenido (mapas, tokens, ocultar/revelar, notas) pero no maneja combate, bitácora, movimiento ni niebla.
+- [x] **Hoja de personaje y panel del DM.** La hoja solo la modifica su dueño, pero el panel del DM ya gestiona nombre, raza y nivel de los miembros. ¿Son los mismos datos? Si lo son, ¿el DM sigue pudiendo editarlos desde el panel?
+  → La hoja la modifica **solo su dueño**. Excepción: el DM conserva `hp` e `inspiration` (descansos y botones de PG del panel), solo con la partida `active`.
+- [x] **Hoja en partida terminada.** Según lo pedido, el dueño puede editar su hoja siempre, también en `ended`. ¿Querés congelarla para conservar el registro?
+  → **No se congela**: el dueño la edita en cualquier estado.

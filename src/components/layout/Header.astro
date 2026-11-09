@@ -319,7 +319,18 @@
       const reader = new FileReader();
       reader.onload = (event) => {
         const text = event.target?.result as string;
+        const previousId = characterStore.get().id;
         if (characterStore.importJson(text)) {
+          const imported = characterStore.get();
+          if (imported.id !== previousId) {
+            // Se creó un personaje nuevo: la URL tiene que apuntarle para que al recargar no vuelva la ficha anterior.
+            const url = new URL(window.location.href);
+            if (url.searchParams.has('character') || url.pathname.startsWith('/campaigns')) {
+              url.searchParams.set('character', imported.id);
+              url.searchParams.delete('campaign');
+              history.replaceState(null, '', url);
+            }
+          }
           showAlert('¡Personaje importado exitosamente!', { kind: 'success' });
         } else {
           showAlert('Error al importar el archivo JSON.', { kind: 'error' });
