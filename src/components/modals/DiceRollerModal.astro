@@ -23,6 +23,18 @@
 
     <!-- Modal Body -->
     <div class="p-5 space-y-4 max-h-[85vh] overflow-y-auto">
+      <!-- Banner de Bloqueo de Dado (Iniciativa u Obligatorio) -->
+      <div
+        id="dice-locked-banner"
+        class="hidden p-2.5 rounded-xl bg-amber-500/15 border border-amber-500/40 text-amber-300 text-xs font-bold flex items-center justify-between gap-2 shadow-xs"
+      >
+        <div class="flex items-center gap-2">
+          <span class="material-symbols-outlined text-[18px] text-amber-400">lock</span>
+          <span id="dice-locked-banner-text">Tirada de Iniciativa: Dado fijado en d20</span>
+        </div>
+        <span class="px-2 py-0.5 rounded bg-amber-500/30 text-amber-200 text-[10px] font-mono">1d20</span>
+      </div>
+
       <!-- Selector de Modo: Virtual vs Dado Físico -->
       <div class="grid grid-cols-2 gap-1.5 p-1 bg-[#10141d] rounded-xl border border-[#222f42] text-xs font-bold font-label">
         <button
@@ -294,7 +306,55 @@
     targetName?: string;
     targetAc?: number;
     authorName?: string;
+    lockDie?: boolean;
+    lockCount?: boolean;
+    isInitiative?: boolean;
+    characterId?: string;
+    campaignId?: string;
   } = { label: 'Tirada de dados', tag: '#Tirada', isDmRoll: false, isSecret: false };
+
+  function applyLockState(lockDie: boolean, lockCount: boolean) {
+    const banner = document.getElementById('dice-locked-banner');
+    const dieButtons = document.querySelectorAll<HTMLButtonElement>('.die-select-btn');
+    const decBtn = document.getElementById('dice-count-dec') as HTMLButtonElement | null;
+    const incBtn = document.getElementById('dice-count-inc') as HTMLButtonElement | null;
+
+    if (lockDie) {
+      selectedDie = 20;
+      updateActiveDieButtons();
+      renderReelPlaceholders();
+      updatePhysicalCalculations();
+
+      dieButtons.forEach((btn) => {
+        const val = btn.getAttribute('data-die');
+        if (val !== '20') {
+          btn.classList.add('pointer-events-none', 'opacity-25', 'grayscale', 'cursor-not-allowed');
+          btn.setAttribute('tabindex', '-1');
+        } else {
+          btn.classList.remove('pointer-events-none', 'opacity-25', 'grayscale', 'cursor-not-allowed');
+          btn.removeAttribute('tabindex');
+        }
+      });
+      banner?.classList.remove('hidden');
+    } else {
+      dieButtons.forEach((btn) => {
+        btn.classList.remove('pointer-events-none', 'opacity-25', 'grayscale', 'cursor-not-allowed');
+        btn.removeAttribute('tabindex');
+      });
+      banner?.classList.add('hidden');
+    }
+
+    if (lockCount) {
+      selectedCount = 1;
+      if (countDisplay) countDisplay.textContent = '1';
+      renderReelPlaceholders();
+      decBtn?.classList.add('pointer-events-none', 'opacity-30', 'cursor-not-allowed');
+      incBtn?.classList.add('pointer-events-none', 'opacity-30', 'cursor-not-allowed');
+    } else {
+      decBtn?.classList.remove('pointer-events-none', 'opacity-30', 'cursor-not-allowed');
+      incBtn?.classList.remove('pointer-events-none', 'opacity-30', 'cursor-not-allowed');
+    }
+  }
 
   function setRollMode(physical: boolean) {
     isPhysicalMode = physical;
@@ -703,6 +763,32 @@
       });
     }
 
+    // Si era tirada de iniciativa solicitada, notificar con evento específico
+    if (rollContext.isInitiative) {
+      const initCampId = rollContext.campaignId || activeCampId;
+      const initChar = characterStore.get();
+      const initDetail = {
+        campaignId: initCampId,
+        characterId: rollContext.characterId || initChar?.id,
+        characterName: rollContext.authorName || initChar?.name || 'Aventurero',
+        initiativeTotal: res.total,
+        rollValue: isPhysical ? physicalVal : res.rolls[0],
+        modifier: res.modifier,
+      };
+
+      // Disparar en la ventana actual
+      window.dispatchEvent(new CustomEvent('initiative-result', { detail: initDetail }));
+
+      // Transmitir a otras pestañas / DM por BroadcastChannel
+      if (typeof BroadcastChannel !== 'undefined') {
+        try {
+          const bc = new BroadcastChannel('dnd_campaign_bus_v1');
+          bc.postMessage({ type: 'initiative-result', detail: initDetail });
+          if (typeof (bc as any).unref === 'function') (bc as any).unref();
+        } catch (_) {}
+      }
+    }
+
     window.dispatchEvent(new CustomEvent('journal-updated'));
     if (logBtn) logBtn.classList.add('hidden');
   }
@@ -710,8 +796,11 @@
   // Window event for opening with rich context from any component
   window.addEventListener('open-dice-roller', ((e: CustomEvent) => {
     const detail = e.detail || {};
-    selectedDie = detail.die || 20;
-    selectedCount = detail.count || 1;
+    const lockDie = Boolean(detail.lockDie || detail.isInitiative);
+    const lockCount = Boolean(detail.lockCount || detail.isInitiative);
+
+    selectedDie = lockDie ? 20 : (detail.die || 20);
+    selectedCount = lockCount ? 1 : (detail.count || 1);
     if (modInput) modInput.value = String(detail.modifier ?? 0);
     const isSecretVal = Boolean(detail.isSecret);
 
@@ -723,7 +812,14 @@
       targetName: detail.targetName || detail.target,
       targetAc: detail.targetAc,
       authorName: detail.authorName,
+      lockDie,
+      lockCount,
+      isInitiative: Boolean(detail.isInitiative),
+      characterId: detail.characterId,
+      campaignId: detail.campaignId,
     };
+
+    applyLockState(lockDie, lockCount);
 
     if (countDisplay) countDisplay.textContent = String(selectedCount);
     updateActiveDieButtons();

@@ -185,6 +185,14 @@ test('el DM no crea un mapa con más de 200 tokens ni con nombre o URL demasiado
   await assertFails(setDoc(doc(db(DM), 'campaigns', CID, 'maps', 'm5'), baseMap({ imageUrl: 'https://' + 'x'.repeat(2048) })));
 });
 
+test('el DM no crea un mapa con URL no https o tamaño de grilla fuera de rango [8, 512]', async () => {
+  await assertFails(setDoc(doc(db(DM), 'campaigns', CID, 'maps', 'm-http'), baseMap({ imageUrl: 'http://example.com/map.png' })));
+  await assertFails(setDoc(doc(db(DM), 'campaigns', CID, 'maps', 'm-grid-low'), baseMap({ grid: { size: 7, offsetX: 0, offsetY: 0, visible: true } })));
+  await assertFails(setDoc(doc(db(DM), 'campaigns', CID, 'maps', 'm-grid-high'), baseMap({ grid: { size: 513, offsetX: 0, offsetY: 0, visible: true } })));
+  await assertSucceeds(setDoc(doc(db(DM), 'campaigns', CID, 'maps', 'm-grid-ok'), baseMap({ grid: { size: 8, offsetX: 0, offsetY: 0, visible: true } })));
+  await assertSucceeds(setDoc(doc(db(DM), 'campaigns', CID, 'maps', 'm-grid-ok2'), baseMap({ grid: { size: 512, offsetX: 0, offsetY: 0, visible: true } })));
+});
+
 test('los miembros leen mapas y combate', async () => {
   await assertSucceeds(getDoc(mapRef(PLAYER)));
   await assertSucceeds(getDocs(collection(db(OTHER), 'campaigns', CID, 'maps')));

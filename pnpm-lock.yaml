@@ -17,6 +17,9 @@ dependencies:
   firebase:
     specifier: ^10.14.1
     version: 10.14.1
+  konva:
+    specifier: ^10.9.1
+    version: 10.9.1
   tailwindcss:
     specifier: ^3.4.17
     version: 3.4.19
@@ -4785,6 +4788,18 @@ packages:
       jwa: 2.0.1
       safe-buffer: 5.2.1
     dev: true
+
+  /konva@10.9.1:
+    resolution: {integrity: sha512-m49x+GatSxEUSvqahYhxpTjgKbtrLtw4P4o4B4iux953ZFpceaK52Ea+CFsAsd7W4I0Y5u6mMoRUsY/eltNZmw==}
+    peerDependencies:
+      canvas: ^3.0.0
+      skia-canvas: ^3.0.0
+    peerDependenciesMeta:
+      canvas:
+        optional: true
+      skia-canvas:
+        optional: true
+    dev: false
 
   /kuler@2.0.0:
     resolution: {integrity: sha512-Xq9nH7KlWZmXAtodXDDRE7vs6DU1gTU8zYDHDiWLSip45Egwq3plLHzPn27NgvzL2r1LMPC1vdqh98sQxtqj4A==}

@@ -52,7 +52,7 @@ export interface Campaign {
 export interface DmEvent {
   id: string;
   campaignId: string;
-  type: 'dice_roll' | 'milestone' | 'session_update';
+  type: 'dice_roll' | 'milestone' | 'session_update' | 'request_initiative';
   timestamp: number;
   dmName: string;
   payload: {
@@ -72,6 +72,10 @@ export interface DmEvent {
       sessionNumber?: number;
       weather?: string;
       location?: string;
+    };
+    requestInitiative?: {
+      combatId?: string;
+      message?: string;
     };
   };
 }

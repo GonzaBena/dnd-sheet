@@ -2,6 +2,7 @@ import type { JournalEntry, JournalTag, JournalVisibility } from '../models/jour
 import { defaultJournal } from '../data/defaultJournal.ts';
 import type { JournalCloudWriter } from '../data/cloudTypes.ts';
 import { isFirebaseConfigured } from '../firebase/client.ts';
+import { campaignStore } from './campaignStore.ts';
 
 const JOURNAL_STORAGE_KEY = 'dnd_session_journal_v1';
 const MAX_JOURNAL_ENTRIES = 150;
@@ -39,6 +40,25 @@ export function withVisibility<T extends JournalEntry>(entry: T, visibility: Jou
   };
   delete (next as any).isPrivate;
   return next;
+}
+
+/**
+ * Determina si un usuario puede eliminar una entrada del diario.
+ * - DM: puede moderar entradas de la mesa ('party'), notas de DM ('dm') y mensajes recibidos ('to_dm'),
+ *       pero NUNCA las notas personales de un jugador ('player').
+ * - Jugador: solo puede eliminar sus propias notas (autor coincidente).
+ */
+export function canUserDeleteEntry(
+  entry: Pick<JournalEntry, 'isDmOnly' | 'isPlayerOnly' | 'isForDm' | 'isPrivate' | 'characterId' | 'authorUid'>,
+  userId?: string,
+  isDm?: boolean
+): boolean {
+  const visibility = getEntryVisibility(entry);
+  if (isDm) {
+    return visibility !== 'player';
+  }
+  if (!userId) return false;
+  return entry.authorUid === userId;
 }
 
 class JournalStoreManager {
@@ -184,8 +204,10 @@ class JournalStoreManager {
 
   public addEntry(entryData: Omit<JournalEntry, 'id' | 'timestamp'> & { timestamp?: number }): JournalEntry {
     const ts = entryData.timestamp || Date.now();
+    const activeCampId = campaignStore.getActiveCampaignId() || undefined;
     const newEntry: JournalEntry = {
       ...entryData,
+      campaignId: entryData.campaignId || activeCampId,
       id: `entry-${ts}-${Math.random().toString(36).substr(2, 5)}`,
       timestamp: ts,
       timeAgoText: entryData.timeAgoText || formatLogTime(ts),

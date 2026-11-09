@@ -135,8 +135,8 @@ service cloud.firestore {
           && validVisibility(request.resource.data);
 
         // El DM puede moderar entradas de la mesa, las suyas y los mensajes que recibe,
-        // pero nunca las notas privadas de un jugador. Exige canPlay().
-        allow delete: if signedIn() && canPlay() && (
+        // pero nunca las notas privadas de un jugador.
+        allow delete: if signedIn() && (canPlay() || (isDm(campaignId) && canPrepare())) && (
           resource.data.authorUid == uid()
           || (isDm(campaignId) && resource.data.visibility != 'player')
         );
@@ -164,6 +164,8 @@ service cloud.firestore {
       function validMap(d) {
         return d.name is string && d.name.size() <= 80
           && d.imageUrl is string && d.imageUrl.size() <= 2048
+          && d.imageUrl.matches('^https://.*')
+          && d.grid is map && d.grid.size is number && d.grid.size >= 8 && d.grid.size <= 512
           && d.tokens is map && d.tokens.size() <= 200
           && d.fogRevealed is list && d.fogRevealed.size() <= 500;
       }

@@ -30,50 +30,6 @@
 
     <!-- Quick Utilities & Actions -->
     <div class="flex items-center gap-2 shrink-0">
-      <!-- Compendio SRD Trigger -->
-      <button
-        id="header-open-compendium-btn"
-        class="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg bg-[#18202e] border border-amber-500/30 text-amber-300 hover:bg-amber-500/15 hover:border-amber-500/60 transition-all text-xs font-bold font-label active:scale-95 shadow-sm cursor-pointer"
-        title="Explorar Compendio Oficial SRD D&D 5e (2024 / 2014)"
-        type="button"
-      >
-        <span class="material-symbols-outlined text-[16px] text-amber-400">menu_book</span>
-        <span class="hidden md:inline">Compendio SRD</span>
-      </button>
-
-      <!-- Tirar Dados Modal Trigger -->
-      <button
-        id="header-open-dice-btn"
-        class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#18202e] border border-amber-500/30 text-amber-400 hover:bg-amber-500/10 hover:border-amber-500/60 transition-all text-xs font-bold font-label active:scale-95 shadow-sm cursor-pointer"
-        title="Lanzador de dados interactivo público"
-        type="button"
-      >
-        <span class="material-symbols-outlined text-[16px] text-amber-400">casino</span>
-        <span class="hidden xs:inline">Tirar Dados</span>
-      </button>
-
-      <!-- Tirar Dados Secretos Trigger -->
-      <button
-        id="header-open-secret-dice-btn"
-        class="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg bg-[#18202e] border border-purple-500/40 text-purple-300 hover:bg-purple-500/15 hover:border-purple-400 transition-all text-xs font-bold font-label active:scale-95 shadow-sm cursor-pointer"
-        title="Lanzar tirada secreta (oculta para otros jugadores)"
-        type="button"
-      >
-        <span class="material-symbols-outlined text-[16px] text-purple-400">visibility_off</span>
-        <span class="hidden sm:inline">Tirada Secreta</span>
-      </button>
-
-      <!-- Descanso Corto / Largo -->
-      <button
-        id="header-rest-btn"
-        class="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg bg-[#18202e] border border-[#222f42] text-[#94a3b8] hover:bg-[#222f42] hover:text-[#f1f5f9] transition-all text-xs font-medium font-label active:scale-95"
-        title="Descanso Corto o Largo"
-        type="button"
-      >
-        <span class="material-symbols-outlined text-[16px] text-amber-500">bedtime</span>
-        <span class="hidden sm:inline">Descanso</span>
-      </button>
-
       <!-- Profile & Settings Dropdown Menu Trigger -->
       <div class="relative">
         <button
@@ -120,6 +76,22 @@
           >
             <span class="material-symbols-outlined text-[16px] text-purple-400">visibility_off</span>
             <span>Hacer Tirada Secreta</span>
+          </button>
+
+          <button
+            id="menu-compendium-btn"
+            class="w-full text-left px-3.5 py-2 text-[#e2e8f0] hover:bg-[#18202e] hover:text-amber-400 flex items-center gap-2.5 transition-colors cursor-pointer"
+          >
+            <span class="material-symbols-outlined text-[16px] text-amber-400">menu_book</span>
+            <span>Compendio SRD 5e</span>
+          </button>
+
+          <button
+            id="menu-rest-btn"
+            class="w-full text-left px-3.5 py-2 text-[#e2e8f0] hover:bg-[#18202e] hover:text-amber-400 flex items-center gap-2.5 transition-colors cursor-pointer"
+          >
+            <span class="material-symbols-outlined text-[16px] text-amber-500">bedtime</span>
+            <span>Tomar Descanso (Corto / Largo)</span>
           </button>
 
           <div class="h-px bg-[#222f42] my-1"></div>
@@ -242,6 +214,18 @@
   document.getElementById('menu-secret-dice-btn')?.addEventListener('click', () => {
     profileMenu?.classList.add('hidden');
     triggerSecretDiceModal();
+  });
+
+  document.getElementById('menu-compendium-btn')?.addEventListener('click', () => {
+    profileMenu?.classList.add('hidden');
+    window.dispatchEvent(new CustomEvent('open-compendium-modal'));
+  });
+
+  document.getElementById('menu-rest-btn')?.addEventListener('click', () => {
+    profileMenu?.classList.add('hidden');
+    const restModal = document.getElementById('rest-modal');
+    const backdrop = document.getElementById('modal-backdrop');
+    if (restModal && backdrop) openModal(restModal, backdrop);
   });
 
   // Open Roster modal trigger
@@ -372,7 +356,7 @@
     const editCharBtn = document.getElementById('menu-edit-char-btn');
     const cloneBtn = document.getElementById('menu-clone-btn');
     const panelsBtn = document.getElementById('menu-panels-btn');
-    const restBtn = document.getElementById('header-rest-btn');
+    const restBtn = document.getElementById('menu-rest-btn');
 
     if (isDmMode) {
       if (appSubtitle) appSubtitle.textContent = 'Grimorio del Control';

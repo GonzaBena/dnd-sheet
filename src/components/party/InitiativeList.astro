@@ -15,10 +15,10 @@
       </div>
       <div>
         <h3 class="text-sm font-headline font-bold text-[#f1f5f9] leading-tight">
-          Iniciativa y Turnos
+          Iniciativa y Combate
         </h3>
         <p class="text-[11px] text-[#94a3b8] font-label">
-          Combate en tiempo real
+          Control táctico de turnos, PG, CA y condiciones en tiempo real
         </p>
       </div>
     </div>
@@ -49,7 +49,7 @@
   <!-- LISTA DE COMBATIENTES -->
   <div
     id="party-combat-list"
-    class="hidden space-y-2.5 max-h-[550px] overflow-y-auto pr-1"
+    class="hidden space-y-2.5 max-h-[550px] overflow-y-auto overflow-x-hidden pr-1"
   >
     <!-- Se llena dinámicamente -->
   </div>
@@ -160,7 +160,7 @@
 
 <script>
   import anime from 'animejs';
-  import { subscribeCombat } from '../../scripts/data/combatService.ts';
+  import { subscribeCombat, getCurrentCombat } from '../../scripts/data/combatService.ts';
   import { visibleHp } from '../../scripts/vtt/initiative.ts';
   import { getConditionInfo } from '../../scripts/vtt/conditions.ts';
   import {
@@ -265,12 +265,28 @@
 
     combat.combatants.forEach((c, idx) => {
       const isCurrentTurn = idx === combat.turnIndex;
+      const liveChar = c.isPlayer && c.characterId
+        ? (campaignStore.getCharacter(c.characterId) || (myChar && myChar.id === c.characterId ? myChar : undefined))
+        : (c.isPlayer && myChar && myChar.name === c.name ? myChar : undefined);
+
+      const displayName = liveChar?.name?.trim() ? liveChar.name.trim() : c.name;
+      const displayAc = typeof liveChar?.armorClass === 'number' ? liveChar.armorClass : c.ac;
+      const effectiveCombatant: Combatant = liveChar
+        ? {
+            ...c,
+            name: displayName,
+            hp: typeof liveChar.hp?.current === 'number' ? liveChar.hp.current : c.hp,
+            maxHp: typeof liveChar.hp?.max === 'number' && liveChar.hp.max > 0 ? liveChar.hp.max : c.maxHp,
+            ac: displayAc,
+          }
+        : c;
+
       const isOwnCharacter = Boolean(
         (c.ownerUid && viewer.uid && c.ownerUid === viewer.uid) ||
         (myChar && c.characterId && c.characterId === myChar.id) ||
-        (myChar && c.name === myChar.name)
+        (myChar && (c.name === myChar.name || displayName === myChar.name))
       );
-      const hpData = visibleHp(c, viewer);
+      const hpData = visibleHp(effectiveCombatant, viewer);
       const isDead = hpData ? hpData.hp <= 0 : false;
 
       const itemEl = document.createElement('div');
@@ -297,29 +313,37 @@
               ${c.initiative}
             </div>
 
+            <!-- Avatar del combatiente -->
+            <img
+              src="${liveChar?.avatarUrl || c.avatarUrl || (c.isPlayer ? '/characters/ch-1.avif' : '/characters/ch-3.avif')}"
+              alt="${displayName}"
+              class="w-8 h-8 rounded-lg object-cover border border-[#222f42] shrink-0 bg-[#10141d]"
+              onerror="this.onerror=null;this.src='/characters/ch-1.avif';"
+            />
+
             <!-- Nombre e identificadores -->
             <div class="min-w-0">
               <div class="flex items-center gap-1.5 flex-wrap">
-                <span class="text-xs font-bold text-[#f1f5f9] truncate">
-                  ${c.name}
+                <span class="text-xs font-bold text-[#f1f5f9] truncate" title="${displayName}">
+                  ${displayName}
                 </span>
                 ${
                   isOwnCharacter
-                    ? '<span class="px-1.5 py-0.2 rounded bg-blue-500/20 text-blue-300 border border-blue-500/40 text-[9px] font-bold">TÚ</span>'
+                    ? '<span class="px-1.5 py-0.2 rounded bg-blue-500/20 text-blue-300 border border-blue-500/40 text-[9px] font-bold whitespace-nowrap shrink-0">TÚ</span>'
                     : ''
                 }
                 ${
                   isCurrentTurn
-                    ? '<span class="px-1.5 py-0.2 rounded bg-amber-500/25 text-amber-300 border border-amber-500/50 text-[9px] font-bold animate-pulse">TURNO</span>'
+                    ? '<span class="px-1.5 py-0.2 rounded bg-amber-500/25 text-amber-300 border border-amber-500/50 text-[9px] font-bold animate-pulse whitespace-nowrap shrink-0">TURNO</span>'
                     : ''
                 }
               </div>
 
               <!-- CA y Estado básico -->
-              <div class="flex items-center gap-2 text-[10px] text-[#94a3b8] font-label mt-0.5">
-                ${c.ac !== undefined ? `<span>CA ${c.ac}</span> • ` : ''}
-                <span>${c.isPlayer ? 'Personaje' : 'Oponente'}</span>
-                ${isDead ? '<span class="text-rose-400 font-bold">• Inconsciente</span>' : ''}
+              <div class="flex items-center gap-2 text-[10px] text-[#94a3b8] font-label mt-0.5 flex-wrap">
+                ${displayAc !== undefined ? `<span class="whitespace-nowrap shrink-0">CA ${displayAc}</span> • ` : ''}
+                <span class="whitespace-nowrap shrink-0">${c.isPlayer ? 'Personaje' : 'Oponente'}</span>
+                ${isDead ? '<span class="text-rose-400 font-bold whitespace-nowrap shrink-0">• Inconsciente</span>' : ''}
               </div>
             </div>
           </div>
@@ -334,22 +358,22 @@
                   c.isPlayer
                     ? 'bg-blue-500/20 text-blue-300 border border-blue-500/40'
                     : 'bg-rose-500/20 text-rose-300 border border-rose-500/40'
-                } text-[10px] font-bold inline-flex items-center gap-1 shadow-xs">
-                  <span class="w-1.5 h-1.5 rounded-full ${c.isPlayer ? 'bg-blue-400' : 'bg-rose-400'} animate-ping"></span>
-                  <span>Actuando</span>
+                } text-[10px] font-bold inline-flex items-center gap-1 shadow-xs whitespace-nowrap shrink-0">
+                  <span class="w-1.5 h-1.5 rounded-full ${c.isPlayer ? 'bg-blue-400' : 'bg-rose-400'} animate-ping shrink-0"></span>
+                  <span class="whitespace-nowrap">Actuando</span>
                 </span>
               `
                 : isMyTurn && !c.isPlayer && !isDead
                 ? `
                 <button
                   type="button"
-                  class="party-attack-target-btn inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-rose-500/20 border border-rose-500/40 hover:bg-rose-500/30 text-rose-300 text-xs font-bold transition-all cursor-pointer shadow-xs active:scale-95"
+                  class="party-attack-target-btn inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-rose-500/20 border border-rose-500/40 hover:bg-rose-500/30 text-rose-300 text-xs font-bold transition-all cursor-pointer shadow-xs active:scale-95 whitespace-nowrap shrink-0"
                   data-target-id="${c.id}"
-                  data-target-name="${c.name}"
-                  data-target-ac="${c.ac || ''}"
-                  title="Declarar ataque contra ${c.name}"
+                  data-target-name="${displayName}"
+                  data-target-ac="${displayAc || ''}"
+                  title="Declarar ataque contra ${displayName}"
                 >
-                  <span class="material-symbols-outlined text-[14px]">my_location</span>
+                  <span class="material-symbols-outlined text-[14px] shrink-0">my_location</span>
                   <span>🎯 Atacar</span>
                 </button>
               `
@@ -860,6 +884,12 @@
   window.addEventListener('popstate', init);
   window.addEventListener('campaign-activated', init);
   window.addEventListener('campaigns-updated', init);
+  window.addEventListener('character-updated', () => {
+    if (currentCampaignId) renderCombat(getCurrentCombat(currentCampaignId));
+  });
+  window.addEventListener('characters-updated', () => {
+    if (currentCampaignId) renderCombat(getCurrentCombat(currentCampaignId));
+  });
 
   if (document.readyState === 'complete' || document.readyState === 'interactive') {
     init();

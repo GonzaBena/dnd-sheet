@@ -16,6 +16,7 @@ import {
   prevTurn,
   duplicateCombatant,
   applyDamage,
+  syncCombatantsWithCharacters,
 } from '../vtt/initiative.ts';
 import { campaignStore } from '../state/campaignStore.ts';
 import { journalStore } from '../state/journalStore.ts';
@@ -380,6 +381,40 @@ export async function applyDamageToCombatant(
 
   const updatedTarget = applyDamage(target, delta);
   await updateCombatant(cid, combatantId, { hp: updatedTarget.hp });
+
+  // Sincronizar PG con la ficha del personaje si es un jugador
+  if (target.isPlayer && target.characterId) {
+    const char = campaignStore.getCharacter(target.characterId);
+    if (char && char.hp) {
+      char.hp.current = updatedTarget.hp;
+      try {
+        campaignStore.saveCharacter(char);
+      } catch (err) {
+        console.warn('[combatService] Error sincronizando PG con la ficha:', err);
+      }
+    }
+  }
+}
+
+/**
+ * Sincroniza el combate activo con los personajes de la campaña (Nombre, PG, CA).
+ * Devuelve true si hubo cambios que se guardaron.
+ */
+export async function syncCombatWithLiveCharacters(cid: string): Promise<boolean> {
+  const current = getCurrentCombat(cid);
+  if (!current || !current.active || !current.combatants || current.combatants.length === 0) {
+    return false;
+  }
+
+  const chars = campaignStore.getCharactersForCampaign(cid);
+  const { combat: nextCombat, changed } = syncCombatantsWithCharacters(current, chars);
+
+  if (changed) {
+    await saveCombat(cid, nextCombat);
+    return true;
+  }
+
+  return false;
 }
 
 /**

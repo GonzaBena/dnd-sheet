@@ -19,6 +19,7 @@ const KEYS = {
   activeCampaign: 'dnd_active_campaign_id_v1',
   activeCharacter: 'dnd_active_character_v1',
 };
+const MIGRATION_DONE_KEY = 'dnd_local_migration_done';
 const BACKUP_KEYS = [KEYS.campaigns, KEYS.characters, KEYS.journal, 'dnd_users_v1', 'dnd_sync_config_v1'];
 const BATCH_LIMIT = 400;
 
@@ -54,13 +55,27 @@ function backupLocalKeys() {
 }
 
 export async function migrateLocalData(db: Firestore, me: AppUser): Promise<MigrationSummary | null> {
+  // Si en este navegador ya se resolvió la migración (completada o descartada), no volver a consultar nunca
+  if (typeof window !== 'undefined' && localStorage.getItem(MIGRATION_DONE_KEY)) {
+    return null;
+  }
+
   const fs = await import('firebase/firestore');
   const profileRef = fs.doc(db, 'users', me.id);
-  const profile = await fs.getDoc(profileRef);
-  if (profile.exists() && (profile.data() as any).migratedAt) return null;
+  // Lectura con timeout de 2.5s para no demorar el inicio de sesión
+  const profile = await Promise.race([
+    fs.getDoc(profileRef),
+    new Promise<null>((_, reject) => setTimeout(() => reject(new Error('Profile check timeout')), 2500)),
+  ]).catch(() => null);
+
+  if (profile && profile.exists() && (profile.data() as any).migratedAt) {
+    if (typeof window !== 'undefined') localStorage.setItem(MIGRATION_DONE_KEY, 'true');
+    return null;
+  }
 
   const markDone = async () => {
-    await fs.setDoc(profileRef, { migratedAt: Date.now() }, { merge: true });
+    if (typeof window !== 'undefined') localStorage.setItem(MIGRATION_DONE_KEY, 'true');
+    await fs.setDoc(profileRef, { migratedAt: Date.now() }, { merge: true }).catch(() => {});
   };
 
   const localUserId = localStorage.getItem(KEYS.currentUser) || 'user-me';

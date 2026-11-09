@@ -1,5 +1,6 @@
 import type { CharacterData, SectionOrderConfig } from '../models/character.ts';
 import { defaultCharacter } from '../data/defaultCharacter.ts';
+import { getRandomCharacterAvatar, isBrokenAvatarUrl } from '../data/characterAvatars.ts';
 import { recalculateCharacter, calculateLevelUpHpGain } from '../dnd/calculations.ts';
 import { journalStore } from './journalStore.ts';
 import { campaignStore } from './campaignStore.ts';
@@ -63,6 +64,9 @@ class CharacterStoreManager {
             parsed.sessionContext.sessionNumber = 1;
             parsed.sessionContext.location = 'Tierras Salvajes';
           }
+        }
+        if (isBrokenAvatarUrl(parsed.avatarUrl)) {
+          parsed.avatarUrl = getRandomCharacterAvatar();
         }
         return recalculateCharacter(parsed);
       }
@@ -864,6 +868,7 @@ class CharacterStoreManager {
 
   public resetToDefault() {
     this.character = JSON.parse(JSON.stringify(defaultCharacter));
+    this.character.avatarUrl = getRandomCharacterAvatar();
     this.saveAndNotify();
     journalStore.log(
       'Personaje restablecido por defecto',

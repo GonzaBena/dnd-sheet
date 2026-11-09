@@ -189,6 +189,9 @@
 <script>
   import { openModal, closeModal } from '../../scripts/animations/modalAnimations';
   import { congratulationBanner } from '../../scripts/ui/congratulationBanner';
+  import { campaignStore } from '../../scripts/state/campaignStore';
+  import { journalStore } from '../../scripts/state/journalStore';
+  import { showAlert } from '../../scripts/ui/notify';
 
   const modal = document.getElementById('new-milestone-modal');
   const backdrop = document.getElementById('modal-backdrop');
@@ -230,7 +233,7 @@
     });
   });
 
-  // Submit and trigger congratulationBanner
+  // Submit and broadcast milestone event
   form?.addEventListener('submit', (e) => {
     e.preventDefault();
     const banner = bannerInp?.value.trim() || '¡FELICIDADES!';
@@ -238,16 +241,48 @@
     const desc = descInp?.value.trim() || 'Un momento memorable ha sido grabado en la historia de la aventura.';
     const saveToJournal = saveCheck ? saveCheck.checked : true;
 
-    // Close config modal first
-    closeMe();
+    const activeCampId = campaignStore.getActiveCampaignId();
+    const camp = activeCampId ? campaignStore.getCampaign(activeCampId) : null;
 
-    // Small delay to let the modal transition smoothly before celebration pops up
-    setTimeout(() => {
-      congratulationBanner(title, desc, {
-        bannerText: banner,
-        saveToJournal: saveToJournal,
-        tag: '#Hito'
+    if (activeCampId && camp) {
+      if (camp.status !== 'active') {
+        showAlert('La campaña debe estar activa para poder celebrar un hito con la mesa.', {
+          kind: 'warning',
+          title: 'Campaña no activa'
+        });
+        return;
+      }
+
+      closeMe();
+
+      // Broadcast event to the entire campaign (sendDmEvent dispatches local dm-event-received too)
+      campaignStore.sendDmEvent(activeCampId, {
+        campaignId: activeCampId,
+        type: 'milestone',
+        dmName: camp.dmName || 'Dungeon Master',
+        payload: {
+          milestone: { bannerText: banner, title, description: desc }
+        }
       });
-    }, 280);
+
+      if (saveToJournal) {
+        journalStore.log(
+          `⭐ Hito: ${title}`,
+          desc,
+          ['#Hito'],
+          { bannerText: banner }
+        );
+      }
+    } else {
+      // Standalone or local mode without active campaign
+      closeMe();
+      setTimeout(() => {
+        congratulationBanner(title, desc, {
+          bannerText: banner,
+          saveToJournal: saveToJournal,
+          tag: '#Hito'
+        });
+      }, 280);
+    }
   });
 </script>

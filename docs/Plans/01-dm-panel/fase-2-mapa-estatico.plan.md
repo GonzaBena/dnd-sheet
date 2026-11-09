@@ -192,6 +192,6 @@ Regla: `imageUrl.matches('^https://.*')`, de 2048 caracteres como máximo, y `gr
 - Subir archivos.
 
 ## 10. Checklist de cierre
-- [ ] T-20 … T-24 marcadas en la spec.
-- [ ] `// DECISION:` para F2-1, F2-2 y F2-3, y en `MapStage.astro` para el reemplazo de `client:only`.
-- [ ] Tests verdes y build estático OK.
+- [x] T-20 … T-24 marcadas en la spec.
+- [x] `// DECISION:` para F2-1, F2-2 y F2-3, y en `MapStage.astro` para el reemplazo de `client:only`.
+- [x] Tests verdes y build estático OK.

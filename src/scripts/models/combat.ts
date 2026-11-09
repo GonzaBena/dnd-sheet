@@ -16,6 +16,7 @@ export interface Combatant {
   /** Jugador dueño (para que vea su propio HP, RF-04). */
   ownerUid?: string;
   characterId?: string;
+  avatarUrl?: string;
 }
 
 export interface Combat {

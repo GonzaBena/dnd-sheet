@@ -209,6 +209,10 @@
 <script>
   import anime from 'animejs';
   import type { MilestoneEventDetail } from '../../scripts/ui/congratulationBanner';
+  import { campaignStore } from '../../scripts/state/campaignStore';
+  import { characterStore } from '../../scripts/state/characterStore';
+  import { userStore } from '../../scripts/state/userStore';
+  import type { DmEvent } from '../../scripts/models/campaign';
 
   const modal = document.getElementById('milestone-celebration-modal');
   const backdrop = document.getElementById('milestone-backdrop');
@@ -361,9 +365,53 @@
     });
   }
 
-  // Listen to the global event
+  const handledMilestoneIds = new Set<string>();
+
+  // Listen to the global event for local direct triggers (e.g. personal level-ups)
   window.addEventListener('show-milestone-alert', ((e: CustomEvent<MilestoneEventDetail>) => {
     showMilestone(e.detail);
+  }) as EventListener);
+
+  // Listen to Real-Time DM events across all members of the active campaign
+  window.addEventListener('dm-event-received', ((e: CustomEvent<DmEvent>) => {
+    const event = e.detail;
+    if (!event || event.type !== 'milestone' || !event.payload?.milestone) return;
+
+    if (event.id && handledMilestoneIds.has(event.id)) return;
+    if (event.id) handledMilestoneIds.add(event.id);
+
+    // 1. Verify campaign exists and session is ACTIVE
+    const camp = campaignStore.getCampaign(event.campaignId);
+    if (!camp || camp.status !== 'active') {
+      console.log(`[MilestoneCelebration] Ignorando hito de campaña no activa (${event.campaignId})`);
+      return;
+    }
+
+    // 2. Verify current user is member of this campaign or has it active
+    const currentUser = userStore.getCurrentUser();
+    const activeCampId = campaignStore.getActiveCampaignId();
+    const currentCharCampId = characterStore.get()?.campaignId;
+    const isMember = (camp.memberUserIds && camp.memberUserIds.includes(currentUser.id)) ||
+                     activeCampId === event.campaignId ||
+                     currentCharCampId === event.campaignId;
+
+    if (!isMember) {
+      console.log(`[MilestoneCelebration] Ignorando hito de campaña donde el usuario no participa`);
+      return;
+    }
+
+    // 3. Show milestone to the member without creating duplicate journal entries
+    const m = event.payload.milestone;
+    showMilestone({
+      texto: m.title,
+      desc: m.description,
+      options: {
+        bannerText: m.bannerText || '¡FELICIDADES!',
+        tag: '#Hito',
+        saveToJournal: false,
+        subtitle: `Hito de Campaña: ${camp.name}`
+      }
+    });
   }) as EventListener);
 
   // Close handlers
@@ -378,12 +426,19 @@
       const journalSection = document.getElementById('section-journal');
       if (journalSection) {
         journalSection.scrollIntoView({ behavior: 'smooth' });
-      }
-
-      // Filter by #Hito in journal
-      const hitoBtn = document.querySelector('[data-filter="#Hito"]') as HTMLButtonElement;
-      if (hitoBtn) {
-        hitoBtn.click();
+        // Filter by #Hito in journal
+        const hitoBtn = document.querySelector('[data-filter="#Hito"]') as HTMLButtonElement;
+        if (hitoBtn) {
+          hitoBtn.click();
+        }
+      } else {
+        // If not on the sheet page with the journal section, navigate to active campaign sheet
+        const activeCampId = campaignStore.getActiveCampaignId();
+        if (activeCampId) {
+          window.location.href = `/campaigns?campaign=${encodeURIComponent(activeCampId)}`;
+        } else {
+          window.location.href = '/campaigns';
+        }
       }
     });
   });

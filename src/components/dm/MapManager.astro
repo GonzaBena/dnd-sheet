@@ -1,0 +1,792 @@
+---
+// src/components/dm/MapManager.astro
+// Panel de gestión de mapas tácticos y configuración de grilla para el DM.
+//
+// DECISION (F2-2): Tamaño de imagen detectado automáticamente vía naturalWidth/Height del navegador.
+// DECISION (F2-3): Lista de mapas leída puntualmente con getDocs.
+---
+
+<section id="dm-map-manager-root" class="w-full rounded-2xl bg-[#121721] border border-[#222f42] p-5 lg:p-7 shadow-sm space-y-6">
+  <!-- Cabecera de gestión de mapas -->
+  <div class="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-[#222f42]">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 shadow-xs">
+        <span class="material-symbols-outlined text-[24px]">map</span>
+      </div>
+      <div>
+        <h3 class="text-lg font-headline font-bold text-[#f1f5f9]">Gestión de Mapas Tácticos</h3>
+        <span class="text-xs text-[#94a3b8] font-label">Biblioteca de escenarios, ajuste de cuadrícula y control de mapa activo</span>
+      </div>
+    </div>
+
+    <div class="flex items-center gap-2">
+      <!-- Botón Nuevo Mapa -->
+      <button
+        type="button"
+        id="dm-new-map-btn"
+        class="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-[#0a0d12] text-xs font-bold shadow-[0_0_15px_rgba(245,158,11,0.35)] active:scale-95 transition-all cursor-pointer"
+      >
+        <span class="material-symbols-outlined text-[17px]">add_photo_alternate</span>
+        <span>Nuevo Mapa</span>
+      </button>
+
+      <!-- Botón Plegar / Desplegar Gestor -->
+      <button
+        type="button"
+        id="dm-map-manager-collapse-btn"
+        class="w-8 h-8 rounded-xl bg-[#18202e] border border-[#222f42] hover:border-amber-500/50 text-[#cbd5e1] hover:text-amber-300 flex items-center justify-center transition-all cursor-pointer"
+        title="Plegar / desplegar gestor de mapas"
+        aria-expanded="true"
+      >
+        <span id="dm-map-manager-collapse-icon" class="material-symbols-outlined text-[18px]">expand_less</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Contenedor desplegable del cuerpo del gestor -->
+  <div id="dm-map-manager-body" class="space-y-6">
+    <!-- Contenedor principal: Lista de mapas + Editor de grilla -->
+    <div class="grid grid-cols-1 xl:grid-cols-12 gap-6">
+    <!-- Columna Izquierda (7 cols): Lista de Mapas -->
+    <div class="lg:col-span-7 space-y-3">
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-headline font-bold text-[#f1f5f9] uppercase tracking-wider flex items-center gap-1.5">
+          <span class="material-symbols-outlined text-[16px] text-amber-400">collections</span>
+          <span>Biblioteca de Mapas</span>
+        </span>
+        <span id="dm-map-count-badge" class="text-[11px] font-bold text-[#94a3b8] px-2 py-0.5 rounded-md bg-[#18202e] border border-[#222f42]">
+          0 mapas
+        </span>
+      </div>
+
+      <!-- Estado vacío de lista -->
+      <div id="dm-maps-empty" class="hidden p-8 rounded-xl bg-[#10141d] border border-dashed border-[#222f42] text-center space-y-2">
+        <span class="material-symbols-outlined text-3xl text-[#64748b]">image_not_supported</span>
+        <p class="text-xs text-[#94a3b8]">No hay mapas creados en esta campaña todavía.</p>
+        <p class="text-[11px] text-[#64748b]">Pulsa "Nuevo Mapa" para añadir una imagen mediante URL externa.</p>
+      </div>
+
+      <!-- Grid de tarjetas de mapas -->
+      <div id="dm-maps-list" class="space-y-2.5 max-h-[380px] overflow-y-auto pr-1">
+        <!-- Rellenado dinámicamente -->
+      </div>
+    </div>
+
+    <!-- Columna Derecha (5 cols): Editor y Ajuste de Grilla -->
+    <div class="lg:col-span-5 rounded-xl bg-[#10141d] border border-[#222f42] p-4 sm:p-5 space-y-4">
+      <div class="flex items-center justify-between pb-3 border-b border-[#222f42]">
+        <div class="min-w-0">
+          <span class="text-xs font-headline font-bold text-[#f1f5f9] uppercase tracking-wider flex items-center gap-1.5">
+            <span class="material-symbols-outlined text-[16px] text-amber-400">grid_on</span>
+            <span>Ajuste de Grilla</span>
+          </span>
+          <p id="dm-grid-map-name" class="text-[11px] text-[#94a3b8] truncate mt-0.5">
+            Ningún mapa seleccionado
+          </p>
+        </div>
+        <button
+          type="button"
+          id="dm-grid-fit-btn"
+          class="px-2 py-1 rounded-lg bg-[#18202e] border border-[#222f42] hover:border-amber-500/50 text-[#cbd5e1] hover:text-amber-300 text-[11px] font-bold flex items-center gap-1 transition-colors cursor-pointer"
+          title="Centrar y encuadrar mapa en el visor"
+        >
+          <span class="material-symbols-outlined text-[14px]">fit_screen</span>
+          <span>Encuadrar</span>
+        </button>
+      </div>
+
+      <!-- Formulario de Grilla -->
+      <form id="dm-grid-form" class="space-y-3.5">
+        <!-- Toggle Visibilidad -->
+        <label class="flex items-center justify-between p-2.5 rounded-lg bg-[#18202e] border border-[#222f42] cursor-pointer hover:border-amber-500/40 transition-colors">
+          <span class="text-xs font-bold text-[#cbd5e1] flex items-center gap-1.5">
+            <span class="material-symbols-outlined text-[16px] text-amber-400">visibility</span>
+            <span>Grilla visible para todos</span>
+          </span>
+          <input
+            type="checkbox"
+            id="dm-grid-visible"
+            checked
+            class="rounded bg-[#10141d] border-[#222f42] text-amber-500 focus:ring-amber-500/40 cursor-pointer"
+          />
+        </label>
+
+        <!-- Tamaño de Celda -->
+        <div class="space-y-1">
+          <div class="flex items-center justify-between text-xs">
+            <label for="dm-grid-size" class="font-bold text-[#94a3b8]">Tamaño de celda (px):</label>
+            <span id="dm-grid-size-val" class="font-mono text-amber-300 font-bold text-[11px]">70 px</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <input
+              type="range"
+              id="dm-grid-size"
+              min="8"
+              max="256"
+              step="1"
+              value="70"
+              class="w-full accent-amber-500 cursor-pointer"
+            />
+            <input
+              type="number"
+              id="dm-grid-size-num"
+              min="8"
+              max="512"
+              value="70"
+              class="w-16 text-center text-xs p-1.5 rounded-lg bg-[#18202e] border border-[#222f42] text-[#f1f5f9] focus:outline-none focus:border-amber-500 font-mono"
+            />
+          </div>
+        </div>
+
+        <!-- Desplazamiento X e Y -->
+        <div class="grid grid-cols-2 gap-3">
+          <div class="space-y-1">
+            <label for="dm-grid-offset-x" class="text-[11px] font-bold text-[#94a3b8] flex items-center gap-1">
+              <span>Offset X (px):</span>
+            </label>
+            <input
+              type="number"
+              id="dm-grid-offset-x"
+              value="0"
+              class="w-full text-center text-xs p-2 rounded-lg bg-[#18202e] border border-[#222f42] text-[#f1f5f9] focus:outline-none focus:border-amber-500 font-mono"
+            />
+          </div>
+          <div class="space-y-1">
+            <label for="dm-grid-offset-y" class="text-[11px] font-bold text-[#94a3b8] flex items-center gap-1">
+              <span>Offset Y (px):</span>
+            </label>
+            <input
+              type="number"
+              id="dm-grid-offset-y"
+              value="0"
+              class="w-full text-center text-xs p-2 rounded-lg bg-[#18202e] border border-[#222f42] text-[#f1f5f9] focus:outline-none focus:border-amber-500 font-mono"
+            />
+          </div>
+        </div>
+
+        <!-- Color y Opacidad de Cuadrícula -->
+        <div class="grid grid-cols-2 gap-3">
+          <!-- Color de Grilla -->
+          <div class="space-y-1">
+            <label for="dm-grid-color" class="text-[11px] font-bold text-[#94a3b8] flex items-center justify-between">
+              <span class="flex items-center gap-1">
+                <span class="material-symbols-outlined text-[13px] text-amber-400">palette</span>
+                <span>Color:</span>
+              </span>
+              <span id="dm-grid-color-hex" class="font-mono text-[10px] text-[#cbd5e1]">#ffffff</span>
+            </label>
+            <div class="flex items-center gap-2">
+              <input
+                type="color"
+                id="dm-grid-color"
+                value="#ffffff"
+                class="w-8 h-8 rounded-lg bg-[#18202e] border border-[#222f42] cursor-pointer p-0.5 shrink-0"
+                title="Elegir color de la cuadrícula"
+              />
+              <input
+                type="text"
+                id="dm-grid-color-text"
+                value="#ffffff"
+                maxlength="7"
+                class="w-full text-center text-xs p-1.5 rounded-lg bg-[#18202e] border border-[#222f42] text-[#f1f5f9] focus:outline-none focus:border-amber-500 font-mono"
+                placeholder="#ffffff"
+              />
+            </div>
+          </div>
+
+          <!-- Opacidad de Grilla -->
+          <div class="space-y-1">
+            <div class="flex items-center justify-between">
+              <label for="dm-grid-opacity" class="text-[11px] font-bold text-[#94a3b8] flex items-center gap-1">
+                <span class="material-symbols-outlined text-[13px] text-amber-400">opacity</span>
+                <span>Opacidad:</span>
+              </label>
+              <span id="dm-grid-opacity-val" class="text-[11px] font-mono font-bold text-amber-400">65%</span>
+            </div>
+            <div class="flex items-center gap-2 pt-1.5">
+              <input
+                type="range"
+                id="dm-grid-opacity"
+                min="10"
+                max="100"
+                step="5"
+                value="65"
+                class="w-full accent-amber-500 cursor-pointer"
+              />
+            </div>
+          </div>
+        </div>
+
+        <p class="text-[11px] text-[#64748b] leading-tight">
+          💡 Los cambios en la grilla se previsualizan instantáneamente en el mapa. Pulsa "Guardar" para persistirlos.
+        </p>
+
+        <!-- Botón Guardar Grilla (una sola escritura) (T-21) -->
+        <button
+          type="submit"
+          id="dm-save-grid-btn"
+          disabled
+          class="w-full py-2.5 rounded-xl bg-gradient-to-r from-amber-600 to-amber-500 disabled:opacity-40 disabled:cursor-not-allowed hover:from-amber-500 hover:to-amber-400 text-[#0a0d12] text-xs font-bold shadow-[0_0_12px_rgba(245,158,11,0.25)] active:scale-95 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+        >
+          <span class="material-symbols-outlined text-[16px]">save</span>
+          <span>Guardar Configuración de Grilla</span>
+        </button>
+      </form>
+    </div>
+  </div>
+  </div>
+</section>
+
+<script>
+  import { showAlert, showConfirm, showForm } from '../../scripts/ui/notify.ts';
+  import { campaignStore } from '../../scripts/state/campaignStore.ts';
+  import {
+    listMaps,
+    createMap,
+    updateMapConfig,
+    deleteMap,
+    setActiveMap,
+  } from '../../scripts/data/mapService.ts';
+  import { canPerform, normalizeStatus } from '../../scripts/vtt/sessionStatus.ts';
+  import type { MapDoc, GridConfig } from '../../scripts/models/map.ts';
+
+  const newMapBtn = document.getElementById('dm-new-map-btn') as HTMLButtonElement | null;
+  const mapsListEl = document.getElementById('dm-maps-list');
+  const mapsEmptyEl = document.getElementById('dm-maps-empty');
+  const mapCountBadge = document.getElementById('dm-map-count-badge');
+
+  const gridMapNameEl = document.getElementById('dm-grid-map-name');
+  const gridFitBtn = document.getElementById('dm-grid-fit-btn') as HTMLButtonElement | null;
+  const gridForm = document.getElementById('dm-grid-form') as HTMLFormElement | null;
+  const gridVisibleInput = document.getElementById('dm-grid-visible') as HTMLInputElement | null;
+  const gridSizeSlider = document.getElementById('dm-grid-size') as HTMLInputElement | null;
+  const gridSizeNum = document.getElementById('dm-grid-size-num') as HTMLInputElement | null;
+  const gridSizeVal = document.getElementById('dm-grid-size-val');
+  const gridOffsetXInput = document.getElementById('dm-grid-offset-x') as HTMLInputElement | null;
+  const gridOffsetYInput = document.getElementById('dm-grid-offset-y') as HTMLInputElement | null;
+  const gridColorInput = document.getElementById('dm-grid-color') as HTMLInputElement | null;
+  const gridColorText = document.getElementById('dm-grid-color-text') as HTMLInputElement | null;
+  const gridColorHex = document.getElementById('dm-grid-color-hex');
+  const gridOpacitySlider = document.getElementById('dm-grid-opacity') as HTMLInputElement | null;
+  const gridOpacityVal = document.getElementById('dm-grid-opacity-val');
+  const saveGridBtn = document.getElementById('dm-save-grid-btn') as HTMLButtonElement | null;
+
+  let currentCampaignMaps: MapDoc[] = [];
+  let selectedMap: MapDoc | null = null;
+
+  function getStageController() {
+    const stageRoot = document.querySelector<any>('[data-map-stage-root][data-mode="dm"]');
+    return stageRoot?.__mapStageController || null;
+  }
+
+  function getActiveCid(): string | null {
+    let cid = campaignStore.getActiveCampaignId();
+    if (!cid && typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      cid = params.get('id') || params.get('campaign');
+    }
+    return cid;
+  }
+
+  function getCanPrepare(): boolean {
+    const cid = getActiveCid();
+    if (!cid) return false;
+    const camp = campaignStore.getCampaign(cid);
+    return canPerform('dmPrepare', 'dm', normalizeStatus(camp?.status));
+  }
+
+  function updateActionButtonsAvailability() {
+    const allowed = getCanPrepare();
+    if (newMapBtn) {
+      newMapBtn.disabled = !allowed;
+      newMapBtn.classList.toggle('opacity-50', !allowed);
+      newMapBtn.classList.toggle('cursor-not-allowed', !allowed);
+    }
+    if (saveGridBtn) {
+      saveGridBtn.disabled = !allowed || !selectedMap;
+    }
+  }
+
+  // Sincronizar inputs de grilla con la vista previa en el stage
+  function applyGridPreview() {
+    if (!selectedMap) return;
+    const size = parseInt(gridSizeSlider?.value || '70', 10);
+    const offsetX = parseInt(gridOffsetXInput?.value || '0', 10) || 0;
+    const offsetY = parseInt(gridOffsetYInput?.value || '0', 10) || 0;
+    const visible = Boolean(gridVisibleInput?.checked);
+    const color = gridColorInput?.value || '#ffffff';
+    const opacityNum = parseInt(gridOpacitySlider?.value || '65', 10);
+    const opacity = Math.round(opacityNum) / 100;
+
+    if (gridSizeVal) gridSizeVal.textContent = `${size} px`;
+    if (gridSizeNum && parseInt(gridSizeNum.value, 10) !== size) {
+      gridSizeNum.value = String(size);
+    }
+    if (gridColorHex) gridColorHex.textContent = color;
+    if (gridColorText && gridColorText.value.toLowerCase() !== color.toLowerCase()) {
+      gridColorText.value = color;
+    }
+    if (gridOpacityVal) gridOpacityVal.textContent = `${opacityNum}%`;
+
+    const gridConfig: GridConfig = { size, offsetX, offsetY, visible, color, opacity };
+    const controller = getStageController();
+    if (controller) {
+      controller.setGrid(gridConfig);
+    }
+  }
+
+  function setSelectedMap(map: MapDoc | null) {
+    selectedMap = map;
+    updateActionButtonsAvailability();
+
+    if (!map) {
+      if (gridMapNameEl) gridMapNameEl.textContent = 'Ningún mapa seleccionado';
+      if (saveGridBtn) saveGridBtn.disabled = true;
+      return;
+    }
+
+    if (gridMapNameEl) {
+      gridMapNameEl.textContent = `${map.name} (${map.imageWidth}×${map.imageHeight} px)`;
+    }
+
+    if (gridVisibleInput) gridVisibleInput.checked = map.grid.visible;
+    if (gridSizeSlider) gridSizeSlider.value = String(map.grid.size);
+    if (gridSizeNum) gridSizeNum.value = String(map.grid.size);
+    if (gridSizeVal) gridSizeVal.textContent = `${map.grid.size} px`;
+    if (gridOffsetXInput) gridOffsetXInput.value = String(map.grid.offsetX);
+    if (gridOffsetYInput) gridOffsetYInput.value = String(map.grid.offsetY);
+
+    const color = map.grid.color || '#ffffff';
+    const opacityPercent = typeof map.grid.opacity === 'number' ? Math.round(map.grid.opacity * 100) : 65;
+    if (gridColorInput) gridColorInput.value = color;
+    if (gridColorText) gridColorText.value = color;
+    if (gridColorHex) gridColorHex.textContent = color;
+    if (gridOpacitySlider) gridOpacitySlider.value = String(opacityPercent);
+    if (gridOpacityVal) gridOpacityVal.textContent = `${opacityPercent}%`;
+
+    if (saveGridBtn) saveGridBtn.disabled = !getCanPrepare();
+
+    // Notificar al stage del DM que cargue este mapa (T-24)
+    const cid = getActiveCid();
+    if (cid) {
+      window.dispatchEvent(
+        new CustomEvent('open-dm-map', {
+          detail: { cid, mid: map.id },
+        })
+      );
+    }
+  }
+
+  function renderMapsList() {
+    if (!mapsListEl) return;
+    const cid = getActiveCid();
+    const camp = cid ? campaignStore.getCampaign(cid) : null;
+    const activeMapId = camp?.activeMapId;
+    const canPrepare = getCanPrepare();
+
+    if (mapCountBadge) {
+      mapCountBadge.textContent = `${currentCampaignMaps.length} ${currentCampaignMaps.length === 1 ? 'mapa' : 'mapas'}`;
+    }
+
+    if (currentCampaignMaps.length === 0) {
+      mapsListEl.innerHTML = '';
+      mapsEmptyEl?.classList.remove('hidden');
+      setSelectedMap(null);
+      return;
+    }
+
+    mapsEmptyEl?.classList.add('hidden');
+
+    mapsListEl.innerHTML = currentCampaignMaps
+      .map((m) => {
+        const isActive = activeMapId === m.id;
+        const isSelected = selectedMap?.id === m.id;
+
+        return `
+        <div
+          data-map-item-id="${m.id}"
+          class="flex items-center justify-between gap-3 p-2.5 rounded-xl border transition-all cursor-pointer ${
+            isSelected
+              ? 'bg-[#18202e] border-amber-500/60 shadow-xs'
+              : 'bg-[#10141d] border-[#222f42] hover:border-[#334155]'
+          }"
+        >
+          <!-- Thumbnail & Info -->
+          <div class="flex items-center gap-3 min-w-0 flex-1" data-action="select" data-id="${m.id}">
+            <div class="w-12 h-12 rounded-lg bg-[#0c1017] border border-[#222f42] overflow-hidden shrink-0 relative flex items-center justify-center">
+              <img
+                src="${m.imageUrl}"
+                alt="${m.name}"
+                loading="lazy"
+                class="w-full h-full object-cover"
+                onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+              />
+              <div class="hidden absolute inset-0 items-center justify-center text-[#64748b]">
+                <span class="material-symbols-outlined text-[18px]">broken_image</span>
+              </div>
+            </div>
+
+            <div class="min-w-0 space-y-0.5">
+              <div class="flex items-center gap-2">
+                <h4 class="text-xs font-bold text-[#f1f5f9] truncate">${m.name}</h4>
+                ${
+                  isActive
+                    ? `<span class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40">ACTIVO</span>`
+                    : ''
+                }
+              </div>
+              <p class="text-[10px] text-[#94a3b8] font-mono">
+                ${m.imageWidth}×${m.imageHeight} px • Grilla: ${m.grid.size}px
+              </p>
+            </div>
+          </div>
+
+          <!-- Actions -->
+          <div class="flex items-center gap-1 shrink-0">
+            ${
+              !isActive
+                ? `
+              <button
+                type="button"
+                data-action="activate"
+                data-id="${m.id}"
+                ${!canPrepare ? 'disabled' : ''}
+                class="px-2.5 py-1 rounded-lg bg-[#18202e] hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 hover:border-amber-500 text-[11px] font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                title="Mostrar este mapa a los jugadores"
+              >
+                Activar
+              </button>
+            `
+                : `
+              <span class="px-2 py-1 text-[11px] font-bold text-amber-400 flex items-center gap-1 select-none">
+                <span class="material-symbols-outlined text-[14px]">visibility</span>
+                <span>En mesa</span>
+              </span>
+            `
+            }
+
+            <button
+              type="button"
+              data-action="delete"
+              data-id="${m.id}"
+              ${isActive || !canPrepare ? 'disabled' : ''}
+              class="w-7 h-7 rounded-lg bg-[#18202e] hover:bg-rose-950/40 text-[#94a3b8] hover:text-rose-400 border border-[#222f42] hover:border-rose-500/40 flex items-center justify-center transition-colors disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+              title="${isActive ? 'No se puede eliminar el mapa activo' : 'Eliminar mapa'}"
+            >
+              <span class="material-symbols-outlined text-[15px]">delete</span>
+            </button>
+          </div>
+        </div>
+      `;
+      })
+      .join('');
+
+    // Si no había ninguno seleccionado, seleccionar el activo o el primero
+    if (!selectedMap && currentCampaignMaps.length > 0) {
+      const activeOne = currentCampaignMaps.find((m) => m.id === activeMapId);
+      setSelectedMap(activeOne || currentCampaignMaps[0]);
+    }
+  }
+
+  async function reloadMaps() {
+    const cid = getActiveCid();
+    if (!cid) return;
+
+    try {
+      currentCampaignMaps = await listMaps(cid);
+      renderMapsList();
+    } catch (err) {
+      console.warn('[MapManager] Error listando mapas:', err);
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Event Listeners y Handlers
+  // ---------------------------------------------------------------------------
+
+  // Crear nuevo mapa (T-21)
+  newMapBtn?.addEventListener('click', async () => {
+    const cid = campaignStore.getActiveCampaignId();
+    if (!cid) return;
+
+    if (!getCanPrepare()) {
+      await showAlert('No puedes crear mapas con la partida en el estado actual.', {
+        kind: 'warning',
+      });
+      return;
+    }
+
+    const formResult = await showForm(
+      [
+        {
+          name: 'name',
+          label: 'Nombre del Mapa',
+          type: 'text',
+          placeholder: 'Ej: Catacumbas Olvidadas, Ruinas de Phandalin...',
+          required: true,
+        },
+        {
+          name: 'imageUrl',
+          label: 'URL de la Imagen (HTTPS)',
+          type: 'url',
+          placeholder: 'https://images.unsplash.com/... o enlace de tu mapa',
+          required: true,
+          hint: 'Debe ser una URL segura que empiece por https://',
+        },
+      ],
+      {
+        title: 'Añadir Nuevo Mapa Táctico',
+        confirmText: 'Cargar Mapa',
+        cancelText: 'Cancelar',
+      }
+    );
+
+    if (!formResult) return;
+
+    const { name, imageUrl } = formResult;
+
+    if (!imageUrl || !imageUrl.startsWith('https://')) {
+      await showAlert('La URL debe comenzar por https:// por motivos de seguridad.', {
+        kind: 'error',
+      });
+      return;
+    }
+
+    // Precargar imagen para validar que existe y leer dimensiones naturales (F2-2)
+    const img = new Image();
+    img.src = imageUrl;
+
+    try {
+      await new Promise<void>((resolve, reject) => {
+        img.onload = () => resolve();
+        img.onerror = () => reject(new Error('No se pudo descargar la imagen'));
+      });
+    } catch (e) {
+      await showAlert(
+        'No se pudo cargar la imagen desde la URL proporcionada. Verifica que el enlace sea público y válido.',
+        { kind: 'error' }
+      );
+      return;
+    }
+
+    const imageWidth = img.naturalWidth || 1000;
+    const imageHeight = img.naturalHeight || 800;
+
+    try {
+      const mid = await createMap(cid, {
+        name: name || 'Mapa sin título',
+        imageUrl,
+        imageWidth,
+        imageHeight,
+        grid: {
+          size: 70,
+          offsetX: 0,
+          offsetY: 0,
+          visible: true,
+        },
+      });
+
+      await reloadMaps();
+
+      // Si es el único mapa, activarlo automáticamente
+      if (currentCampaignMaps.length === 1) {
+        await setActiveMap(cid, mid);
+      }
+
+      const created = currentCampaignMaps.find((m) => m.id === mid);
+      if (created) setSelectedMap(created);
+
+      await showAlert('¡Mapa añadido correctamente a la campaña!', { kind: 'success' });
+    } catch (err: any) {
+      await showAlert(err.message || 'Error al guardar el mapa', { kind: 'error' });
+    }
+  });
+
+  // Delegación de eventos en lista de mapas
+  mapsListEl?.addEventListener('click', async (e) => {
+    const target = e.target as HTMLElement;
+    const cid = campaignStore.getActiveCampaignId();
+    if (!cid) return;
+
+    // Seleccionar mapa para editar
+    const selectTrigger = target.closest<HTMLElement>('[data-action="select"]');
+    if (selectTrigger) {
+      const id = selectTrigger.getAttribute('data-id');
+      const found = currentCampaignMaps.find((m) => m.id === id);
+      if (found) {
+        setSelectedMap(found);
+        renderMapsList();
+      }
+      return;
+    }
+
+    // Activar mapa
+    const activateBtn = target.closest<HTMLElement>('[data-action="activate"]');
+    if (activateBtn) {
+      const id = activateBtn.getAttribute('data-id');
+      if (!id) return;
+
+      try {
+        await setActiveMap(cid, id);
+        const activeOne = currentCampaignMaps.find((m) => m.id === id);
+        if (activeOne) setSelectedMap(activeOne);
+        await reloadMaps();
+      } catch (err: any) {
+        await showAlert(err.message || 'Error al activar mapa', { kind: 'error' });
+      }
+      return;
+    }
+
+    // Eliminar mapa
+    const deleteBtn = target.closest<HTMLElement>('[data-action="delete"]');
+    if (deleteBtn) {
+      const id = deleteBtn.getAttribute('data-id');
+      const found = currentCampaignMaps.find((m) => m.id === id);
+      if (!found) return;
+
+      const confirmed = await showConfirm(
+        `¿Eliminar el mapa "${found.name}"? Esta acción no se puede deshacer.`,
+        { danger: true, confirmText: 'Eliminar Mapa', title: 'Confirmar Eliminación' }
+      );
+
+      if (confirmed) {
+        try {
+          await deleteMap(cid, id);
+          if (selectedMap?.id === id) {
+            selectedMap = null;
+          }
+          await reloadMaps();
+        } catch (err: any) {
+          await showAlert(err.message || 'Error al eliminar mapa', { kind: 'error' });
+        }
+      }
+    }
+  });
+
+  // Sincronización de inputs de grilla
+  gridSizeSlider?.addEventListener('input', () => {
+    if (gridSizeNum) gridSizeNum.value = gridSizeSlider.value;
+    applyGridPreview();
+  });
+
+  gridSizeNum?.addEventListener('input', () => {
+    if (gridSizeSlider) gridSizeSlider.value = gridSizeNum.value;
+    applyGridPreview();
+  });
+
+  gridOffsetXInput?.addEventListener('input', () => applyGridPreview());
+  gridOffsetYInput?.addEventListener('input', () => applyGridPreview());
+  gridVisibleInput?.addEventListener('change', () => applyGridPreview());
+
+  gridColorInput?.addEventListener('input', () => {
+    if (gridColorText) gridColorText.value = gridColorInput.value;
+    applyGridPreview();
+  });
+
+  gridColorText?.addEventListener('input', () => {
+    let val = gridColorText.value.trim();
+    if (!val.startsWith('#') && /^[0-9A-Fa-f]{3,6}$/.test(val)) {
+      val = '#' + val;
+    }
+    if (/^#[0-9A-Fa-f]{6}$/.test(val)) {
+      if (gridColorInput) gridColorInput.value = val;
+      applyGridPreview();
+    }
+  });
+
+  gridOpacitySlider?.addEventListener('input', () => {
+    applyGridPreview();
+  });
+
+  // Encuadrar en visor
+  gridFitBtn?.addEventListener('click', () => {
+    const controller = getStageController();
+    if (controller) controller.fit();
+  });
+
+  // Guardar configuración de grilla (T-21: una sola escritura)
+  gridForm?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const cid = campaignStore.getActiveCampaignId();
+    if (!cid || !selectedMap) return;
+
+    if (!getCanPrepare()) {
+      await showAlert('No puedes editar mapas con la partida en el estado actual.', {
+        kind: 'warning',
+      });
+      return;
+    }
+
+    const size = parseInt(gridSizeSlider?.value || '70', 10);
+    const offsetX = parseInt(gridOffsetXInput?.value || '0', 10) || 0;
+    const offsetY = parseInt(gridOffsetYInput?.value || '0', 10) || 0;
+    const visible = Boolean(gridVisibleInput?.checked);
+    const color = gridColorInput?.value || '#ffffff';
+    const opacityNum = parseInt(gridOpacitySlider?.value || '65', 10);
+    const opacity = Math.round(opacityNum) / 100;
+
+    const gridPatch: GridConfig = { size, offsetX, offsetY, visible, color, opacity };
+
+    try {
+      await updateMapConfig(cid, selectedMap.id, { grid: gridPatch });
+      selectedMap.grid = gridPatch;
+      await showAlert('Configuración de cuadrícula guardada con éxito.', { kind: 'success' });
+      await reloadMaps();
+    } catch (err: any) {
+      await showAlert(err.message || 'Error al guardar la grilla', { kind: 'error' });
+    }
+  });
+
+  // Inicialización y eventos globales
+  function init() {
+    reloadMaps();
+    updateActionButtonsAvailability();
+  }
+
+  // Colapsar y expandir panel gestor
+  const collapseBtn = document.getElementById('dm-map-manager-collapse-btn');
+  const collapseIcon = document.getElementById('dm-map-manager-collapse-icon');
+  const managerBody = document.getElementById('dm-map-manager-body');
+
+  collapseBtn?.addEventListener('click', () => {
+    const isCollapsed = managerBody?.classList.contains('hidden');
+    if (isCollapsed) {
+      managerBody?.classList.remove('hidden');
+      collapseBtn.setAttribute('aria-expanded', 'true');
+      if (collapseIcon) collapseIcon.textContent = 'expand_less';
+    } else {
+      managerBody?.classList.add('hidden');
+      collapseBtn.setAttribute('aria-expanded', 'false');
+      if (collapseIcon) collapseIcon.textContent = 'expand_more';
+    }
+  });
+
+  window.addEventListener('open-map-manager', () => {
+    managerBody?.classList.remove('hidden');
+    collapseBtn?.setAttribute('aria-expanded', 'true');
+    if (collapseIcon) collapseIcon.textContent = 'expand_less';
+  });
+
+  window.addEventListener('active-map-changed', ((e: CustomEvent<{ cid?: string; mid?: string }>) => {
+    const targetMid = e.detail?.mid;
+    if (targetMid && currentCampaignMaps.length > 0) {
+      const activeMap = currentCampaignMaps.find((m) => m.id === targetMid);
+      if (activeMap) {
+        selectedMap = activeMap;
+        setSelectedMap(activeMap);
+        renderMapsList();
+      }
+    }
+  }) as EventListener);
+
+  window.addEventListener('campaigns-updated', () => init());
+  window.addEventListener('active-campaign-changed', () => init());
+  window.addEventListener('session-status-changed', () => updateActionButtonsAvailability());
+  window.addEventListener('maps-updated', () => reloadMaps());
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+</script>

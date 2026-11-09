@@ -181,7 +181,7 @@ import SessionStatusControls from './SessionStatusControls.astro';
           <!-- Top Row: Avatar & Identity -->
           <div class="flex items-center gap-3 mb-2.5">
             <div class="relative w-12 h-12 rounded-xl overflow-hidden shrink-0 border border-amber-500/30 shadow-md bg-[#10141d]">
-              <img src="${char.avatarUrl || 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=400&q=80'}" alt="${char.name}" class="w-full h-full object-cover" />
+              <img src="${char.avatarUrl || '/characters/ch-1.avif'}" alt="${char.name}" class="w-full h-full object-cover" onerror="this.onerror=null;this.src='/characters/ch-1.avif';" />
             </div>
             <div class="min-w-0">
               <h4 class="font-headline font-bold text-sm text-[#f1f5f9] truncate">${char.name}</h4>
@@ -326,6 +326,16 @@ import SessionStatusControls from './SessionStatusControls.astro';
 
   // Launch milestone button
   document.getElementById('dm-launch-milestone-btn')?.addEventListener('click', async () => {
+    if (!activeDmCampaignId) return;
+    const camp = campaignStore.getCampaign(activeDmCampaignId);
+    if (!camp || camp.status !== 'active') {
+      showAlert('La campaña debe estar activa para poder celebrar un hito con la mesa.', {
+        kind: 'warning',
+        title: 'Campaña no activa'
+      });
+      return;
+    }
+
     const values = await showForm([
       { name: 'title', label: 'Título del hito', value: '¡Hazaña Heroica de la Mesa!', required: true },
       { name: 'banner', label: 'Texto del banderín', value: '¡VICTORIA ÉPICA!', hint: 'Se muestra en mayúsculas sobre el título.' },
@@ -336,21 +346,21 @@ import SessionStatusControls from './SessionStatusControls.astro';
     const banner = values.banner.trim() || '¡FELICIDADES!';
     const desc = values.desc.trim() || '¡Logro conseguido!';
 
-    if (activeDmCampaignId) {
-      campaignStore.sendDmEvent(activeDmCampaignId, {
-        campaignId: activeDmCampaignId,
-        type: 'milestone',
-        dmName: 'Dungeon Master',
-        payload: {
-          milestone: { bannerText: banner, title, description: desc }
-        }
-      });
-    }
-
-    congratulationBanner(title, desc, {
-      bannerText: banner,
-      tag: '#Hito'
+    campaignStore.sendDmEvent(activeDmCampaignId, {
+      campaignId: activeDmCampaignId,
+      type: 'milestone',
+      dmName: camp.dmName || 'Dungeon Master',
+      payload: {
+        milestone: { bannerText: banner, title, description: desc }
+      }
     });
+
+    journalStore.log(
+      `⭐ Hito Épico: ${title}`,
+      desc,
+      ['#Hito'],
+      { bannerText: banner }
+    );
   });
 
   // Group rest button

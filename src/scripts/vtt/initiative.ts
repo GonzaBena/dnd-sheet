@@ -3,6 +3,7 @@
 // Todas las funciones son inmutables (devuelven objetos nuevos sin mutar el parámetro recibido).
 
 import type { Combat, Combatant } from '../models/combat.ts';
+import type { CharacterData } from '../models/character.ts';
 
 /**
  * Ordena combatientes según F1-2:
@@ -239,3 +240,118 @@ export function visibleHp(
   }
   return null;
 }
+
+/**
+ * Sincroniza los combatientes de jugadores con los datos vivos de las fichas de personajes
+ * (Nombre, PG actuales, PG máximos y CA), preservando la iniciativa, condiciones y el turno activo.
+ */
+export function syncCombatantsWithCharacters(
+  combat: Combat,
+  characters: CharacterData[]
+): { combat: Combat; changed: boolean } {
+  if (!combat.combatants || combat.combatants.length === 0) {
+    return { combat, changed: false };
+  }
+
+  const charMap = new Map<string, CharacterData>();
+  for (const char of characters) {
+    if (char && char.id) {
+      charMap.set(char.id, char);
+    }
+  }
+
+  let changed = false;
+  let nameChanged = false;
+  const currentActiveId = combat.combatants[combat.turnIndex]?.id;
+
+  const updatedCombatants = combat.combatants.map((c) => {
+    if (!c.isPlayer || !c.characterId) return c;
+    const char = charMap.get(c.characterId);
+    if (!char) return c;
+
+    const newName = char.name?.trim() ? char.name.trim() : c.name;
+    const newHp = typeof char.hp?.current === 'number' ? char.hp.current : c.hp;
+    const newMaxHp = typeof char.hp?.max === 'number' && char.hp.max > 0 ? char.hp.max : c.maxHp;
+    const newAc = typeof char.armorClass === 'number' ? char.armorClass : c.ac;
+
+    if (c.name !== newName || c.hp !== newHp || c.maxHp !== newMaxHp || c.ac !== newAc) {
+      changed = true;
+      if (c.name !== newName) nameChanged = true;
+      return {
+        ...c,
+        name: newName,
+        hp: newHp,
+        maxHp: newMaxHp,
+        ac: newAc,
+      };
+    }
+
+    return c;
+  });
+
+  if (!changed) {
+    return { combat, changed: false };
+  }
+
+  let nextCombatants = updatedCombatants;
+  let nextTurnIndex = combat.turnIndex;
+
+  if (nameChanged) {
+    nextCombatants = sortCombatants(updatedCombatants);
+    if (currentActiveId) {
+      const foundIdx = nextCombatants.findIndex((c) => c.id === currentActiveId);
+      nextTurnIndex = foundIdx !== -1 ? foundIdx : 0;
+    }
+  }
+
+  return {
+    combat: {
+      ...combat,
+      combatants: nextCombatants,
+      turnIndex: nextTurnIndex,
+      updatedAt: Date.now(),
+    },
+    changed: true,
+  };
+}
+
+/**
+ * Determina si todos los jugadores esperados ya están presentes en la lista de iniciativa (combat.combatants).
+ * - Si `campaignCharacters` contiene personajes, verifica que cada uno esté presente como combatiente
+ *   (por `characterId`, por id con prefijo `pc-<id>`, o por coincidencia de nombre).
+ * - Si `campaignCharacters` está vacío, se considera completo si ya hay al menos un combatiente marcado como jugador (`isPlayer === true`).
+ * Retorna true cuando todos los jugadores ya forman parte del orden de iniciativa.
+ */
+export function areAllPlayersInInitiative(
+  combat: Combat | null | undefined,
+  campaignCharacters: Array<{ id: string; name?: string }> = []
+): boolean {
+  if (!combat || !combat.active || !Array.isArray(combat.combatants)) {
+    return false;
+  }
+
+  const playerCombatants = combat.combatants.filter((c) => Boolean(c && c.isPlayer));
+
+  if (campaignCharacters.length > 0) {
+    const presentCharIds = new Set<string>();
+    const presentNames = new Set<string>();
+
+    for (const c of playerCombatants) {
+      if (c.characterId) presentCharIds.add(c.characterId);
+      if (c.name && typeof c.name === 'string') {
+        presentNames.add(c.name.trim().toLowerCase());
+      }
+    }
+
+    return campaignCharacters.every((char) => {
+      if (presentCharIds.has(char.id)) return true;
+      if (playerCombatants.some((c) => c.id === `pc-${char.id}` || c.id.startsWith(`pc-${char.id}-`))) return true;
+      if (char.name && presentNames.has(char.name.trim().toLowerCase())) return true;
+      return false;
+    });
+  }
+
+  return playerCombatants.length > 0;
+}
+
+

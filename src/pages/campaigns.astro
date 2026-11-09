@@ -19,7 +19,6 @@ import SpellcastingPanel from '../components/combat/SpellcastingPanel.astro';
 import QuickJournalFab from '../components/journal/QuickJournalFab.astro';
 import JournalModal from '../components/journal/JournalModal.astro';
 
-import DiceRollerModal from '../components/modals/DiceRollerModal.astro';
 import EditCharacterModal from '../components/modals/EditCharacterModal.astro';
 import EditCurrencyModal from '../components/modals/EditCurrencyModal.astro';
 import EditSkillsModal from '../components/modals/EditSkillsModal.astro';
@@ -33,7 +32,6 @@ import EditAttunedModal from '../components/modals/EditAttunedModal.astro';
 import EditFeaturesModal from '../components/modals/EditFeaturesModal.astro';
 import ConfirmDeleteModal from '../components/modals/ConfirmDeleteModal.astro';
 import RestModal from '../components/modals/RestModal.astro';
-import MilestoneCelebrationModal from '../components/modals/MilestoneCelebrationModal.astro';
 import NewMilestoneModal from '../components/modals/NewMilestoneModal.astro';
 import CampaignRosterModal from '../components/campaigns/CampaignRosterModal.astro';
 import CloneCharacterModal from '../components/campaigns/CloneCharacterModal.astro';
@@ -57,9 +55,20 @@ import CompendiumModal from '../components/modals/CompendiumModal.astro';
       <div class="absolute top-96 right-10 w-96 h-96 bg-rose-600/10 rounded-full blur-[120px] pointer-events-none"></div>
       <div class="absolute top-1/2 left-10 w-72 h-72 bg-amber-600/5 rounded-full blur-[90px] pointer-events-none"></div>
 
-      <!-- Top Session Context Banner & Quick d20 -->
-      <SessionBanner />
+      <!-- Top Session Context Banner & Quick d20 (Shown for player) -->
+      <div id="session-banner-container" class="hidden">
+        <SessionBanner />
+      </div>
       <StatusBanner />
+
+      <!-- Workspace Loading State (Prevents flash/flicker of wrong workspace) -->
+      <div id="campaigns-workspace-loading" class="py-24 text-center space-y-4">
+        <div class="w-10 h-10 mx-auto border-2 border-amber-500 border-t-transparent rounded-full animate-spin"></div>
+        <div class="space-y-1">
+          <p class="text-sm font-headline font-bold text-[#f1f5f9]">Conectando con el espacio de juego...</p>
+          <p class="text-xs text-[#94a3b8] font-label">Sincronizando campaña y personajes</p>
+        </div>
+      </div>
 
       <!-- 1. GRIMORIO DEL CONTROL WORKSPACE (Active when user is DM) -->
       <div id="dm-control-workspace" class="hidden space-y-6">
@@ -67,7 +76,7 @@ import CompendiumModal from '../components/modals/CompendiumModal.astro';
       </div>
 
       <!-- 2. PLAYER CHARACTER SHEET WORKSPACE (Active when user is player) -->
-      <div id="player-sheet-workspace" class="space-y-6">
+      <div id="player-sheet-workspace" class="hidden space-y-6">
         <!-- MAIN HERO & CHARACTER HEADER BANNER -->
         <section class="relative mb-6 rounded-xl bg-[#121721] border border-[#222f42] shadow-[0_8px_30px_rgba(0,0,0,0.5)] p-6 lg:p-8 overflow-hidden">
           <!-- Decorative background runes/rings -->
@@ -131,7 +140,6 @@ import CompendiumModal from '../components/modals/CompendiumModal.astro';
   <JournalModal />
 
   <!-- Interactive Modals -->
-  <DiceRollerModal />
   <EditCharacterModal />
   <EditCurrencyModal />
   <EditSkillsModal />
@@ -146,7 +154,6 @@ import CompendiumModal from '../components/modals/CompendiumModal.astro';
   <ConfirmDeleteModal />
   <RestModal />
   <NewMilestoneModal />
-  <MilestoneCelebrationModal />
   <CampaignRosterModal />
   <CloneCharacterModal />
   <DmPanelModal />
@@ -164,6 +171,11 @@ import CompendiumModal from '../components/modals/CompendiumModal.astro';
 
   // En modo nube espera la sesión y los primeros datos de Firestore; en modo local resuelve al instante.
   if (typeof window !== 'undefined') cloudSession.ready().then(() => {
+    // Si no hay sesión en modo nube, AuthGate presentará el modal de ingreso sin forzar redirección
+    if (cloudSession.isCloud() && cloudSession.state === 'signed-out') {
+      return;
+    }
+
     const params = new URLSearchParams(window.location.search);
 
     // Check if opened via campaign or character switcher
@@ -217,7 +229,12 @@ import CompendiumModal from '../components/modals/CompendiumModal.astro';
 
       const dmWorkspace = document.getElementById('dm-control-workspace');
       const playerWorkspace = document.getElementById('player-sheet-workspace');
+      const sessionBannerContainer = document.getElementById('session-banner-container');
       const sessionBanner = document.getElementById('session-banner-root');
+      const workspaceLoading = document.getElementById('campaigns-workspace-loading');
+
+      // Dismiss loading state once mode is determined
+      workspaceLoading?.classList.add('hidden');
 
       // If user is DM of active campaign and mode is not explicitly player
       const myCharInCamp = activeCampId ? campaignStore.getMyCharacterForCampaign(activeCampId, currentUser.id) : null;
@@ -226,11 +243,13 @@ import CompendiumModal from '../components/modals/CompendiumModal.astro';
       if (shouldShowDm) {
         dmWorkspace?.classList.remove('hidden');
         playerWorkspace?.classList.add('hidden');
+        sessionBannerContainer?.classList.add('hidden');
         sessionBanner?.classList.add('hidden');
         window.dispatchEvent(new CustomEvent('dm-grimoire-refresh'));
       } else {
         dmWorkspace?.classList.add('hidden');
         playerWorkspace?.classList.remove('hidden');
+        sessionBannerContainer?.classList.remove('hidden');
         sessionBanner?.classList.remove('hidden');
       }
     }
@@ -240,19 +259,6 @@ import CompendiumModal from '../components/modals/CompendiumModal.astro';
     window.addEventListener('current-user-changed', updateWorkspaceMode);
     window.addEventListener('active-campaign-changed', updateWorkspaceMode);
     window.addEventListener('campaigns-updated', updateWorkspaceMode);
-
-    // Listen for Real-Time DM events across the table
-    window.addEventListener('dm-event-received', ((e: CustomEvent<any>) => {
-      const event = e.detail;
-      if (!event) return;
-      if (event.type === 'milestone' && event.payload?.milestone) {
-        const m = event.payload.milestone;
-        congratulationBanner(m.title, m.description, {
-          bannerText: m.bannerText,
-          tag: '#Hito'
-        });
-      }
-    }) as EventListener);
 
     // Dynamic Section Organization (Reorder & Collapse)
     const initSectionsOrganizer = () => {

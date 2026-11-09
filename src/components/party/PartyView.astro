@@ -3,6 +3,9 @@
 // Vista compartida de la partida (VTT) para todos los miembros de la mesa: grupo, bitácora y slots reservados.
 import StatusBanner from './StatusBanner.astro';
 import InitiativeList from './InitiativeList.astro';
+import MapStage from '../map/MapStage.astro';
+import CombatTracker from '../dm/CombatTracker.astro';
+import MapManager from '../dm/MapManager.astro';
 ---
 
 <div id="party-view-root" class="w-full max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
@@ -39,10 +42,11 @@ import InitiativeList from './InitiativeList.astro';
 
   <!-- CONTENIDO PRINCIPAL DE LA PARTIDA -->
   <div id="party-content" class="hidden space-y-6">
-    <!-- HERO HEADER DE LA CAMPAÑA -->
+    <!-- HERO HEADER DE LA CAMPAÑA: [titulo, titulo, dados] -->
     <header class="relative rounded-2xl bg-gradient-to-r from-[#121721] via-[#161e2c] to-[#121721] border border-[#222f42] p-5 sm:p-7 shadow-xl overflow-hidden">
-      <div class="flex flex-wrap items-center justify-between gap-4 relative z-10">
-        <div class="space-y-1 min-w-0">
+      <div class="grid grid-cols-1 xl:grid-cols-12 gap-5 items-center relative z-10">
+        <!-- LADO IZQUIERDO: [titulo, titulo] -->
+        <div class="xl:col-span-7 space-y-2 min-w-0">
           <div class="flex items-center gap-2 flex-wrap">
             <span class="px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[10px] font-bold uppercase tracking-wider flex items-center gap-1">
               <span class="material-symbols-outlined text-[12px]">table_restaurant</span>
@@ -60,25 +64,160 @@ import InitiativeList from './InitiativeList.astro';
             <span>•</span>
             <span id="party-header-location">Lugar: -</span>
           </p>
+          <div class="flex items-center gap-2 pt-1 flex-wrap">
+            <a
+              id="party-header-sheet-link"
+              href="/campaigns"
+              class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#18202e] border border-amber-500/30 hover:border-amber-500 text-amber-300 text-xs font-bold transition-all shadow-xs"
+              title="Ir a mi ficha de personaje"
+            >
+              <span class="material-symbols-outlined text-[16px]">badge</span>
+              <span>Mi Ficha</span>
+            </a>
+            <a
+              href="/campaigns"
+              class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#10141d] border border-[#222f42] hover:text-[#f1f5f9] text-[#94a3b8] text-xs font-bold transition-colors"
+            >
+              <span class="material-symbols-outlined text-[16px]">view_list</span>
+              <span>Campañas</span>
+            </a>
+          </div>
         </div>
 
-        <div class="flex items-center gap-2 flex-wrap">
-          <a
-            id="party-header-sheet-link"
-            href="/campaigns"
-            class="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#18202e] border border-amber-500/30 hover:border-amber-500 text-amber-300 text-xs font-bold transition-all shadow-xs"
-            title="Ir a mi ficha de personaje"
-          >
-            <span class="material-symbols-outlined text-[16px]">badge</span>
-            <span>Mi Ficha</span>
-          </a>
-          <a
-            href="/campaigns"
-            class="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#10141d] border border-[#222f42] hover:text-[#f1f5f9] text-[#94a3b8] text-xs font-bold transition-colors"
-          >
-            <span class="material-symbols-outlined text-[16px]">view_list</span>
-            <span>Campañas</span>
-          </a>
+        <!-- LADO DERECHO: [dados] (Visible para el DM) -->
+        <div id="party-dm-dice-container" class="hidden xl:col-span-5 rounded-xl bg-[#10141d]/90 border border-[#222f42] p-3.5 space-y-2.5 font-label text-xs backdrop-blur-sm shadow-md">
+          <!-- Quick Dice Bar -->
+          <div class="space-y-1.5">
+            <div class="flex items-center justify-between">
+              <span class="text-[11px] font-bold uppercase text-amber-400 tracking-wider flex items-center gap-1">
+                <span class="material-symbols-outlined text-[15px]">casino</span>
+                <span>Dados DM</span>
+              </span>
+              <label class="flex items-center gap-1.5 cursor-pointer text-[#94a3b8] hover:text-[#f1f5f9] select-none text-[10px]">
+                <input type="checkbox" id="party-dm-secret-dice-check" class="rounded bg-[#18202e] border-[#222f42] text-amber-500 focus:ring-amber-500/40" />
+                <span class="flex items-center gap-1">
+                  <span>🔒</span>
+                  <span>Tirada Oculta</span>
+                </span>
+              </label>
+            </div>
+            <div class="flex items-center gap-1 flex-wrap">
+              <button type="button" class="party-dm-dice-btn px-2.5 py-1 rounded-lg bg-[#18202e] border border-amber-500/40 text-amber-300 font-bold hover:bg-amber-500/20 active:scale-95 transition-all cursor-pointer shadow-xs text-xs" data-dice="1d20">d20</button>
+              <button type="button" class="party-dm-dice-btn px-2 py-1 rounded-lg bg-[#18202e] border border-[#222f42] hover:border-amber-400/60 text-[#cbd5e1] font-bold active:scale-95 transition-all cursor-pointer text-xs" data-dice="1d100">d100</button>
+              <button type="button" class="party-dm-dice-btn px-2 py-1 rounded-lg bg-[#18202e] border border-[#222f42] hover:border-amber-400/60 text-[#cbd5e1] font-bold active:scale-95 transition-all cursor-pointer text-xs" data-dice="2d6">2d6</button>
+              <button type="button" class="party-dm-dice-btn px-2 py-1 rounded-lg bg-[#18202e] border border-[#222f42] hover:border-amber-400/60 text-[#cbd5e1] font-bold active:scale-95 transition-all cursor-pointer text-xs" data-dice="1d12">1d12</button>
+              <button type="button" class="party-dm-dice-btn px-2 py-1 rounded-lg bg-[#18202e] border border-[#222f42] hover:border-amber-400/60 text-[#cbd5e1] font-bold active:scale-95 transition-all cursor-pointer text-xs" data-dice="1d10">1d10</button>
+              <button type="button" class="party-dm-dice-btn px-2 py-1 rounded-lg bg-[#18202e] border border-[#222f42] hover:border-amber-400/60 text-[#cbd5e1] font-bold active:scale-95 transition-all cursor-pointer text-xs" data-dice="1d8">1d8</button>
+              <button type="button" class="party-dm-dice-btn px-2 py-1 rounded-lg bg-[#18202e] border border-[#222f42] hover:border-amber-400/60 text-[#cbd5e1] font-bold active:scale-95 transition-all cursor-pointer text-xs" data-dice="1d6">1d6</button>
+              <button type="button" class="party-dm-dice-btn px-2 py-1 rounded-lg bg-[#18202e] border border-[#222f42] hover:border-amber-400/60 text-[#cbd5e1] font-bold active:scale-95 transition-all cursor-pointer text-xs" data-dice="1d4">1d4</button>
+            </div>
+          </div>
+
+          <!-- Epic Milestones & Resting Actions -->
+          <div class="flex items-center gap-1.5 pt-1.5 border-t border-[#222f42]/60 flex-wrap">
+            <button
+              type="button"
+              id="party-dm-short-rest-btn"
+              class="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#18202e] border border-[#222f42] hover:border-amber-500/50 text-[#cbd5e1] hover:text-amber-300 font-bold active:scale-95 transition-colors cursor-pointer text-[11px]"
+              title="Otorgar descanso corto a todos los aventureros (+8 PG)"
+            >
+              <span class="material-symbols-outlined text-[14px] text-amber-400">bedtime</span>
+              <span>Descanso Corto</span>
+            </button>
+
+            <button
+              type="button"
+              id="party-dm-long-rest-btn"
+              class="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#18202e] border border-[#222f42] hover:border-amber-500/50 text-[#cbd5e1] hover:text-amber-300 font-bold active:scale-95 transition-colors cursor-pointer text-[11px]"
+              title="Otorgar descanso largo a todo el grupo (restaura PG al máximo)"
+            >
+              <span class="material-symbols-outlined text-[14px] text-indigo-400">hotel</span>
+              <span>Descanso Largo</span>
+            </button>
+
+            <button
+              type="button"
+              id="party-dm-milestone-btn"
+              class="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-gradient-to-r from-amber-600 via-amber-500 to-amber-600 hover:from-amber-500 hover:to-amber-400 text-[#0a0d12] font-bold shadow-[0_0_12px_rgba(245,158,11,0.3)] active:scale-95 transition-all cursor-pointer text-[11px] ml-auto"
+              title="Lanzar un Hito o Logro Épico para la mesa"
+            >
+              <span class="material-symbols-outlined text-[14px]">celebration</span>
+              <span>¡Hito!</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- LADO DERECHO: [dados] (Visible para el Jugador / Usuario) -->
+        <div id="party-player-dice-container" class="hidden xl:col-span-5 rounded-xl bg-[#10141d]/90 border border-[#222f42] p-3.5 space-y-2.5 font-label text-xs backdrop-blur-sm shadow-md">
+          <!-- Quick Dice Bar -->
+          <div class="space-y-1.5">
+            <div class="flex items-center justify-between">
+              <span class="text-[11px] font-bold uppercase text-amber-400 tracking-wider flex items-center gap-1">
+                <span class="material-symbols-outlined text-[15px]">casino</span>
+                <span>Dados</span>
+              </span>
+              <label class="flex items-center gap-1.5 cursor-pointer text-[#94a3b8] hover:text-[#f1f5f9] select-none text-[10px]">
+                <input type="checkbox" id="party-player-secret-dice-check" class="rounded bg-[#18202e] border-[#222f42] text-amber-500 focus:ring-amber-500/40" />
+                <span class="flex items-center gap-1">
+                  <span>🔒</span>
+                  <span>Tirada Oculta</span>
+                </span>
+              </label>
+            </div>
+            <div class="flex items-center gap-1 flex-wrap">
+              <button type="button" class="party-player-dice-btn px-2.5 py-1 rounded-lg bg-[#18202e] border border-amber-500/40 text-amber-300 font-bold hover:bg-amber-500/20 active:scale-95 transition-all cursor-pointer shadow-xs text-xs" data-dice="1d20">d20</button>
+              <button type="button" class="party-player-dice-btn px-2 py-1 rounded-lg bg-[#18202e] border border-[#222f42] hover:border-amber-400/60 text-[#cbd5e1] font-bold active:scale-95 transition-all cursor-pointer text-xs" data-dice="1d100">d100</button>
+              <button type="button" class="party-player-dice-btn px-2 py-1 rounded-lg bg-[#18202e] border border-[#222f42] hover:border-amber-400/60 text-[#cbd5e1] font-bold active:scale-95 transition-all cursor-pointer text-xs" data-dice="2d6">2d6</button>
+              <button type="button" class="party-player-dice-btn px-2 py-1 rounded-lg bg-[#18202e] border border-[#222f42] hover:border-amber-400/60 text-[#cbd5e1] font-bold active:scale-95 transition-all cursor-pointer text-xs" data-dice="1d12">1d12</button>
+              <button type="button" class="party-player-dice-btn px-2 py-1 rounded-lg bg-[#18202e] border border-[#222f42] hover:border-amber-400/60 text-[#cbd5e1] font-bold active:scale-95 transition-all cursor-pointer text-xs" data-dice="1d10">1d10</button>
+              <button type="button" class="party-player-dice-btn px-2 py-1 rounded-lg bg-[#18202e] border border-[#222f42] hover:border-amber-400/60 text-[#cbd5e1] font-bold active:scale-95 transition-all cursor-pointer text-xs" data-dice="1d8">1d8</button>
+              <button type="button" class="party-player-dice-btn px-2 py-1 rounded-lg bg-[#18202e] border border-[#222f42] hover:border-amber-400/60 text-[#cbd5e1] font-bold active:scale-95 transition-all cursor-pointer text-xs" data-dice="1d6">1d6</button>
+              <button type="button" class="party-player-dice-btn px-2 py-1 rounded-lg bg-[#18202e] border border-[#222f42] hover:border-amber-400/60 text-[#cbd5e1] font-bold active:scale-95 transition-all cursor-pointer text-xs" data-dice="1d4">1d4</button>
+            </div>
+          </div>
+
+          <!-- Resting, Inspiration & Initiative Actions -->
+          <div class="flex items-center gap-1.5 pt-1.5 border-t border-[#222f42]/60 flex-wrap">
+            <button
+              type="button"
+              id="party-player-short-rest-btn"
+              class="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#18202e] border border-[#222f42] hover:border-amber-500/50 text-[#cbd5e1] hover:text-amber-300 font-bold active:scale-95 transition-colors cursor-pointer text-[11px]"
+              title="Descanso corto para tu personaje (+8 PG)"
+            >
+              <span class="material-symbols-outlined text-[14px] text-amber-400">bedtime</span>
+              <span>Descanso Corto</span>
+            </button>
+
+            <button
+              type="button"
+              id="party-player-long-rest-btn"
+              class="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#18202e] border border-[#222f42] hover:border-amber-500/50 text-[#cbd5e1] hover:text-amber-300 font-bold active:scale-95 transition-colors cursor-pointer text-[11px]"
+              title="Descanso largo (restaura PG al máximo)"
+            >
+              <span class="material-symbols-outlined text-[14px] text-indigo-400">hotel</span>
+              <span>Descanso Largo</span>
+            </button>
+
+            <button
+              type="button"
+              id="party-player-inspiration-btn"
+              class="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#18202e] border border-[#222f42] hover:border-amber-500/50 text-[#cbd5e1] hover:text-amber-300 font-bold active:scale-95 transition-colors cursor-pointer text-[11px]"
+              title="Alternar estado de Inspiración de tu personaje"
+            >
+              <span class="material-symbols-outlined text-[14px] text-amber-400">auto_awesome</span>
+              <span id="party-player-inspiration-text">Inspiración</span>
+            </button>
+
+            <button
+              type="button"
+              id="party-player-init-roll-btn"
+              class="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-gradient-to-r from-amber-600 via-amber-500 to-amber-600 hover:from-amber-500 hover:to-amber-400 text-[#0a0d12] font-bold shadow-[0_0_12px_rgba(245,158,11,0.3)] active:scale-95 transition-all cursor-pointer text-[11px] ml-auto"
+              title="Tirar iniciativa con tu personaje"
+            >
+              <span class="material-symbols-outlined text-[14px]">bolt</span>
+              <span>Iniciativa</span>
+            </button>
+          </div>
         </div>
       </div>
     </header>
@@ -86,34 +225,48 @@ import InitiativeList from './InitiativeList.astro';
     <!-- STATUS BANNER FLOTANTE (PAUSED / ENDED) -->
     <StatusBanner />
 
-    <!-- ESPACIOS RESERVADOS: MAPA E INICIATIVA (FASES 1 Y 2) -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      <!-- MAPA TÁCTICO VTT (Fase 2) -->
-      <div class="lg:col-span-2">
-        <div
-          id="party-map-slot"
-          class="relative w-full min-h-[380px] rounded-2xl bg-[#0c1017] border border-[#222f42] p-8 flex flex-col items-center justify-center text-center space-y-3 overflow-hidden shadow-inner group"
-        >
-          <!-- Grid decorativo -->
-          <div class="absolute inset-0 bg-[linear-gradient(to_right,#1f293718_1px,transparent_1px),linear-gradient(to_bottom,#1f293718_1px,transparent_1px)] bg-[size:32px_32px] opacity-40 pointer-events-none"></div>
+    <!-- 1. VISTA DM TÁCTICA COCKPIT (Cuando el usuario conectado es DM) -->
+    <div id="party-dm-cockpit" class="hidden space-y-6">
+      <!-- [mapa,mapa,combate] -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        <!-- Columna Izquierda (7 cols): Mapa modo DM con selector de mapa y cuadrícula -->
+        <div class="lg:col-span-7 space-y-2">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <span class="material-symbols-outlined text-[20px] text-amber-400">map</span>
+              <h2 class="text-sm font-headline font-bold text-[#f1f5f9]">Mapa Táctico de la Mesa</h2>
+            </div>
+            <span class="text-[11px] text-[#94a3b8] font-label">Visor VTT interactivo</span>
+          </div>
+          <MapStage mode="dm" id="party-dm-map-stage" />
+        </div>
 
-          <div class="w-14 h-14 rounded-2xl bg-[#161e2c] border border-amber-500/30 text-amber-400 flex items-center justify-center relative z-10 shadow-lg">
-            <span class="material-symbols-outlined text-[28px]">explore</span>
-          </div>
-          <div class="space-y-1 relative z-10 max-w-sm">
-            <h3 class="font-headline font-bold text-sm text-[#f1f5f9]">Mapa táctico de la partida</h3>
-            <p class="text-xs text-[#94a3b8] leading-relaxed">
-              El DM podrá proyectar mapas de batalla con cuadrícula y niebla de guerra. Próximamente en Fase 2.
-            </p>
-          </div>
-          <span class="relative z-10 text-[10px] uppercase font-bold tracking-wider px-2.5 py-1 rounded-full bg-[#18202e] border border-[#222f42] text-[#94a3b8]">
-            Próximamente • Fase 2
-          </span>
+        <!-- Columna Derecha (5 cols): CombatTracker -->
+        <div class="lg:col-span-5">
+          <CombatTracker />
         </div>
       </div>
 
-      <!-- TRACKER DE INICIATIVA Y COMBATE (Fase 1) -->
-      <div class="lg:col-span-1">
+      <!-- [editar mapas] (FULL WIDTH) -->
+      <MapManager />
+    </div>
+
+    <!-- 2. VISTA PASIVA DE JUGADOR (Cuando el usuario conectado es jugador) -->
+    <div id="party-player-tactical-view" class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+      <!-- Columna Izquierda (7 cols): Mapa modo Jugador con selector/visor interactivo -->
+      <div class="lg:col-span-7 space-y-2">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-[20px] text-amber-400">map</span>
+            <h2 class="text-sm font-headline font-bold text-[#f1f5f9]">Mapa Táctico de la Mesa</h2>
+          </div>
+          <span class="text-[11px] text-[#94a3b8] font-label">Visor VTT interactivo</span>
+        </div>
+        <MapStage mode="player" id="party-player-map-stage" />
+      </div>
+
+      <!-- Columna Derecha (5 cols): Tracker de Iniciativa y Combate -->
+      <div class="lg:col-span-5">
         <InitiativeList />
       </div>
     </div>
@@ -159,6 +312,7 @@ import InitiativeList from './InitiativeList.astro';
   import { campaignStore } from '../../scripts/state/campaignStore.ts';
   import { journalStore } from '../../scripts/state/journalStore.ts';
   import { characterStore } from '../../scripts/state/characterStore.ts';
+  import { showAlert, showConfirm, showForm } from '../../scripts/ui/notify.ts';
 
   const root = document.getElementById('party-view-root');
   const localNotice = document.getElementById('party-local-notice');
@@ -205,7 +359,238 @@ import InitiativeList from './InitiativeList.astro';
     // Activar campaña para que cloudSync monte los listeners
     campaignStore.setActiveCampaign(currentCampaignId);
 
+    // Dados DM en PartyView
+    document.querySelectorAll('.party-dm-dice-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const formula = btn.getAttribute('data-dice') || '1d20';
+        const secretCheck = document.getElementById('party-dm-secret-dice-check') as HTMLInputElement;
+        const isSecret = secretCheck?.checked || false;
+        const sides = parseInt(formula.replace(/\D/g, '')) || 20;
+        const count = parseInt(formula) || 1;
+
+        window.dispatchEvent(new CustomEvent('open-dice-roller', {
+          detail: {
+            die: sides,
+            count: count,
+            modifier: 0,
+            label: isSecret ? `Tirada Secreta de DM (${formula})` : `Tirada de DM (${formula})`,
+            tag: isSecret ? '#Privado' : '#Tirada',
+            isDmRoll: true,
+            isSecret: isSecret,
+            autoroll: true
+          }
+        }));
+      });
+    });
+
+    // Descanso Corto DM
+    document.getElementById('party-dm-short-rest-btn')?.addEventListener('click', async () => {
+      if (!currentCampaignId) return;
+      if (await showConfirm('Cada personaje de la campaña recupera +8 PG.', { title: '¿Descanso Corto para todo el grupo?', confirmText: 'Aplicar' })) {
+        const chars = campaignStore.getCharactersForCampaign(currentCampaignId);
+        chars.forEach(c => {
+          c.hp.current = Math.min(c.hp.max, c.hp.current + 8);
+          campaignStore.saveCharacter(c);
+        });
+        journalStore.log(
+          'Descanso Corto de Grupo',
+          'El Dungeon Master decretó un descanso corto para todos los aventureros (+8 PG recuperados).',
+          ['#Descanso']
+        );
+        render();
+        showAlert('¡Descanso corto aplicado a todos los aventureros!', { kind: 'success', title: 'Descanso corto' });
+      }
+    });
+
+    // Descanso Largo DM
+    document.getElementById('party-dm-long-rest-btn')?.addEventListener('click', async () => {
+      if (!currentCampaignId) return;
+      if (await showConfirm('Todos los personajes recuperan sus PG al máximo.', { title: '¿Descanso Largo para toda la mesa?', confirmText: 'Aplicar' })) {
+        const chars = campaignStore.getCharactersForCampaign(currentCampaignId);
+        chars.forEach(c => {
+          c.hp.current = c.hp.max;
+          if (c.hp.temp) c.hp.temp = 0;
+          campaignStore.saveCharacter(c);
+        });
+        journalStore.log(
+          'Descanso Largo de Grupo',
+          'El Dungeon Master concedió un descanso largo completo. Todos los aventureros han restablecido sus Puntos de Golpe al máximo.',
+          ['#Descanso']
+        );
+        render();
+        showAlert('¡Descanso largo completado! Todos los aventureros tienen la salud restaurada.', { kind: 'success', title: 'Descanso largo' });
+      }
+    });
+
+    // Hito Épico DM
+    document.getElementById('party-dm-milestone-btn')?.addEventListener('click', async () => {
+      if (!currentCampaignId) return;
+      const camp = campaignStore.getCampaign(currentCampaignId);
+      const values = await showForm([
+        { name: 'title', label: 'Título del hito', value: '¡Hazaña Heroica de la Mesa!', required: true },
+        { name: 'banner', label: 'Texto del banderín', value: '¡VICTORIA ÉPICA!', hint: 'Se muestra en mayúsculas sobre el título.' },
+        { name: 'desc', label: 'Descripción del logro', type: 'textarea', value: 'El grupo ha triunfado ante el peligro y grabado su nombre en las crónicas.' },
+      ], { title: 'Celebrar un hito', message: 'Se le muestra a toda la mesa en vivo.', confirmText: 'Celebrar' });
+      if (!values) return;
+      const title = values.title.trim();
+      const banner = values.banner.trim() || '¡FELICIDADES!';
+      const desc = values.desc.trim() || '¡Logro conseguido!';
+
+      campaignStore.sendDmEvent(currentCampaignId, {
+        campaignId: currentCampaignId,
+        type: 'milestone',
+        dmName: camp?.dmName || 'Dungeon Master',
+        payload: {
+          milestone: { bannerText: banner, title, description: desc }
+        }
+      });
+
+      journalStore.log(
+        `⭐ Hito Épico: ${title}`,
+        desc,
+        ['#Hito'],
+        { bannerText: banner }
+      );
+
+      render();
+    });
+
+    // Dados de Jugador en PartyView
+    document.querySelectorAll('.party-player-dice-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const formula = btn.getAttribute('data-dice') || '1d20';
+        const secretCheck = document.getElementById('party-player-secret-dice-check') as HTMLInputElement;
+        const isSecret = secretCheck?.checked || false;
+        const sides = parseInt(formula.replace(/\D/g, '')) || 20;
+        const count = parseInt(formula) || 1;
+        const currentUser = userStore.getCurrentUser();
+        const myChar = currentCampaignId ? campaignStore.getMyCharacterForCampaign(currentCampaignId, currentUser.id) : characterStore.get();
+        const charName = myChar?.name || currentUser?.name || 'Aventurero';
+
+        window.dispatchEvent(new CustomEvent('open-dice-roller', {
+          detail: {
+            die: sides,
+            count: count,
+            modifier: 0,
+            label: isSecret ? `Tirada Secreta de ${charName} (${formula})` : `Tirada de ${charName} (${formula})`,
+            tag: isSecret ? '#Privado' : '#Tirada',
+            isSecret: isSecret,
+            characterId: myChar?.id,
+            characterName: charName,
+            authorName: charName,
+            campaignId: currentCampaignId,
+            autoroll: true
+          }
+        }));
+      });
+    });
+
+    // Descanso Corto Jugador
+    document.getElementById('party-player-short-rest-btn')?.addEventListener('click', async () => {
+      const currentUser = userStore.getCurrentUser();
+      const myChar = currentCampaignId ? campaignStore.getMyCharacterForCampaign(currentCampaignId, currentUser.id) : characterStore.get();
+      if (!myChar) {
+        showAlert('No tienes un personaje asignado en esta campaña para descansar.', { kind: 'warning' });
+        return;
+      }
+      if (await showConfirm(`Recuperas +8 Puntos de Golpe en ${myChar.name}.`, { title: '¿Descanso Corto?', confirmText: 'Descansar (+8 PG)' })) {
+        myChar.hp.current = Math.min(myChar.hp.max, (myChar.hp.current || 0) + 8);
+        campaignStore.saveCharacter(myChar);
+        if (characterStore.get().id === myChar.id) {
+          characterStore.updateHp(myChar.hp.current);
+        }
+        journalStore.log(
+          `Descanso Corto de ${myChar.name}`,
+          `${myChar.name} ha tomado un descanso corto (+8 PG recuperados).`,
+          ['#Descanso']
+        );
+        render();
+        showAlert(`¡Descanso corto aplicado! ${myChar.name} recuperó +8 PG (${myChar.hp.current}/${myChar.hp.max}).`, { kind: 'success', title: 'Descanso corto' });
+      }
+    });
+
+    // Descanso Largo Jugador
+    document.getElementById('party-player-long-rest-btn')?.addEventListener('click', async () => {
+      const currentUser = userStore.getCurrentUser();
+      const myChar = currentCampaignId ? campaignStore.getMyCharacterForCampaign(currentCampaignId, currentUser.id) : characterStore.get();
+      if (!myChar) {
+        showAlert('No tienes un personaje asignado en esta campaña para descansar.', { kind: 'warning' });
+        return;
+      }
+      if (await showConfirm(`Tus Puntos de Golpe se restauran al máximo (${myChar.hp.max} PG) y se limpian PG temporales.`, { title: '¿Descanso Largo?', confirmText: 'Descansar al Máximo' })) {
+        myChar.hp.current = myChar.hp.max;
+        if (myChar.hp.temp) myChar.hp.temp = 0;
+        campaignStore.saveCharacter(myChar);
+        if (characterStore.get().id === myChar.id) {
+          characterStore.updateHp(myChar.hp.current);
+        }
+        journalStore.log(
+          `Descanso Largo de ${myChar.name}`,
+          `${myChar.name} completó un descanso largo. Puntos de Golpe restaurados al máximo.`,
+          ['#Descanso']
+        );
+        render();
+        showAlert(`¡Descanso largo completado! ${myChar.name} tiene ${myChar.hp.max} PG.`, { kind: 'success', title: 'Descanso largo' });
+      }
+    });
+
+    // Alternar Inspiración Jugador
+    document.getElementById('party-player-inspiration-btn')?.addEventListener('click', () => {
+      const currentUser = userStore.getCurrentUser();
+      const myChar = currentCampaignId ? campaignStore.getMyCharacterForCampaign(currentCampaignId, currentUser.id) : characterStore.get();
+      if (!myChar) return;
+      myChar.inspiration = !myChar.inspiration;
+      campaignStore.saveCharacter(myChar);
+      if (characterStore.get().id === myChar.id) {
+        characterStore.toggleInspiration();
+      }
+      updatePlayerInspirationBadge(Boolean(myChar.inspiration));
+      showAlert(myChar.inspiration ? `¡${myChar.name} ahora está Inspirado!` : `Inspiración consumida en ${myChar.name}.`, { kind: 'info', title: 'Inspiración' });
+    });
+
+    // Tirar Iniciativa Jugador
+    document.getElementById('party-player-init-roll-btn')?.addEventListener('click', () => {
+      const currentUser = userStore.getCurrentUser();
+      const myChar = currentCampaignId ? campaignStore.getMyCharacterForCampaign(currentCampaignId, currentUser.id) : characterStore.get();
+      const dexMod = myChar?.stats?.dex?.modifier ?? 0;
+      const secretCheck = document.getElementById('party-player-secret-dice-check') as HTMLInputElement;
+      const isSecret = secretCheck?.checked || false;
+      const charName = myChar?.name || currentUser?.name || 'Aventurero';
+
+      window.dispatchEvent(new CustomEvent('open-dice-roller', {
+        detail: {
+          die: 20,
+          count: 1,
+          modifier: dexMod,
+          label: `Iniciativa de ${charName} (1d20 ${dexMod >= 0 ? '+' : ''}${dexMod})`,
+          tag: isSecret ? '#Privado' : '#Iniciativa',
+          isSecret: isSecret,
+          isInitiative: true,
+          lockDie: true,
+          lockCount: true,
+          characterId: myChar?.id,
+          characterName: charName,
+          authorName: charName,
+          campaignId: currentCampaignId,
+          autoroll: true
+        }
+      }));
+    });
+
     render();
+  }
+
+  function updatePlayerInspirationBadge(inspired: boolean) {
+    const btn = document.getElementById('party-player-inspiration-btn');
+    const txt = document.getElementById('party-player-inspiration-text');
+    if (!btn || !txt) return;
+    if (inspired) {
+      btn.className = 'flex items-center gap-1 px-2.5 py-1 rounded-lg bg-gradient-to-r from-rose-600 to-amber-600 text-white font-bold shadow-[0_0_10px_rgba(245,158,11,0.4)] border border-amber-400/40 active:scale-95 transition-all cursor-pointer text-[11px]';
+      txt.textContent = 'Inspirado';
+    } else {
+      btn.className = 'flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#18202e] border border-[#222f42] hover:border-amber-500/50 text-[#cbd5e1] hover:text-amber-300 font-bold active:scale-95 transition-colors cursor-pointer text-[11px]';
+      txt.textContent = 'Inspiración';
+    }
   }
 
   function render() {
@@ -232,14 +617,54 @@ import InitiativeList from './InitiativeList.astro';
     if (weatherEl) weatherEl.textContent = `Clima: ${camp.weather || 'Despejado'}`;
     if (locationEl) locationEl.textContent = `Lugar: ${camp.location || 'Aventura'}`;
 
-    // Link a la ficha si el usuario tiene personaje en esta campaña
-    if (sheetLink) {
-      const myChar = campaignStore.getMyCharacterForCampaign(camp.id);
+    // Conmutar entre Cockpit DM y vista pasiva de Jugador
+    const isDm = currentCampaignId ? campaignStore.isCurrentUserDm(currentCampaignId) : false;
+    const dmCockpit = document.getElementById('party-dm-cockpit');
+    const playerView = document.getElementById('party-player-tactical-view');
+
+    const dmDice = document.getElementById('party-dm-dice-container');
+    const playerDice = document.getElementById('party-player-dice-container');
+
+    if (isDm) {
+      dmCockpit?.classList.remove('hidden');
+      playerView?.classList.add('hidden');
+      dmDice?.classList.remove('hidden');
+      playerDice?.classList.add('hidden');
+    } else {
+      dmCockpit?.classList.add('hidden');
+      playerView?.classList.remove('hidden');
+      dmDice?.classList.add('hidden');
+      playerDice?.classList.remove('hidden');
+
+      const currentUser = userStore.getCurrentUser();
+      const myChar = currentCampaignId ? campaignStore.getMyCharacterForCampaign(currentCampaignId, currentUser.id) : characterStore.get();
       if (myChar) {
-        sheetLink.href = `/campaigns?campaign=${encodeURIComponent(camp.id)}&character=${encodeURIComponent(myChar.id)}`;
+        updatePlayerInspirationBadge(Boolean(myChar.inspiration));
+      }
+    }
+
+    // Link a la ficha o al grimorio DM
+    if (sheetLink) {
+      if (isDm) {
+        sheetLink.href = `/campaigns?campaign=${encodeURIComponent(camp.id)}`;
+        sheetLink.innerHTML = `
+          <span class="material-symbols-outlined text-[16px]">shield_with_heart</span>
+          <span>Grimorio DM</span>
+        `;
         sheetLink.classList.remove('hidden');
       } else {
-        sheetLink.href = `/campaigns?campaign=${encodeURIComponent(camp.id)}`;
+        const myChar = campaignStore.getMyCharacterForCampaign(camp.id);
+        if (myChar) {
+          sheetLink.href = `/campaigns?campaign=${encodeURIComponent(camp.id)}&character=${encodeURIComponent(myChar.id)}`;
+          sheetLink.innerHTML = `
+            <span class="material-symbols-outlined text-[16px]">badge</span>
+            <span>Mi Ficha</span>
+          `;
+          sheetLink.classList.remove('hidden');
+        } else {
+          sheetLink.href = `/campaigns?campaign=${encodeURIComponent(camp.id)}`;
+          sheetLink.classList.add('hidden');
+        }
       }
     }
 
@@ -271,9 +696,10 @@ import InitiativeList from './InitiativeList.astro';
       card.innerHTML = `
         <div class="flex items-center gap-3 min-w-0">
           <img
-            src="${c.avatarUrl || 'https://images.unsplash.com/photo-1534447677768-be436bb09401?auto=format&fit=crop&w=150&q=80'}"
+            src="${c.avatarUrl || '/characters/ch-1.avif'}"
             alt="${c.name}"
             class="w-10 h-10 rounded-xl object-cover border border-[#222f42] shrink-0"
+            onerror="this.onerror=null;this.src='/characters/ch-1.avif';"
           />
           <div class="min-w-0">
             <h4 class="font-headline font-bold text-xs text-[#f1f5f9] truncate">${c.name}</h4>
@@ -300,6 +726,7 @@ import InitiativeList from './InitiativeList.astro';
   function renderJournal(cid: string) {
     if (!journalFeed) return;
     const entries = journalStore.getPublicCampaignEntries();
+    const isDm = cid ? campaignStore.isCurrentUserDm(cid) : false;
 
     if (entries.length === 0) {
       journalFeed.innerHTML = `
@@ -326,9 +753,22 @@ import InitiativeList from './InitiativeList.astro';
             ${isStatusEvent ? '<span class="material-symbols-outlined text-[14px] text-amber-400">info</span>' : ''}
             <span>${e.title}</span>
           </span>
-          <span class="text-[10px] text-[#64748b] font-label shrink-0">
-            ${e.timestamp ? new Date(e.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
-          </span>
+          <div class="flex items-center gap-1.5 shrink-0">
+            <span class="text-[10px] text-[#64748b] font-label">
+              ${e.timestamp ? new Date(e.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
+            </span>
+            ${isDm ? `
+              <button
+                type="button"
+                class="party-delete-entry-btn w-5 h-5 rounded hover:bg-rose-500/20 text-[#64748b] hover:text-rose-400 flex items-center justify-center transition-colors cursor-pointer"
+                data-id="${e.id}"
+                title="Eliminar entrada de la crónica"
+                aria-label="Eliminar entrada"
+              >
+                <span class="material-symbols-outlined text-[13px]">delete</span>
+              </button>
+            ` : ''}
+          </div>
         </div>
         <p class="text-xs text-[#cbd5e1] leading-relaxed whitespace-pre-wrap">${e.content}</p>
         <div class="flex items-center justify-between gap-2 pt-1 border-t border-[#222f42]/60 text-[10px] text-[#64748b]">
@@ -338,6 +778,20 @@ import InitiativeList from './InitiativeList.astro';
           </div>
         </div>
       `;
+
+      if (isDm) {
+        card.querySelector('.party-delete-entry-btn')?.addEventListener('click', async (evt) => {
+          evt.stopPropagation();
+          if (await showConfirm(`¿Deseas eliminar la entrada "${e.title}" de la crónica?`, {
+            title: 'Eliminar entrada de bitácora',
+            confirmText: 'Eliminar'
+          })) {
+            journalStore.deleteEntry(e.id);
+            renderJournal(cid);
+          }
+        });
+      }
+
       journalFeed.appendChild(card);
     });
   }

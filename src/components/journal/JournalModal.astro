@@ -145,8 +145,10 @@
 </div>
 
 <script>
-  import { journalStore, getEntryVisibility } from '../../scripts/state/journalStore';
+  import { journalStore, getEntryVisibility, canUserDeleteEntry } from '../../scripts/state/journalStore';
   import { characterStore } from '../../scripts/state/characterStore';
+  import { campaignStore } from '../../scripts/state/campaignStore';
+  import { userStore } from '../../scripts/state/userStore';
   import { openModal, closeModal } from '../../scripts/animations/modalAnimations';
   import { attachSwipeToDelete } from '../../scripts/ui/swipeToDelete';
 
@@ -174,8 +176,14 @@
     if (!feedContainer) return;
     feedContainer.innerHTML = '';
 
+    const activeCampId = campaignStore.getActiveCampaignId();
+    const isDm = activeCampId ? campaignStore.isCurrentUserDm(activeCampId) : false;
     const currentChar = characterStore.get();
-    const entries = journalStore.getEntries(currentChar?.id);
+    const currentUser = userStore.getCurrentUser();
+    // El DM ve todas las entradas cargadas (incluyendo notas DM y mensajes to_dm)
+    const entries = isDm
+      ? journalStore.getEntries()
+      : journalStore.getEntries(currentChar?.id);
 
     if (countBadge) {
       countBadge.textContent = `${entries.length} notas`;
@@ -246,6 +254,8 @@
         `;
       }
 
+      const canDelete = canUserDeleteEntry(entry, currentUser.id, isDm);
+
       card.innerHTML = `
         <div>
           <div class="flex items-center justify-between gap-2 mb-1.5">
@@ -265,43 +275,47 @@
 
         <div class="flex items-center justify-between pt-2 border-t border-[#222f42]/60 text-[10px] text-[#64748b]">
           <span>Sesión ${entry.sessionNumber}</span>
-          <button class="delete-entry-btn text-[#94a3b8] hover:text-rose-400 transition-colors cursor-pointer flex items-center gap-1" data-id="${entry.id}">
-            <span class="material-symbols-outlined text-[13px]">delete</span>
-            <span>Eliminar</span>
-          </button>
+          ${canDelete ? `
+            <button class="delete-entry-btn text-[#94a3b8] hover:text-rose-400 transition-colors cursor-pointer flex items-center gap-1" data-id="${entry.id}">
+              <span class="material-symbols-outlined text-[13px]">delete</span>
+              <span>Eliminar</span>
+            </button>
+          ` : ''}
         </div>
       `;
 
-      const triggerJournalDelete = () => {
-        window.dispatchEvent(new CustomEvent('open-delete-modal', {
-          detail: {
-            type: 'journal',
-            id: entry.id,
-            name: entry.title,
-            category: `Sesión ${entry.sessionNumber}`,
-            icon: 'edit_note',
-            quantity: 1,
-            title: '¿Eliminar entrada de bitácora?',
-            subtitle: 'Confirmación de diario',
-            onConfirm: () => {
-              journalStore.deleteEntry(entry.id);
+      if (canDelete) {
+        const triggerJournalDelete = () => {
+          window.dispatchEvent(new CustomEvent('open-delete-modal', {
+            detail: {
+              type: 'journal',
+              id: entry.id,
+              name: entry.title,
+              category: `Sesión ${entry.sessionNumber}`,
+              icon: 'edit_note',
+              quantity: 1,
+              title: '¿Eliminar entrada de bitácora?',
+              subtitle: 'Confirmación de diario',
+              onConfirm: () => {
+                journalStore.deleteEntry(entry.id);
+              }
             }
-          }
-        }));
-      };
+          }));
+        };
 
-      // Attach mobile swipe-to-delete gesture
-      attachSwipeToDelete({
-        card,
-        container: wrapper,
-        threshold: 60,
-        onTrigger: triggerJournalDelete
-      });
+        // Attach mobile swipe-to-delete gesture
+        attachSwipeToDelete({
+          card,
+          container: wrapper,
+          threshold: 60,
+          onTrigger: triggerJournalDelete
+        });
 
-      card.querySelector('.delete-entry-btn')?.addEventListener('click', (e) => {
-        e.stopPropagation();
-        triggerJournalDelete();
-      });
+        card.querySelector('.delete-entry-btn')?.addEventListener('click', (e) => {
+          e.stopPropagation();
+          triggerJournalDelete();
+        });
+      }
 
       wrapper.appendChild(card);
       feedContainer.appendChild(wrapper);

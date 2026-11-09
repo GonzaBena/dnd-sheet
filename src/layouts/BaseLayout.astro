@@ -1,6 +1,8 @@
 ---
 import '../styles/global.css';
 import AuthGate from '../components/auth/AuthGate.astro';
+import MilestoneCelebrationModal from '../components/modals/MilestoneCelebrationModal.astro';
+import DiceRollerModal from '../components/modals/DiceRollerModal.astro';
 
 interface Props {
   title?: string;
@@ -44,5 +46,68 @@ const {
   <body class="bg-[#0a0d12] font-body text-[#f1f5f9] min-h-screen selection:bg-amber-500/30 selection:text-amber-200 antialiased overflow-x-hidden">
     <slot />
     <AuthGate />
+    <MilestoneCelebrationModal />
+    <DiceRollerModal />
   </body>
 </html>
+
+<script>
+  import { campaignStore } from '../scripts/state/campaignStore.ts';
+  import { characterStore } from '../scripts/state/characterStore.ts';
+  import { userStore } from '../scripts/state/userStore.ts';
+  import type { DmEvent } from '../scripts/models/campaign.ts';
+
+  const handledInitiativeEventIds = new Set<string>();
+
+  // Escucha solicitudes de iniciativa en tiempo real del DM
+  window.addEventListener('dm-event-received', ((e: CustomEvent<DmEvent>) => {
+    const event = e.detail;
+    if (!event || event.type !== 'request_initiative') return;
+
+    if (event.id && handledInitiativeEventIds.has(event.id)) return;
+    if (event.id) handledInitiativeEventIds.add(event.id);
+
+    // 1. Si el usuario actual es el DM de la campaña, ignorar (fue quien lo pidió)
+    const isDm = campaignStore.isCurrentUserDm(event.campaignId);
+    if (isDm) return;
+
+    // 2. Verificar pertenencia a la campaña
+    const currentUser = userStore.getCurrentUser();
+    const camp = campaignStore.getCampaign(event.campaignId);
+    const activeCampId = campaignStore.getActiveCampaignId();
+    const currentChar = characterStore.get();
+    const isMember = (camp?.memberUserIds && camp.memberUserIds.includes(currentUser.id)) ||
+                     activeCampId === event.campaignId ||
+                     currentChar?.campaignId === event.campaignId;
+
+    if (!isMember) return;
+
+    // 3. Obtener el personaje del jugador en esta campaña
+    const myChar = campaignStore.getMyCharacterForCampaign(event.campaignId) || currentChar;
+    if (!myChar) return;
+
+    // 4. Calcular el bono de iniciativa (+DEX / iniciativa)
+    const mod = typeof myChar.initiativeBonus === 'number'
+      ? myChar.initiativeBonus
+      : (myChar.stats?.dex?.modifier ?? 0);
+
+    // 5. Despachar la apertura del modal bloqueado en d20
+    window.dispatchEvent(
+      new CustomEvent('open-dice-roller', {
+        detail: {
+          die: 20,
+          count: 1,
+          modifier: mod,
+          label: `Iniciativa (${myChar.name})`,
+          tag: '#Combate',
+          lockDie: true,
+          lockCount: true,
+          isInitiative: true,
+          characterId: myChar.id,
+          campaignId: event.campaignId,
+          authorName: myChar.name,
+        },
+      })
+    );
+  }) as EventListener);
+</script>

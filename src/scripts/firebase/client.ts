@@ -82,7 +82,10 @@ export function getFirebase(): Promise<FirebaseClient> {
       }
 
       return { app, auth, db, firestore: db, rtdb };
-    })();
+    })().catch(err => {
+      clientPromise = null;
+      throw err;
+    });
   }
   return clientPromise;
 }

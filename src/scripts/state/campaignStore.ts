@@ -2,6 +2,7 @@
 import type { Campaign, DmEvent } from '../models/campaign.ts';
 import type { CharacterData } from '../models/character.ts';
 import { defaultCharacter } from '../data/defaultCharacter.ts';
+import { getRandomCharacterAvatar, isBrokenAvatarUrl, sanitizeAvatarUrl, CHARACTER_PRESET_IMAGES } from '../data/characterAvatars.ts';
 import { generateInviteCode } from '../utils/ids.ts';
 import { isFirebaseConfigured } from '../firebase/client.ts';
 import { diffDocs, hasChanges, toPlain, type CampaignCloudWriter } from '../data/cloudTypes.ts';
@@ -11,6 +12,8 @@ import { userStore } from './userStore.ts';
 const CAMPAIGNS_STORAGE_KEY = 'dnd_campaigns_v1';
 const ALL_CHARACTERS_STORAGE_KEY = 'dnd_all_characters_v1';
 const ACTIVE_CAMPAIGN_KEY = 'dnd_active_campaign_id_v1';
+
+export { CHARACTER_PRESET_IMAGES, getRandomCharacterAvatar, isBrokenAvatarUrl, sanitizeAvatarUrl };
 
 export const CAMPAIGN_PRESET_IMAGES = [
   {
@@ -412,9 +415,24 @@ class CampaignStoreManager {
             if (!cleaned.some(c => c.id === 'atlas' || c.name === 'Atlas')) {
               cleaned = [...SEED_CHARACTERS, ...cleaned];
             }
+            cleaned.forEach((c: any) => {
+              if (isBrokenAvatarUrl(c.avatarUrl)) {
+                c.avatarUrl = getRandomCharacterAvatar();
+              }
+            });
             localStorage.setItem(legacyCharsCleanKey, 'true');
             this.persistCharacters(cleaned);
             return cleaned;
+          }
+          let hasBroken = false;
+          parsed.forEach((c: any) => {
+            if (isBrokenAvatarUrl(c.avatarUrl)) {
+              c.avatarUrl = getRandomCharacterAvatar();
+              hasBroken = true;
+            }
+          });
+          if (hasBroken) {
+            this.persistCharacters(parsed);
           }
           return parsed;
         }
@@ -1000,12 +1018,75 @@ class CampaignStoreManager {
   }
 
   /**
+   * Crea un personaje nuevo asignándole una imagen aleatoria de /characters/
+   * para evitar cualquier ruptura de imagen.
+   */
+  public createCharacter(data: Partial<CharacterData> = {}, targetCampaignId: string | null = null): CharacterData {
+    const currentUser = userStore.getCurrentUser();
+
+    if (targetCampaignId) {
+      const existing = this.getMyCharacterForCampaign(targetCampaignId, currentUser.id);
+      if (existing) {
+        throw new Error(`El usuario ya tiene un personaje (${existing.name}) en esta campaña. No se permite más de un personaje por usuario en la misma campaña.`);
+      }
+    }
+
+    const base = JSON.parse(JSON.stringify(defaultCharacter)) as CharacterData;
+    const name = data.name || 'Nuevo Aventurero Independiente';
+    const baseSlug = name
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+    const newId = `${baseSlug}-${Math.random().toString(36).substr(2, 6)}`;
+
+    const avatarUrl = data.avatarUrl && !isBrokenAvatarUrl(data.avatarUrl)
+      ? data.avatarUrl
+      : getRandomCharacterAvatar();
+
+    const newChar: CharacterData = {
+      ...base,
+      ...data,
+      id: data.id || newId,
+      campaignId: targetCampaignId,
+      userId: currentUser.id,
+      playerName: currentUser.name,
+      avatarUrl,
+      name,
+    };
+
+    if (targetCampaignId) {
+      const targetCamp = this.getCampaign(targetCampaignId);
+      if (targetCamp) {
+        newChar.sessionContext = {
+          campaignName: targetCamp.name,
+          sessionNumber: targetCamp.sessionNumber,
+          weather: targetCamp.weather,
+          location: targetCamp.location
+        };
+      }
+    } else {
+      newChar.sessionContext = {
+        campaignName: 'Aventura Independiente',
+        sessionNumber: 1,
+        weather: 'Despejado',
+        location: 'Tierras Salvajes'
+      };
+    }
+
+    this.saveCharacter(newChar);
+    return newChar;
+  }
+
+  /**
    * Clones a character to a target campaign (or standalone if targetCampaignId is null),
    * generating a new unique independent ID and ensuring changes do not affect original.
    * Assigns ownership of the new clone to the current active user.
    */
   public cloneCharacter(characterId: string, targetCampaignId: string | null, newName?: string): CharacterData {
-    const original = this.getCharacter(characterId) || defaultCharacter;
+    const isTemplate = characterId === '__template__';
+    const original = (characterId && characterId !== '__template__' ? this.getCharacter(characterId) : null) || defaultCharacter;
     const currentUser = userStore.getCurrentUser();
 
     // Check if target campaign already has a character for current user
@@ -1032,6 +1113,11 @@ class CampaignStoreManager {
     cloned.userId = currentUser.id;
     cloned.playerName = currentUser.name;
     if (newName) cloned.name = newName;
+
+    // Si es una plantilla nueva o el avatar original está roto o vacío, asignar uno aleatorio de /characters/
+    if (isTemplate || isBrokenAvatarUrl(cloned.avatarUrl)) {
+      cloned.avatarUrl = getRandomCharacterAvatar();
+    }
 
     // Update session context if target campaign exists
     if (targetCampaignId) {

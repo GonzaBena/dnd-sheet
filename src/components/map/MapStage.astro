@@ -1,0 +1,571 @@
+---
+// src/components/map/MapStage.astro
+// Isla de mapa táctico VTT con Konva (zoom, pan, táctil y capas).
+//
+// DECISION (D1): Konva se carga con dynamic import dentro del <script> para evitar ejecución en build,
+// reemplazando el patrón client:only sin requerir frameworks externos (React/Vue).
+// DECISION (F2-1): Todo se guarda y calcula en píxeles de la imagen original.
+
+interface Props {
+  mode?: 'dm' | 'player';
+  class?: string;
+  id?: string;
+}
+
+const { mode = 'player', class: className = '', id } = Astro.props;
+---
+
+<div
+  id={id}
+  data-map-stage-root
+  data-mode={mode}
+  class={`relative w-full h-[60vh] md:h-[70vh] rounded-2xl bg-[#0c1017] border border-[#222f42] overflow-hidden shadow-inner select-none group ${className}`}
+>
+  <!-- Background grid decorativo cuando no hay imagen cargada -->
+  <div class="absolute inset-0 bg-[linear-gradient(to_right,#1f293712_1px,transparent_1px),linear-gradient(to_bottom,#1f293712_1px,transparent_1px)] bg-[size:32px_32px] pointer-events-none"></div>
+
+  <!-- Contenedor del canvas Konva animable con anime.js (T-24) -->
+  <div
+    data-canvas-container
+    class="w-full h-full relative z-0 origin-center cursor-grab active:cursor-grabbing"
+  ></div>
+
+  <!-- Barra de estado y cabecera del mapa (top-left) -->
+  <div class="absolute top-3 left-3 z-20 flex items-center gap-2 pointer-events-none">
+    {mode === 'dm' ? (
+      <div class="relative pointer-events-auto" data-map-dropdown-wrapper>
+        <button
+          type="button"
+          data-map-dropdown-toggle
+          class="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[#10141d]/90 backdrop-blur-md border border-[#222f42] hover:border-amber-500/50 text-xs shadow-md transition-all cursor-pointer group select-none"
+          title="Cambiar mapa activo o gestionar biblioteca"
+          aria-haspopup="true"
+          aria-expanded="false"
+        >
+          <span class="material-symbols-outlined text-[16px] text-amber-400 group-hover:scale-110 transition-transform">map</span>
+          <span data-map-title class="font-headline font-bold text-[#f1f5f9] truncate max-w-[160px] sm:max-w-xs text-left">
+            Sin mapa activo
+          </span>
+          <span data-active-badge class="hidden px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 shrink-0">
+            ACTIVO
+          </span>
+          <span data-map-dropdown-arrow class="material-symbols-outlined text-[16px] text-[#94a3b8] group-hover:text-amber-400 transition-transform shrink-0">
+            arrow_drop_down
+          </span>
+        </button>
+
+        <!-- Menú desplegable de mapas para el DM -->
+        <div
+          data-map-dropdown-menu
+          class="hidden absolute top-full left-0 mt-1.5 w-72 max-h-80 overflow-y-auto rounded-xl bg-[#121721] border border-[#222f42] shadow-[0_10px_35px_rgba(0,0,0,0.8)] p-1.5 space-y-1 z-30 font-label text-xs backdrop-blur-md"
+        >
+          <div class="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-[#94a3b8] flex items-center justify-between border-b border-[#222f42]/60 pb-1">
+            <span>Mapas de la Campaña</span>
+            <span data-map-dropdown-count class="text-amber-400 font-bold">0 mapas</span>
+          </div>
+
+          <!-- Contenedor dinámico de elementos de mapas -->
+          <div data-map-dropdown-list class="space-y-0.5 max-h-56 overflow-y-auto pr-0.5">
+            <div class="p-3 text-center text-[#64748b] text-[11px]">
+              Cargando mapas...
+            </div>
+          </div>
+
+          <!-- Acciones al pie del dropdown -->
+          <div class="pt-1 border-t border-[#222f42]/80 mt-1">
+            <button
+              type="button"
+              data-map-dropdown-manage-btn
+              class="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-amber-300 hover:bg-amber-500/15 hover:text-amber-200 transition-colors text-left font-bold text-[11px] cursor-pointer"
+            >
+              <span class="material-symbols-outlined text-[15px]">tune</span>
+              <span>Gestionar / Subir Mapas...</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    ) : (
+      <div class="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[#10141d]/85 backdrop-blur-md border border-[#222f42] text-xs shadow-md pointer-events-auto">
+        <span class="material-symbols-outlined text-[16px] text-amber-400">map</span>
+        <span data-map-title class="font-headline font-bold text-[#f1f5f9] truncate max-w-[200px] sm:max-w-xs">
+          Sin mapa activo
+        </span>
+        <span data-active-badge class="hidden px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40">
+          ACTIVO
+        </span>
+      </div>
+    )}
+  </div>
+
+  <!-- Controles flotantes de navegación (bottom-right) (T-22) -->
+  <div class="absolute bottom-3 right-3 z-10 flex items-center gap-1.5 p-1.5 rounded-xl bg-[#10141d]/85 backdrop-blur-md border border-[#222f42] shadow-xl">
+    <span
+      data-zoom-indicator
+      class="text-[11px] font-mono font-bold text-[#94a3b8] px-2 py-1 select-none"
+      title="Nivel de zoom actual"
+    >
+      100%
+    </span>
+
+    <!-- Toggle Cuadrícula (Alto Contraste / Sutil / Oculta) -->
+    <button
+      type="button"
+      data-grid-toggle-btn
+      class="w-8 h-8 rounded-lg bg-[#18202e] border border-[#222f42] hover:border-amber-500/50 text-[#cbd5e1] hover:text-amber-300 flex items-center justify-center transition-all active:scale-95 cursor-pointer"
+      title="Alternar cuadrícula: Alto Contraste / Sutil / Oculta"
+    >
+      <span data-grid-toggle-icon class="material-symbols-outlined text-[18px] text-amber-400">grid_on</span>
+    </button>
+
+    <button
+      type="button"
+      data-zoom-out-btn
+      class="w-8 h-8 rounded-lg bg-[#18202e] border border-[#222f42] hover:border-amber-500/50 text-[#cbd5e1] hover:text-amber-300 flex items-center justify-center transition-all active:scale-95 cursor-pointer"
+      title="Alejar zoom (−)"
+    >
+      <span class="material-symbols-outlined text-[18px]">remove</span>
+    </button>
+
+    <button
+      type="button"
+      data-zoom-in-btn
+      class="w-8 h-8 rounded-lg bg-[#18202e] border border-[#222f42] hover:border-amber-500/50 text-[#cbd5e1] hover:text-amber-300 flex items-center justify-center transition-all active:scale-95 cursor-pointer"
+      title="Acercar zoom (+)"
+    >
+      <span class="material-symbols-outlined text-[18px]">add</span>
+    </button>
+
+    <button
+      type="button"
+      data-fit-btn
+      class="w-8 h-8 rounded-lg bg-[#18202e] border border-[#222f42] hover:border-amber-500/50 text-[#cbd5e1] hover:text-amber-300 flex items-center justify-center transition-all active:scale-95 cursor-pointer"
+      title="Encuadrar mapa completo"
+    >
+      <span class="material-symbols-outlined text-[18px]">fit_screen</span>
+    </button>
+  </div>
+
+  <!-- Overlay de Carga (oculto por defecto para evitar pantallas de carga bloqueadas) -->
+  <div
+    data-loading-overlay
+    class="absolute inset-0 bg-[#0c1017]/90 backdrop-blur-xs flex flex-col items-center justify-center gap-3 z-20 transition-opacity duration-200 pointer-events-none opacity-0 hidden"
+  >
+    <div class="w-8 h-8 border-2 border-amber-500 border-t-transparent rounded-full animate-spin"></div>
+    <span class="text-xs text-[#94a3b8] font-label">Cargando mapa táctico...</span>
+  </div>
+
+  <!-- Overlay de "Sin mapa activo" -->
+  <div
+    data-empty-overlay
+    class="absolute inset-0 bg-[#0c1017]/90 backdrop-blur-xs flex flex-col items-center justify-center p-6 text-center z-10 space-y-3 hidden"
+  >
+    <div class="w-12 h-12 rounded-2xl bg-[#161e2c] border border-[#222f42] flex items-center justify-center text-amber-400/80 shadow-md">
+      <span class="material-symbols-outlined text-2xl">explore_off</span>
+    </div>
+    <div class="space-y-1 max-w-sm">
+      <h3 class="text-sm font-headline font-bold text-[#f1f5f9]">No hay mapa activo en la mesa</h3>
+      <p class="text-xs text-[#94a3b8]">
+        {mode === 'dm'
+          ? 'Elige un mapa de la lista o crea uno nuevo con una URL para desplegarlo a los aventureros.'
+          : 'El Dungeon Master aún no ha desplegado un mapa táctico para la partida.'}
+      </p>
+    </div>
+  </div>
+</div>
+
+<script>
+  // DECISION (D1): Importación dinámica de Konva para evitar problemas en SSG/Astro build.
+  // DECISION (F2-3): watchActiveMap se suscribe únicamente al mapa activo y limpia el listener anterior.
+  // DECISION (F2-4): Límites de zoom de 0.1x a 8x y fit automático en apertura.
+
+  import anime from 'animejs';
+  import { MapStageController } from '../../scripts/vtt/mapStage.ts';
+  import { watchActiveMap, subscribeMap, listMaps, setActiveMap } from '../../scripts/data/mapService.ts';
+  import { campaignStore } from '../../scripts/state/campaignStore.ts';
+  import type { MapDoc } from '../../scripts/models/map.ts';
+
+  async function initMapStages() {
+    const rootElements = document.querySelectorAll<HTMLElement>('[data-map-stage-root]');
+
+    for (const root of rootElements) {
+      if ((root as any).__initialized) continue;
+      (root as any).__initialized = true;
+
+      const mode = (root.getAttribute('data-mode') || 'player') as 'dm' | 'player';
+      const canvasContainer = root.querySelector<HTMLElement>('[data-canvas-container]');
+      const titleEl = root.querySelector<HTMLElement>('[data-map-title]');
+      const activeBadgeEl = root.querySelector<HTMLElement>('[data-active-badge]');
+      const zoomIndicator = root.querySelector<HTMLElement>('[data-zoom-indicator]');
+      const zoomInBtn = root.querySelector<HTMLElement>('[data-zoom-in-btn]');
+      const zoomOutBtn = root.querySelector<HTMLElement>('[data-zoom-out-btn]');
+      const fitBtn = root.querySelector<HTMLElement>('[data-fit-btn]');
+      const loadingOverlay = root.querySelector<HTMLElement>('[data-loading-overlay]');
+      const emptyOverlay = root.querySelector<HTMLElement>('[data-empty-overlay]');
+
+      if (!canvasContainer) continue;
+
+      // Importar Konva dinámicamente en el cliente
+      const KonvaModule = await import('konva');
+      const Konva = (KonvaModule as any).default || KonvaModule;
+
+      const controller = new MapStageController(canvasContainer, Konva, { mode });
+      (root as any).__mapStageController = controller;
+
+      // Actualizar indicador de zoom al cambiar vista
+      controller.addEventListener('view-changed', ((e: CustomEvent) => {
+        if (zoomIndicator && e.detail?.scale) {
+          zoomIndicator.textContent = `${Math.round(e.detail.scale * 100)}%`;
+        }
+      }) as EventListener);
+
+      // Botones flotantes
+      zoomInBtn?.addEventListener('click', () => controller.zoom(1.25));
+      zoomOutBtn?.addEventListener('click', () => controller.zoom(0.8));
+      fitBtn?.addEventListener('click', () => controller.fit());
+
+      // Elementos del selector desplegable de mapas y cuadrícula
+      const dropdownToggle = root.querySelector<HTMLButtonElement>('[data-map-dropdown-toggle]');
+      const dropdownMenu = root.querySelector<HTMLElement>('[data-map-dropdown-menu]');
+      const dropdownList = root.querySelector<HTMLElement>('[data-map-dropdown-list]');
+      const dropdownCount = root.querySelector<HTMLElement>('[data-map-dropdown-count]');
+      const dropdownManageBtn = root.querySelector<HTMLButtonElement>('[data-map-dropdown-manage-btn]');
+      const gridToggleBtn = root.querySelector<HTMLButtonElement>('[data-grid-toggle-btn]');
+      const gridToggleIcon = root.querySelector<HTMLElement>('[data-grid-toggle-icon]');
+
+      // Toggle y sincronización de modo de cuadrícula
+      const updateGridBtnUi = (gMode: 'high-contrast' | 'subtle' | 'hidden') => {
+        if (!gridToggleIcon || !gridToggleBtn) return;
+        if (gMode === 'high-contrast') {
+          gridToggleIcon.textContent = 'grid_on';
+          gridToggleIcon.className = 'material-symbols-outlined text-[18px] text-amber-400';
+          gridToggleBtn.title = 'Cuadrícula: Alto Contraste (clic para sutil)';
+        } else if (gMode === 'subtle') {
+          gridToggleIcon.textContent = 'grid_4x4';
+          gridToggleIcon.className = 'material-symbols-outlined text-[18px] text-[#cbd5e1]';
+          gridToggleBtn.title = 'Cuadrícula: Sutil (clic para ocultar)';
+        } else {
+          gridToggleIcon.textContent = 'grid_off';
+          gridToggleIcon.className = 'material-symbols-outlined text-[18px] text-rose-400';
+          gridToggleBtn.title = 'Cuadrícula: Oculta (clic para alto contraste)';
+        }
+      };
+
+      gridToggleBtn?.addEventListener('click', () => {
+        const nextMode = controller.cycleGridMode();
+        updateGridBtnUi(nextMode);
+      });
+
+      controller.addEventListener('grid-mode-changed', ((e: CustomEvent) => {
+        if (e.detail?.mode) updateGridBtnUi(e.detail.mode);
+      }) as EventListener);
+
+      // Desplegable de mapas para el DM
+      async function populateMapDropdown() {
+        const cid = getActiveCampaignId();
+        if (!cid || !dropdownList) return;
+
+        const maps = await listMaps(cid);
+        const activeCamp = campaignStore.getCampaign(cid);
+        const activeId = activeCamp?.activeMapId;
+
+        if (dropdownCount) {
+          dropdownCount.textContent = `${maps.length} mapa${maps.length === 1 ? '' : 's'}`;
+        }
+
+        if (maps.length === 0) {
+          dropdownList.innerHTML = `
+            <div class="p-3 text-center text-[#64748b] text-[11px]">
+              No hay mapas creados todavía.
+            </div>
+          `;
+          return;
+        }
+
+        dropdownList.innerHTML = '';
+        maps.forEach((m) => {
+          const isActive = m.id === activeId;
+          const item = document.createElement('button');
+          item.type = 'button';
+          item.className = `w-full flex items-center justify-between gap-2 px-2.5 py-2 rounded-lg text-left transition-all cursor-pointer ${
+            isActive
+              ? 'bg-amber-500/15 border border-amber-500/30 text-amber-300 font-bold'
+              : 'hover:bg-[#18202e] text-[#cbd5e1] hover:text-[#f1f5f9]'
+          }`;
+
+          item.innerHTML = `
+            <div class="flex items-center gap-2 min-w-0">
+              <span class="material-symbols-outlined text-[16px] ${isActive ? 'text-amber-400' : 'text-[#64748b]'}">
+                ${isActive ? 'check_circle' : 'map'}
+              </span>
+              <div class="min-w-0">
+                <span class="block truncate text-xs font-headline ${isActive ? 'text-amber-200' : 'text-[#f1f5f9]'}">${m.name}</span>
+                <span class="block text-[10px] text-[#64748b] font-mono">${m.imageWidth}×${m.imageHeight}px</span>
+              </div>
+            </div>
+            ${isActive ? '<span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40">ACTIVO</span>' : ''}
+          `;
+
+          item.addEventListener('click', async () => {
+            dropdownMenu?.classList.add('hidden');
+            if (isActive) return;
+            try {
+              showLoading(true);
+              if (dmManualMapUnsub) {
+                dmManualMapUnsub();
+                dmManualMapUnsub = null;
+              }
+              await setActiveMap(cid, m.id);
+              await onMapDocReceived(m);
+            } catch (err: any) {
+              console.error('[MapStage] Error cambiando mapa activo:', err);
+            } finally {
+              showLoading(false);
+            }
+          });
+
+          dropdownList.appendChild(item);
+        });
+      }
+
+      dropdownToggle?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isHidden = dropdownMenu?.classList.contains('hidden');
+        if (isHidden) {
+          populateMapDropdown();
+          dropdownMenu?.classList.remove('hidden');
+        } else {
+          dropdownMenu?.classList.add('hidden');
+        }
+      });
+
+      document.addEventListener('click', (e) => {
+        if (!dropdownMenu || dropdownMenu.classList.contains('hidden')) return;
+        if (!dropdownMenu.contains(e.target as Node) && !dropdownToggle?.contains(e.target as Node)) {
+          dropdownMenu.classList.add('hidden');
+        }
+      });
+
+      dropdownManageBtn?.addEventListener('click', () => {
+        dropdownMenu?.classList.add('hidden');
+        const mapManagerEl = document.getElementById('dm-map-manager-root');
+        if (mapManagerEl) {
+          mapManagerEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+        window.dispatchEvent(new CustomEvent('open-map-manager'));
+      });
+
+      let currentMapId: string | null = null;
+      let activeUnsub: (() => void) | null = null;
+      let dmManualMapUnsub: (() => void) | null = null;
+
+      function showLoading(show: boolean) {
+        if (!loadingOverlay) return;
+        if (show) {
+          loadingOverlay.classList.remove('opacity-0', 'pointer-events-none', 'hidden');
+          loadingOverlay.classList.add('opacity-100');
+        } else {
+          loadingOverlay.classList.remove('opacity-100');
+          loadingOverlay.classList.add('opacity-0', 'pointer-events-none');
+          setTimeout(() => {
+            if (loadingOverlay.classList.contains('opacity-0')) {
+              loadingOverlay.classList.add('hidden');
+            }
+          }, 250);
+        }
+      }
+
+      function updateTitle(map: MapDoc | null) {
+        const activeCampId = getActiveCampaignId();
+        const camp = activeCampId ? campaignStore.getCampaign(activeCampId) : null;
+        const isActive = Boolean(camp && map && camp.activeMapId === map.id);
+
+        if (titleEl) {
+          titleEl.textContent = map ? map.name : 'Sin mapa activo';
+        }
+        if (activeBadgeEl) {
+          if (isActive) {
+            activeBadgeEl.classList.remove('hidden');
+          } else {
+            activeBadgeEl.classList.add('hidden');
+          }
+        }
+        if (dropdownMenu && !dropdownMenu.classList.contains('hidden')) {
+          populateMapDropdown();
+        }
+      }
+
+      // Transición animada de cambio de mapa (T-24)
+      async function onMapDocReceived(map: MapDoc | null) {
+        try {
+          if (!map) {
+            currentMapId = null;
+            await controller.setMap(null);
+            updateTitle(null);
+            emptyOverlay?.classList.remove('hidden');
+            return;
+          }
+
+          emptyOverlay?.classList.add('hidden');
+          updateTitle(map);
+
+          // Si es el mismo mapa que ya está cargado, solo actualizar grilla sin animar
+          if (currentMapId === map.id) {
+            controller.setGrid(map.grid);
+            return;
+          }
+
+          currentMapId = map.id;
+
+          // Animación de salida (fade + scale out)
+          anime.remove(canvasContainer);
+          await new Promise<void>((resolve) => {
+            anime({
+              targets: canvasContainer,
+              opacity: [1, 0],
+              scale: [1, 0.98],
+              duration: 180,
+              easing: 'easeInOutQuad',
+              complete: () => resolve(),
+            });
+          });
+
+          // Cargar mapa en Konva y centrar
+          try {
+            await controller.setMap(map);
+            controller.fit();
+          } catch (err) {
+            console.error('[MapStage] Error cargando mapa:', err);
+          }
+
+          // Animación de entrada (fade + scale in)
+          anime({
+            targets: canvasContainer,
+            opacity: [0, 1],
+            scale: [1.02, 1],
+            duration: 220,
+            easing: 'easeOutCubic',
+          });
+        } finally {
+          showLoading(false);
+        }
+      }
+
+      // Suscripción al mapa activo de la campaña
+      function bindCampaignMaps(cid: string) {
+        if (activeUnsub) {
+          activeUnsub();
+          activeUnsub = null;
+        }
+        if (dmManualMapUnsub) {
+          dmManualMapUnsub();
+          dmManualMapUnsub = null;
+        }
+
+        showLoading(true);
+
+        // Temporizador de seguridad: si tras 3.5s no ha respondido nada, desbloquear spinner
+        const safetyTimer = setTimeout(() => {
+          showLoading(false);
+        }, 3500);
+
+        activeUnsub = watchActiveMap(cid, (map) => {
+          clearTimeout(safetyTimer);
+          if (map) {
+            // Si el mapa activo cambia o llega, el DM siempre ve el mapa activo seleccionado
+            if (dmManualMapUnsub) {
+              dmManualMapUnsub();
+              dmManualMapUnsub = null;
+            }
+            onMapDocReceived(map);
+          } else if (!dmManualMapUnsub) {
+            onMapDocReceived(null);
+          }
+        });
+      }
+
+      // Sincronización cuando se cambia el mapa activo
+      window.addEventListener('active-map-changed', ((e: CustomEvent<{ cid?: string; mid?: string }>) => {
+        if (dmManualMapUnsub) {
+          dmManualMapUnsub();
+          dmManualMapUnsub = null;
+        }
+        const targetMid = e.detail?.mid;
+        const targetCid = e.detail?.cid || currentCid;
+        if (targetMid && targetCid) {
+          listMaps(targetCid).then((maps) => {
+            const found = maps.find((m) => m.id === targetMid);
+            if (found) {
+              onMapDocReceived(found);
+            }
+          });
+        }
+      }) as EventListener);
+
+      // El DM puede abrir e inspeccionar mapas que no son el activo (T-24)
+      if (mode === 'dm') {
+        window.addEventListener('open-dm-map', ((e: CustomEvent<{ cid: string; mid: string }>) => {
+          if (!e.detail || !e.detail.cid || !e.detail.mid) return;
+          const { cid, mid } = e.detail;
+
+          if (dmManualMapUnsub) {
+            dmManualMapUnsub();
+            dmManualMapUnsub = null;
+          }
+
+          showLoading(true);
+          const safetyTimer = setTimeout(() => showLoading(false), 3500);
+
+          dmManualMapUnsub = subscribeMap(cid, mid, (map) => {
+            clearTimeout(safetyTimer);
+            onMapDocReceived(map);
+          });
+        }) as EventListener);
+      }
+
+      function getActiveCampaignId(): string | null {
+        let cid = campaignStore.getActiveCampaignId();
+        if (!cid && typeof window !== 'undefined') {
+          const params = new URLSearchParams(window.location.search);
+          cid = params.get('id') || params.get('campaign');
+        }
+        return cid;
+      }
+
+      // Inicializar con la campaña activa
+      let currentCid = getActiveCampaignId();
+      if (currentCid) {
+        bindCampaignMaps(currentCid);
+      } else {
+        showLoading(false);
+        emptyOverlay?.classList.remove('hidden');
+      }
+
+      function handleCampaignSwitch(newCid: string | null) {
+        if (!newCid || newCid === currentCid) return;
+        currentCid = newCid;
+        bindCampaignMaps(currentCid);
+      }
+
+      window.addEventListener('campaigns-updated', () => {
+        handleCampaignSwitch(getActiveCampaignId());
+      });
+      window.addEventListener('active-campaign-changed', ((e: CustomEvent) => {
+        handleCampaignSwitch(e.detail?.campaignId || getActiveCampaignId());
+      }) as EventListener);
+      window.addEventListener('maps-updated', () => {
+        if (dropdownMenu && !dropdownMenu.classList.contains('hidden')) {
+          populateMapDropdown();
+        }
+      });
+    }
+  }
+
+  // Ejecutar cuando el DOM esté listo
+  if (typeof document !== 'undefined') {
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', () => initMapStages());
+    } else {
+      initMapStages();
+    }
+  }
+</script>

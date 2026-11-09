@@ -18,15 +18,15 @@
     </div>
   </div>
 
-  <!-- ENCABEZADO Y CONTROLES PRINCIPALES -->
-  <div class="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-[#222f42]">
+  <!-- ENCABEZADO: Título, Ronda y Descripción -->
+  <div class="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-[#222f42]">
     <div class="flex items-center gap-3">
-      <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-rose-500/20 to-amber-500/20 border border-rose-500/40 flex items-center justify-center text-rose-400 shadow-xs">
-        <span class="material-symbols-outlined text-[26px]">swords</span>
+      <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-rose-500/20 to-amber-500/20 border border-rose-500/40 flex items-center justify-center text-rose-400 shadow-xs shrink-0">
+        <span class="material-symbols-outlined text-[24px]">swords</span>
       </div>
       <div>
-        <div class="flex items-center gap-2">
-          <h2 class="text-lg font-headline font-bold text-[#f1f5f9]">
+        <div class="flex items-center gap-2 flex-wrap">
+          <h2 class="text-base font-headline font-bold text-[#f1f5f9]">
             Iniciativa y Combate
           </h2>
           <span
@@ -37,34 +37,47 @@
             <span id="dm-combat-round-text">Ronda 1</span>
           </span>
         </div>
-        <p class="text-xs text-[#94a3b8] font-label">
+        <p class="text-[11px] text-[#94a3b8] font-label">
           Control táctico de turnos, PG, CA y condiciones en tiempo real
         </p>
       </div>
     </div>
+  </div>
 
-    <!-- BOTONES DE ACCIÓN PRINCIPALES -->
-    <div class="flex items-center gap-2 flex-wrap">
-      <!-- Botón Iniciar Combate (cuando no hay activo) -->
-      <button
-        type="button"
-        id="dm-start-combat-btn"
-        class="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-600 via-amber-500 to-amber-600 hover:from-amber-500 hover:to-amber-400 text-[#0a0d12] font-bold text-xs shadow-[0_0_20px_rgba(245,158,11,0.4)] active:scale-95 transition-all cursor-pointer"
-      >
-        <span class="material-symbols-outlined text-[18px]">play_arrow</span>
-        <span>Iniciar Combate</span>
-      </button>
+  <!-- BOTONES DE ACCIÓN PRINCIPALES (100% CENTRADOS) -->
+  <div class="w-full flex flex-col items-center justify-center gap-2 pt-1 pb-1">
+    <!-- Botón Iniciar Combate (cuando no hay activo) -->
+    <button
+      type="button"
+      id="dm-start-combat-btn"
+      class="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-600 via-amber-500 to-amber-600 hover:from-amber-500 hover:to-amber-400 text-[#0a0d12] font-bold text-xs shadow-[0_0_20px_rgba(245,158,11,0.4)] active:scale-95 transition-all cursor-pointer"
+    >
+      <span class="material-symbols-outlined text-[18px]">play_arrow</span>
+      <span>Iniciar Combate</span>
+    </button>
 
-      <!-- Botones cuando SÍ hay combate activo -->
-      <div id="dm-active-combat-controls" class="hidden flex items-center gap-2 flex-wrap">
+    <!-- Botones cuando SÍ hay combate activo (2 Filas Centradas) -->
+    <div id="dm-active-combat-controls" class="hidden w-full flex flex-col items-center justify-center gap-2.5">
+      <!-- Fila 1: 3 botones centrados -->
+      <div class="flex items-center justify-center gap-2 w-full flex-wrap">
+        <button
+          type="button"
+          id="dm-request-initiative-active-btn"
+          class="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#18202e] border border-[#222f42] hover:border-amber-500/50 text-amber-300 text-xs font-bold active:scale-95 transition-all cursor-pointer shadow-xs"
+          title="Pedir tirada de iniciativa a todos los jugadores por broadcast"
+        >
+          <span class="material-symbols-outlined text-[16px]">campaign</span>
+          <span>Pedir Iniciativa</span>
+        </button>
+
         <button
           type="button"
           id="dm-prev-turn-btn"
-          class="flex items-center gap-1 px-3 py-2 rounded-xl bg-[#18202e] border border-[#222f42] hover:border-amber-500/50 text-[#cbd5e1] hover:text-[#f1f5f9] text-xs font-bold active:scale-95 transition-all cursor-pointer"
+          class="flex items-center gap-1 px-3 py-2 rounded-xl bg-[#18202e] border border-[#222f42] hover:border-amber-500/50 text-[#cbd5e1] hover:text-[#f1f5f9] text-xs font-bold active:scale-95 transition-all cursor-pointer shadow-xs"
           title="Retroceder al turno anterior"
         >
           <span class="material-symbols-outlined text-[18px]">skip_previous</span>
-          <span class="hidden sm:inline">Anterior</span>
+          <span>Anterior</span>
         </button>
 
         <button
@@ -76,21 +89,24 @@
           <span>Siguiente Turno</span>
           <span class="material-symbols-outlined text-[18px]">skip_next</span>
         </button>
+      </div>
 
+      <!-- Fila 2: + Oponente y Terminar centrados -->
+      <div class="flex items-center justify-center gap-2 w-full flex-wrap">
         <button
           type="button"
           id="dm-add-monster-btn"
-          class="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#18202e] border border-[#222f42] hover:border-purple-500/50 text-purple-300 text-xs font-bold active:scale-95 transition-all cursor-pointer"
+          class="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#18202e] border border-[#222f42] hover:border-purple-500/50 text-purple-300 text-xs font-bold active:scale-95 transition-all cursor-pointer shadow-xs"
           title="Agregar monstruo u oponente al combate"
         >
           <span class="material-symbols-outlined text-[16px]">add</span>
-          <span>+ Oponente</span>
+          <span>Oponente</span>
         </button>
 
         <button
           type="button"
           id="dm-end-combat-btn"
-          class="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-rose-950/30 border border-rose-800/40 hover:bg-rose-900/40 text-rose-300 text-xs font-bold active:scale-95 transition-all cursor-pointer"
+          class="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-rose-950/30 border border-rose-800/40 hover:bg-rose-900/40 text-rose-300 text-xs font-bold active:scale-95 transition-all cursor-pointer shadow-xs"
           title="Finalizar el combate actual"
         >
           <span class="material-symbols-outlined text-[16px]">stop</span>
@@ -127,7 +143,7 @@
   <!-- TABLA / LISTA DE COMBATIENTES ORDENADA -->
   <div
     id="dm-combatants-container"
-    class="hidden space-y-2.5 max-h-[620px] overflow-y-auto pr-1"
+    class="hidden space-y-2.5 max-h-[620px] overflow-y-auto overflow-x-hidden pr-1"
   >
     <!-- Se llena dinámicamente -->
   </div>
@@ -160,16 +176,28 @@
 
       <!-- Lista de Aventureros a precargar -->
       <div class="space-y-3">
-        <div class="flex items-center justify-between text-xs font-bold text-[#cbd5e1]">
+        <div class="flex items-center justify-between text-xs font-bold text-[#cbd5e1] flex-wrap gap-2">
           <span>Aventureros en la mesa</span>
-          <button
-            type="button"
-            id="dm-roll-all-initiatives-btn"
-            class="text-amber-400 hover:text-amber-300 font-label flex items-center gap-1 cursor-pointer"
-          >
-            <span class="material-symbols-outlined text-[14px]">casino</span>
-            <span>Tirar d20 para todos</span>
-          </button>
+          <div class="flex items-center gap-2">
+            <button
+              type="button"
+              id="dm-request-initiative-modal-btn"
+              class="text-amber-400 hover:text-amber-300 font-label flex items-center gap-1 cursor-pointer transition-colors"
+              title="Solicitar tirada de iniciativa a todos los jugadores por broadcast"
+            >
+              <span class="material-symbols-outlined text-[14px]">campaign</span>
+              <span>Pedir a Jugadores</span>
+            </button>
+            <span class="text-[#334155]">|</span>
+            <button
+              type="button"
+              id="dm-roll-all-initiatives-btn"
+              class="text-[#94a3b8] hover:text-[#f1f5f9] font-label flex items-center gap-1 cursor-pointer transition-colors"
+            >
+              <span class="material-symbols-outlined text-[14px]">casino</span>
+              <span>Tirar d20 para todos</span>
+            </button>
+          </div>
         </div>
 
         <div id="dm-modal-players-list" class="space-y-2 max-h-48 overflow-y-auto pr-1">
@@ -418,8 +446,10 @@
     duplicateCombatantInCombat,
     buildPlayerCombatants,
     checkCanPlay,
+    syncCombatWithLiveCharacters,
   } from '../../scripts/data/combatService.ts';
   import { DND_CONDITIONS, getConditionInfo } from '../../scripts/vtt/conditions.ts';
+  import { areAllPlayersInInitiative } from '../../scripts/vtt/initiative.ts';
   import { campaignStore } from '../../scripts/state/campaignStore.ts';
   import { showConfirm, showForm, showAlert } from '../../scripts/ui/notify.ts';
   import { animateHpBar } from '../../scripts/animations/hpAnimations.ts';
@@ -438,6 +468,7 @@
   const roundTextEl = document.getElementById('dm-combat-round-text');
   const startCombatBtn = document.getElementById('dm-start-combat-btn');
   const activeControlsEl = document.getElementById('dm-active-combat-controls');
+  const reqInitActiveBtn = document.getElementById('dm-request-initiative-active-btn');
   const prevTurnBtn = document.getElementById('dm-prev-turn-btn');
   const nextTurnBtn = document.getElementById('dm-next-turn-btn');
   const addMonsterBtn = document.getElementById('dm-add-monster-btn');
@@ -453,6 +484,7 @@
   const modalConfirmBtn = document.getElementById('dm-modal-confirm-start-btn');
   const modalPlayersList = document.getElementById('dm-modal-players-list');
   const rollAllInitBtn = document.getElementById('dm-roll-all-initiatives-btn');
+  const reqInitModalBtn = document.getElementById('dm-request-initiative-modal-btn');
 
   // Popover de Condiciones
   const conditionPopover = document.getElementById('dm-condition-popover');
@@ -539,6 +571,17 @@
     if (roundTextEl && combat) roundTextEl.textContent = `Ronda ${combat.round}`;
     if (combatantsContainer) combatantsContainer.classList.remove('hidden');
 
+    // Visibilidad del botón "Pedir Iniciativa": ocultar si ya están todos los jugadores en la lista
+    const campaignChars = currentCampaignId ? campaignStore.getCharactersForCampaign(currentCampaignId) : [];
+    const allPlayersInList = areAllPlayersInInitiative(combat, campaignChars);
+    if (reqInitActiveBtn) {
+      if (allPlayersInList) {
+        reqInitActiveBtn.classList.add('hidden');
+      } else {
+        reqInitActiveBtn.classList.remove('hidden');
+      }
+    }
+
     const isNewTurn = combat ? previousTurnIndex !== combat.turnIndex : false;
     if (combat) previousTurnIndex = combat.turnIndex;
 
@@ -556,12 +599,27 @@
 
     combat.combatants.forEach((c, idx) => {
       const isCurrentTurn = idx === combat.turnIndex;
+      const liveChar = c.isPlayer && c.characterId
+        ? campaignStore.getCharacter(c.characterId)
+        : undefined;
+
+      const displayName = liveChar?.name?.trim() ? liveChar.name.trim() : c.name;
+      const displayAc = typeof liveChar?.armorClass === 'number' ? liveChar.armorClass : (c.ac || 10);
+      const displayHp = typeof liveChar?.hp?.current === 'number' ? liveChar.hp.current : c.hp;
+      const displayMaxHp = typeof liveChar?.hp?.max === 'number' && liveChar.hp.max > 0 ? liveChar.hp.max : c.maxHp;
+      const avatarUrl = liveChar?.avatarUrl || c.avatarUrl || (c.isPlayer ? '/characters/ch-1.avif' : '/characters/ch-3.avif');
+
+      c.name = displayName;
+      c.ac = displayAc;
+      c.hp = displayHp;
+      c.maxHp = displayMaxHp;
+      c.avatarUrl = avatarUrl;
       const isDead = c.hp <= 0;
 
       const row = document.createElement('div');
       row.id = `dm-combatant-${c.id}`;
       row.className = [
-        'group relative rounded-xl p-3 border transition-all duration-200',
+        'group relative rounded-xl p-3 border transition-all duration-200 overflow-hidden',
         isCurrentTurn
           ? 'bg-amber-500/10 border-amber-500/70 shadow-[0_0_15px_rgba(245,158,11,0.25)]'
           : 'bg-[#18202e] border-[#222f42] hover:border-slate-700',
@@ -569,182 +627,110 @@
       ].filter(Boolean).join(' ');
 
       row.innerHTML = `
-        <div class="flex flex-wrap items-center justify-between gap-3">
-          <!-- LADO IZQUIERDO: INICIATIVA, NOMBRE Y CONDICIONES -->
-          <div class="flex items-center gap-3 min-w-0 flex-1">
-            <!-- Iniciativa editable al clic -->
-            <button
-              type="button"
-              class="dm-edit-init-btn w-9 h-9 rounded-lg shrink-0 flex items-center justify-center font-bold text-xs cursor-pointer ${
-                isCurrentTurn
-                  ? 'bg-amber-500 text-[#0a0d12] shadow-xs'
-                  : 'bg-[#10141d] border border-[#222f42] text-[#cbd5e1] hover:border-amber-500/40'
-              }"
-              data-id="${c.id}"
-              data-init="${c.initiative}"
-              title="Iniciativa: ${c.initiative} (clic para cambiar)"
-            >
-              ${c.initiative}
-            </button>
-
-            <!-- Datos del combatiente -->
-            <div class="min-w-0 space-y-0.5">
-              <div class="flex items-center gap-1.5 flex-wrap">
-                <span class="text-xs font-bold text-[#f1f5f9] truncate">
-                  ${c.name}
-                </span>
-                <span class="px-1.5 py-0.2 rounded text-[9px] font-bold ${
-                  c.isPlayer
-                    ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
-                    : 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
-                }">
-                  ${c.isPlayer ? 'PJ' : 'NPC'}
-                </span>
-                ${
+        <div class="flex flex-col gap-2.5 w-full">
+          <!-- FILA 1: IDENTIDAD, CONDICIONES Y ACCIONES DE FICHA -->
+          <div class="flex items-center justify-between gap-2 w-full">
+            <!-- Izquierda: Iniciativa + Avatar + Info -->
+            <div class="flex items-center gap-2.5 min-w-0 flex-1">
+              <!-- Iniciativa editable al clic -->
+              <button
+                type="button"
+                class="dm-edit-init-btn w-9 h-9 rounded-lg shrink-0 flex items-center justify-center font-bold text-xs cursor-pointer select-none ${
                   isCurrentTurn
-                    ? `<span class="px-2 py-0.5 rounded-full ${
-                        c.isPlayer
-                          ? 'bg-blue-500/25 text-blue-300 border border-blue-500/50'
-                          : 'bg-rose-500/25 text-rose-300 border border-rose-500/50'
-                      } text-[9px] font-bold inline-flex items-center gap-1 shadow-xs">
-                        <span class="w-1.5 h-1.5 rounded-full ${c.isPlayer ? 'bg-blue-400' : 'bg-rose-400'} animate-ping"></span>
-                        <span>⚔️ Actuando</span>
-                      </span>`
-                    : ''
-                }
-              </div>
+                    ? 'bg-amber-500 text-[#0a0d12] shadow-xs'
+                    : 'bg-[#10141d] border border-[#222f42] text-[#cbd5e1] hover:border-amber-500/40'
+                }"
+                data-id="${c.id}"
+                data-init="${c.initiative}"
+                title="Iniciativa: ${c.initiative} (clic para cambiar)"
+              >
+                ${c.initiative}
+              </button>
 
-              <!-- CA y Condiciones activas -->
-              <div class="flex items-center gap-2 flex-wrap text-[10px] text-[#94a3b8] font-label">
-                <span class="px-1.5 py-0.5 rounded bg-[#10141d] border border-[#222f42] text-[#cbd5e1] font-mono">
-                  CA ${c.ac || 10}
-                </span>
+              <!-- Avatar del combatiente -->
+              <img
+                src="${avatarUrl}"
+                alt="${c.name}"
+                class="w-9 h-9 rounded-xl object-cover border border-[#222f42] shrink-0 bg-[#10141d]"
+                onerror="this.onerror=null;this.src='/characters/ch-1.avif';"
+              />
 
-                <!-- Chips de condiciones -->
-                <div class="flex items-center gap-1 flex-wrap">
+              <!-- Datos del combatiente -->
+              <div class="min-w-0 flex-1 space-y-1">
+                <div class="flex items-center gap-1.5 flex-wrap min-w-0">
+                  <span class="text-xs sm:text-sm font-bold text-[#f1f5f9] truncate max-w-[150px] sm:max-w-xs md:max-w-md" title="${c.name}">
+                    ${c.name}
+                  </span>
+                  <span class="px-1.5 py-0.5 rounded text-[9px] font-bold whitespace-nowrap shrink-0 inline-flex items-center ${
+                    c.isPlayer
+                      ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
+                      : 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
+                  }">
+                    ${c.isPlayer ? 'PJ' : 'NPC'}
+                  </span>
                   ${
-                    c.conditions && c.conditions.length > 0
-                      ? c.conditions
-                          .map((condId) => {
-                            const info = getConditionInfo(condId);
-                            return `
-                        <button
-                          type="button"
-                          class="dm-remove-condition-btn inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded text-[9px] font-bold border ${info.color} hover:opacity-80 transition-opacity cursor-pointer"
-                          data-id="${c.id}"
-                          data-cond="${condId}"
-                          title="Quitar ${info.name}"
-                        >
-                          <span class="material-symbols-outlined text-[11px]">${info.icon}</span>
-                          <span>${info.name}</span>
-                          <span class="text-[9px] ml-0.5">×</span>
-                        </button>
-                      `;
-                          })
-                          .join('')
+                    isCurrentTurn
+                      ? `<span class="px-2 py-0.5 rounded-full ${
+                          c.isPlayer
+                            ? 'bg-blue-500/25 text-blue-300 border border-blue-500/50'
+                            : 'bg-rose-500/25 text-rose-300 border border-rose-500/50'
+                        } text-[9px] font-bold inline-flex items-center gap-1 shadow-xs whitespace-nowrap shrink-0">
+                          <span class="w-1.5 h-1.5 rounded-full ${c.isPlayer ? 'bg-blue-400' : 'bg-rose-400'} animate-ping shrink-0"></span>
+                          <span class="whitespace-nowrap">⚔️ Actuando</span>
+                        </span>`
                       : ''
                   }
-                  <button
-                    type="button"
-                    class="dm-add-condition-btn px-1.5 py-0.5 rounded bg-[#10141d] border border-[#222f42] hover:border-amber-500/40 text-[#94a3b8] hover:text-amber-300 text-[10px] cursor-pointer"
-                    data-id="${c.id}"
-                    title="Agregar condición a ${c.name}"
-                  >
-                    + Condición
-                  </button>
+                </div>
+
+                <!-- CA y Condiciones activas -->
+                <div class="flex items-center gap-1.5 flex-wrap text-[10px] text-[#94a3b8] font-label">
+                  <span class="px-1.5 py-0.5 rounded bg-[#10141d] border border-[#222f42] text-[#cbd5e1] font-mono whitespace-nowrap shrink-0 inline-flex items-center">
+                    CA ${c.ac || 10}
+                  </span>
+
+                  <!-- Chips de condiciones -->
+                  <div class="flex items-center gap-1 flex-wrap">
+                    ${
+                      c.conditions && c.conditions.length > 0
+                        ? c.conditions
+                            .map((condId) => {
+                              const info = getConditionInfo(condId);
+                              return `
+                          <button
+                            type="button"
+                            class="dm-remove-condition-btn inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-bold border ${info.color} hover:opacity-80 transition-opacity cursor-pointer whitespace-nowrap shrink-0"
+                            data-id="${c.id}"
+                            data-cond="${condId}"
+                            title="Quitar ${info.name}"
+                          >
+                            <span class="material-symbols-outlined text-[11px] shrink-0">${info.icon}</span>
+                            <span class="whitespace-nowrap">${info.name}</span>
+                            <span class="text-[9px] ml-0.5">×</span>
+                          </button>
+                        `;
+                            })
+                            .join('')
+                        : ''
+                    }
+                    <button
+                      type="button"
+                      class="dm-add-condition-btn px-1.5 py-0.5 rounded bg-[#10141d] border border-[#222f42] hover:border-amber-500/40 text-[#94a3b8] hover:text-amber-300 text-[10px] cursor-pointer whitespace-nowrap shrink-0 inline-flex items-center"
+                      data-id="${c.id}"
+                      title="Agregar condición a ${c.name}"
+                    >
+                      + Condición
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
 
-          <!-- LADO DERECHO: CONTROLES DE PG Y ACCIONES -->
-          <div class="flex items-center gap-3 shrink-0 flex-wrap">
-            <!-- Barra y Contador de PG -->
-            <div class="flex flex-col items-end min-w-[90px]">
-              <div class="text-xs font-bold font-mono text-[#cbd5e1] flex items-center gap-1">
-                <span id="dm-hp-num-${c.id}">${c.hp}</span>
-                <span class="text-[#64748b]">/${c.maxHp}</span>
-              </div>
-              <div class="w-24 h-1.5 bg-[#10141d] rounded-full overflow-hidden mt-1 border border-[#222f42]">
-                <div
-                  id="dm-hp-bar-${c.id}"
-                  class="h-full rounded-full transition-all ${
-                    c.hp <= c.maxHp * 0.25
-                      ? 'bg-rose-500'
-                      : c.hp <= c.maxHp * 0.5
-                      ? 'bg-amber-500'
-                      : 'bg-emerald-500'
-                  }"
-                  style="width: ${Math.max(0, Math.min(100, (c.hp / c.maxHp) * 100))}%"
-                ></div>
-              </div>
-            </div>
-
-            <!-- Botones de PG Rápido -->
-            <div class="flex items-center gap-1">
-              <button
-                type="button"
-                class="dm-hp-delta-btn w-6 h-6 rounded bg-[#10141d] border border-rose-900/40 hover:bg-rose-950/60 text-rose-300 text-[10px] font-bold font-mono flex items-center justify-center cursor-pointer"
-                data-id="${c.id}"
-                data-delta="-5"
-                title="Quitar 5 PG"
-              >-5</button>
-              <button
-                type="button"
-                class="dm-hp-delta-btn w-6 h-6 rounded bg-[#10141d] border border-rose-900/40 hover:bg-rose-950/60 text-rose-300 text-[10px] font-bold font-mono flex items-center justify-center cursor-pointer"
-                data-id="${c.id}"
-                data-delta="-1"
-                title="Quitar 1 PG"
-              >-1</button>
-              <button
-                type="button"
-                class="dm-hp-custom-btn px-1.5 h-6 rounded bg-[#10141d] border border-[#222f42] hover:border-amber-500/40 text-[#cbd5e1] text-[10px] font-bold flex items-center justify-center cursor-pointer"
-                data-id="${c.id}"
-                title="Aplicar daño o curación manual"
-              >Daño</button>
-              <button
-                type="button"
-                class="dm-hp-delta-btn w-6 h-6 rounded bg-[#10141d] border border-emerald-900/40 hover:bg-emerald-950/60 text-emerald-300 text-[10px] font-bold font-mono flex items-center justify-center cursor-pointer"
-                data-id="${c.id}"
-                data-delta="1"
-                title="Curar 1 PG"
-              >+1</button>
-              <button
-                type="button"
-                class="dm-hp-delta-btn w-6 h-6 rounded bg-[#10141d] border border-emerald-900/40 hover:bg-emerald-950/60 text-emerald-300 text-[10px] font-bold font-mono flex items-center justify-center cursor-pointer"
-                data-id="${c.id}"
-                data-delta="5"
-                title="Curar 5 PG"
-              >+5</button>
-            </div>
-
-            <!-- Botón Atacar: Sólo en turnos de enemigo, y ÚNICAMENTE sobre los jugadores -->
-            ${
-              isEnemyTurn && c.isPlayer && !isDead && activeCombatant
-                ? `
-                <button
-                  type="button"
-                  class="dm-attack-player-btn inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-rose-600/30 to-rose-500/20 border border-rose-500/50 hover:bg-rose-500/35 text-rose-200 text-xs font-bold transition-all cursor-pointer shadow-[0_0_12px_rgba(244,63,94,0.2)] active:scale-95"
-                  data-attacker-id="${activeCombatant.id}"
-                  data-attacker-name="${activeCombatant.name}"
-                  data-target-id="${c.id}"
-                  data-target-name="${c.name}"
-                  data-target-ac="${c.ac || 10}"
-                  title="Hacer que ${activeCombatant.name} ataque a ${c.name}"
-                >
-                  <span class="material-symbols-outlined text-[15px]">swords</span>
-                  <span>Atacar con ${activeCombatant.name}</span>
-                </button>
-              `
-                : ''
-            }
-
-            <!-- Acciones secundarias: Hidden HP, Duplicar, Eliminar -->
-            <div class="flex items-center gap-1 border-l border-[#222f42] pl-2">
+            <!-- Derecha: Acciones secundarias (Ocultar PG, Duplicar, Eliminar) -->
+            <div class="flex items-center gap-1 shrink-0 self-start pt-0.5">
               <!-- Toggle Hidden HP (RF-04) -->
               <button
                 type="button"
-                class="dm-toggle-hidden-hp-btn w-7 h-7 rounded-lg text-xs flex items-center justify-center transition-colors cursor-pointer ${
+                class="dm-toggle-hidden-hp-btn w-7 h-7 rounded-lg text-xs flex items-center justify-center transition-colors cursor-pointer shrink-0 ${
                   c.hiddenHp
                     ? 'text-[#94a3b8] hover:text-[#f1f5f9] bg-[#10141d]'
                     : 'text-amber-400 bg-amber-500/15 border border-amber-500/30'
@@ -759,7 +745,7 @@
               <!-- Duplicar combatiente (RF-03) -->
               <button
                 type="button"
-                class="dm-duplicate-btn w-7 h-7 rounded-lg text-[#94a3b8] hover:text-[#f1f5f9] hover:bg-[#10141d] text-xs flex items-center justify-center transition-colors cursor-pointer"
+                class="dm-duplicate-btn w-7 h-7 rounded-lg text-[#94a3b8] hover:text-[#f1f5f9] hover:bg-[#10141d] text-xs flex items-center justify-center transition-colors cursor-pointer shrink-0"
                 data-id="${c.id}"
                 title="Duplicar combatiente (+1 copia)"
               >
@@ -769,13 +755,101 @@
               <!-- Eliminar combatiente -->
               <button
                 type="button"
-                class="dm-remove-combatant-btn w-7 h-7 rounded-lg text-rose-400/80 hover:text-rose-300 hover:bg-rose-950/40 text-xs flex items-center justify-center transition-colors cursor-pointer"
+                class="dm-remove-combatant-btn w-7 h-7 rounded-lg text-rose-400/80 hover:text-rose-300 hover:bg-rose-950/40 text-xs flex items-center justify-center transition-colors cursor-pointer shrink-0"
                 data-id="${c.id}"
                 data-name="${c.name}"
                 title="Eliminar de este combate"
               >
                 <span class="material-symbols-outlined text-[16px]">close</span>
               </button>
+            </div>
+          </div>
+
+          <!-- FILA 2: CONTROLES DE PG, BARRA Y BOTÓN DE ATAQUE -->
+          <div class="flex items-center justify-between gap-2.5 sm:gap-3 flex-wrap w-full border-t border-[#222f42]/60 pt-2.5">
+            <!-- Izquierda: Barra y Contador de PG -->
+            <div class="flex items-center gap-2 sm:gap-2.5 shrink-0">
+              <div class="flex flex-col items-start min-w-[75px] sm:min-w-[85px] shrink-0">
+                <div class="text-xs font-bold font-mono text-[#cbd5e1] flex items-center gap-1 whitespace-nowrap">
+                  <span id="dm-hp-num-${c.id}">${c.hp}</span>
+                  <span class="text-[#64748b]">/${c.maxHp}</span>
+                </div>
+                <div class="w-20 sm:w-24 h-1.5 bg-[#10141d] rounded-full overflow-hidden mt-1 border border-[#222f42]">
+                  <div
+                    id="dm-hp-bar-${c.id}"
+                    class="h-full rounded-full transition-all ${
+                      c.hp <= c.maxHp * 0.25
+                        ? 'bg-rose-500'
+                        : c.hp <= c.maxHp * 0.5
+                        ? 'bg-amber-500'
+                        : 'bg-emerald-500'
+                    }"
+                    style="width: ${Math.max(0, Math.min(100, (c.hp / c.maxHp) * 100))}%"
+                  ></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Centro / Derecha: Botón Atacar + Botones de PG Rápido -->
+            <div class="flex items-center gap-1.5 sm:gap-2 shrink-0 flex-wrap">
+              <!-- Botón Atacar: Sólo en turnos de enemigo, y ÚNICAMENTE sobre los jugadores -->
+              ${
+                isEnemyTurn && c.isPlayer && !isDead && activeCombatant
+                  ? `
+                  <button
+                    type="button"
+                    class="dm-attack-player-btn inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-gradient-to-r from-rose-600/30 to-rose-500/20 border border-rose-500/50 hover:bg-rose-500/35 text-rose-200 text-xs font-bold transition-all cursor-pointer shadow-[0_0_12px_rgba(244,63,94,0.2)] active:scale-95 shrink-0"
+                    data-attacker-id="${activeCombatant.id}"
+                    data-attacker-name="${activeCombatant.name}"
+                    data-target-id="${c.id}"
+                    data-target-name="${c.name}"
+                    data-target-ac="${c.ac || 10}"
+                    title="Hacer que ${activeCombatant.name} ataque a ${c.name}"
+                  >
+                    <span class="material-symbols-outlined text-[15px] shrink-0">swords</span>
+                    <span class="truncate max-w-[130px] sm:max-w-[190px]">Atacar con ${activeCombatant.name}</span>
+                  </button>
+                `
+                  : ''
+              }
+
+              <!-- Botones de PG Rápido -->
+              <div class="flex items-center gap-1 shrink-0">
+                <button
+                  type="button"
+                  class="dm-hp-delta-btn w-6 h-6 rounded bg-[#10141d] border border-rose-900/40 hover:bg-rose-950/60 text-rose-300 text-[10px] font-bold font-mono flex items-center justify-center cursor-pointer shrink-0"
+                  data-id="${c.id}"
+                  data-delta="-5"
+                  title="Quitar 5 PG"
+                >-5</button>
+                <button
+                  type="button"
+                  class="dm-hp-delta-btn w-6 h-6 rounded bg-[#10141d] border border-rose-900/40 hover:bg-rose-950/60 text-rose-300 text-[10px] font-bold font-mono flex items-center justify-center cursor-pointer shrink-0"
+                  data-id="${c.id}"
+                  data-delta="-1"
+                  title="Quitar 1 PG"
+                >-1</button>
+                <button
+                  type="button"
+                  class="dm-hp-custom-btn px-1.5 h-6 rounded bg-[#10141d] border border-[#222f42] hover:border-amber-500/40 text-[#cbd5e1] text-[10px] font-bold flex items-center justify-center cursor-pointer shrink-0 whitespace-nowrap"
+                  data-id="${c.id}"
+                  title="Aplicar daño o curación manual"
+                >Daño</button>
+                <button
+                  type="button"
+                  class="dm-hp-delta-btn w-6 h-6 rounded bg-[#10141d] border border-emerald-900/40 hover:bg-emerald-950/60 text-emerald-300 text-[10px] font-bold font-mono flex items-center justify-center cursor-pointer shrink-0"
+                  data-id="${c.id}"
+                  data-delta="1"
+                  title="Curar 1 PG"
+                >+1</button>
+                <button
+                  type="button"
+                  class="dm-hp-delta-btn w-6 h-6 rounded bg-[#10141d] border border-emerald-900/40 hover:bg-emerald-950/60 text-emerald-300 text-[10px] font-bold font-mono flex items-center justify-center cursor-pointer shrink-0"
+                  data-id="${c.id}"
+                  data-delta="5"
+                  title="Curar 5 PG"
+                >+5</button>
+              </div>
             </div>
           </div>
         </div>
@@ -1152,12 +1226,14 @@
     modalPlayersList.innerHTML = '';
 
     if (players.length === 0) {
+      reqInitModalBtn?.classList.add('hidden');
       modalPlayersList.innerHTML = `
         <p class="text-xs text-[#94a3b8] italic p-2 bg-[#18202e] rounded-lg">
           No hay aventureros asignados a esta campaña. Podés agregar oponentes abajo.
         </p>
       `;
     } else {
+      reqInitModalBtn?.classList.remove('hidden');
       players.forEach((p) => {
         const item = document.createElement('div');
         item.className = 'flex items-center justify-between gap-3 p-2 rounded-lg bg-[#18202e] border border-[#222f42]';
@@ -1224,12 +1300,13 @@
     const playerInputs = modalPlayersList?.querySelectorAll<HTMLInputElement>('.dm-player-init-input');
     playerInputs?.forEach((input) => {
       const charId = input.dataset.charId || '';
-      const name = input.dataset.name || 'Aventurero';
+      const liveChar = charId ? campaignStore.getCharacter(charId) : undefined;
+      const name = liveChar?.name?.trim() ? liveChar.name.trim() : (input.dataset.name || 'Aventurero');
       const initVal = Number(input.value) || 10;
-      const hp = Number(input.dataset.hp) || 10;
-      const maxHp = Number(input.dataset.maxHp) || 10;
-      const ac = Number(input.dataset.ac) || 10;
-      const ownerUid = input.dataset.owner || undefined;
+      const hp = typeof liveChar?.hp?.current === 'number' ? liveChar.hp.current : (Number(input.dataset.hp) || 10);
+      const maxHp = typeof liveChar?.hp?.max === 'number' && liveChar.hp.max > 0 ? liveChar.hp.max : (Number(input.dataset.maxHp) || 10);
+      const ac = typeof liveChar?.armorClass === 'number' ? liveChar.armorClass : (Number(input.dataset.ac) || 10);
+      const ownerUid = liveChar?.userId || input.dataset.owner || undefined;
 
       combatants.push({
         id: `pc-${charId}-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
@@ -1243,6 +1320,7 @@
         hiddenHp: false,
         ownerUid,
         characterId: charId,
+        avatarUrl: liveChar?.avatarUrl || input.dataset.avatar || '/characters/ch-1.avif',
       });
     });
 
@@ -1271,6 +1349,7 @@
           conditions: [],
           isPlayer: false,
           hiddenHp: true,
+          avatarUrl: '/characters/ch-3.avif',
         });
       }
     }
@@ -1345,6 +1424,7 @@
         conditions: [],
         isPlayer: false,
         hiddenHp: true,
+        avatarUrl: '/characters/ch-3.avif',
       };
       await addCombatant(currentCampaignId, newCombatant);
     }
@@ -1365,11 +1445,137 @@
     }
   });
 
+  // --- Solicitud de iniciativa por broadcast ---
+  async function handleRequestInitiative() {
+    if (!currentCampaignId) return;
+    const canPlay = checkCanPlay(currentCampaignId);
+    if (!canPlay) {
+      await showAlert('La partida no está activa (está pausada o terminada).', { kind: 'warning' });
+      return;
+    }
+
+    const camp = campaignStore.getCampaign(currentCampaignId);
+    const dmName = camp?.dmName || 'Dungeon Master';
+
+    campaignStore.sendDmEvent(currentCampaignId, {
+      campaignId: currentCampaignId,
+      type: 'request_initiative',
+      dmName,
+      payload: {
+        title: '¡Tirada de Iniciativa!',
+        description: 'El Dungeon Master solicita tiradas de iniciativa para el combate.',
+        requestInitiative: {
+          combatId: currentCampaignId,
+        },
+      },
+    });
+
+    await showAlert('Solicitud de iniciativa enviada a los jugadores de la mesa.', {
+      title: 'Iniciativa solicitada',
+      kind: 'success',
+    });
+  }
+
+  reqInitActiveBtn?.addEventListener('click', handleRequestInitiative);
+  reqInitModalBtn?.addEventListener('click', handleRequestInitiative);
+
+  // Recepción de resultados de iniciativa de jugadores
+  function onInitiativeResultReceived(detail: {
+    campaignId?: string;
+    characterId?: string;
+    characterName?: string;
+    initiativeTotal: number;
+  }) {
+    if (!detail || !currentCampaignId || detail.campaignId !== currentCampaignId) return;
+
+    // 1. Si el modal de inicio de combate está visible, actualizar el input del aventurero
+    if (startModal && !startModal.classList.contains('hidden')) {
+      const input = modalPlayersList?.querySelector<HTMLInputElement>(
+        `input.dm-player-init-input[data-char-id="${detail.characterId}"]`
+      );
+      if (input) {
+        input.value = String(detail.initiativeTotal);
+        input.classList.add('ring-2', 'ring-emerald-500', 'bg-emerald-950/50');
+        setTimeout(() => {
+          input.classList.remove('ring-2', 'ring-emerald-500', 'bg-emerald-950/50');
+        }, 3000);
+      }
+    }
+
+    // 2. Si el combate ya está activo, actualizar o añadir el combatiente
+    const combat = getCurrentCombat(currentCampaignId);
+    if (combat && combat.active && detail.characterId) {
+      const targetCombatant = combat.combatants.find(
+        (c) => c.isPlayer && (c.characterId === detail.characterId || c.id === `pc-${detail.characterId}`)
+      );
+      if (targetCombatant) {
+        updateCombatant(currentCampaignId, targetCombatant.id, {
+          initiative: detail.initiativeTotal,
+        });
+      } else {
+        const liveChar = campaignStore.getCharacter(detail.characterId);
+        const newPlayerCombatant: Combatant = {
+          id: `pc-${detail.characterId}-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+          name: liveChar?.name?.trim() || detail.characterName || 'Aventurero',
+          initiative: detail.initiativeTotal,
+          hp: typeof liveChar?.hp?.current === 'number' ? liveChar.hp.current : 10,
+          maxHp: typeof liveChar?.hp?.max === 'number' && liveChar.hp.max > 0 ? liveChar.hp.max : 10,
+          ac: typeof liveChar?.armorClass === 'number' ? liveChar.armorClass : 10,
+          conditions: [],
+          isPlayer: true,
+          hiddenHp: false,
+          ownerUid: liveChar?.userId,
+          characterId: detail.characterId,
+          avatarUrl: liveChar?.avatarUrl || '/characters/ch-1.avif',
+        };
+        addCombatant(currentCampaignId, newPlayerCombatant);
+      }
+    }
+  }
+
+  window.addEventListener('initiative-result', ((e: CustomEvent) => {
+    onInitiativeResultReceived(e.detail);
+  }) as EventListener);
+
+  if (typeof BroadcastChannel !== 'undefined') {
+    try {
+      const bc = new BroadcastChannel('dnd_campaign_bus_v1');
+      bc.onmessage = (e) => {
+        if (e.data?.type === 'initiative-result' && e.data.detail) {
+          onInitiativeResultReceived(e.data.detail);
+        }
+      };
+      if (typeof (bc as any).unref === 'function') (bc as any).unref();
+    } catch (_) {}
+  }
+
+  // Sincronización en vivo cuando los personajes cambian
+  window.addEventListener('character-updated', async () => {
+    if (currentCampaignId) {
+      await syncCombatWithLiveCharacters(currentCampaignId);
+    }
+  });
+  window.addEventListener('characters-updated', async () => {
+    if (currentCampaignId) {
+      await syncCombatWithLiveCharacters(currentCampaignId);
+    }
+  });
+
   // Escuchar eventos globales
   window.addEventListener('DOMContentLoaded', init);
   window.addEventListener('popstate', init);
   window.addEventListener('campaign-activated', init);
-  window.addEventListener('campaigns-updated', init);
+  window.addEventListener('campaigns-updated', () => {
+    init();
+    if (currentCampaignId) {
+      render(getCurrentCombat(currentCampaignId));
+    }
+  });
+  window.addEventListener('characters-updated', () => {
+    if (currentCampaignId) {
+      render(getCurrentCombat(currentCampaignId));
+    }
+  });
   window.addEventListener('session-status-changed', updateStatusLock);
 
   if (document.readyState === 'complete' || document.readyState === 'interactive') {

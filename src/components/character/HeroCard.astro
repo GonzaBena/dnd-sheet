@@ -13,7 +13,8 @@
             id="hero-avatar-img"
             alt="Retrato del personaje"
             class="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-500"
-            src="https://lh3.googleusercontent.com/aida/ALJJyrBB58Th1LIT7lpeirKCc7greaknxjOFNsUVNXZz77F5UWABzUCxDIFrQsVH-v4M8A0YgzwBmDWfYKMutfm3_bdT3-V88pDbTqbx_y9NSuqyMrjiqmBJFvMng6gAO_JzyQ-W01nJjgrp1Vet0W6NkBOEMRrfEvwxOJ23tXexyZedPfyPSJf0S-NEBKVoih8xE_7kPjBiWbV5F_mIeuzrCDq9-2Qj9c1VoQCcRXRuCkddZQ"
+            src="/characters/ch-1.avif"
+            onerror="this.onerror=null;this.src='/characters/ch-1.avif';"
           />
           <div class="absolute inset-0 bg-gradient-to-t from-[#0a0d12]/80 via-transparent to-transparent"></div>
           <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 bg-black/40 backdrop-blur-xs transition-opacity text-amber-300 text-xs font-bold gap-1">
@@ -78,6 +79,7 @@
   import { showAlert, showChoice, showPrompt } from '../../scripts/ui/notify';
   import { characterStore } from '../../scripts/state/characterStore';
   import { openModal } from '../../scripts/animations/modalAnimations';
+  import { getRandomCharacterAvatar, isBrokenAvatarUrl } from '../../scripts/data/characterAvatars';
 
   // Inspiration Toggle
   const inspBtn = document.getElementById('hero-inspiration-btn');
@@ -115,10 +117,13 @@
     }
 
     const method = await showChoice('¿De dónde querés sacar la imagen?', [
+      { value: 'random', label: 'Retrato predeterminado aleatorio', description: 'Elige un retrato al azar de los predeterminados', icon: 'shuffle' },
       { value: 'upload', label: 'Subir una foto', description: 'Desde tu galería o tu PC', icon: 'photo_library' },
       { value: 'url', label: 'Pegar un enlace', description: 'URL de una imagen en internet', icon: 'link' },
     ], { title: 'Cambiar imagen del personaje' });
-    if (method === 'upload') {
+    if (method === 'random') {
+      characterStore.updateProfile({ avatarUrl: getRandomCharacterAvatar() });
+    } else if (method === 'upload') {
       photoInput?.click();
     } else if (method === 'url') {
       const url = await showPrompt('URL de la imagen', {
@@ -180,7 +185,13 @@
     if (profEl) profEl.textContent = `Competencia +${char.proficiencyBonus}`;
     if (quoteEl) quoteEl.textContent = char.quote;
     if (sealEl) sealEl.textContent = String(char.level);
-    if (avatarEl && char.avatarUrl) avatarEl.src = char.avatarUrl;
+    if (avatarEl) {
+      const safeUrl = isBrokenAvatarUrl(char?.avatarUrl) ? getRandomCharacterAvatar() : char.avatarUrl;
+      avatarEl.src = safeUrl;
+      if (char && char.avatarUrl !== safeUrl) {
+        characterStore.updateProfile({ avatarUrl: safeUrl });
+      }
+    }
 
     updateInspirationUi(char.inspiration);
   }

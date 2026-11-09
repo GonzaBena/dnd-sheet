@@ -346,11 +346,11 @@ Es la parte más usada por un DM y valida el flujo en vivo con la menor compleji
 
 ### Fase 2 — Mapa estático
 
-- [ ] T-20 Isla `MapStage.astro` con `client:only` y componente Konva (capas: fondo, grilla, tokens, niebla).
-- [ ] T-21 Subida o enlace de imagen, y configuración de grilla (tamaño, desplazamiento, visible).
-- [ ] T-22 Zoom y pan, incluido táctil.
-- [ ] T-23 `mapService.ts`: crear, listar y activar mapas; `onSnapshot` del mapa activo.
-- [ ] T-24 Cambio de mapa para jugadores con transición.
+- [x] T-20 Isla `MapStage.astro` con `client:only` y componente Konva (capas: fondo, grilla, tokens, niebla).
+- [x] T-21 Subida o enlace de imagen, y configuración de grilla (tamaño, desplazamiento, visible).
+- [x] T-22 Zoom y pan, incluido táctil.
+- [x] T-23 `mapService.ts`: crear, listar y activar mapas; `onSnapshot` del mapa activo.
+- [x] T-24 Cambio de mapa para jugadores con transición.
 
 ### Fase 3 — Tokens con sincronización en vivo
 

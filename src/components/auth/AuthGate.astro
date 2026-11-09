@@ -133,7 +133,9 @@
 
   function render(state: string) {
     if (!gate) return;
-    const visible = state === 'loading' || state === 'signed-out';
+    // El modal de autenticación solo debe mostrarse cuando el usuario no tiene sesión activa.
+    // Durante 'loading' transitorio al navegar entre páginas, no se muestra para no interrumpir al usuario.
+    const visible = state === 'signed-out';
     gate.classList.toggle('hidden', !visible);
     gate.classList.toggle('flex', visible);
     loading?.classList.toggle('hidden', state !== 'loading');

@@ -70,6 +70,16 @@ class CloudSession {
   /** Se resuelve en modo local enseguida, o cuando hay sesión y llegaron los primeros datos. */
   public ready(): Promise<void> {
     this.start();
+    // Temporizador de seguridad global: si pasan 5s y sigue cargando, resolvemos para evitar congelar la UI.
+    if (typeof window !== 'undefined') {
+      setTimeout(() => {
+        if (this.state === 'loading') {
+          console.warn('[CloudSync] Timeout global de ready() alcanzado, desbloqueando interfaz.');
+          this.setState(this.uid ? 'ready' : 'signed-out');
+          this.resolveReady();
+        }
+      }, 5000);
+    }
     return this.readyPromise;
   }
 
@@ -97,17 +107,21 @@ class CloudSession {
         this.handleSignIn(user).catch(err => {
           console.error('[CloudSync] Error al iniciar la sesión en la nube', err);
           this.reportError(err);
+          this.setState('ready');
+          this.resolveReady();
         });
       } else if (this.uid) {
         // Cerró sesión en otra pestaña: se recarga para limpiar todo el estado en memoria.
         window.location.reload();
       } else {
         this.setState('signed-out');
+        this.resolveReady();
       }
     }).catch(err => {
       console.error('[CloudSync] No se pudo inicializar Firebase', err);
       this.reportError(err);
       this.setState('signed-out');
+      this.resolveReady();
     });
   }
 
@@ -124,60 +138,76 @@ class CloudSession {
   private async handleSignIn(user: User) {
     if (this.uid === user.uid) return;
     this.setState('loading');
-    const { db } = await getFirebase();
-    this.db = db;
-    this.fs = await import('firebase/firestore');
-    this.uid = user.uid;
 
-    const me = await this.ensureProfile(user);
-    userStore.enterCloudMode(me);
-    this.knownProfiles.add(me.id);
+    try {
+      const { db } = await getFirebase();
+      this.db = db;
+      this.fs = await import('firebase/firestore');
+      this.uid = user.uid;
 
-    campaignStore.attachCloud({
-      applyCampaignChanges: changes => this.writeCampaignChanges(changes),
-      applyCharacterChanges: changes => this.writeCharacterChanges(changes),
-      isCharacterPending: id => this.pendingCharacters.has(id),
-      sendDmEvent: event => this.writeDmEvent(event),
-    });
-    journalStore.attachCloud({
-      addEntry: entry => this.writeJournalEntry(entry),
-      deleteEntry: entry => this.removeJournalEntry(entry),
-    });
+      const me = await this.ensureProfile(user).catch(err => {
+        console.warn('[CloudSync] No se pudo sincronizar perfil en Firestore, usando fallback local', err);
+        return toAppUser(user);
+      });
+      userStore.enterCloudMode(me);
+      this.knownProfiles.add(me.id);
 
-    const migration = await migrateLocalData(db, me).catch(err => {
-      console.error('[CloudSync] Falló la importación de datos locales', err);
+      campaignStore.attachCloud({
+        applyCampaignChanges: changes => this.writeCampaignChanges(changes),
+        applyCharacterChanges: changes => this.writeCharacterChanges(changes),
+        isCharacterPending: id => this.pendingCharacters.has(id),
+        sendDmEvent: event => this.writeDmEvent(event),
+      });
+      journalStore.attachCloud({
+        addEntry: entry => this.writeJournalEntry(entry),
+        deleteEntry: entry => this.removeJournalEntry(entry),
+      });
+
+      const migration = await migrateLocalData(db, me).catch(err => {
+        console.error('[CloudSync] Falló la importación de datos locales', err);
+        this.reportError(err);
+        return null;
+      });
+
+      await this.subscribeBase();
+      this.bindStoreEvents();
+      // Sala RTDB del VTT (/rooms/{liveRoomId}) de cada campaña donde el usuario es DM.
+      startRoomSync(() => this.uid);
+
+      if (migration?.activeCharacter) {
+        characterStore.loadCharacter(migration.activeCharacter);
+      }
+      if (migration && (migration.campaigns || migration.characters || migration.entries)) {
+        window.dispatchEvent(new CustomEvent('cloud-migration-done', { detail: migration }));
+      }
+    } catch (err) {
+      console.error('[CloudSync] Error durante handleSignIn', err);
       this.reportError(err);
-      return null;
-    });
-
-    await this.subscribeBase();
-    this.bindStoreEvents();
-    // Sala RTDB del VTT (/rooms/{liveRoomId}) de cada campaña donde el usuario es DM.
-    startRoomSync(() => this.uid);
-
-    if (migration?.activeCharacter) {
-      characterStore.loadCharacter(migration.activeCharacter);
+    } finally {
+      this.setState('ready');
+      this.resolveReady();
     }
-    if (migration && (migration.campaigns || migration.characters || migration.entries)) {
-      window.dispatchEvent(new CustomEvent('cloud-migration-done', { detail: migration }));
-    }
-
-    this.setState('ready');
-    this.resolveReady();
   }
 
   private async ensureProfile(user: User): Promise<AppUser> {
     const fs = this.fs!;
     const ref = fs.doc(this.db!, 'users', user.uid);
-    const snap = await fs.getDoc(ref);
-    const existing = snap.exists() ? (snap.data() as any) : null;
+    // Timeout seguro de 3s para evitar bloqueos si la red es inestable
+    const snap = await Promise.race([
+      fs.getDoc(ref),
+      new Promise<null>((_, reject) => setTimeout(() => reject(new Error('Profile getDoc timeout')), 3000)),
+    ]).catch(() => null);
+
+    const existing = snap && snap.exists() ? (snap.data() as any) : null;
     const me = toAppUser(user, existing ? { name: existing.name, avatarUrl: existing.avatarUrl } : undefined);
     // El email no se guarda en el perfil público (lo pueden leer otros jugadores).
     const profile: Record<string, any> = { name: me.name };
     if (me.avatarUrl) profile.avatarUrl = me.avatarUrl;
     if (!existing) profile.createdAt = Date.now();
     if (!existing || existing.name !== profile.name || existing.avatarUrl !== profile.avatarUrl) {
-      await fs.setDoc(ref, profile, { merge: true });
+      fs.setDoc(ref, profile, { merge: true }).catch(err => {
+        console.warn('[CloudSync] No se pudo guardar perfil actualizado', err);
+      });
     }
     return me;
   }
@@ -209,21 +239,41 @@ class CloudSession {
     let campaignsLoaded = false;
     let charactersLoaded = false;
     return new Promise(resolve => {
-      const maybeResolve = () => {
-        if (campaignsLoaded && charactersLoaded) resolve();
+      let settled = false;
+      const finish = () => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timeoutId);
+        resolve();
       };
+
+      const maybeResolve = () => {
+        if (campaignsLoaded && charactersLoaded) finish();
+      };
+
+      // Si Firestore tarda más de 3.5s por contención de bloqueos IndexedDB o latencia de red,
+      // resolvemos para no congelar la carga. Los snapshots seguirán actualizando la UI en vivo.
+      const timeoutId = setTimeout(() => {
+        console.warn('[CloudSync] subscribeBase timeout alcanzado (3.5s), procediendo con datos disponibles');
+        finish();
+      }, 3500);
 
       this.baseUnsubs.push(fs.onSnapshot(
         fs.query(fs.collection(db, 'campaigns'), fs.where('memberUserIds', 'array-contains', uid)),
         snap => {
-          const campaigns = snap.docs.map(d => ({ ...(d.data() as Campaign), id: d.id }));
-          this.inviteCodes = new Map(campaigns.filter(c => c.inviteCode).map(c => [c.id, c.inviteCode!]));
-          campaignStore.applyRemoteCampaigns(campaigns);
-          this.syncCampaignListeners(campaigns.map(c => c.id));
-          this.loadProfiles(campaigns.flatMap(c => c.memberUserIds || []));
-          this.syncJournalListeners();
-          campaignsLoaded = true;
-          maybeResolve();
+          try {
+            const campaigns = snap.docs.map(d => ({ ...(d.data() as Campaign), id: d.id }));
+            this.inviteCodes = new Map(campaigns.filter(c => c.inviteCode).map(c => [c.id, c.inviteCode!]));
+            campaignStore.applyRemoteCampaigns(campaigns);
+            this.syncCampaignListeners(campaigns.map(c => c.id));
+            this.loadProfiles(campaigns.flatMap(c => c.memberUserIds || []));
+            this.syncJournalListeners();
+          } catch (e) {
+            console.error('[CloudSync] Error procesando snapshot de campaigns', e);
+          } finally {
+            campaignsLoaded = true;
+            maybeResolve();
+          }
         },
         err => {
           console.error('[CloudSync] campaigns listener', err);
@@ -236,9 +286,14 @@ class CloudSession {
       this.baseUnsubs.push(fs.onSnapshot(
         fs.query(fs.collection(db, 'characters'), fs.where('userId', '==', uid)),
         snap => {
-          campaignStore.applyRemoteCharacters('mine', snap.docs.map(d => this.toCharacter(d)));
-          charactersLoaded = true;
-          maybeResolve();
+          try {
+            campaignStore.applyRemoteCharacters('mine', snap.docs.map(d => this.toCharacter(d)));
+          } catch (e) {
+            console.error('[CloudSync] Error procesando snapshot de characters', e);
+          } finally {
+            charactersLoaded = true;
+            maybeResolve();
+          }
         },
         err => {
           console.error('[CloudSync] characters listener', err);
@@ -251,7 +306,13 @@ class CloudSession {
       // Notas de personajes sin campaña.
       this.baseUnsubs.push(fs.onSnapshot(
         fs.query(fs.collection(db, 'users', uid, 'notes'), fs.orderBy('timestamp', 'desc'), fs.limit(JOURNAL_LIMIT)),
-        snap => journalStore.applyRemoteEntries('notes', snap.docs.map(d => this.toEntry(d))),
+        snap => {
+          try {
+            journalStore.applyRemoteEntries('notes', snap.docs.map(d => this.toEntry(d)));
+          } catch (e) {
+            console.error('[CloudSync] Error procesando snapshot de notes', e);
+          }
+        },
         err => console.warn('[CloudSync] notes listener', err)
       ));
     });
@@ -403,7 +464,8 @@ class CloudSession {
     const data = d.data() as any;
     const visibility: JournalVisibility = data.visibility || 'party';
     const { visibility: _v, ...rest } = data;
-    return withVisibility({ ...rest, id: d.id } as JournalEntry, visibility);
+    const campaignId = data.campaignId || (d.ref?.parent?.parent?.id) || undefined;
+    return withVisibility({ ...rest, campaignId, id: d.id } as JournalEntry, visibility);
   }
 
   // ---------------------------------------------------------------------------
@@ -538,8 +600,9 @@ class CloudSession {
 
   private removeJournalEntry(entry: JournalEntry) {
     if (!this.fs || !this.db || !this.uid) return;
-    const ref = entry.campaignId
-      ? this.fs.doc(this.db, 'campaigns', entry.campaignId, 'journal', entry.id)
+    const campaignId = entry.campaignId || campaignStore.getActiveCampaignId();
+    const ref = campaignId && campaignStore.getCampaign(campaignId)
+      ? this.fs.doc(this.db, 'campaigns', campaignId, 'journal', entry.id)
       : this.fs.doc(this.db, 'users', this.uid, 'notes', entry.id);
     this.fs.deleteDoc(ref).catch(err => this.onWriteError(err));
   }

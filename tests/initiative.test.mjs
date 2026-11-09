@@ -10,6 +10,8 @@ import {
   duplicateCombatant,
   applyDamage,
   visibleHp,
+  syncCombatantsWithCharacters,
+  areAllPlayersInInitiative,
 } from '../src/scripts/vtt/initiative.ts';
 
 function combatant(id, name, initiative, isPlayer = false, hiddenHp = true, ownerUid = null) {
@@ -180,3 +182,103 @@ test('visibleHp respects DM, character ownership and hiddenHp', () => {
   // Jugador SÍ ve monstruo revelado
   assert.deepEqual(visibleHp(monsterRevealed, { uid: 'uid-elena', isDm: false }), { hp: 10, maxHp: 10 });
 });
+
+test('syncCombatantsWithCharacters synchronizes player name, HP, maxHp and AC in real time', () => {
+  const p1 = {
+    ...combatant('c-p1', 'Thorin', 18, true, false, 'uid-1'),
+    characterId: 'char-thorin',
+    ac: 14,
+  };
+  const m1 = {
+    ...combatant('c-m1', 'Goblin 1', 12, false, true, null),
+    ac: 13,
+  };
+
+  const initialCombat = baseCombat([p1, m1]);
+
+  // Personaje vivo con nombre actualizado, daño recibido y CA mayor
+  const liveCharacters = [
+    {
+      id: 'char-thorin',
+      name: 'Thorin Escudo de Roble',
+      hp: { current: 15, max: 28, temp: 0 },
+      armorClass: 16,
+    },
+  ];
+
+  const result = syncCombatantsWithCharacters(initialCombat, liveCharacters);
+
+  assert.equal(result.changed, true);
+  const syncedThorin = result.combat.combatants.find((c) => c.id === 'c-p1');
+  assert.ok(syncedThorin);
+  assert.equal(syncedThorin.name, 'Thorin Escudo de Roble');
+  assert.equal(syncedThorin.hp, 15);
+  assert.equal(syncedThorin.maxHp, 28);
+  assert.equal(syncedThorin.ac, 16);
+  assert.equal(syncedThorin.initiative, 18); // Iniciativa preservada
+
+  // El monstruo no debe haber sido tocado
+  const goblin = result.combat.combatants.find((c) => c.id === 'c-m1');
+  assert.ok(goblin);
+  assert.equal(goblin.name, 'Goblin 1');
+  assert.equal(goblin.hp, 10);
+
+  // Segunda pasada sin cambios debe devolver changed: false
+  const noChangeResult = syncCombatantsWithCharacters(result.combat, liveCharacters);
+  assert.equal(noChangeResult.changed, false);
+});
+
+test('areAllPlayersInInitiative returns false if combat is null or inactive', () => {
+  assert.equal(areAllPlayersInInitiative(null, [{ id: 'p1', name: 'Roland' }]), false);
+  assert.equal(areAllPlayersInInitiative({ active: false, combatants: [] }, [{ id: 'p1' }]), false);
+});
+
+test('areAllPlayersInInitiative: hides "Pedir Iniciativa" when all campaign characters are in initiative list', () => {
+  const campaignChars = [
+    { id: 'char-roland', name: 'Roland' },
+    { id: 'char-lyra', name: 'Lyra' },
+  ];
+
+  // Caso 1: Solo Roland en combate -> Faltan jugadores (false)
+  const c1 = baseCombat([
+    { ...combatant('pc-char-roland', 'Roland', 10, true), characterId: 'char-roland' },
+    combatant('m1', 'Goblin', 12, false),
+  ]);
+  assert.equal(
+    areAllPlayersInInitiative(c1, campaignChars),
+    false,
+    'Debe retornar false si falta Lyra en el orden de combate'
+  );
+
+  // Caso 2: Roland y Lyra ambos en combate -> Todos presentes (true)
+  const c2 = baseCombat([
+    { ...combatant('pc-char-roland', 'Roland', 10, true), characterId: 'char-roland' },
+    { ...combatant('pc-char-lyra', 'Lyra', 14, true), characterId: 'char-lyra' },
+    combatant('m1', 'Goblin', 12, false),
+  ]);
+  assert.equal(
+    areAllPlayersInInitiative(c2, campaignChars),
+    true,
+    'Debe retornar true si todos los personajes de la campaña están en iniciativa'
+  );
+
+  // Caso 3: Campaña con solo Roland (como en la captura del usuario)
+  const singleCharCampaign = [{ id: 'char-roland', name: 'Roland' }];
+  assert.equal(
+    areAllPlayersInInitiative(c1, singleCharCampaign),
+    true,
+    'Debe retornar true cuando el único jugador de la campaña ya está en iniciativa'
+  );
+
+  // Caso 4: Resolución por nombre o prefijo de ID
+  const c4 = baseCombat([
+    { ...combatant('pc-char-roland-12345', 'Roland', 10, true) },
+  ]);
+  assert.equal(
+    areAllPlayersInInitiative(c4, singleCharCampaign),
+    true,
+    'Debe resolver por nombre o prefijo de ID pc-<id>'
+  );
+});
+
+

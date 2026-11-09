@@ -8,6 +8,10 @@ export interface GridConfig {
   offsetX: number;
   offsetY: number;
   visible: boolean;
+  /** Color de la cuadrícula en formato hex (ej: '#ffffff'). Por defecto '#ffffff'. */
+  color?: string;
+  /** Opacidad de la cuadrícula entre 0.05 y 1 (ej: 0.7). Por defecto 0.65. */
+  opacity?: number;
 }
 
 export interface Token {

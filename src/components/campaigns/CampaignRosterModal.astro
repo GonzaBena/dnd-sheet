@@ -193,7 +193,7 @@
       card.innerHTML = `
         <div class="flex items-center gap-3 min-w-0">
           <div class="relative w-11 h-11 rounded-xl overflow-hidden shrink-0 border border-amber-500/30 shadow-md bg-[#10141d]">
-            <img src="${char.avatarUrl || 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=400&q=80'}" alt="${char.name}" class="w-full h-full object-cover" />
+            <img src="${char.avatarUrl || '/characters/ch-1.avif'}" alt="${char.name}" class="w-full h-full object-cover" onerror="this.onerror=null;this.src='/characters/ch-1.avif';" />
           </div>
           <div class="min-w-0">
             <div class="flex items-center gap-1.5 flex-wrap">
