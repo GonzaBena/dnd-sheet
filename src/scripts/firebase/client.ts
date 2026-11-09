@@ -35,6 +35,8 @@ export interface FirebaseClient {
   app: FirebaseApp;
   auth: Auth;
   db: Firestore;
+  /** Alias conveniente de db para evitar confusiones de nombrado. */
+  firestore: Firestore;
   rtdb: Database;
 }
 
@@ -79,7 +81,7 @@ export function getFirebase(): Promise<FirebaseClient> {
         } catch (_) {}
       }
 
-      return { app, auth, db, rtdb };
+      return { app, auth, db, firestore: db, rtdb };
     })();
   }
   return clientPromise;

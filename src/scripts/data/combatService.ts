@@ -100,10 +100,10 @@ export function subscribeCombat(
     if (isFirebaseConfigured()) {
       let isCancelled = false;
       getFirebase()
-        .then(async ({ firestore }) => {
+        .then(async ({ db }) => {
           if (isCancelled) return;
           const fs = await import('firebase/firestore');
-          const combatRef = fs.doc(firestore, 'campaigns', cid, 'combat', 'current');
+          const combatRef = fs.doc(db, 'campaigns', cid, 'combat', 'current');
           const unsub = fs.onSnapshot(
             combatRef,
             (snap) => {
@@ -209,9 +209,9 @@ export async function saveCombat(cid: string, combat: Combat): Promise<void> {
   };
 
   if (isFirebaseConfigured()) {
-    const { firestore } = await getFirebase();
+    const { db } = await getFirebase();
     const fs = await import('firebase/firestore');
-    const docRef = fs.doc(firestore, 'campaigns', cid, 'combat', 'current');
+    const docRef = fs.doc(db, 'campaigns', cid, 'combat', 'current');
     await fs.setDoc(docRef, payload);
   } else {
     setLocalCombat(cid, payload);
