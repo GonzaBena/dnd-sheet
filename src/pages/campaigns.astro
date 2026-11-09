@@ -3,6 +3,7 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 import Header from '../components/layout/Header.astro';
 import SessionBanner from '../components/layout/SessionBanner.astro';
+import StatusBanner from '../components/party/StatusBanner.astro';
 import ClassTabsNav from '../components/navigation/ClassTabsNav.astro';
 import HeroCard from '../components/character/HeroCard.astro';
 import VitalsGrid from '../components/character/VitalsGrid.astro';
@@ -58,6 +59,7 @@ import CompendiumModal from '../components/modals/CompendiumModal.astro';
 
       <!-- Top Session Context Banner & Quick d20 -->
       <SessionBanner />
+      <StatusBanner />
 
       <!-- 1. GRIMORIO DEL CONTROL WORKSPACE (Active when user is DM) -->
       <div id="dm-control-workspace" class="hidden space-y-6">

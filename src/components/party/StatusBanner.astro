@@ -1,0 +1,150 @@
+---
+// src/components/party/StatusBanner.astro
+// Banner flotante superior que informa del estado de la sesión (oculto en 'active', visible en 'paused' y 'ended').
+interface Props {
+  campaignId?: string;
+}
+
+const { campaignId } = Astro.props;
+---
+
+<div
+  id="session-status-banner-root"
+  data-campaign-id={campaignId || ''}
+  class="hidden w-full max-w-7xl mx-auto px-4 sm:px-6 my-3 transition-all"
+  role="status"
+  aria-live="polite"
+>
+  <div
+    id="session-status-banner-card"
+    class="relative flex items-center justify-between gap-4 p-3.5 sm:p-4 rounded-2xl border shadow-lg backdrop-blur-md transition-colors"
+  >
+    <div class="flex items-center gap-3 min-w-0">
+      <div id="status-banner-icon-box" class="w-9 h-9 rounded-xl flex items-center justify-center shrink-0">
+        <span id="status-banner-icon" class="material-symbols-outlined text-[20px]">pause</span>
+      </div>
+      <div class="min-w-0">
+        <div class="flex items-center gap-2">
+          <span id="status-banner-title" class="font-headline font-bold text-sm leading-tight truncate">
+            Partida pausada
+          </span>
+          <span id="status-banner-pulse" class="w-2 h-2 rounded-full animate-pulse shrink-0"></span>
+        </div>
+        <p id="status-banner-desc" class="text-xs text-[#94a3b8] leading-normal truncate">
+          El Dungeon Master está preparando la mesa o descansando. Acciones de combate bloqueadas.
+        </p>
+      </div>
+    </div>
+
+    <!-- Quick info chip / helper -->
+    <div class="hidden md:flex items-center gap-2 text-xs font-label text-[#cbd5e1] shrink-0">
+      <span id="status-banner-time" class="px-2.5 py-1 rounded-lg bg-[#10141d]/80 border border-[#222f42]"></span>
+    </div>
+  </div>
+</div>
+
+<script>
+  import anime from 'animejs';
+  import { campaignStore } from '../../scripts/state/campaignStore.ts';
+  import { normalizeStatus, statusLabel } from '../../scripts/vtt/sessionStatus.ts';
+
+  const root = document.getElementById('session-status-banner-root');
+  const card = document.getElementById('session-status-banner-card');
+  const iconBox = document.getElementById('status-banner-icon-box');
+  const icon = document.getElementById('status-banner-icon');
+  const title = document.getElementById('status-banner-title');
+  const desc = document.getElementById('status-banner-desc');
+  const pulse = document.getElementById('status-banner-pulse');
+  const timeEl = document.getElementById('status-banner-time');
+
+  let currentDisplayedStatus: string | null = null;
+
+  function renderStatusBanner() {
+    if (!root) return;
+    const explicitCid = root.getAttribute('data-campaign-id');
+    const cid = explicitCid || campaignStore.getActiveCampaignId();
+    if (!cid) {
+      hideBanner();
+      return;
+    }
+
+    const camp = campaignStore.getCampaign(cid);
+    if (!camp) {
+      hideBanner();
+      return;
+    }
+
+    const s = normalizeStatus(camp.status);
+
+    if (s === 'active') {
+      hideBanner();
+      currentDisplayedStatus = 'active';
+      return;
+    }
+
+    // Configurar contenidos según paused o ended
+    if (s === 'paused') {
+      if (card) {
+        card.className = 'relative flex items-center justify-between gap-4 p-3.5 sm:p-4 rounded-2xl bg-amber-950/40 border border-amber-500/40 text-amber-200 shadow-[0_8px_30px_rgba(245,158,11,0.15)] backdrop-blur-md';
+      }
+      if (iconBox) {
+        iconBox.className = 'w-9 h-9 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/40 flex items-center justify-center shrink-0';
+      }
+      if (icon) icon.textContent = 'pause_circle';
+      if (title) title.textContent = 'Partida pausada';
+      if (desc) desc.textContent = 'El Dungeon Master está preparando la mesa. Las acciones de combate y movimiento de tokens están pausadas.';
+      if (pulse) pulse.className = 'w-2 h-2 rounded-full bg-amber-400 animate-pulse shrink-0';
+      if (timeEl) timeEl.textContent = 'Modo preparación';
+    } else if (s === 'ended') {
+      if (card) {
+        card.className = 'relative flex items-center justify-between gap-4 p-3.5 sm:p-4 rounded-2xl bg-rose-950/40 border border-rose-500/40 text-rose-200 shadow-[0_8px_30px_rgba(244,63,94,0.15)] backdrop-blur-md';
+      }
+      if (iconBox) {
+        iconBox.className = 'w-9 h-9 rounded-xl bg-rose-500/20 text-rose-400 border border-rose-500/40 flex items-center justify-center shrink-0';
+      }
+      if (icon) icon.textContent = 'lock';
+      if (title) title.textContent = 'Partida terminada';
+      if (desc) desc.textContent = 'Esta sesión ha finalizado y se encuentra en modo solo lectura. Podés revisar la crónica y los mapas.';
+      if (pulse) pulse.className = 'w-2 h-2 rounded-full bg-rose-400 shrink-0';
+      if (timeEl) timeEl.textContent = 'Solo lectura';
+    }
+
+    if (root.classList.contains('hidden') || currentDisplayedStatus !== s) {
+      showBanner();
+    }
+    currentDisplayedStatus = s;
+  }
+
+  function showBanner() {
+    if (!root) return;
+    root.classList.remove('hidden');
+    anime.remove(root);
+    anime({
+      targets: root,
+      translateY: [-30, 0],
+      opacity: [0, 1],
+      duration: 220,
+      easing: 'easeOutCubic'
+    });
+  }
+
+  function hideBanner() {
+    if (!root || root.classList.contains('hidden')) return;
+    anime.remove(root);
+    anime({
+      targets: root,
+      translateY: [0, -30],
+      opacity: [1, 0],
+      duration: 180,
+      easing: 'easeInCubic',
+      complete: () => {
+        root.classList.add('hidden');
+      }
+    });
+  }
+
+  window.addEventListener('session-status-changed', renderStatusBanner);
+  window.addEventListener('active-campaign-changed', renderStatusBanner);
+  window.addEventListener('campaigns-updated', renderStatusBanner);
+  renderStatusBanner();
+</script>

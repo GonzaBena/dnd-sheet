@@ -34,11 +34,23 @@
       <span class="material-symbols-outlined text-[16px] text-amber-400">military_tech</span>
       <span>Celebrar Hito</span>
     </button>
+
+    <!-- Ver Partida (Mesa VTT) -->
+    <a
+      id="banner-view-party-link"
+      href="/partida"
+      class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#18202e] border border-amber-500/30 hover:border-amber-400 text-amber-300 font-bold active:scale-95 transition-all cursor-pointer shadow-xs"
+      title="Abrir la mesa de partida compartida (VTT)"
+    >
+      <span class="material-symbols-outlined text-[16px]">table_restaurant</span>
+      <span>Mesa de Partida</span>
+    </a>
   </div>
 </div>
 
 <script>
   import { characterStore } from '../../scripts/state/characterStore';
+  import { campaignStore } from '../../scripts/state/campaignStore';
 
   // Open campaign modal on banner elements click
   const openCampModal = () => {
@@ -55,10 +67,22 @@
   });
 
   function renderBanner(char: any) {
-    if (!char) return;
     const title = document.getElementById('banner-campaign-title');
     const weather = document.getElementById('banner-weather-text');
     const loc = document.getElementById('banner-location-text');
+    const partyLink = document.getElementById('banner-view-party-link') as HTMLAnchorElement;
+
+    const cid = char?.campaignId || campaignStore.getActiveCampaignId();
+    if (partyLink) {
+      if (cid) {
+        partyLink.href = `/partida?id=${encodeURIComponent(cid)}`;
+        partyLink.classList.remove('hidden');
+      } else {
+        partyLink.classList.add('hidden');
+      }
+    }
+
+    if (!char) return;
     
     if (title && char.sessionContext) {
       title.textContent = `${char.sessionContext.campaignName} • Sesión ${char.sessionContext.sessionNumber} en Curso`;
@@ -73,4 +97,7 @@
   window.addEventListener('character-updated', ((e: CustomEvent) => {
     renderBanner(e.detail.character);
   }) as EventListener);
+  window.addEventListener('active-campaign-changed', () => {
+    renderBanner(characterStore.get());
+  });
 </script>

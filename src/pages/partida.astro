@@ -1,0 +1,15 @@
+---
+// src/pages/partida.astro
+// Vista compartida de la mesa de partida (VTT) para jugadores y DM.
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Header from '../components/layout/Header.astro';
+import PartyView from '../components/party/PartyView.astro';
+---
+
+<BaseLayout title="Mesa de Partida - D&D 5e">
+  <Header />
+
+  <main class="w-full pt-20 sm:pt-24 pb-16 bg-[#0a0d12] min-h-screen">
+    <PartyView />
+  </main>
+</BaseLayout>

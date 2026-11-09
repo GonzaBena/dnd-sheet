@@ -329,10 +329,10 @@ Orden pensado para tener algo usable en cada fase. Cada fase termina con un buil
 
 ### Fase 0B — Vista de partida y estado de la sesión
 
-- [ ] T-06 Agregar `status` a las campañas (por defecto `paused`, migrar las existentes) y `visibility` a las entradas de bitácora (las existentes migran a `dm`).
-- [ ] T-07 Controles del DM para iniciar, pausar, terminar (con confirmación) y reabrir; cada cambio escribe en Firestore, en el espejo `/status/{cid}` de RTDB y en la bitácora.
-- [ ] T-08 Página `/partida?id=...` (isla `client:only`) con grupo, bitácora `party` y banner animado del estado; el mapa y la iniciativa quedan como espacios reservados hasta sus fases.
-- [ ] T-09 Reglas y tests del emulador para cada combinación de estado y rol, según la matriz de la sección *Vista de partida y estados de la sesión*; incluir que la hoja de personaje solo la modifica su dueño.
+- [x] T-06 Agregar `status` a las campañas (por defecto `paused`, migrar las existentes) y `visibility` a las entradas de bitácora (las existentes migran a `dm`).
+- [x] T-07 Controles del DM para iniciar, pausar, terminar (con confirmación) y reabrir; cada cambio escribe en Firestore, en el espejo `/status/{cid}` de RTDB y en la bitácora.
+- [x] T-08 Página `/partida?id=...` (isla `client:only`) con grupo, bitácora `party` y banner animado del estado; el mapa y la iniciativa quedan como espacios reservados hasta sus fases.
+- [x] T-09 Reglas y tests del emulador para cada combinación de estado y rol, según la matriz de la sección *Vista de partida y estados de la sesión*; incluir que la hoja de personaje solo la modifica su dueño.
 
 ### Fase 1 — Iniciativa y combate (sin canvas)
 

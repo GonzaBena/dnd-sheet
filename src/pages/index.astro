@@ -382,16 +382,29 @@ import CompendiumModal from '../components/modals/CompendiumModal.astro';
 
               <!-- Action Buttons Row -->
               <div class="pt-2 border-t border-[#222f42] flex items-center justify-between gap-2 flex-wrap">
-                <!-- Botón Ver Grupo (Modal flotante) -->
-                <button
-                  type="button"
-                  class="btn-view-roster flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[#10141d] border border-amber-500/40 hover:bg-amber-500/10 text-amber-300 font-bold transition-all text-xs active:scale-95 cursor-pointer shadow-xs shrink-0"
-                  data-id="${camp.id}"
-                  title="Ver aventureros y miembros de la campaña"
-                >
-                  <span class="material-symbols-outlined text-[16px]">groups</span>
-                  <span>Ver Grupo</span>
-                </button>
+                <div class="flex items-center gap-2 flex-wrap">
+                  <!-- Botón Ver Grupo (Modal flotante) -->
+                  <button
+                    type="button"
+                    class="btn-view-roster flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[#10141d] border border-amber-500/40 hover:bg-amber-500/10 text-amber-300 font-bold transition-all text-xs active:scale-95 cursor-pointer shadow-xs shrink-0"
+                    data-id="${camp.id}"
+                    title="Ver aventureros y miembros de la campaña"
+                  >
+                    <span class="material-symbols-outlined text-[16px]">groups</span>
+                    <span>Ver Grupo</span>
+                  </button>
+
+                  <!-- Botón Ver Partida (VTT) -->
+                  <button
+                    type="button"
+                    class="btn-view-partida flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[#18202e] border border-amber-500/30 hover:border-amber-400 text-amber-300 font-bold transition-all text-xs active:scale-95 cursor-pointer shadow-xs shrink-0"
+                    data-id="${camp.id}"
+                    title="Abrir la mesa de partida compartida (VTT)"
+                  >
+                    <span class="material-symbols-outlined text-[16px]">table_restaurant</span>
+                    <span>Ver Partida</span>
+                  </button>
+                </div>
 
                 <div class="flex items-center gap-1.5 flex-wrap">
                   ${isDm ? `
@@ -453,6 +466,13 @@ import CompendiumModal from '../components/modals/CompendiumModal.astro';
           card.querySelector('.btn-view-roster')?.addEventListener('click', (e) => {
             e.stopPropagation();
             window.dispatchEvent(new CustomEvent('open-campaign-roster', { detail: { campaignId: camp.id } }));
+          });
+
+          // Ver Partida button (VTT)
+          card.querySelector('.btn-view-partida')?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            campaignStore.setActiveCampaign(camp.id);
+            window.location.href = `/partida?id=${encodeURIComponent(camp.id)}`;
           });
 
           // Grimorio del Control / Panel DM button

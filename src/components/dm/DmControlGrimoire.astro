@@ -1,5 +1,6 @@
 ---
 // src/components/dm/DmControlGrimoire.astro
+import SessionStatusControls from './SessionStatusControls.astro';
 ---
 
 <div id="dm-control-root" class="space-y-6">
@@ -19,7 +20,7 @@
               <span>👑</span>
               <span>Grimorio del Control</span>
             </span>
-            <span class="px-2 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 text-[10px] font-bold flex items-center gap-1">
+            <span id="grimoire-status-badge" class="px-2 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 text-[10px] font-bold flex items-center gap-1">
               <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
               <span>Mesa en Vivo</span>
             </span>
@@ -52,6 +53,8 @@
           <span class="material-symbols-outlined text-[16px]">edit</span>
           <span>Editar Sesión</span>
         </button>
+
+        <SessionStatusControls />
       </div>
     </div>
   </section>
@@ -225,6 +228,7 @@
   import { journalStore, getEntryVisibility } from '../../scripts/state/journalStore';
   import { userStore } from '../../scripts/state/userStore';
   import { congratulationBanner } from '../../scripts/ui/congratulationBanner';
+  import { canPerform, normalizeStatus } from '../../scripts/vtt/sessionStatus.ts';
 
   const campaignTitleEl = document.getElementById('grimoire-campaign-title');
   const campaignSubEl = document.getElementById('grimoire-campaign-subtitle');
@@ -372,6 +376,8 @@
           // HP Adjustments
           card.querySelectorAll('.hp-btn').forEach(btn => {
             btn.addEventListener('click', () => {
+              if (!canPerform('dmPlay', 'dm', camp.status)) return;
+
               const delta = parseInt(btn.getAttribute('data-delta') || '0');
               char.hp.current = Math.max(0, Math.min(char.hp.max, char.hp.current + delta));
               campaignStore.saveCharacter(char);
@@ -381,6 +387,8 @@
 
           // Inspiration Toggle
           card.querySelector('.inspire-btn')?.addEventListener('click', () => {
+            if (!canPerform('dmPlay', 'dm', camp.status)) return;
+
             char.inspiration = !char.inspiration;
             campaignStore.saveCharacter(char);
             journalStore.log(
@@ -398,6 +406,49 @@
 
     // 3. Render Journal Feed
     renderJournalFeed(camp.id);
+
+    // 4. Aplicar bloqueos según el estado de la sesión (RF-54, D7)
+    applyStatusLocks();
+  }
+
+  function applyStatusLocks() {
+    const cid = campaignStore.getActiveCampaignId();
+    const camp = cid ? campaignStore.getCampaign(cid) : null;
+    const s = camp ? normalizeStatus(camp.status) : 'paused';
+    const isDm = cid ? campaignStore.isCurrentUserDm(cid) : false;
+    const canPlay = isDm && canPerform('dmPlay', 'dm', s);
+    const tooltip = s === 'ended' ? 'Partida terminada (solo lectura)' : 'Partida pausada';
+
+    const setDisabled = (el: HTMLElement | null, disabled: boolean) => {
+      if (!el) return;
+      if (disabled) {
+        el.setAttribute('disabled', 'true');
+        el.setAttribute('aria-disabled', 'true');
+        if (!el.hasAttribute('data-prev-title')) {
+          el.setAttribute('data-prev-title', el.getAttribute('title') || '');
+        }
+        el.setAttribute('title', tooltip);
+        el.classList.add('opacity-50', 'cursor-not-allowed');
+      } else {
+        el.removeAttribute('disabled');
+        el.removeAttribute('aria-disabled');
+        const prev = el.getAttribute('data-prev-title');
+        if (prev !== null) el.setAttribute('title', prev);
+        el.classList.remove('opacity-50', 'cursor-not-allowed');
+      }
+    };
+
+    // Dados DM
+    document.querySelectorAll<HTMLElement>('.grimoire-dice-btn').forEach(btn => setDisabled(btn, !canPlay));
+    // Hitos y descansos
+    setDisabled(document.getElementById('grimoire-milestone-btn'), !canPlay);
+    setDisabled(document.getElementById('grimoire-short-rest-btn'), !canPlay);
+    setDisabled(document.getElementById('grimoire-long-rest-btn'), !canPlay);
+    // PG e inspiración en tarjetas de aventureros
+    document.querySelectorAll<HTMLElement>('.hp-btn').forEach(btn => setDisabled(btn, !canPlay));
+    document.querySelectorAll<HTMLElement>('.inspire-btn').forEach(btn => setDisabled(btn, !canPlay));
+    // Formulario de bitácora
+    document.querySelectorAll<HTMLElement>('#grimoire-entry-form input, #grimoire-entry-form textarea, #grimoire-entry-form button').forEach(el => setDisabled(el, !canPlay));
   }
 
   function renderJournalFeed(campaignId: string) {
@@ -459,6 +510,10 @@
   // Quick dice rollers listener: launches DiceRollerModal with reel animation
   document.querySelectorAll('.grimoire-dice-btn').forEach(btn => {
     btn.addEventListener('click', () => {
+      const activeCampId = campaignStore.getActiveCampaignId();
+      const camp = activeCampId ? campaignStore.getCampaign(activeCampId) : null;
+      if (!camp || !canPerform('dmPlay', 'dm', camp.status)) return;
+
       const formula = btn.getAttribute('data-dice') || '1d20';
       const isSecret = secretDiceCheck?.checked || false;
       const sides = parseInt(formula.replace(/\D/g, '')) || 20;
@@ -482,6 +537,9 @@
   // Milestone Celebration Button
   document.getElementById('grimoire-milestone-btn')?.addEventListener('click', async () => {
     const activeCampId = campaignStore.getActiveCampaignId();
+    const camp = activeCampId ? campaignStore.getCampaign(activeCampId) : null;
+    if (!camp || !canPerform('dmPlay', 'dm', camp.status)) return;
+
     const values = await showForm([
       { name: 'title', label: 'Título del hito', value: '¡Hazaña Heroica de la Mesa!', required: true },
       { name: 'banner', label: 'Texto del banderín', value: '¡VICTORIA ÉPICA!', hint: 'Se muestra en mayúsculas sobre el título.' },
@@ -522,6 +580,8 @@
   document.getElementById('grimoire-short-rest-btn')?.addEventListener('click', async () => {
     const activeCampId = campaignStore.getActiveCampaignId();
     if (!activeCampId) return;
+    const camp = campaignStore.getCampaign(activeCampId);
+    if (!camp || !canPerform('dmPlay', 'dm', camp.status)) return;
     if (await showConfirm('Cada personaje de la campaña recupera +8 PG.', { title: '¿Descanso Corto para todo el grupo?', confirmText: 'Aplicar' })) {
       const chars = campaignStore.getCharactersForCampaign(activeCampId);
       chars.forEach(c => {
@@ -542,6 +602,8 @@
   document.getElementById('grimoire-long-rest-btn')?.addEventListener('click', async () => {
     const activeCampId = campaignStore.getActiveCampaignId();
     if (!activeCampId) return;
+    const camp = campaignStore.getCampaign(activeCampId);
+    if (!camp || !canPerform('dmPlay', 'dm', camp.status)) return;
     if (await showConfirm('Todos los personajes recuperan sus PG al máximo.', { title: '¿Descanso Largo para toda la mesa?', confirmText: 'Aplicar' })) {
       const chars = campaignStore.getCharactersForCampaign(activeCampId);
       chars.forEach(c => {
@@ -615,6 +677,10 @@
   // New Journal Entry Submit
   document.getElementById('grimoire-entry-form')?.addEventListener('submit', (e) => {
     e.preventDefault();
+    const activeCampId = campaignStore.getActiveCampaignId();
+    const camp = activeCampId ? campaignStore.getCampaign(activeCampId) : null;
+    if (!camp || !canPerform('dmPlay', 'dm', camp.status)) return;
+
     const titleInput = document.getElementById('grimoire-entry-title') as HTMLInputElement;
     const descInput = document.getElementById('grimoire-entry-desc') as HTMLTextAreaElement;
     const privateCheck = document.getElementById('grimoire-entry-private') as HTMLInputElement;
@@ -643,7 +709,6 @@
     if (descInput) descInput.value = '';
     if (privateCheck) privateCheck.checked = false;
 
-    const activeCampId = campaignStore.getActiveCampaignId();
     if (activeCampId) renderJournalFeed(activeCampId);
   });
 
@@ -651,8 +716,17 @@
   window.addEventListener('dm-grimoire-refresh', () => renderGrimoire());
   window.addEventListener('campaigns-updated', () => renderGrimoire());
   window.addEventListener('all-characters-updated', () => renderGrimoire());
+  window.addEventListener('session-status-changed', () => {
+    renderGrimoire();
+    applyStatusLocks();
+  });
+  window.addEventListener('active-campaign-changed', () => {
+    renderGrimoire();
+    applyStatusLocks();
+  });
   window.addEventListener('journal-updated', () => {
     const activeCampId = campaignStore.getActiveCampaignId();
     if (activeCampId) renderJournalFeed(activeCampId);
   });
+  applyStatusLocks();
 </script>

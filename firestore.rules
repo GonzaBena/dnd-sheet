@@ -18,6 +18,10 @@ service cloud.firestore {
     function isDm(id) { return campaignExists(id) && campaign(id).dmId == uid(); }
     function isCreator(id) { return campaignExists(id) && campaign(id).creatorId == uid(); }
 
+    function sessionStatus(id) { return campaign(id).get('status', 'paused'); }
+    function isActive(id) { return sessionStatus(id) == 'active'; }
+    function isPreparable(id) { return sessionStatus(id) in ['active', 'paused']; }
+
     function changedKeys() { return request.resource.data.diff(resource.data).affectedKeys(); }
 
     // ---------------------------------------------------------------- usuarios
@@ -59,14 +63,24 @@ service cloud.firestore {
       allow create: if signedIn()
         && request.resource.data.creatorId == uid()
         && request.resource.data.dmId == uid()
-        && request.resource.data.memberUserIds == [uid()];
+        && request.resource.data.memberUserIds == [uid()]
+        && (!('status' in request.resource.data) || request.resource.data.status == 'paused');
 
-      // DM o creador: editan todo. El creador no cambia y el DM tiene que ser miembro.
+      // DM o creador: editan la campaña.
+      // - Si la partida terminó, solo se puede reabrir (status: 'paused').
+      // - El estado resultante debe ser válido ('active' | 'paused' | 'ended').
+      // - El creador no cambia y el DM tiene que ser miembro.
       allow update: if signedIn()
         && (uid() == resource.data.dmId || uid() == resource.data.creatorId)
         && request.resource.data.creatorId == resource.data.creatorId
-        && request.resource.data.dmId in request.resource.data.memberUserIds;
+        && request.resource.data.dmId in request.resource.data.memberUserIds
+        && request.resource.data.get('status', 'paused') in ['active', 'paused', 'ended']
+        && (
+          !(resource.data.get('status', 'paused') in ['ended', 'completed'])
+          || (changedKeys().hasOnly(['status', 'statusChangedAt']) && request.resource.data.status == 'paused')
+        );
 
+      // DECISION (F0B-3): unirse, abandonar y desvincular fichas no se bloquean por estado (gestión de membresía).
       // Unirse con código: solo se agrega a sí mismo y el código tiene que ser de esta campaña.
       allow update: if signedIn()
         && !(uid() in resource.data.memberUserIds)
@@ -104,19 +118,25 @@ service cloud.firestore {
 
         allow read: if signedIn() && canSee(resource.data);
 
+        // Crear entradas de bitácora requiere canPlay() (partida active), con excepción
+        // para eventos de sistema del DM (p.ej. cambio de estado, F0B-2).
         allow create: if signedIn() && isMember(campaignId)
           && request.resource.data.authorUid == uid()
           && request.resource.data.campaignId == campaignId
-          && validVisibility(request.resource.data);
+          && validVisibility(request.resource.data)
+          && (
+            canPlay()
+            || (isDm(campaignId) && request.resource.data.get('systemEvent', '') == 'status' && request.resource.data.visibility == 'party')
+          );
 
-        allow update: if signedIn() && isMember(campaignId)
+        allow update: if signedIn() && isMember(campaignId) && canPlay()
           && resource.data.authorUid == uid()
           && request.resource.data.authorUid == uid()
           && validVisibility(request.resource.data);
 
         // El DM puede moderar entradas de la mesa, las suyas y los mensajes que recibe,
-        // pero nunca las notas privadas de un jugador.
-        allow delete: if signedIn() && (
+        // pero nunca las notas privadas de un jugador. Exige canPlay().
+        allow delete: if signedIn() && canPlay() && (
           resource.data.authorUid == uid()
           || (isDm(campaignId) && resource.data.visibility != 'player')
         );
@@ -125,18 +145,18 @@ service cloud.firestore {
       // -------------------------------------------------------------- eventos del DM
       match /dm_events/{eventId} {
         allow read: if signedIn() && isMember(campaignId);
-        allow create: if signedIn() && isDm(campaignId)
+        allow create: if signedIn() && isDm(campaignId) && canPlay()
           && request.resource.data.campaignId == campaignId
           && request.resource.data.timestamp is number;
         allow update, delete: if false;
       }
 
       // ============================================================== VTT (mesa virtual)
-      // Gating por estado de la partida (active | paused | ended). La Fase 0B reemplaza el cuerpo:
-      // - canPlay: acciones de juego (mover tokens, combate). Solo con la partida 'active'.
+      // Gating por estado de la partida (active | paused | ended).
+      // - canPlay: acciones de juego (mover tokens, combate, bitácora). Solo con la partida 'active'.
       // - canPrepare: preparar contenido (mapas, tokens, notas). Todo menos 'ended'.
-      function canPlay() { return true; }
-      function canPrepare() { return true; }
+      function canPlay() { return isActive(campaignId); }
+      function canPrepare() { return isPreparable(campaignId); }
 
       // Límites (F0-3). La validación profunda de cada token no se puede iterar en las reglas:
       // DECISION: se valida el token tocado por un jugador (vía lastMove) y se confía en el DM
@@ -153,8 +173,12 @@ service cloud.firestore {
         allow read: if signedIn() && isMember(campaignId);
 
         // DM: crea, edita y borra todo.
-        allow create, update: if signedIn() && isDm(campaignId) && canPrepare()
+        allow create: if signedIn() && isDm(campaignId) && canPrepare()
           && validMap(request.resource.data);
+        // DECISION (F0B-4): en paused el DM no puede tocar niebla ni lastMove (se bloquea movimiento en UI).
+        allow update: if signedIn() && isDm(campaignId) && canPrepare()
+          && validMap(request.resource.data)
+          && (isActive(campaignId) || !changedKeys().hasAny(['fogRevealed', 'lastMove']));
         allow delete: if signedIn() && isDm(campaignId) && canPrepare();
 
         // Jugador: solo x/y de un token propio.
@@ -222,10 +246,11 @@ service cloud.firestore {
         && request.resource.data.userId == uid()
         && attachable(request.resource.data);
 
-      // DM de la campaña: PG e inspiración en vivo (descansos, daño, recompensas).
+      // DM de la campaña: PG e inspiración en vivo (descansos, daño, recompensas). Solo con la partida active.
       allow update: if signedIn()
         && resource.data.campaignId != null
         && isDm(resource.data.campaignId)
+        && isActive(resource.data.campaignId)
         && request.resource.data.campaignId == resource.data.campaignId
         && changedKeys().hasOnly(['hp', 'inspiration', 'updatedAt']);
 

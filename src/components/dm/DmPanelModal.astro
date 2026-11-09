@@ -1,5 +1,6 @@
 ---
 // src/components/dm/DmPanelModal.astro
+import SessionStatusControls from './SessionStatusControls.astro';
 ---
 
 <div id="dm-panel-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4">
@@ -24,6 +25,7 @@
 
       <!-- Quick Session Controls -->
       <div class="flex items-center gap-2">
+        <SessionStatusControls />
         <div class="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[#10141d] border border-[#222f42] text-xs font-label text-[#94a3b8]">
           <span class="material-symbols-outlined text-[16px] text-amber-500">wb_twilight</span>
           <span id="dm-panel-weather-text">Niebla Espesa</span>

@@ -19,6 +19,7 @@ import type { Database } from 'firebase/database';
 import type { Campaign } from '../models/campaign.ts';
 import { getFirebase, isFirebaseConfigured } from '../firebase/client.ts';
 import { campaignStore } from '../state/campaignStore.ts';
+import { reconcileStatusMirror } from './sessionStatusService.ts';
 
 type Rtdb = typeof import('firebase/database');
 
@@ -125,6 +126,7 @@ export async function reconcileRooms(): Promise<void> {
     try {
       const roomId = await ensureRoom(campaign);
       await syncRoomMembers(roomId, campaign.memberUserIds || []);
+      await reconcileStatusMirror(campaign);
     } catch (err) {
       console.warn(`[RoomService] No se pudo sincronizar la sala de ${campaign.id}`, err);
     }

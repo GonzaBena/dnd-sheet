@@ -1,0 +1,373 @@
+---
+// src/components/party/PartyView.astro
+// Vista compartida de la partida (VTT) para todos los miembros de la mesa: grupo, bitácora y slots reservados.
+import StatusBanner from './StatusBanner.astro';
+---
+
+<div id="party-view-root" class="w-full max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
+  <!-- AVISO MODO LOCAL (D10) -->
+  <div id="party-local-notice" class="hidden p-6 rounded-2xl bg-amber-950/40 border border-amber-500/40 text-amber-200 text-center space-y-2">
+    <span class="material-symbols-outlined text-4xl text-amber-400">cloud_off</span>
+    <h2 class="text-base font-headline font-bold text-[#f1f5f9]">Mesa en vivo requiere cuenta</h2>
+    <p class="text-xs text-[#94a3b8] max-w-md mx-auto">
+      La mesa compartida en vivo utiliza sincronización en la nube. Requiere iniciar sesión con cuenta para conectar con tus compañeros.
+    </p>
+  </div>
+
+  <!-- AVISO NO ENCONTRADA / SIN PERMISOS -->
+  <div id="party-not-found-notice" class="hidden p-8 rounded-2xl bg-[#121721] border border-[#222f42] text-center space-y-3">
+    <span class="material-symbols-outlined text-4xl text-rose-400">shield_lock</span>
+    <h2 class="text-base font-headline font-bold text-[#f1f5f9]">Partida no disponible</h2>
+    <p class="text-xs text-[#94a3b8] max-w-md mx-auto">
+      No sos miembro de esta partida o la campaña no existe. Pedile al Dungeon Master el código de invitación o revisá tus campañas.
+    </p>
+    <a
+      href="/campaigns"
+      class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#18202e] border border-[#222f42] hover:border-amber-500/40 text-amber-300 text-xs font-bold transition-all"
+    >
+      <span class="material-symbols-outlined text-[16px]">arrow_back</span>
+      <span>Volver a Campañas</span>
+    </a>
+  </div>
+
+  <!-- ESTADO DE CARGA -->
+  <div id="party-loading" class="p-12 text-center text-[#94a3b8] text-xs space-y-3">
+    <div class="w-8 h-8 mx-auto border-2 border-amber-500 border-t-transparent rounded-full animate-spin"></div>
+    <p>Conectando con la mesa de juego...</p>
+  </div>
+
+  <!-- CONTENIDO PRINCIPAL DE LA PARTIDA -->
+  <div id="party-content" class="hidden space-y-6">
+    <!-- HERO HEADER DE LA CAMPAÑA -->
+    <header class="relative rounded-2xl bg-gradient-to-r from-[#121721] via-[#161e2c] to-[#121721] border border-[#222f42] p-5 sm:p-7 shadow-xl overflow-hidden">
+      <div class="flex flex-wrap items-center justify-between gap-4 relative z-10">
+        <div class="space-y-1 min-w-0">
+          <div class="flex items-center gap-2 flex-wrap">
+            <span class="px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[10px] font-bold uppercase tracking-wider flex items-center gap-1">
+              <span class="material-symbols-outlined text-[12px]">table_restaurant</span>
+              <span>Mesa de Partida</span>
+            </span>
+            <span id="party-header-session" class="text-xs text-[#94a3b8] font-label">Sesión 1</span>
+          </div>
+          <h1 id="party-header-title" class="text-2xl sm:text-3xl font-headline font-bold text-[#f1f5f9] tracking-tight truncate">
+            Cargando campaña...
+          </h1>
+          <p id="party-header-subtitle" class="text-xs sm:text-sm text-[#94a3b8] flex items-center gap-2 flex-wrap">
+            <span id="party-header-dm">DM: -</span>
+            <span>•</span>
+            <span id="party-header-weather">Clima: -</span>
+            <span>•</span>
+            <span id="party-header-location">Lugar: -</span>
+          </p>
+        </div>
+
+        <div class="flex items-center gap-2 flex-wrap">
+          <a
+            id="party-header-sheet-link"
+            href="/campaigns"
+            class="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#18202e] border border-amber-500/30 hover:border-amber-500 text-amber-300 text-xs font-bold transition-all shadow-xs"
+            title="Ir a mi ficha de personaje"
+          >
+            <span class="material-symbols-outlined text-[16px]">badge</span>
+            <span>Mi Ficha</span>
+          </a>
+          <a
+            href="/campaigns"
+            class="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#10141d] border border-[#222f42] hover:text-[#f1f5f9] text-[#94a3b8] text-xs font-bold transition-colors"
+          >
+            <span class="material-symbols-outlined text-[16px]">view_list</span>
+            <span>Campañas</span>
+          </a>
+        </div>
+      </div>
+    </header>
+
+    <!-- STATUS BANNER FLOTANTE (PAUSED / ENDED) -->
+    <StatusBanner />
+
+    <!-- ESPACIOS RESERVADOS: MAPA E INICIATIVA (FASES 1 Y 2) -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <!-- MAPA TÁCTICO VTT (Fase 2) -->
+      <div class="lg:col-span-2">
+        <div
+          id="party-map-slot"
+          class="relative w-full min-h-[380px] rounded-2xl bg-[#0c1017] border border-[#222f42] p-8 flex flex-col items-center justify-center text-center space-y-3 overflow-hidden shadow-inner group"
+        >
+          <!-- Grid decorativo -->
+          <div class="absolute inset-0 bg-[linear-gradient(to_right,#1f293718_1px,transparent_1px),linear-gradient(to_bottom,#1f293718_1px,transparent_1px)] bg-[size:32px_32px] opacity-40 pointer-events-none"></div>
+
+          <div class="w-14 h-14 rounded-2xl bg-[#161e2c] border border-amber-500/30 text-amber-400 flex items-center justify-center relative z-10 shadow-lg">
+            <span class="material-symbols-outlined text-[28px]">explore</span>
+          </div>
+          <div class="space-y-1 relative z-10 max-w-sm">
+            <h3 class="font-headline font-bold text-sm text-[#f1f5f9]">Mapa táctico de la partida</h3>
+            <p class="text-xs text-[#94a3b8] leading-relaxed">
+              El DM podrá proyectar mapas de batalla con cuadrícula y niebla de guerra. Próximamente en Fase 2.
+            </p>
+          </div>
+          <span class="relative z-10 text-[10px] uppercase font-bold tracking-wider px-2.5 py-1 rounded-full bg-[#18202e] border border-[#222f42] text-[#94a3b8]">
+            Próximamente • Fase 2
+          </span>
+        </div>
+      </div>
+
+      <!-- TRACKER DE INICIATIVA Y COMBATE (Fase 1) -->
+      <div class="lg:col-span-1">
+        <div
+          id="party-initiative-slot"
+          class="w-full h-full min-h-[380px] rounded-2xl bg-[#121721] border border-[#222f42] p-6 flex flex-col items-center justify-center text-center space-y-3 shadow-inner"
+        >
+          <div class="w-14 h-14 rounded-2xl bg-[#18202e] border border-rose-500/30 text-rose-400 flex items-center justify-center shadow-lg">
+            <span class="material-symbols-outlined text-[28px]">swords</span>
+          </div>
+          <div class="space-y-1 max-w-xs">
+            <h3 class="font-headline font-bold text-sm text-[#f1f5f9]">Orden de Iniciativa</h3>
+            <p class="text-xs text-[#94a3b8] leading-relaxed">
+              Turnos en vivo, asaltos y condiciones tácticas compartidas con el DM. Próximamente en Fase 1.
+            </p>
+          </div>
+          <span class="text-[10px] uppercase font-bold tracking-wider px-2.5 py-1 rounded-full bg-[#18202e] border border-[#222f42] text-[#94a3b8]">
+            Próximamente • Fase 1
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECCIÓN INFERIOR: GRUPO Y BITÁCORA -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+      <!-- 1. GRUPO DE AVENTUREROS (ROSTER) -->
+      <section class="space-y-4">
+        <div class="flex items-center justify-between gap-2 border-b border-[#222f42] pb-3">
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-amber-500 text-[20px]">groups</span>
+            <h2 class="font-headline font-bold text-base text-[#f1f5f9]">Grupo de Aventureros</h2>
+          </div>
+          <span id="party-roster-count" class="text-xs text-[#94a3b8] font-label">0 Aventureros</span>
+        </div>
+
+        <div id="party-characters-list" class="space-y-3">
+          <!-- Renderizado dinámico de tarjetas de aventureros -->
+        </div>
+      </section>
+
+      <!-- 2. CRÓNICA DE LA PARTIDA (BITÁCORA PÚBLICA) -->
+      <section class="space-y-4">
+        <div class="flex items-center justify-between gap-2 border-b border-[#222f42] pb-3">
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-amber-500 text-[20px]">auto_stories</span>
+            <h2 class="font-headline font-bold text-base text-[#f1f5f9]">Crónica de la Partida</h2>
+          </div>
+          <span class="text-xs text-[#94a3b8] font-label">Bitácora pública</span>
+        </div>
+
+        <div id="party-journal-feed" class="space-y-3 max-h-[600px] overflow-y-auto pr-1">
+          <!-- Renderizado dinámico de entradas de la bitácora -->
+        </div>
+      </section>
+    </div>
+  </div>
+</div>
+
+<script>
+  import { isFirebaseConfigured } from '../../scripts/firebase/client.ts';
+  import { cloudSession } from '../../scripts/data/cloudSync.ts';
+  import { campaignStore } from '../../scripts/state/campaignStore.ts';
+  import { journalStore } from '../../scripts/state/journalStore.ts';
+  import { characterStore } from '../../scripts/state/characterStore.ts';
+
+  const root = document.getElementById('party-view-root');
+  const localNotice = document.getElementById('party-local-notice');
+  const notFoundNotice = document.getElementById('party-not-found-notice');
+  const loadingEl = document.getElementById('party-loading');
+  const contentEl = document.getElementById('party-content');
+
+  const titleEl = document.getElementById('party-header-title');
+  const sessionEl = document.getElementById('party-header-session');
+  const dmEl = document.getElementById('party-header-dm');
+  const weatherEl = document.getElementById('party-header-weather');
+  const locationEl = document.getElementById('party-header-location');
+  const sheetLink = document.getElementById('party-header-sheet-link') as HTMLAnchorElement;
+
+  const rosterCount = document.getElementById('party-roster-count');
+  const charactersList = document.getElementById('party-characters-list');
+  const journalFeed = document.getElementById('party-journal-feed');
+
+  let currentCampaignId: string | null = null;
+
+  async function initPartyView() {
+    // 1. Modo local sin Firebase configurado (D10)
+    if (!isFirebaseConfigured()) {
+      loadingEl?.classList.add('hidden');
+      localNotice?.classList.remove('hidden');
+      return;
+    }
+
+    // 2. Esperar inicio de sesión en la nube
+    try {
+      await cloudSession.ready();
+    } catch (e) {
+      console.warn('[PartyView] Error esperando sesión:', e);
+    }
+
+    const params = new URLSearchParams(window.location.search);
+    currentCampaignId = params.get('id') || params.get('campaign');
+
+    if (!currentCampaignId) {
+      showNotFound();
+      return;
+    }
+
+    // Activar campaña para que cloudSync monte los listeners
+    campaignStore.setActiveCampaign(currentCampaignId);
+
+    render();
+  }
+
+  function render() {
+    if (!currentCampaignId) return;
+    const camp = campaignStore.getCampaign(currentCampaignId);
+
+    if (!camp) {
+      if (campaignStore.hasLoadedCampaigns()) {
+        showNotFound();
+      }
+      return;
+    }
+
+    // Ocultar avisos y mostrar contenido
+    loadingEl?.classList.add('hidden');
+    notFoundNotice?.classList.add('hidden');
+    localNotice?.classList.add('hidden');
+    contentEl?.classList.remove('hidden');
+
+    // Header info
+    if (titleEl) titleEl.textContent = camp.name;
+    if (sessionEl) sessionEl.textContent = `Sesión ${camp.sessionNumber || 1}`;
+    if (dmEl) dmEl.textContent = `DM: ${camp.dmName || 'Dungeon Master'}`;
+    if (weatherEl) weatherEl.textContent = `Clima: ${camp.weather || 'Despejado'}`;
+    if (locationEl) locationEl.textContent = `Lugar: ${camp.location || 'Aventura'}`;
+
+    // Link a la ficha si el usuario tiene personaje en esta campaña
+    if (sheetLink) {
+      const myChar = campaignStore.getMyCharacterForCampaign(camp.id);
+      if (myChar) {
+        sheetLink.href = `/campaigns?campaign=${encodeURIComponent(camp.id)}&character=${encodeURIComponent(myChar.id)}`;
+        sheetLink.classList.remove('hidden');
+      } else {
+        sheetLink.href = `/campaigns?campaign=${encodeURIComponent(camp.id)}`;
+      }
+    }
+
+    renderRoster(camp.id);
+    renderJournal(camp.id);
+  }
+
+  function renderRoster(cid: string) {
+    if (!charactersList) return;
+    const chars = campaignStore.getCharactersForCampaign(cid);
+    if (rosterCount) {
+      rosterCount.textContent = `${chars.length} Aventurero${chars.length === 1 ? '' : 's'}`;
+    }
+
+    if (chars.length === 0) {
+      charactersList.innerHTML = `
+        <div class="p-6 rounded-xl bg-[#121721] border border-[#222f42] text-center text-xs text-[#94a3b8]">
+          No hay aventureros asignados a esta campaña todavía.
+        </div>
+      `;
+      return;
+    }
+
+    charactersList.innerHTML = '';
+    chars.forEach(c => {
+      const hpPercent = Math.max(0, Math.min(100, Math.round(((c.hp?.current || 0) / (c.hp?.max || 1)) * 100)));
+      const card = document.createElement('div');
+      card.className = 'flex items-center justify-between gap-3 p-3.5 rounded-xl bg-[#121721] border border-[#222f42] shadow-xs';
+      card.innerHTML = `
+        <div class="flex items-center gap-3 min-w-0">
+          <img
+            src="${c.avatarUrl || 'https://images.unsplash.com/photo-1534447677768-be436bb09401?auto=format&fit=crop&w=150&q=80'}"
+            alt="${c.name}"
+            class="w-10 h-10 rounded-xl object-cover border border-[#222f42] shrink-0"
+          />
+          <div class="min-w-0">
+            <h4 class="font-headline font-bold text-xs text-[#f1f5f9] truncate">${c.name}</h4>
+            <p class="text-[11px] text-[#94a3b8] truncate">
+              ${c.race || ''} ${c.className || ''} Nivel ${c.level || 1}
+            </p>
+          </div>
+        </div>
+
+        <div class="text-right shrink-0">
+          <div class="flex items-center gap-1.5 justify-end font-mono text-xs font-bold text-[#f1f5f9]">
+            <span class="text-rose-400 material-symbols-outlined text-[14px]">favorite</span>
+            <span>${c.hp?.current || 0} / ${c.hp?.max || 0}</span>
+          </div>
+          <div class="w-20 h-1.5 bg-[#18202e] rounded-full overflow-hidden mt-1 ml-auto">
+            <div class="h-full bg-emerald-500 rounded-full transition-all" style="width: ${hpPercent}%"></div>
+          </div>
+        </div>
+      `;
+      charactersList.appendChild(card);
+    });
+  }
+
+  function renderJournal(cid: string) {
+    if (!journalFeed) return;
+    const entries = journalStore.getPublicCampaignEntries();
+
+    if (entries.length === 0) {
+      journalFeed.innerHTML = `
+        <div class="p-6 rounded-xl bg-[#121721] border border-[#222f42] text-center text-xs text-[#94a3b8]">
+          No hay entradas públicas registradas en la crónica todavía.
+        </div>
+      `;
+      return;
+    }
+
+    journalFeed.innerHTML = '';
+    entries.forEach(e => {
+      const card = document.createElement('div');
+      card.className = 'p-3.5 rounded-xl bg-[#121721] border border-[#222f42] space-y-2 shadow-xs';
+
+      const isStatusEvent = (e as any).systemEvent === 'status';
+      const badgeStyle = isStatusEvent
+        ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+        : 'bg-[#18202e] text-[#94a3b8] border-[#222f42]';
+
+      card.innerHTML = `
+        <div class="flex items-center justify-between gap-2 text-xs">
+          <span class="font-headline font-bold text-[#f1f5f9] flex items-center gap-1.5 truncate">
+            ${isStatusEvent ? '<span class="material-symbols-outlined text-[14px] text-amber-400">info</span>' : ''}
+            <span>${e.title}</span>
+          </span>
+          <span class="text-[10px] text-[#64748b] font-label shrink-0">
+            ${e.timestamp ? new Date(e.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
+          </span>
+        </div>
+        <p class="text-xs text-[#cbd5e1] leading-relaxed whitespace-pre-wrap">${e.content}</p>
+        <div class="flex items-center justify-between gap-2 pt-1 border-t border-[#222f42]/60 text-[10px] text-[#64748b]">
+          <span>${e.authorName || 'Mesa'}</span>
+          <div class="flex items-center gap-1">
+            ${(e.tags || []).map(t => `<span class="px-1.5 py-0.5 rounded border ${badgeStyle}">${t}</span>`).join('')}
+          </div>
+        </div>
+      `;
+      journalFeed.appendChild(card);
+    });
+  }
+
+  function showNotFound() {
+    loadingEl?.classList.add('hidden');
+    contentEl?.classList.add('hidden');
+    localNotice?.classList.add('hidden');
+    notFoundNotice?.classList.remove('hidden');
+  }
+
+  window.addEventListener('campaigns-updated', render);
+  window.addEventListener('all-characters-updated', render);
+  window.addEventListener('journal-updated', render);
+  window.addEventListener('session-status-changed', render);
+
+  initPartyView();
+</script>

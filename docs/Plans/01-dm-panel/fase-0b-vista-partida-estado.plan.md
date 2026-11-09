@@ -224,6 +224,6 @@ Además:
 - Presencia (Fase 5).
 
 ## 9. Checklist de cierre
-- [ ] T-06 … T-09 marcadas en la spec.
-- [ ] `// DECISION:` para F0B-1, F0B-3 y F0B-4.
-- [ ] Tests verdes y build estático OK.
+- [x] T-06 … T-09 marcadas en la spec.
+- [x] `// DECISION:` para F0B-1, F0B-3 y F0B-4.
+- [x] Tests verdes y build estático OK.

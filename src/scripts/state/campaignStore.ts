@@ -5,6 +5,7 @@ import { defaultCharacter } from '../data/defaultCharacter.ts';
 import { generateInviteCode } from '../utils/ids.ts';
 import { isFirebaseConfigured } from '../firebase/client.ts';
 import { diffDocs, hasChanges, toPlain, type CampaignCloudWriter } from '../data/cloudTypes.ts';
+import { normalizeStatus } from '../vtt/sessionStatus.ts';
 import { userStore } from './userStore.ts';
 
 const CAMPAIGNS_STORAGE_KEY = 'dnd_campaigns_v1';
@@ -373,12 +374,14 @@ class CampaignStoreManager {
           const legacyCampaignsCleanKey = 'dnd_legacy_campaigns_cleaned_v2';
           if (!localStorage.getItem(legacyCampaignsCleanKey)) {
             const legacyCampIds = new Set(['barovia-strahd', 'phandelver-mine', 'avernus-descent']);
-            const cleaned = parsed.filter((c: any) => !legacyCampIds.has(c.id));
+            const cleaned = parsed
+              .filter((c: any) => !legacyCampIds.has(c.id))
+              .map((c: any) => ({ ...c, status: normalizeStatus(c.status) }));
             localStorage.setItem(legacyCampaignsCleanKey, 'true');
             this.persistCampaigns(cleaned);
             return cleaned;
           }
-          return parsed;
+          return parsed.map((c: any) => ({ ...c, status: normalizeStatus(c.status) }));
         }
       }
     } catch (e) {
@@ -492,12 +495,27 @@ class CampaignStoreManager {
 
   public applyRemoteCampaigns(remote: Campaign[]) {
     if (!this.cloud) return;
+    const previousStatuses = new Map(this.campaigns.map(c => [c.id, c.status]));
     this.syncedCampaigns = new Map(remote.map(c => [c.id, JSON.stringify(serializeCampaign(c))]));
     this.campaigns = remote
-      .map(c => ({ ...c, memberUserIds: c.memberUserIds || [], characterIds: [] }))
+      .map(c => ({
+        ...c,
+        status: normalizeStatus(c.status),
+        memberUserIds: c.memberUserIds || [],
+        characterIds: []
+      }))
       .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
     this.refreshCharacterIds();
     this.campaignsLoaded = true;
+
+    for (const c of this.campaigns) {
+      const prev = previousStatuses.get(c.id);
+      if (prev && prev !== c.status && typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('session-status-changed', {
+          detail: { campaignId: c.id, status: c.status }
+        }));
+      }
+    }
 
     const previousActive = this.activeCampaignId;
     if (this.activeCampaignId && !this.getCampaign(this.activeCampaignId)) {
@@ -712,7 +730,9 @@ class CampaignStoreManager {
       sessionNumber: data.sessionNumber || 1,
       weather: data.weather || 'Despejado',
       location: data.location || 'Posada del Aventurero',
-      status: data.status || 'active',
+      // DECISION: nuevas campañas nacen en 'paused' (F0B-1)
+      status: data.status ? normalizeStatus(data.status) : 'paused',
+      statusChangedAt: Date.now(),
       characterIds: data.characterIds || [],
       createdAt: Date.now(),
       ...(this.cloud ? { inviteCode: generateInviteCode() } : {})

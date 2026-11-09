@@ -21,6 +21,8 @@ export interface CampaignCharacterSummary {
   passivePerception?: number;
 }
 
+export type SessionStatus = 'active' | 'paused' | 'ended';
+
 export interface Campaign {
   id: string;
   name: string;
@@ -35,7 +37,8 @@ export interface Campaign {
   sessionNumber: number;
   weather: string;
   location: string;
-  status: 'active' | 'paused' | 'completed';
+  status: SessionStatus;
+  statusChangedAt?: number;
   characterIds: string[];
   createdAt: number;
   /** Código para unirse (modo nube). Solo lo ven los miembros. */

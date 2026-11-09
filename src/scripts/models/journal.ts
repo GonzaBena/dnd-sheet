@@ -27,6 +27,7 @@ export interface JournalEntry {
   characterId?: string;      // ID of character author
   campaignId?: string;       // ID of campaign (or null if standalone)
   authorName?: string;       // Name of character or DM
+  systemEvent?: 'status';    // Eventos automáticos del sistema (p.ej. cambio de estado de sesión)
   diceRoll?: {
     formula: string;
     result: number;
