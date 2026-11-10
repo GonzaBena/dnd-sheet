@@ -62,6 +62,8 @@
 
 <script>
   import { characterStore } from '../../scripts/state/characterStore';
+  import { escapeHtml } from '../../scripts/dnd/catalog';
+  import { customBadgeHtml } from '../../scripts/ui/customBadge';
   import { openModal } from '../../scripts/animations/modalAnimations';
   import { attachSwipeToDelete } from '../../scripts/ui/swipeToDelete';
 
@@ -164,7 +166,8 @@
             </span>
             <div class="truncate">
               <div class="flex items-center gap-1.5 flex-wrap">
-                <span class="text-[#f1f5f9] font-medium truncate">${sp.name}</span>
+                <span class="text-[#f1f5f9] font-medium truncate">${escapeHtml(sp.name)}</span>
+                ${customBadgeHtml(sp)}
                 <span class="text-[10px] text-[#64748b]">(${sp.school})</span>
                 ${sp.isSave ? `<span class="px-1.5 py-0.2 rounded bg-purple-500/10 text-purple-300 border border-purple-500/30 text-[9px] font-bold font-mono">CD ${sp.saveDc || char.spellcasting.saveDc} ${sp.saveAbility ? sp.saveAbility.toUpperCase() : ''}</span>` : ''}
               </div>

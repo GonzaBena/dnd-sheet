@@ -206,6 +206,20 @@ test('el DM ajusta PG e inspiración pero no el resto de la ficha', async () => 
   await assertFails(updateDoc(doc(db(DM), 'characters', 'char-stranger'), { inspiration: true }));
 });
 
+test('el dueño escribe recursos, efectos e imagen de objetos; el DM no (Spec 07)', async () => {
+  const sheet = {
+    resources: [{ id: 'wildShape', name: 'Forma Salvaje', max: 2, used: 1, rechargeOn: 'shortRest' }],
+    activeEffects: [{ id: 'e1', name: 'Bendición', sourceType: 'spell', duration: { kind: 'rounds', remaining: 2 }, modifiers: [], appliedAt: 1 }],
+    effectsLastRound: { campaignId: CID, round: 2 },
+    inventory: [{ id: 'i1', name: 'Anillo', quantity: 1, category: 'gear', custom: true, imageUrl: 'https://example.com/a.png' }],
+  };
+  await assertSucceeds(updateDoc(doc(db(PLAYER), 'characters', 'char-player'), sheet));
+  await assertFails(updateDoc(doc(db(DM), 'characters', 'char-player'), { activeEffects: [] }));
+  await assertFails(updateDoc(doc(db(DM), 'characters', 'char-player'), { resources: [] }));
+  // Regresión: el DM sigue pudiendo escribir PG e inspiración.
+  await assertSucceeds(updateDoc(doc(db(DM), 'characters', 'char-player'), { hp: { current: 5, max: 20, temp: 0 }, inspiration: true, updatedAt: 4 }));
+});
+
 test('DM o creador pueden desvincular la ficha de un jugador (campaignId → null)', async () => {
   await assertSucceeds(updateDoc(doc(db(DM), 'characters', 'char-player'), { campaignId: null, sessionContext: deleteField(), updatedAt: 3 }));
   await assertFails(updateDoc(doc(db(OTHER), 'characters', 'char-player'), { campaignId: null }));

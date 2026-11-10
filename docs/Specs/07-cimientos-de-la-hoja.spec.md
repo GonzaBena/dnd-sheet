@@ -249,11 +249,11 @@ Orden: A → B → C → D → E. Las Fases B y C son independientes entre sí t
 - [x] T-239 Tests de efectos y migraciones
 
 ### Fase C — Catálogo y entradas propias · depende de la Fase A
-- [ ] T-240 `CatalogEntry` y adaptadores del SRD (RF-245)
-- [ ] T-241 Alta de entradas propias con insignia (RF-246, RF-247)
-- [ ] T-242 Tipo y recurso en las dotes (RF-249, RF-250)
-- [ ] T-243 Imagen en objetos y hechizos (RF-248)
-- [ ] T-244 Test de reglas del emulador (RF-256)
+- [x] T-240 `CatalogEntry` y adaptadores del SRD (RF-245)
+- [x] T-241 Alta de entradas propias con insignia (RF-246, RF-247)
+- [x] T-242 Tipo y recurso en las dotes (RF-249, RF-250)
+- [x] T-243 Imagen en objetos y hechizos (RF-248)
+- [x] T-244 Test de reglas del emulador (RF-256)
 
 ### Fase D — Modales genéricos · depende de la Fase C
 - [ ] T-245 `ItemDetailModal` (RF-251)

@@ -759,7 +759,7 @@
     } else if (activeCategory === 'weapons') {
       if (currentScope === 'inventory' || targetModalOnSelect === 'add-item') {
         const payload = dndApiService.toInventoryPayload(selectedItem);
-        characterStore.addItem(payload);
+        characterStore.addInventoryItem(payload as any);
         showToast(`✓ "${selectedItem.nameEs || selectedItem.name}" añadido a tu Mochila`);
       } else {
         const payload = dndApiService.toAttackPayload(selectedItem);
@@ -768,7 +768,7 @@
       }
     } else if (activeCategory === 'equipment' || activeCategory === 'armor' || activeCategory === 'magic-items') {
       const payload = dndApiService.toInventoryPayload(selectedItem);
-      characterStore.addItem(payload);
+      characterStore.addInventoryItem(payload as any);
       showToast(`✓ "${selectedItem.nameEs || selectedItem.name}" añadido a tu Mochila`);
     } else if (activeCategory === 'feats') {
       characterStore.addFeature({

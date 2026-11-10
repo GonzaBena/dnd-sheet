@@ -69,6 +69,8 @@
 <script>
   import { showAlert } from '../../scripts/ui/notify';
   import { characterStore } from '../../scripts/state/characterStore';
+  import { escapeHtml } from '../../scripts/dnd/catalog';
+  import { customBadgeHtml } from '../../scripts/ui/customBadge';
   import { openModal } from '../../scripts/animations/modalAnimations';
   import { attachSwipeToDelete } from '../../scripts/ui/swipeToDelete';
 
@@ -141,7 +143,8 @@
           </div>
           <div class="truncate">
             <div class="flex items-center gap-2">
-              <span class="font-headline font-bold text-sm text-[#f1f5f9] truncate">${item.name}</span>
+              <span class="font-headline font-bold text-sm text-[#f1f5f9] truncate">${escapeHtml(item.name)}</span>
+              ${customBadgeHtml(item)}
               <span class="px-2 py-0.2 rounded-full bg-amber-500/20 text-amber-300 text-[10px] font-bold border border-amber-500/40 shrink-0">x${item.quantity}</span>
               ${item.activationCondition ? `<span class="px-1.5 py-0.2 rounded bg-amber-500/10 text-amber-300 text-[9px] font-bold border border-amber-500/20 flex items-center gap-0.5 shrink-0"><span class="material-symbols-outlined text-[11px]">timer</span><span>${item.activationCondition}</span></span>` : ''}
             </div>
@@ -248,7 +251,8 @@
             <span class="material-symbols-outlined text-[17px] text-amber-500 shrink-0">${item.icon || 'inventory_2'}</span>
             <div class="truncate">
               <div class="flex items-center gap-1.5 flex-wrap">
-                <span class="text-[#f1f5f9] font-medium block truncate">${item.name}</span>
+                <span class="text-[#f1f5f9] font-medium block truncate">${escapeHtml(item.name)}</span>
+                ${customBadgeHtml(item)}
                 ${item.usableType && item.usableType !== 'none' ? `<span class="px-1 py-0.2 rounded bg-amber-500/10 text-amber-300 text-[9px] font-bold border border-amber-500/20 uppercase shrink-0">${item.usableType}</span>` : ''}
                 ${item.activationCondition ? `<span class="px-1.5 py-0.2 rounded bg-amber-500/10 text-amber-300 text-[9px] font-bold border border-amber-500/20 flex items-center gap-0.5 shrink-0" title="Condición de activación: ${item.activationCondition}"><span class="material-symbols-outlined text-[10px]">timer</span><span>${item.activationCondition}</span></span>` : ''}
               </div>

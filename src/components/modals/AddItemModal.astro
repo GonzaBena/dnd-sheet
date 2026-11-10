@@ -1,5 +1,6 @@
 ---
 // src/components/modals/AddItemModal.astro
+import CustomEntryFields from '../ui/CustomEntryFields.astro';
 ---
 
 <div id="add-item-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -142,6 +143,8 @@
         ></textarea>
       </div>
 
+      <CustomEntryFields prefix="item" />
+
       <!-- Footer -->
       <div class="pt-3 border-t border-[#222f42] flex items-center justify-end gap-2.5 shrink-0">
         <button type="button" id="add-item-cancel-btn" class="px-4 py-2 rounded-xl bg-[#121721] border border-[#222f42] text-[#94a3b8] hover:text-[#f1f5f9] cursor-pointer">
@@ -158,6 +161,10 @@
 <script>
   import { characterStore } from '../../scripts/state/characterStore';
   import { closeModal, openModal } from '../../scripts/animations/modalAnimations';
+  import { initCustomEntry } from '../../scripts/ui/customEntry';
+  import { showAlert } from '../../scripts/ui/notify';
+
+  const customEntry = initCustomEntry('item');
 
   const modal = document.getElementById('add-item-modal');
   const backdrop = document.getElementById('modal-backdrop');
@@ -188,6 +195,7 @@
     activationInp.value = '';
     descInp.value = '';
     notesInp.value = '';
+    customEntry.reset('new');
     if (modalTitle) modalTitle.textContent = 'Añadir Objeto a la Mochila';
     if (modalSubtitle) modalSubtitle.textContent = 'Pociones, equipo de viaje, armas o artefactos con notas';
     if (submitBtn) submitBtn.textContent = 'Guardar Objeto';
@@ -213,6 +221,7 @@
     resetForm();
     if (e.detail?.prefill) {
       loadItemForEdit(e.detail.prefill);
+      customEntry.reset('srd');
       editIdInp.value = '';
       if (modalTitle) modalTitle.textContent = 'Añadir Objeto desde Compendio';
       if (modalSubtitle) modalSubtitle.textContent = 'Revisa y ajusta los datos antes de guardarlo en tu mochila';
@@ -233,6 +242,7 @@
     const item = e.detail?.item;
     if (item) {
       loadItemForEdit(item);
+      customEntry.reset('edit', item);
       if (modal && backdrop) openModal(modal, backdrop);
     }
   }) as EventListener);
@@ -261,7 +271,11 @@
     else if (cat === 'weapon') icon = 'swords';
     else if (cat === 'treasure') icon = 'diamond';
 
+    const custom = customEntry.read();
+    if (!custom.ok) return; // el error ya se muestra en el formulario
+
     const payload = {
+      ...custom.patch,
       name,
       category: cat,
       quantity: parseInt(qtyInp.value || '1') || 1,
@@ -281,5 +295,8 @@
 
     form.reset();
     if (modal && backdrop) closeModal(modal, backdrop);
+    if (custom.imageRejected) {
+      showAlert('La imagen se descartó: solo se admiten URLs https:// o data:image/ cortas. El objeto se guardó sin imagen.', { kind: 'warning', title: 'Imagen no válida' });
+    }
   });
 </script>
