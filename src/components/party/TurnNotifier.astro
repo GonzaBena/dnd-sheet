@@ -1,0 +1,255 @@
+---
+// src/components/party/TurnNotifier.astro
+// Notificador global de turno (T-64, RF-60 a RF-63, RF-66).
+// Se monta en /campaigns y /partida.
+---
+
+<script>
+  import { subscribeCombat, getCurrentCombat } from '../../scripts/data/combatService.ts';
+  import { campaignStore } from '../../scripts/state/campaignStore.ts';
+  import { characterStore } from '../../scripts/state/characterStore.ts';
+  import { userStore } from '../../scripts/state/userStore.ts';
+  import { cloudSession } from '../../scripts/data/cloudSync.ts';
+  import { turnRelation, canEndTurn, turnKey, type TurnViewer } from '../../scripts/vtt/initiative.ts';
+  import { normalizeStatus, canPerform } from '../../scripts/vtt/sessionStatus.ts';
+  import { showBanner, buzz, chime, flashTitle, getPrefs } from '../../scripts/ui/alerts.ts';
+  import { mountEndTurnButton } from '../../scripts/ui/endTurnButton.ts';
+  import { initKeepAwake } from '../../scripts/ui/wakeLock.ts';
+  import type { Combat } from '../../scripts/models/combat.ts';
+
+  const SEEN_STORAGE_KEY = 'turnAlerts.seen';
+  const MAX_SEEN_KEYS = 50;
+
+  let currentCid: string | null = null;
+  let unsubscribeCombat: (() => void) | null = null;
+  let latestCombat: Combat | null = null;
+  // DECISION: FB-3 — Al recargar en medio del propio turno, la clave ya está en sessionStorage:
+  // mostramos el banner una vez por carga de página sin volver a vibrar ni sonar.
+  let shownBannerKeyThisLoad: string | null = null;
+
+  function loadSeenKeys(): Set<string> {
+    try {
+      const raw = sessionStorage.getItem(SEEN_STORAGE_KEY);
+      if (!raw) return new Set();
+      const arr = JSON.parse(raw);
+      return Array.isArray(arr) ? new Set(arr.filter((x) => typeof x === 'string')) : new Set();
+    } catch {
+      return new Set();
+    }
+  }
+
+  function markKeySeen(key: string): void {
+    try {
+      const seen = loadSeenKeys();
+      seen.add(key);
+      const trimmed = [...seen].slice(-MAX_SEEN_KEYS);
+      sessionStorage.setItem(SEEN_STORAGE_KEY, JSON.stringify(trimmed));
+    } catch {
+      // M2: ignorar fallos de sessionStorage
+    }
+  }
+
+  // DECISION: FB-1 — En /partida resolvemos la campaña por ?id=; en /campaigns por ?campaign= o activa.
+  function resolveCampaignId(): string | null {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('id') || params.get('campaign') || campaignStore.getActiveCampaignId() || null;
+  }
+
+  function isDmInCurrentView(cid: string): boolean {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('mode') === 'player') return false;
+    return campaignStore.isCurrentUserDm(cid);
+  }
+
+  function buildViewer(cid: string): TurnViewer {
+    const uid = userStore.getCurrentUser()?.id || '';
+    const charIds = new Set<string>();
+    const charNames = new Set<string>();
+
+    const mainChar = campaignStore.getMyCharacterForCampaign(cid);
+    if (mainChar) {
+      if (mainChar.id) charIds.add(mainChar.id);
+      if (mainChar.name) charNames.add(mainChar.name);
+    }
+
+    for (const c of campaignStore.getAllCharacters()) {
+      if (c.campaignId === cid && uid && campaignStore.isCharacterOwner(c, uid)) {
+        if (c.id) charIds.add(c.id);
+        if (c.name) charNames.add(c.name);
+      }
+    }
+
+    const activeSheetChar = characterStore.get();
+    if (activeSheetChar && (!activeSheetChar.campaignId || activeSheetChar.campaignId === cid)) {
+      if (charIds.size === 0 && activeSheetChar.id) charIds.add(activeSheetChar.id);
+      if (charNames.size === 0 && activeSheetChar.name) charNames.add(activeSheetChar.name);
+    }
+
+    return {
+      uid,
+      characterIds: [...charIds],
+      characterNames: [...charNames],
+    };
+  }
+
+  function renderTurnBar(combatantName: string | null, showEndTurn = false): void {
+    const slots = document.querySelectorAll<HTMLElement>('[data-turn-bar-slot]');
+    slots.forEach((slot) => {
+      if (!combatantName) {
+        slot.classList.add('hidden');
+        slot.innerHTML = '';
+        return;
+      }
+      slot.classList.remove('hidden');
+      slot.innerHTML = `
+        <div id="turn-bar-active" class="p-3 rounded-xl bg-amber-500/15 border border-amber-500/60 text-amber-100 shadow-[0_0_15px_rgba(245,158,11,0.2)] flex items-center justify-between gap-3">
+          <div class="flex items-center gap-2 min-w-0">
+            <span class="text-base shrink-0">⚔️</span>
+            <span class="text-xs sm:text-sm font-headline font-bold truncate">Tu turno · ${combatantName}</span>
+          </div>
+          <div id="turn-bar-actions" data-turn-bar-actions class="shrink-0 flex items-center gap-2"></div>
+        </div>
+      `;
+
+      // DECISION: FC-1 — El botón aparece solo si canEndTurn(combat, uid) (por ownerUid) y la partida está active.
+      if (showEndTurn && currentCid) {
+        const actionsEl = slot.querySelector<HTMLElement>('[data-turn-bar-actions]');
+        if (actionsEl) {
+          const cid = currentCid;
+          mountEndTurnButton(actionsEl, {
+            cid,
+            getKey: () => turnKey(latestCombat),
+          });
+        }
+      }
+    });
+  }
+
+  function handleCombatUpdate(combat: Combat | null): void {
+    latestCombat = combat;
+    if (!currentCid || !combat || !combat.active) {
+      renderTurnBar(null);
+      shownBannerKeyThisLoad = null;
+      return;
+    }
+
+    // FB-2: El DM no recibe avisos de turno
+    if (isDmInCurrentView(currentCid)) {
+      renderTurnBar(null);
+      return;
+    }
+
+    const prefs = getPrefs();
+    if (!prefs.enabled) {
+      renderTurnBar(null);
+      return;
+    }
+
+    const viewer = buildViewer(currentCid);
+    const rel = turnRelation(combat, viewer);
+
+    if (!rel) {
+      renderTurnBar(null);
+      shownBannerKeyThisLoad = null;
+      return;
+    }
+
+    const seen = loadSeenKeys();
+
+    if (rel.kind === 'mine') {
+      const camp = campaignStore.getCampaign(currentCid);
+      const status = normalizeStatus(camp?.status);
+      const allowEnd = canEndTurn(combat, viewer.uid) && canPerform('playerWrite', 'player', status);
+      renderTurnBar(rel.combatant.name, allowEnd);
+
+      if (!seen.has(rel.key)) {
+        markKeySeen(rel.key);
+        shownBannerKeyThisLoad = rel.key;
+        showBanner({
+          title: `¡Tu turno, ${rel.combatant.name}!`,
+          subtitle: `Ronda ${combat.round} · Combate en curso`,
+          tone: 'turn',
+        });
+        buzz('turn');
+        chime('turn');
+        if (document.hidden) {
+          flashTitle('⚔️ ¡Tu turno!');
+        }
+      } else if (shownBannerKeyThisLoad !== rel.key) {
+        // FB-3: Recarga en medio del propio turno → solo banner, sin vibrar ni sonar
+        shownBannerKeyThisLoad = rel.key;
+        showBanner({
+          title: `¡Tu turno, ${rel.combatant.name}!`,
+          subtitle: `Ronda ${combat.round} · Combate en curso`,
+          tone: 'turn',
+        });
+      }
+    } else if (rel.kind === 'next') {
+      renderTurnBar(null);
+      shownBannerKeyThisLoad = null;
+
+      if (prefs.nextUp && !seen.has(rel.key)) {
+        markKeySeen(rel.key);
+        showBanner({
+          title: `Sos el siguiente (${rel.combatant.name})`,
+          tone: 'next',
+          timeoutMs: 3000,
+        });
+        buzz('next');
+      }
+    }
+  }
+
+  function syncSubscription(): void {
+    const nextCid = resolveCampaignId();
+    if (nextCid !== currentCid) {
+      if (unsubscribeCombat) {
+        unsubscribeCombat();
+        unsubscribeCombat = null;
+      }
+      currentCid = nextCid;
+      latestCombat = currentCid ? getCurrentCombat(currentCid) : null;
+      shownBannerKeyThisLoad = null;
+
+      if (currentCid) {
+        unsubscribeCombat = subscribeCombat(currentCid, (combat) => {
+          handleCombatUpdate(combat);
+        });
+      } else {
+        renderTurnBar(null);
+      }
+    } else if (currentCid && latestCombat) {
+      handleCombatUpdate(latestCombat);
+    }
+  }
+
+  function init(): void {
+    syncSubscription();
+    initKeepAwake(() => {
+      if (!currentCid) return null;
+      const camp = campaignStore.getCampaign(currentCid);
+      return camp ? normalizeStatus(camp.status) : null;
+    });
+  }
+
+  cloudSession.ready().then(init);
+  window.addEventListener('active-campaign-changed', syncSubscription);
+  window.addEventListener('campaign-activated', syncSubscription);
+  window.addEventListener('campaigns-updated', () => {
+    syncSubscription();
+    window.dispatchEvent(new CustomEvent('session-status-changed'));
+  });
+  window.addEventListener('characters-updated', () => {
+    if (currentCid && latestCombat) handleCombatUpdate(latestCombat);
+  });
+  window.addEventListener('character-updated', () => {
+    if (currentCid && latestCombat) handleCombatUpdate(latestCombat);
+  });
+  window.addEventListener('current-user-changed', syncSubscription);
+  window.addEventListener('alert-prefs-changed', () => {
+    if (currentCid && latestCombat) handleCombatUpdate(latestCombat);
+  });
+  window.addEventListener('session-status-changed', () => {
+    if (currentCid && latestCombat) handleCombatUpdate(latestCombat);
+  });
+</script>

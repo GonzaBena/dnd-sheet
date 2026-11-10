@@ -1,0 +1,115 @@
+---
+// src/components/layout/AlertPrefsMenu.astro
+// Popover de configuración de avisos de turno y pantalla encendida (T-65, RF-64, RF-66).
+---
+
+<div
+  id="alert-prefs-menu"
+  class="hidden absolute top-full right-0 mt-2 w-72 p-4 bg-[#121721] border border-[#222f42] rounded-xl shadow-[0_10px_30px_rgba(0,0,0,0.85)] z-[100] text-xs font-medium backdrop-blur-md select-none"
+>
+  <div class="flex items-center justify-between pb-2.5 mb-3 border-b border-[#222f42]">
+    <div class="flex items-center gap-2">
+      <span class="material-symbols-outlined text-[16px] text-amber-400">notifications_active</span>
+      <h3 class="font-headline font-bold text-[#f1f5f9] text-xs uppercase tracking-wider">Avisos de Mesa</h3>
+    </div>
+  </div>
+
+  <div class="space-y-2.5" id="alert-prefs-form">
+    <label class="flex items-center justify-between gap-3 py-1 cursor-pointer text-[#e2e8f0] hover:text-amber-300 transition-colors">
+      <span>Avisos de turno</span>
+      <input type="checkbox" name="enabled" class="accent-amber-500 w-4 h-4 rounded cursor-pointer" checked />
+    </label>
+
+    <label id="pref-row-vibrate" class="flex items-center justify-between gap-3 py-1 cursor-pointer text-[#e2e8f0] hover:text-amber-300 transition-colors">
+      <span>Vibración</span>
+      <input type="checkbox" name="vibrate" class="accent-amber-500 w-4 h-4 rounded cursor-pointer" checked />
+    </label>
+
+    <label class="flex items-center justify-between gap-3 py-1 cursor-pointer text-[#e2e8f0] hover:text-amber-300 transition-colors">
+      <span>Sonido</span>
+      <input type="checkbox" name="sound" class="accent-amber-500 w-4 h-4 rounded cursor-pointer" checked />
+    </label>
+
+    <label class="flex items-center justify-between gap-3 py-1 cursor-pointer text-[#e2e8f0] hover:text-amber-300 transition-colors">
+      <span>Aviso "Sos el siguiente"</span>
+      <input type="checkbox" name="nextUp" class="accent-amber-500 w-4 h-4 rounded cursor-pointer" checked />
+    </label>
+
+    <label id="pref-row-keep-awake" class="flex items-center justify-between gap-3 py-1 cursor-pointer text-[#e2e8f0] hover:text-amber-300 transition-colors">
+      <span>Pantalla siempre encendida</span>
+      <input type="checkbox" name="keepAwake" class="accent-amber-500 w-4 h-4 rounded cursor-pointer" />
+    </label>
+  </div>
+
+  <button
+    type="button"
+    id="test-alert-btn"
+    class="w-full mt-3.5 py-2 px-3 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 text-xs font-bold flex items-center justify-center gap-1.5 transition-all active:scale-95 cursor-pointer"
+  >
+    <span class="material-symbols-outlined text-[15px]">volume_up</span>
+    <span>Probar aviso</span>
+  </button>
+
+  <p class="mt-3 pt-2.5 border-t border-[#222f42]/80 text-[10px] leading-relaxed text-[#94a3b8]">
+    En iPhone no hay vibración web. En Android, para vibrar el teléfono no debe estar en "Silencio total / No molestar". El sonido usa el volumen multimedia tras el primer toque en la página.
+  </p>
+</div>
+
+<script>
+  import { getPrefs, setPrefs, canVibrate, showBanner, buzz, chime } from '../../scripts/ui/alerts.ts';
+
+  const menu = document.getElementById('alert-prefs-menu');
+  const form = document.getElementById('alert-prefs-form');
+  const vibrateRow = document.getElementById('pref-row-vibrate');
+  const keepAwakeRow = document.getElementById('pref-row-keep-awake');
+
+  // FB-6: Ocultar controles cuyas APIs no existen en este navegador
+  if (vibrateRow && !canVibrate()) {
+    vibrateRow.classList.add('hidden');
+  }
+  if (keepAwakeRow && (typeof navigator === 'undefined' || !('wakeLock' in navigator))) {
+    keepAwakeRow.classList.add('hidden');
+  }
+
+  // Evitar que clics dentro del popover lo cierren
+  menu?.addEventListener('click', (e) => {
+    e.stopPropagation();
+  });
+
+  function updateUI() {
+    if (!form) return;
+    const prefs = getPrefs();
+    const setCheck = (name: string, val: boolean) => {
+      const el = form.querySelector<HTMLInputElement>(`[name="${name}"]`);
+      if (el) el.checked = val;
+    };
+    setCheck('enabled', prefs.enabled);
+    setCheck('vibrate', prefs.vibrate);
+    setCheck('sound', prefs.sound);
+    setCheck('nextUp', prefs.nextUp);
+    setCheck('keepAwake', prefs.keepAwake);
+  }
+
+  form?.addEventListener('change', (e) => {
+    const target = e.target as HTMLInputElement;
+    if (!target || !target.name) return;
+    setPrefs({ [target.name]: target.checked });
+  });
+
+  document.getElementById('test-alert-btn')?.addEventListener('click', () => {
+    const prefs = getPrefs();
+    if (!prefs.enabled) {
+      setPrefs({ enabled: true });
+    }
+    showBanner({
+      title: '¡Tu turno, Aventurero!',
+      subtitle: 'Aviso de prueba · Sonido y vibración activos',
+      tone: 'turn',
+    });
+    buzz('turn');
+    chime('turn');
+  });
+
+  updateUI();
+  window.addEventListener('alert-prefs-changed', updateUI);
+</script>

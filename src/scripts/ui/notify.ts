@@ -28,8 +28,9 @@ export interface ConfirmOptions {
 export interface FormField {
   name: string;
   label: string;
-  type?: 'text' | 'number' | 'url' | 'email' | 'textarea' | 'checkbox';
+  type?: 'text' | 'number' | 'url' | 'email' | 'textarea' | 'checkbox' | 'select';
   value?: string | number | boolean;
+  options?: { value: string; label: string }[];
   placeholder?: string;
   required?: boolean;
   readonly?: boolean;
@@ -183,7 +184,7 @@ function buildDialog(spec: DialogSpec, finish: (value: string) => void) {
   body.appendChild(header);
 
   // Campos
-  const inputs: (HTMLInputElement | HTMLTextAreaElement)[] = [];
+  const inputs: (HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement)[] = [];
   if (spec.fields?.length) {
     const fieldsBox = el('div', 'space-y-3 font-label');
     for (const field of spec.fields) {
@@ -201,6 +202,25 @@ function buildDialog(spec: DialogSpec, finish: (value: string) => void) {
         if (field.hint) checkWrap.appendChild(el('span', 'text-[10px] text-[#64748b] ml-1', `(${field.hint})`));
         inputs.push(input);
         fieldsBox.appendChild(checkWrap);
+        continue;
+      }
+
+      if (field.type === 'select') {
+        const wrap = el('label', 'block');
+        if (field.label) wrap.appendChild(el('span', 'text-[#94a3b8] block mb-1 text-xs font-bold', field.label));
+        const select = el('select', `${INPUT_CLASS} cursor-pointer`);
+        select.name = field.name;
+        const selectedVal = field.value !== undefined ? String(field.value) : '';
+        for (const opt of field.options || []) {
+          const optEl = el('option', '', opt.label);
+          optEl.value = opt.value;
+          if (opt.value === selectedVal) optEl.selected = true;
+          select.appendChild(optEl);
+        }
+        wrap.appendChild(select);
+        if (field.hint) wrap.appendChild(el('span', 'text-[10px] text-[#64748b] block mt-1', field.hint));
+        inputs.push(select);
+        fieldsBox.appendChild(wrap);
         continue;
       }
 
@@ -284,7 +304,7 @@ function buildDialog(spec: DialogSpec, finish: (value: string) => void) {
       ])
     );
   let firstFocus: HTMLElement | null;
-  if (inputs.length) firstFocus = inputs.find(i => !i.readOnly) || inputs[0];
+  if (inputs.length) firstFocus = inputs.find(i => !('readOnly' in i && i.readOnly)) || inputs[0];
   else if (spec.choices?.length) firstFocus = body.querySelector<HTMLElement>('button');
   else firstFocus = (spec.focusCancel ? secondary : primary) || secondary;
 
@@ -346,7 +366,7 @@ function showNext() {
     }
     if (e.key === 'Tab') {
       // Mantener el foco dentro del diálogo.
-      const focusables = Array.from(card.querySelectorAll<HTMLElement>('input, textarea, button')).filter(n => !n.hasAttribute('disabled'));
+      const focusables = Array.from(card.querySelectorAll<HTMLElement>('input, textarea, select, button')).filter(n => !n.hasAttribute('disabled'));
       if (focusables.length === 0) return;
       const first = focusables[0];
       const last = focusables[focusables.length - 1];
@@ -370,7 +390,7 @@ function showNext() {
     card.classList.add('opacity-100', 'scale-100');
   });
   firstFocus?.focus();
-  const readonlyInput = inputs.find(i => i.readOnly);
+  const readonlyInput = inputs.find((i): i is HTMLInputElement | HTMLTextAreaElement => 'readOnly' in i && i.readOnly);
   if (readonlyInput && firstFocus === readonlyInput) readonlyInput.select();
 
   overlay.addEventListener('click', onBackdrop);

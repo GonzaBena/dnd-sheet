@@ -389,4 +389,73 @@ export function computeAutoLinks(
   return links;
 }
 
+export interface TurnViewer {
+  uid: string;
+  characterIds: string[];
+  characterNames: string[];
+}
+
+/** ownerUid si el combatiente lo tiene; si no, characterId; el nombre solo como último recurso. */
+export function isOwnedBy(c: Combatant, viewer: TurnViewer): boolean {
+  if (c.ownerUid) {
+    return Boolean(viewer.uid && c.ownerUid === viewer.uid);
+  }
+  if (c.characterId) {
+    return viewer.characterIds.includes(c.characterId);
+  }
+  if (c.name) {
+    return viewer.characterNames.includes(c.name);
+  }
+  return false;
+}
+
+/** `${round}:${turnIndex}:${combatantId}`, o null si no hay combate activo o la lista está vacía. */
+export function turnKey(combat: Combat | null): string | null {
+  if (!combat || !combat.active || !combat.combatants || combat.combatants.length === 0) return null;
+  const c = combat.combatants[combat.turnIndex];
+  if (!c) return null;
+  return `${combat.round}:${combat.turnIndex}:${c.id}`;
+}
+
+/** Índice y ronda del siguiente turno (misma lógica que nextTurn, sin construir el combate). */
+export function peekNext(combat: Combat): { index: number; round: number } | null {
+  if (!combat.combatants || combat.combatants.length === 0) return null;
+  const nextIndex = combat.turnIndex + 1;
+  if (nextIndex >= combat.combatants.length) {
+    return { index: 0, round: combat.round + 1 };
+  }
+  return { index: nextIndex, round: combat.round };
+}
+
+/** 'mine' si el turno actual es del viewer; 'next' si lo es el siguiente; null si no. */
+export function turnRelation(
+  combat: Combat | null,
+  viewer: TurnViewer
+): { kind: 'mine' | 'next'; combatant: Combatant; key: string } | null {
+  if (!combat || !combat.active || !combat.combatants || combat.combatants.length === 0) return null;
+
+  const currentCombatant = combat.combatants[combat.turnIndex];
+  if (currentCombatant && isOwnedBy(currentCombatant, viewer)) {
+    const key = turnKey(combat);
+    if (key) return { kind: 'mine', combatant: currentCombatant, key };
+  }
+
+  const next = peekNext(combat);
+  if (next) {
+    const nextCombatant = combat.combatants[next.index];
+    if (nextCombatant && isOwnedBy(nextCombatant, viewer)) {
+      return { kind: 'next', combatant: nextCombatant, key: `${next.round}:${next.index}:${nextCombatant.id}` };
+    }
+  }
+
+  return null;
+}
+
+/** Solo por ownerUid (es lo que validan las reglas, Fase C). */
+export function canEndTurn(combat: Combat | null, uid: string): boolean {
+  if (!combat || !combat.active || !combat.combatants || combat.combatants.length === 0) return false;
+  const c = combat.combatants[combat.turnIndex];
+  return Boolean(c && c.ownerUid && c.ownerUid === uid);
+}
+
 

@@ -163,7 +163,7 @@ Tests (`tests/rules/combat_turn_rules.test.mjs`), con un combate de 3 combatient
 
 ## 10. Checklist de cierre
 
-- [ ] T-66 … T-69 marcadas en la spec.
-- [ ] `// DECISION:` para FC-1, FC-3 y FC-4 (y comentario F1-4 actualizado).
-- [ ] Tests de reglas verdes, incluidos los rechazos.
-- [ ] Build estático OK.
+- [x] T-66 … T-69 marcadas en la spec.
+- [x] `// DECISION:` para FC-1, FC-3 y FC-4 (y comentario F1-4 actualizado).
+- [x] Tests de reglas verdes, incluidos los rechazos.
+- [x] Build estático OK.

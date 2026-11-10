@@ -1,5 +1,5 @@
 ---
-// src/components/layout/Header.astro
+import AlertPrefsMenu from './AlertPrefsMenu.astro';
 ---
 
 <header class="fixed top-0 w-full z-40 bg-[#0a0d12]/95 backdrop-blur-xl border-b border-[#222f42] shadow-[0_4px_25px_rgba(0,0,0,0.6)]">
@@ -30,6 +30,20 @@
 
     <!-- Quick Utilities & Actions -->
     <div class="flex items-center gap-2 shrink-0">
+      <!-- Notifications Trigger -->
+      <div class="relative">
+        <button
+          id="header-alerts-btn"
+          class="w-8 h-8 rounded-full bg-[#18202e] border border-[#222f42] flex items-center justify-center hover:border-amber-500/50 transition-all text-[#94a3b8] hover:text-amber-400 cursor-pointer"
+          title="Preferencias de notificaciones"
+          type="button"
+        >
+          <span class="material-symbols-outlined text-[18px]">notifications</span>
+        </button>
+
+        <AlertPrefsMenu />
+      </div>
+
       <!-- Profile & Settings Dropdown Menu Trigger -->
       <div class="relative">
         <button
@@ -173,16 +187,27 @@
     });
   });
 
-  // Toggle profile menu
+  // Toggle Alert Menu & Profile Menu
+  const alertBtn = document.getElementById('header-alerts-btn');
+  const alertMenu = document.getElementById('alert-prefs-menu');
   const profileBtn = document.getElementById('header-profile-btn');
   const profileMenu = document.getElementById('header-profile-menu');
+
+  alertBtn?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    profileMenu?.classList.add('hidden');
+    alertMenu?.classList.toggle('hidden');
+  });
+
   profileBtn?.addEventListener('click', (e) => {
     e.stopPropagation();
+    alertMenu?.classList.add('hidden');
     profileMenu?.classList.toggle('hidden');
   });
 
   document.addEventListener('click', () => {
     profileMenu?.classList.add('hidden');
+    alertMenu?.classList.add('hidden');
   });
 
   // Open Compendium Modal

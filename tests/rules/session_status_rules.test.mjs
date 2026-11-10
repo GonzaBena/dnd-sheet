@@ -193,11 +193,14 @@ test('DM crea dm_events solo en active', async () => {
   await assertFails(setDoc(doc(db(DM), 'campaigns', CID_ENDED, 'dm_events', 'ev1'), ev(CID_ENDED)));
 });
 
-test('DM crea entrada normal en journal solo en active, pero systemEvent=status en cualquiera', async () => {
-  // Entrada normal DM
+test('DM crea notas dm en active y paused (preparación), entrada party normal solo en active, y systemEvent=status en cualquiera', async () => {
+  // Notas secretas del DM (visibility: 'dm'): permitidas en active y paused (canPrepare), no en ended
   await assertSucceeds(setDoc(doc(db(DM), 'campaigns', CID_ACTIVE, 'journal', 'dm-act'), journalEntry('dm-act', DM, 'dm', CID_ACTIVE)));
-  await assertFails(setDoc(doc(db(DM), 'campaigns', CID_PAUSED, 'journal', 'dm-pau'), journalEntry('dm-pau', DM, 'dm', CID_PAUSED)));
+  await assertSucceeds(setDoc(doc(db(DM), 'campaigns', CID_PAUSED, 'journal', 'dm-pau'), journalEntry('dm-pau', DM, 'dm', CID_PAUSED)));
   await assertFails(setDoc(doc(db(DM), 'campaigns', CID_ENDED, 'journal', 'dm-end'), journalEntry('dm-end', DM, 'dm', CID_ENDED)));
+
+  // Entrada normal de mesa (visibility: 'party' sin systemEvent): solo en active
+  await assertFails(setDoc(doc(db(DM), 'campaigns', CID_PAUSED, 'journal', 'p-pau'), journalEntry('p-pau', DM, 'party', CID_PAUSED)));
 
   // Entrada con systemEvent: 'status' (visibilidad party)
   await assertSucceeds(setDoc(doc(db(DM), 'campaigns', CID_ACTIVE, 'journal', 's-act'), journalEntry('s-act', DM, 'party', CID_ACTIVE, 'status')));

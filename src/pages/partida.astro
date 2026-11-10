@@ -7,6 +7,7 @@ import PartyView from '../components/party/PartyView.astro';
 import QuickJournalFab from '../components/journal/QuickJournalFab.astro';
 import JournalModal from '../components/journal/JournalModal.astro';
 import CampaignRosterModal from '../components/campaigns/CampaignRosterModal.astro';
+import TurnNotifier from '../components/party/TurnNotifier.astro';
 ---
 
 <BaseLayout title="Mesa de Partida - D&D 5e">
@@ -27,4 +28,5 @@ import CampaignRosterModal from '../components/campaigns/CampaignRosterModal.ast
 
   <!-- Modal de Miembros de Campaña -->
   <CampaignRosterModal />
+  <TurnNotifier />
 </BaseLayout>

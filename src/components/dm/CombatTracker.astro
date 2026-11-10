@@ -258,6 +258,15 @@
               class="w-full px-2.5 py-1.5 rounded-lg bg-[#18202e] border border-[#222f42] text-xs text-[#f1f5f9] focus:border-amber-500 focus:outline-hidden"
             />
           </div>
+          <div class="col-span-2">
+            <label class="block text-[10px] text-[#94a3b8] mb-1">Controlado por (opcional)</label>
+            <select
+              id="dm-init-monster-owner"
+              class="w-full px-2.5 py-1.5 rounded-lg bg-[#18202e] border border-[#222f42] text-xs text-[#f1f5f9] focus:border-amber-500 focus:outline-hidden cursor-pointer"
+            >
+              <option value="">Nadie (DM)</option>
+            </select>
+          </div>
         </div>
 
         <!-- Opción de desplegar tokens en el mapa táctico activo -->
@@ -460,6 +469,7 @@
   import { DND_CONDITIONS, getConditionInfo } from '../../scripts/vtt/conditions.ts';
   import { areAllPlayersInInitiative, computeAutoLinks } from '../../scripts/vtt/initiative.ts';
   import { campaignStore } from '../../scripts/state/campaignStore.ts';
+  import { userStore } from '../../scripts/state/userStore.ts';
   import { showConfirm, showForm, showAlert } from '../../scripts/ui/notify.ts';
   import { animateHpBar } from '../../scripts/animations/hpAnimations.ts';
   import { listMaps, addToken, watchActiveMap } from '../../scripts/data/mapService.ts';
@@ -529,6 +539,46 @@
     return `<option value="">Sin token</option>${opts.join('')}`;
   }
 
+  /**
+   * Lista de opciones para el selector "Controlado por" (T-69, RF-74):
+   * "Nadie (DM)" + jugadores de la campaña (memberUserIds con su nombre / personaje).
+   */
+  function getCampaignPlayerOptions(cid: string): Array<{ value: string; label: string }> {
+    const camp = campaignStore.getCampaign(cid);
+    const chars = campaignStore.getCharactersForCampaign(cid);
+    const players = (camp?.memberUserIds || [])
+      .filter((uid) => uid && uid !== camp?.dmId)
+      .map((uid) => {
+        const userName = userStore.getUser(uid)?.name || 'Jugador';
+        const charName = chars.find((c) => c.userId === uid)?.name;
+        return {
+          value: uid,
+          label: charName ? `${charName} (${userName})` : userName,
+        };
+      });
+    return [{ value: '', label: 'Nadie (DM)' }, ...players];
+  }
+
+  function ownerOptionsHtml(cid: string, selected?: string): string {
+    const options = getCampaignPlayerOptions(cid);
+    const hasSelected = !selected || options.some((o) => o.value === selected);
+    const extra =
+      selected && !hasSelected
+        ? `<option value="${escapeHtml(selected)}" selected>Controlado por: (${escapeHtml(selected)})</option>`
+        : '';
+    return (
+      extra +
+      options
+        .map(
+          (o) =>
+            `<option value="${escapeHtml(o.value)}" ${
+              (selected || '') === o.value ? 'selected' : ''
+            }>${o.value ? `Dueño: ${escapeHtml(o.label)}` : 'Nadie (DM)'}</option>`
+        )
+        .join('')
+    );
+  }
+
   function autoLinkTokens(combat: Combat | null) {
     if (!currentCampaignId || !combat || !checkCanPlay(currentCampaignId)) return;
     const cid = currentCampaignId;
@@ -582,16 +632,16 @@
   }
 
   function disableControls(disabled: boolean) {
-    const buttons = rootEl?.querySelectorAll('button') || [];
-    buttons.forEach((btn) => {
+    const controls = rootEl?.querySelectorAll('button, select') || [];
+    controls.forEach((ctrl) => {
       // No deshabilitamos modal close si está abierto
-      if (btn.id === 'dm-modal-close-btn' || btn.id === 'dm-modal-cancel-btn') return;
+      if (ctrl.id === 'dm-modal-close-btn' || ctrl.id === 'dm-modal-cancel-btn') return;
       if (disabled) {
-        btn.setAttribute('disabled', 'true');
-        btn.classList.add('opacity-50', 'pointer-events-none');
+        ctrl.setAttribute('disabled', 'true');
+        ctrl.classList.add('opacity-50', 'pointer-events-none');
       } else {
-        btn.removeAttribute('disabled');
-        btn.classList.remove('opacity-50', 'pointer-events-none');
+        ctrl.removeAttribute('disabled');
+        ctrl.classList.remove('opacity-50', 'pointer-events-none');
       }
     });
   }
@@ -792,6 +842,22 @@
                     ${tokenOptionsHtml(c.tokenId)}
                   </select>
 
+                  <!-- Controlado por / Dueño (T-69, RF-74) -->
+                  ${
+                    !c.isPlayer && currentCampaignId
+                      ? `
+                    <select
+                      class="dm-owner-select min-w-0 max-w-[10rem] px-1.5 py-0.5 rounded bg-[#10141d] border border-[#222f42] text-[#cbd5e1] text-[10px] cursor-pointer focus:border-amber-500/40 focus:outline-none"
+                      data-id="${c.id}"
+                      title="Controlado por (dueño del turno de ${c.name})"
+                      aria-label="Controlado por"
+                    >
+                      ${ownerOptionsHtml(currentCampaignId, c.ownerUid)}
+                    </select>
+                  `
+                      : ''
+                  }
+
                   <!-- Chips de condiciones -->
                   <div class="flex items-center gap-1 flex-wrap">
                     ${
@@ -955,6 +1021,16 @@
         if (!id) return;
         // '' desenlaza: se escribe null-equivalente eliminando el valor.
         await updateCombatant(cid, id, { tokenId: target.value || undefined });
+      });
+    });
+
+    // Asignar o quitar dueño de un combatiente manual (T-69, RF-74)
+    rootEl?.querySelectorAll('.dm-owner-select').forEach((sel) => {
+      sel.addEventListener('change', async (e) => {
+        const target = e.currentTarget as HTMLSelectElement;
+        const id = target.dataset.id;
+        if (!id) return;
+        await updateCombatant(cid, id, { ownerUid: target.value || undefined });
       });
     });
 
@@ -1296,6 +1372,13 @@
     const players = buildPlayerCombatants(currentCampaignId);
     modalPlayersList.innerHTML = '';
 
+    const initOwnerSelect = document.getElementById('dm-init-monster-owner') as HTMLSelectElement | null;
+    if (initOwnerSelect) {
+      initOwnerSelect.innerHTML = getCampaignPlayerOptions(currentCampaignId)
+        .map((o) => `<option value="${escapeHtml(o.value)}">${escapeHtml(o.label)}</option>`)
+        .join('');
+    }
+
     if (players.length === 0) {
       reqInitModalBtn?.classList.add('hidden');
       modalPlayersList.innerHTML = `
@@ -1401,10 +1484,12 @@
     const monsterHpInput = document.getElementById('dm-init-monster-hp') as HTMLInputElement;
     const monsterAcInput = document.getElementById('dm-init-monster-ac') as HTMLInputElement;
     const monsterQtyInput = document.getElementById('dm-init-monster-qty') as HTMLInputElement;
+    const monsterOwnerSelect = document.getElementById('dm-init-monster-owner') as HTMLSelectElement | null;
     const addTokenCheckbox = document.getElementById('dm-init-monster-add-token') as HTMLInputElement | null;
     const shouldAddTokens = Boolean(addTokenCheckbox?.checked);
 
     const mName = monsterNameInput?.value.trim();
+    const mOwnerUid = monsterOwnerSelect?.value || undefined;
     let mQty = 1;
     if (mName) {
       const mInit = Number(monsterInitInput?.value) || 10;
@@ -1422,7 +1507,8 @@
           ac: mAc,
           conditions: [],
           isPlayer: false,
-          hiddenHp: true,
+          hiddenHp: !mOwnerUid,
+          ownerUid: mOwnerUid,
           avatarUrl: '/characters/ch-3.avif',
         });
       }
@@ -1445,6 +1531,7 @@
       if (monsterHpInput) monsterHpInput.value = '';
       if (monsterAcInput) monsterAcInput.value = '';
       if (monsterQtyInput) monsterQtyInput.value = '1';
+      if (monsterOwnerSelect) monsterOwnerSelect.value = '';
     } catch (err: any) {
       await showAlert(err?.message || 'Error al iniciar combate.', { kind: 'error' });
     }
@@ -1514,18 +1601,21 @@
     }
   });
 
-  // Agregar Monstruo durante el combate
+  // Agregar Monstruo / Combatiente manual durante el combate (T-69, RF-74)
   addMonsterBtn?.addEventListener('click', async () => {
     if (!currentCampaignId) return;
 
+    const ownerOptions = getCampaignPlayerOptions(currentCampaignId);
+
     const formResult = await showForm([
-      { name: 'name', label: 'Nombre del Oponente / Monstruo', type: 'text', placeholder: 'Ej. Orco', required: true },
+      { name: 'name', label: 'Nombre del Oponente / Aliado', type: 'text', placeholder: 'Ej. Orco, Lobo de Thorin', required: true },
       { name: 'init', label: 'Iniciativa', type: 'number', placeholder: '12', value: 10, required: true },
       { name: 'hp', label: 'Puntos de Golpe (PG Máx)', type: 'number', placeholder: '15', value: 15, required: true },
       { name: 'ac', label: 'Clase de Armadura (CA)', type: 'number', placeholder: '13', value: 13 },
       { name: 'qty', label: 'Cantidad', type: 'number', value: 1, min: 1 },
+      { name: 'ownerUid', label: 'Controlado por', type: 'select', value: '', options: ownerOptions },
       { name: 'addToken', label: 'Desplegar token(s) en el mapa táctico activo', type: 'checkbox', value: true },
-    ], { title: 'Agregar Oponente al Combate' });
+    ], { title: 'Agregar Combatiente al Combate' });
 
     if (!formResult || !formResult.name) return;
 
@@ -1534,6 +1624,7 @@
     const mInit = Number(formResult.init) || 10;
     const mHp = Number(formResult.hp) || 10;
     const mAc = Number(formResult.ac) || 10;
+    const mOwnerUid = formResult.ownerUid ? String(formResult.ownerUid).trim() : undefined;
     const shouldAddToken = formResult.addToken === 'true' || formResult.addToken === true;
 
     for (let i = 1; i <= qty; i++) {
@@ -1546,7 +1637,8 @@
         ac: mAc,
         conditions: [],
         isPlayer: false,
-        hiddenHp: true,
+        hiddenHp: !mOwnerUid,
+        ownerUid: mOwnerUid,
         avatarUrl: '/characters/ch-3.avif',
       };
       await addCombatant(currentCampaignId, newCombatant);

@@ -4,7 +4,8 @@
 // DECISION (F1-1): hiddenHp se aplica en la UI. combat/current lo leen todos los miembros.
 // DECISION (F1-2): Los combatientes se almacenan pre-ordenados por iniciativa DESC con desempates.
 // DECISION (F1-3): PG de los jugadores se copian de la ficha al agregarlos y son independientes durante el combate.
-// DECISION (F1-4): Cada escritura es un setDoc del documento completo ejecutado exclusivamente por el DM.
+// DECISION (F1-4, FC-4): El documento completo lo escribe el DM con setDoc, excepto el avance/retroceso de turno
+// (`endMyTurn`, `advanceTurn`, `previousTurn`), que usa `runTransaction` y escritura parcial (`turnIndex`, `round`, `updatedAt`).
 
 import type { Combat, Combatant } from '../models/combat.ts';
 import { COMBAT_LIMITS } from '../models/combat.ts';
@@ -17,11 +18,16 @@ import {
   duplicateCombatant,
   applyDamage,
   syncCombatantsWithCharacters,
+  turnKey,
+  peekNext,
+  canEndTurn,
 } from '../vtt/initiative.ts';
 import { campaignStore } from '../state/campaignStore.ts';
 import { journalStore } from '../state/journalStore.ts';
+import { userStore } from '../state/userStore.ts';
 import { normalizeStatus, canPerform } from '../vtt/sessionStatus.ts';
 import { getFirebase, isFirebaseConfigured } from '../firebase/client.ts';
+import { toPlain } from './cloudTypes.ts';
 
 const LOCAL_STORAGE_PREFIX = 'dnd_combat_';
 
@@ -193,7 +199,9 @@ export function subscribeCombat(
 
 /**
  * Guarda el estado completo del combate en Firestore (o local si no hay nube).
- * DECISION (F1-4): setDoc completo del documento `campaigns/{cid}/combat/current`.
+ * DECISION (F1-4): setDoc completo del documento `campaigns/{cid}/combat/current`,
+ * salvo el avance/retroceso de turno (`endMyTurn`, `advanceTurn`, `previousTurn`),
+ * que usa `runTransaction` y escritura parcial (FC-4).
  */
 export async function saveCombat(cid: string, combat: Combat): Promise<void> {
   if (!checkCanPlay(cid)) {
@@ -204,10 +212,10 @@ export async function saveCombat(cid: string, combat: Combat): Promise<void> {
     throw new Error(`El combate no puede superar los ${COMBAT_LIMITS.maxCombatants} combatientes.`);
   }
 
-  const payload: Combat = {
+  const payload: Combat = toPlain({
     ...combat,
     updatedAt: Date.now(),
-  };
+  });
 
   if (isFirebaseConfigured()) {
     const { db } = await getFirebase();
@@ -429,9 +437,101 @@ export async function removeCombatantFromCombat(cid: string, combatantId: string
 }
 
 /**
+ * Permite al dueño del combatiente actual terminar su turno (T-67, RF-71, RF-73).
+ * DECISION (FC-1): Solo por ownerUid (validado también por las reglas).
+ * DECISION (FC-3): La transacción compara turnKey del documento leído con expectedKey; si cambió, devuelve 'stale'.
+ * DECISION (FC-5): Si la transacción confirma 'ok', escribe una entrada pública en la bitácora (#Combate).
+ */
+export async function endMyTurn(
+  cid: string,
+  expectedKey: string
+): Promise<'ok' | 'stale' | 'forbidden'> {
+  if (!isFirebaseConfigured()) {
+    throw new Error('Requiere iniciar sesión con cuenta.');
+  }
+
+  const campaign = campaignStore.getCampaign(cid);
+  const status = normalizeStatus(campaign?.status);
+  if (!canPerform('playerWrite', 'player', status)) {
+    return 'forbidden';
+  }
+
+  const uid = userStore.getCurrentUser()?.id || '';
+  if (!uid) return 'forbidden';
+
+  const { db } = await getFirebase();
+  const fs = await import('firebase/firestore');
+  const ref = fs.doc(db, 'campaigns', cid, 'combat', 'current');
+
+  let combatantName = 'Aventurero';
+
+  const result = await fs.runTransaction(db, async (tx) => {
+    const snap = await tx.get(ref);
+    const combat = snap.exists() ? (snap.data() as Combat) : undefined;
+    if (!combat || turnKey(combat) !== expectedKey) return 'stale' as const;
+    if (!canEndTurn(combat, uid)) return 'forbidden' as const;
+
+    const currentCombatant = combat.combatants[combat.turnIndex];
+    if (currentCombatant?.name) {
+      combatantName = currentCombatant.name;
+    }
+
+    const next = peekNext(combat);
+    if (!next) return 'stale' as const;
+
+    tx.update(ref, {
+      turnIndex: next.index,
+      round: next.round,
+      updatedAt: Date.now(),
+    });
+    return 'ok' as const;
+  });
+
+  if (result === 'ok') {
+    journalStore.addEntry({
+      title: `${combatantName} terminó su turno`,
+      content: `${combatantName} terminó su turno.`,
+      tags: ['#Combate'],
+      sessionNumber: campaign?.sessionNumber || 1,
+      campaignId: cid,
+      authorName: combatantName,
+      isDmOnly: false,
+    });
+  }
+
+  return result;
+}
+
+/**
  * Avanza al siguiente turno en orden cíclico.
+ * DECISION (FC-4): En modo nube el DM también escribe el turno con transacción y escritura parcial
+ * (`turnIndex`, `round`, `updatedAt`) para no pisarse con el avance de un jugador.
  */
 export async function advanceTurn(cid: string): Promise<void> {
+  if (!checkCanPlay(cid)) {
+    throw new Error('La partida no está activa (está pausada o terminada).');
+  }
+
+  if (isFirebaseConfigured()) {
+    const { db } = await getFirebase();
+    const fs = await import('firebase/firestore');
+    const ref = fs.doc(db, 'campaigns', cid, 'combat', 'current');
+
+    await fs.runTransaction(db, async (tx) => {
+      const snap = await tx.get(ref);
+      const combat = snap.exists() ? (snap.data() as Combat) : undefined;
+      if (!combat || !combat.active) return;
+      const next = peekNext(combat);
+      if (!next) return;
+      tx.update(ref, {
+        turnIndex: next.index,
+        round: next.round,
+        updatedAt: Date.now(),
+      });
+    });
+    return;
+  }
+
   const current = getCurrentCombat(cid);
   if (!current || !current.active) return;
 
@@ -441,8 +541,33 @@ export async function advanceTurn(cid: string): Promise<void> {
 
 /**
  * Retrocede al turno previo.
+ * DECISION (FC-4): Usa transacción y escritura parcial en modo nube.
  */
 export async function previousTurn(cid: string): Promise<void> {
+  if (!checkCanPlay(cid)) {
+    throw new Error('La partida no está activa (está pausada o terminada).');
+  }
+
+  if (isFirebaseConfigured()) {
+    const { db } = await getFirebase();
+    const fs = await import('firebase/firestore');
+    const ref = fs.doc(db, 'campaigns', cid, 'combat', 'current');
+
+    await fs.runTransaction(db, async (tx) => {
+      const snap = await tx.get(ref);
+      const combat = snap.exists() ? (snap.data() as Combat) : undefined;
+      if (!combat || !combat.active || combat.combatants.length === 0) return;
+      const updated = prevTurn(combat);
+      if (updated.turnIndex === combat.turnIndex && updated.round === combat.round) return;
+      tx.update(ref, {
+        turnIndex: updated.turnIndex,
+        round: updated.round,
+        updatedAt: Date.now(),
+      });
+    });
+    return;
+  }
+
   const current = getCurrentCombat(cid);
   if (!current || !current.active) return;
 

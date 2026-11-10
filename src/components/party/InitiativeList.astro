@@ -1,6 +1,5 @@
 ---
-// src/components/party/InitiativeList.astro
-// Vista de iniciativa y turnos para los jugadores en la mesa de partida (/partida), con selector de ataque contra objetivos.
+import { isOwnedBy } from '../../scripts/vtt/initiative';
 ---
 
 <div
@@ -45,6 +44,9 @@
       </p>
     </div>
   </div>
+
+  <!-- Slot para barra de turno activo (TurnNotifier) -->
+  <div data-turn-bar-slot class="hidden"></div>
 
   <!-- LISTA DE COMBATIENTES -->
   <div
@@ -161,6 +163,7 @@
 <script>
   import anime from 'animejs';
   import { subscribeCombat, getCurrentCombat } from '../../scripts/data/combatService.ts';
+  import { isOwnedBy } from '../../scripts/vtt/initiative';
   import { visibleHp } from '../../scripts/vtt/initiative.ts';
   import { getConditionInfo } from '../../scripts/vtt/conditions.ts';
   import {
@@ -238,27 +241,23 @@
     if (listEl) listEl.classList.remove('hidden');
 
     const currentUser = userStore.getCurrentUser();
+    const myChar = currentCampaignId
+      ? campaignStore.getMyCharacterForCampaign(currentCampaignId)
+      : characterStore.get();
+
     const viewer = {
       uid: currentUser?.id || '',
-      isDm: currentCampaignId ? campaignStore.isCurrentUserDm(currentCampaignId) : false,
+      characterIds: myChar ? [myChar.id] : [],
+      characterNames: myChar ? [myChar.name] : [],
     };
 
     const isNewTurn = previousTurnIndex !== combat.turnIndex;
     previousTurnIndex = combat.turnIndex;
 
     const activeCombatant = combat.combatants[combat.turnIndex];
-    const myChar = currentCampaignId
-      ? campaignStore.getMyCharacterForCampaign(currentCampaignId)
-      : characterStore.get();
 
-    // Verificamos si el turno activo es de mi propio personaje
-    const isMyTurn = Boolean(
-      activeCombatant && (
-        (activeCombatant.ownerUid && viewer.uid && activeCombatant.ownerUid === viewer.uid) ||
-        (myChar && activeCombatant.characterId && activeCombatant.characterId === myChar.id) ||
-        (myChar && activeCombatant.name === myChar.name)
-      )
-    );
+    // Verificamos si el turno activo es de mi propio personaje usando la lógica centralizada
+    const isMyTurn = activeCombatant ? isOwnedBy(activeCombatant, viewer) : false;
 
     if (!listEl) return;
     listEl.innerHTML = '';
@@ -281,12 +280,8 @@
           }
         : c;
 
-      const isOwnCharacter = Boolean(
-        (c.ownerUid && viewer.uid && c.ownerUid === viewer.uid) ||
-        (myChar && c.characterId && c.characterId === myChar.id) ||
-        (myChar && (c.name === myChar.name || displayName === myChar.name))
-      );
-      const hpData = visibleHp(effectiveCombatant, viewer);
+      const isOwnCharacter = isOwnedBy(c, viewer);
+      const hpData = visibleHp(effectiveCombatant, { uid: viewer.uid, isDm: campaignStore.isCurrentUserDm(currentCampaignId || '') });
       const isDead = hpData ? hpData.hp <= 0 : false;
 
       const itemEl = document.createElement('div');

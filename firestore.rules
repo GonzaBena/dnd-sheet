@@ -217,6 +217,22 @@ service cloud.firestore {
           && docId == 'current'
           && request.resource.data.combatants is list
           && request.resource.data.combatants.size() <= 50;
+
+        // El dueño del combatiente actual puede avanzar exactamente un turno, y nada más (RF-72).
+        allow update: if signedIn() && isMember(campaignId) && canPlay()
+          && docId == 'current'
+          && resource.data.active == true
+          && resource.data.combatants[resource.data.turnIndex].ownerUid == uid()
+          && request.resource.data.diff(resource.data).affectedKeys()
+               .hasOnly(['turnIndex', 'round', 'updatedAt'])
+          && (
+            (request.resource.data.turnIndex == resource.data.turnIndex + 1
+              && request.resource.data.round == resource.data.round)
+            || (resource.data.turnIndex == resource.data.combatants.size() - 1
+              && request.resource.data.turnIndex == 0
+              && request.resource.data.round == resource.data.round + 1)
+          );
+
         allow delete: if signedIn() && isDm(campaignId) && canPlay();
       }
 

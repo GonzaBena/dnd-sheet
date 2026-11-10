@@ -242,20 +242,20 @@ test('el DM escribe fogRevealed con la partida active', async () => {
   assert.deepEqual(snap.data().fogRevealed[0], shape);
 });
 
-test('el DM NO puede modificar fogRevealed cuando la partida está paused o ended (F0B-4)', async () => {
-  // 1. Paused
+test('el DM puede preparar fogRevealed en paused pero NO cuando la partida está ended (F0B-4)', async () => {
+  // 1. Paused: permitido preparar niebla
   await seedFirestore(async (fs) => {
     await updateDoc(doc(fs, 'campaigns', CID), { status: 'paused' });
   });
 
-  await assertFails(
+  await assertSucceeds(
     updateDoc(mapRef(DM), {
       fogRevealed: [{ kind: 'rect', x: 0, y: 0, w: 100, h: 100 }],
       updatedAt: Date.now(),
     })
   );
 
-  // 2. Ended
+  // 2. Ended: bloqueado
   await seedFirestore(async (fs) => {
     await updateDoc(doc(fs, 'campaigns', CID), { status: 'ended' });
   });

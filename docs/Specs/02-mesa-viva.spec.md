@@ -331,17 +331,17 @@ Orden sugerido: de la más barata a la más grande. La Fase A es independiente; 
 
 ### Fase B — Aviso de turno (I-02)
 
-- [ ] T-62 Funciones puras `isOwnedBy`, `turnRelation`, `turnKey` y `canEndTurn` en `initiative.ts`, con tests; `InitiativeList` pasa a usar `isOwnedBy` (RF-65).
-- [ ] T-63 Servicio `src/scripts/ui/alerts.ts`: banner, vibración, sonido Web Audio y parpadeo del título, con preferencias en `localStorage`. Es reutilizable (lo usan las Fases C y D).
-- [ ] T-64 Componente global `TurnNotifier.astro`, montado en `/campaigns` (hoja) y en `/partida`: suscripción al combate de la campaña activa (un solo listener por pestaña), avisos deduplicados y barra fija de turno (RF-60 a RF-63).
-- [ ] T-65 Panel de preferencias en el header (RF-64), con la opción de pantalla siempre encendida (RF-66): `src/scripts/ui/wakeLock.ts`, que escucha `session-status-changed` y `visibilitychange`.
+- [x] T-62 Funciones puras `isOwnedBy`, `turnRelation`, `turnKey` y `canEndTurn` en `initiative.ts`, con tests; `InitiativeList` pasa a usar `isOwnedBy` (RF-65).
+- [x] T-63 Servicio `src/scripts/ui/alerts.ts`: banner, vibración, sonido Web Audio y parpadeo del título, con preferencias en `localStorage`. Es reutilizable (lo usan las Fases C y D).
+- [x] T-64 Componente global `TurnNotifier.astro`, montado en `/campaigns` (hoja) y en `/partida`: suscripción al combate de la campaña activa (un solo listener por pestaña), avisos deduplicados y barra fija de turno (RF-60 a RF-63).
+- [x] T-65 Panel de preferencias en el header (RF-64), con la opción de pantalla siempre encendida (RF-66): `src/scripts/ui/wakeLock.ts`, que escucha `session-status-changed` y `visibilitychange`.
 
 ### Fase C — Terminar mi turno (I-06) · depende de T-62 y T-64
 
-- [ ] T-66 Regla de `combat/current` para el dueño del turno, con tests del emulador: avanza +1, vuelve a 0 con ronda +1, rechaza turno ajeno, salto de dos, retroceso, cambios en `combatants`, pausa y terminada (RF-72).
-- [ ] T-67 `combatService.endMyTurn(cid, expectedKey)` con `runTransaction`; `advanceTurn` y `previousTurn` del DM pasan a transacción con escritura parcial; actualizar el comentario de F1-4 (RF-71, RF-73).
-- [ ] T-68 Botón "Terminar turno" con doble toque en la barra de turno y en `InitiativeList`; línea en la bitácora (RF-70, RF-71).
-- [ ] T-69 Verificar y, si falta, completar la asignación de dueño a combatientes agregados a mano en `CombatTracker` (RF-74).
+- [x] T-66 Regla de `combat/current` para el dueño del turno, con tests del emulador: avanza +1, vuelve a 0 con ronda +1, rechaza turno ajeno, salto de dos, retroceso, cambios en `combatants`, pausa y terminada (RF-72).
+- [x] T-67 `combatService.endMyTurn(cid, expectedKey)` con `runTransaction`; `advanceTurn` y `previousTurn` del DM pasan a transacción con escritura parcial; actualizar el comentario de F1-4 (RF-71, RF-73).
+- [x] T-68 Botón "Terminar turno" con doble toque en la barra de turno y en `InitiativeList`; línea en la bitácora (RF-70, RF-71).
+- [x] T-69 Verificar y, si falta, completar la asignación de dueño a combatientes agregados a mano en `CombatTracker` (RF-74).
 
 ### Fase D — Susurros (I-30) · depende de T-63
 
