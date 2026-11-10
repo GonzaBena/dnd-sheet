@@ -133,11 +133,11 @@
     <span class="material-symbols-outlined text-[16px]">warning</span>
   </div>
 
-  <!-- Aviso de partida en pausa -->
+  <!-- Aviso de partida finalizada -->
   <div
     data-fog-disabled-notice
     class="hidden items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-amber-500/15 border border-amber-500/30 text-amber-300"
-    title="Partida en pausa: inicia la partida para modificar la niebla"
+    title="Partida finalizada: no se puede modificar la niebla"
   >
     <span class="material-symbols-outlined text-[16px]">pause_circle</span>
   </div>
@@ -175,11 +175,16 @@
         currentTool = tool;
         toolBtns.forEach((btn) => {
           const btnTool = btn.getAttribute('data-fog-tool-btn');
-          if (btnTool === tool) {
-            btn.className = 'w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center rounded-lg text-amber-300 bg-amber-500/20 border border-amber-500/40 font-bold transition-colors duration-150 cursor-pointer';
-          } else {
-            btn.className = 'w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center rounded-lg text-[#94a3b8] hover:text-[#f1f5f9] hover:bg-[#222f42]/60 border border-transparent transition-colors duration-150 cursor-pointer';
-          }
+          // Alternar solo las clases de selección para conservar las de bloqueo (opacity/pointer-events).
+          const on = btnTool === tool;
+          btn.classList.toggle('text-amber-300', on);
+          btn.classList.toggle('bg-amber-500/20', on);
+          btn.classList.toggle('border-amber-500/40', on);
+          btn.classList.toggle('font-bold', on);
+          btn.classList.toggle('text-[#94a3b8]', !on);
+          btn.classList.toggle('hover:text-[#f1f5f9]', !on);
+          btn.classList.toggle('hover:bg-[#222f42]/60', !on);
+          btn.classList.toggle('border-transparent', !on);
         });
       };
 
@@ -233,7 +238,8 @@
       root.addEventListener('update-fog-status', ((e: CustomEvent) => {
         const { shapesCount, status, tool } = e.detail || {};
         if (status !== undefined) {
-          isSessionActive = status === 'active';
+          // Se puede editar la niebla con la partida activa o en pausa; solo 'ended' bloquea.
+          isSessionActive = status === 'active' || status === 'paused';
           if (!isSessionActive) {
             disabledNotice?.classList.remove('hidden');
             disabledNotice?.classList.add('flex');

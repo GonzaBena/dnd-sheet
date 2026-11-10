@@ -177,10 +177,10 @@ service cloud.firestore {
         // DM o creador: crea, edita y borra todo.
         allow create: if signedIn() && (isDm(campaignId) || isCreator(campaignId)) && canPrepare()
           && validMap(request.resource.data);
-        // DECISION (F0B-4): en paused el DM no puede tocar niebla ni lastMove (se bloquea movimiento en UI).
+        // DECISION (F0B-4): en paused el DM puede preparar niebla pero no mover tokens (lastMove).
         allow update: if signedIn() && (isDm(campaignId) || isCreator(campaignId)) && canPrepare()
           && validMap(request.resource.data)
-          && (isActive(campaignId) || !changedKeys().hasAny(['fogRevealed', 'lastMove']));
+          && (isActive(campaignId) || !changedKeys().hasAny(['lastMove']));
         allow delete: if signedIn() && (isDm(campaignId) || isCreator(campaignId)) && canPrepare();
 
         // Movimiento de token en vivo:

@@ -750,7 +750,8 @@ export class MapStageController extends EventTarget {
 
     // Si se pausa o termina durante un arrastre, cancelar y revertir posición
     if (nextStatus !== 'active') {
-      if (this.currentTool !== 'none') {
+      // La niebla se puede preparar en pausa; solo se cancela la herramienta al terminar.
+      if (nextStatus === 'ended' && this.currentTool !== 'none') {
         this.setTool('none');
       }
       if (this.draggingTokenId) {

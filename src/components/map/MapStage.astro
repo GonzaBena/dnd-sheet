@@ -35,12 +35,12 @@ const { mode = 'player', class: className = '', id } = Astro.props;
   <!-- Barra de estado y cabecera del mapa (top-left) -->
   <div class="absolute top-3 left-3 z-20 flex items-center gap-2 pointer-events-none isolate">
     {mode === 'dm' ? (
-      <div class="relative pointer-events-auto isolate" data-map-dropdown-wrapper>
+      <div class="relative pointer-events-auto isolate flex items-center gap-2" data-map-dropdown-wrapper>
         <button
           type="button"
           data-map-dropdown-toggle
           class="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[#10141d]/90 backdrop-blur-md border border-[#222f42] hover:border-amber-500/50 text-xs shadow-md transition-colors duration-150 cursor-pointer select-none"
-          title="Cambiar mapa activo o gestionar biblioteca"
+          title="Elegir mapa para editar o gestionar biblioteca"
           aria-haspopup="true"
           aria-expanded="false"
         >
@@ -54,6 +54,17 @@ const { mode = 'player', class: className = '', id } = Astro.props;
           <span data-map-dropdown-arrow class="material-symbols-outlined text-[16px] text-[#94a3b8] group-hover:text-amber-400 transition-colors shrink-0">
             arrow_drop_down
           </span>
+        </button>
+
+        <!-- Publica para los jugadores el mapa que el DM está editando -->
+        <button
+          type="button"
+          data-map-activate-btn
+          class="hidden items-center gap-1 px-2.5 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 font-bold text-xs whitespace-nowrap shrink-0 shadow-md transition-colors duration-150 cursor-pointer active:scale-95"
+          title="Activar este mapa para los jugadores"
+        >
+          <span class="material-symbols-outlined text-[15px]">publish</span>
+          <span>Activar</span>
         </button>
 
         <!-- Menú desplegable de mapas para el DM -->
@@ -187,7 +198,7 @@ const { mode = 'player', class: className = '', id } = Astro.props;
 
   <!-- Barra de Herramientas de Niebla del DM (bottom-left) (Fase 4: T-40, T-41) -->
   {mode === 'dm' && (
-    <div class="absolute z-20 pointer-events-auto bottom-14 left-3 right-3 sm:bottom-3 sm:right-auto sm:max-w-[calc(100%-13rem)] overflow-x-auto rounded-2xl [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+    <div class="[@media(orientation:portrait)_and_(max-width:639px)]:hidden absolute z-20 pointer-events-auto bottom-14 left-3 right-3 sm:bottom-3 sm:right-auto sm:max-w-[calc(100%-13rem)] overflow-x-auto rounded-2xl [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
       <FogTools />
     </div>
   )}
@@ -229,6 +240,13 @@ const { mode = 'player', class: className = '', id } = Astro.props;
   </div>
 </div>
 
+{mode === 'dm' && (
+  <p class="hidden [@media(orientation:portrait)_and_(max-width:639px)]:flex items-center justify-center gap-1.5 mt-1.5 text-[11px] text-[#94a3b8] font-label">
+    <span class="material-symbols-outlined text-[14px] text-amber-400">screen_rotation</span>
+    Para editar la niebla del mapa, gira el móvil a horizontal
+  </p>
+)}
+
 <script>
   // DECISION (D1): Importación dinámica de Konva para evitar problemas en SSG/Astro build.
   // DECISION (F2-3): watchActiveMap se suscribe únicamente al mapa activo y limpia el listener anterior.
@@ -265,6 +283,7 @@ const { mode = 'player', class: className = '', id } = Astro.props;
       const canvasContainer = root.querySelector<HTMLElement>('[data-canvas-container]');
       const titleEl = root.querySelector<HTMLElement>('[data-map-title]');
       const activeBadgeEl = root.querySelector<HTMLElement>('[data-active-badge]');
+      const activateBtn = root.querySelector<HTMLButtonElement>('[data-map-activate-btn]');
       const zoomIndicator = root.querySelector<HTMLElement>('[data-zoom-indicator]');
       const zoomInBtn = root.querySelector<HTMLElement>('[data-zoom-in-btn]');
       const zoomOutBtn = root.querySelector<HTMLElement>('[data-zoom-out-btn]');
@@ -382,31 +401,48 @@ const { mode = 'player', class: className = '', id } = Astro.props;
                 <span class="block text-[10px] text-[#64748b] font-mono">${m.imageWidth}×${m.imageHeight}px</span>
               </div>
             </div>
-            ${isActive ? '<span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40 shrink-0 pointer-events-none">ACTIVO</span>' : ''}
+            ${isActive ? '<span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40 shrink-0 pointer-events-none">ACTIVO</span>' : (m.id === currentMapId ? '<span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-cyan-500/15 text-cyan-300 border border-cyan-500/40 shrink-0 pointer-events-none">EDITANDO</span>' : '')}
           `;
 
           item.addEventListener('click', async (e) => {
             e.stopPropagation();
             dropdownMenu?.classList.add('hidden');
-            if (isActive) return;
             try {
-              showLoading(true);
-              if (dmManualMapUnsub) {
-                dmManualMapUnsub();
-                dmManualMapUnsub = null;
+              if (isActive) {
+                // Volver a ver el mapa activo para los jugadores
+                if (dmManualMapUnsub) {
+                  dmManualMapUnsub();
+                  dmManualMapUnsub = null;
+                }
+                await onMapDocReceived(m);
+              } else {
+                // Abrir para editar sin activarlo para los jugadores
+                window.dispatchEvent(new CustomEvent('open-dm-map', { detail: { cid, mid: m.id } }));
               }
-              await setActiveMap(cid, m.id);
-              await onMapDocReceived(m);
             } catch (err: any) {
-              console.error('[MapStage] Error cambiando mapa activo:', err);
-            } finally {
-              showLoading(false);
+              console.error('[MapStage] Error abriendo mapa:', err);
             }
           });
 
           dropdownList.appendChild(item);
         });
       }
+
+      activateBtn?.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const cid = getActiveCampaignId();
+        const mid = currentMapId;
+        if (!cid || !mid) return;
+        try {
+          activateBtn.disabled = true;
+          await setActiveMap(cid, mid);
+        } catch (err: any) {
+          console.error('[MapStage] Error activando mapa:', err);
+          showNotice('No se pudo activar el mapa.');
+        } finally {
+          activateBtn.disabled = false;
+        }
+      });
 
       dropdownToggle?.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -438,6 +474,7 @@ const { mode = 'player', class: className = '', id } = Astro.props;
       let currentMapId: string | null = null;
       let activeUnsub: (() => void) | null = null;
       let dmManualMapUnsub: (() => void) | null = null;
+      let lastActiveMapId: string | null = null;
       let liveUnsub: (() => void) | null = null;
       let dmOnlyUnsub: (() => void) | null = null;
       let currentPublisher: LivePublisher | null = null;
@@ -687,6 +724,11 @@ const { mode = 'player', class: className = '', id } = Astro.props;
             activeBadgeEl.classList.add('hidden');
           }
         }
+        if (activateBtn) {
+          const showActivate = mode === 'dm' && Boolean(map) && !isActive;
+          activateBtn.classList.toggle('hidden', !showActivate);
+          activateBtn.classList.toggle('flex', showActivate);
+        }
         if (dropdownMenu && !dropdownMenu.classList.contains('hidden') && dropdownList) {
           const activeMid = map ? map.id : null;
           dropdownList.querySelectorAll<HTMLButtonElement>('[data-dropdown-map-id]').forEach((btn) => {
@@ -854,12 +896,13 @@ const { mode = 'player', class: className = '', id } = Astro.props;
             syncFogToolsUi(map);
 
             // Suscribirse a dmOnly si es DM (T-42)
-            if (mode === 'dm' && activeCid && map.id) {
-              dmOnlyUnsub = subscribeDmOnly(activeCid, map.id, (dmOnly) => {
+            const dmCid = getActiveCampaignId();
+            if (mode === 'dm' && dmCid && map.id) {
+              dmOnlyUnsub = subscribeDmOnly(dmCid, map.id, (dmOnly) => {
                 controller.setSecretTokens(dmOnly.secretTokens || {});
                 window.dispatchEvent(
                   new CustomEvent('dm-only-changed', {
-                    detail: { cid: activeCid, mid: map.id, dmOnly },
+                    detail: { cid: dmCid, mid: map.id, dmOnly },
                   })
                 );
               });
@@ -907,6 +950,7 @@ const { mode = 'player', class: className = '', id } = Astro.props;
           dmManualMapUnsub();
           dmManualMapUnsub = null;
         }
+        lastActiveMapId = null;
         if (liveUnsub) {
           liveUnsub();
           liveUnsub = null;
@@ -925,8 +969,13 @@ const { mode = 'player', class: className = '', id } = Astro.props;
 
         activeUnsub = watchActiveMap(cid, (map) => {
           clearTimeout(safetyTimer);
+          const newActiveId = map ? map.id : null;
+          const activeChanged = newActiveId !== lastActiveMapId;
+          lastActiveMapId = newActiveId;
           if (map) {
-            // Si el mapa activo cambia o llega, el DM siempre ve el mapa activo seleccionado
+            // Si el DM edita otro mapa, los snapshots del activo no le quitan la vista;
+            // solo la pierde si cambia el mapa activo.
+            if (dmManualMapUnsub && !activeChanged) return;
             if (dmManualMapUnsub) {
               dmManualMapUnsub();
               dmManualMapUnsub = null;

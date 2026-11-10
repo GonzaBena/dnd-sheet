@@ -128,11 +128,12 @@ function checkCanPrepare(cid: string): void {
   }
 }
 
-function checkCanPlayDm(cid: string): void {
+// La niebla se puede preparar con la partida activa o en pausa (dmPrepare).
+function checkCanEditFog(cid: string): void {
   const campaign = campaignStore.getCampaign(cid);
   const status = normalizeStatus(campaign?.status);
-  if (!canPerform('dmPlay', 'dm', status)) {
-    throw new Error('Solo se puede editar la niebla con la partida activa.');
+  if (!canPerform('dmPrepare', 'dm', status)) {
+    throw new Error('No puedes editar la niebla con la partida finalizada.');
   }
 }
 
@@ -616,7 +617,7 @@ export async function commitTokenMove(
 // ---------------------------------------------------------------------------
 
 /**
- * Añade una forma a la niebla de guerra del mapa (solo DM con partida active).
+ * Añade una forma a la niebla de guerra del mapa (DM con partida activa o en pausa).
  * Retorna { warn: boolean } indicando si se superaron las 450 formas.
  */
 export async function addFogShape(
@@ -625,7 +626,7 @@ export async function addFogShape(
   current: FogShape[],
   shape: FogShape
 ): Promise<{ warn: boolean }> {
-  checkCanPlayDm(cid);
+  checkCanEditFog(cid);
 
   const res = appendFog(current, shape, MAP_LIMITS.maxFogShapes);
   if (res.rejected) {
@@ -670,7 +671,7 @@ export async function setFog(
   mid: string,
   list: FogShape[]
 ): Promise<void> {
-  checkCanPlayDm(cid);
+  checkCanEditFog(cid);
 
   if (list.length > MAP_LIMITS.maxFogShapes) {
     throw new Error('La lista de niebla excede el límite máximo de 500 formas.');
