@@ -51,8 +51,14 @@
   import { setSessionStatus } from '../../scripts/data/sessionStatusService.ts';
   import { showConfirm, showAlert } from '../../scripts/ui/notify.ts';
 
+  // La campaña de la URL manda sobre la "activa" (que puede tardar en sincronizarse).
+  function resolveCampaignId(): string | null {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('campaign') || params.get('id') || campaignStore.getActiveCampaignId();
+  }
+
   function updateAllStatusButtons() {
-    const cid = campaignStore.getActiveCampaignId();
+    const cid = resolveCampaignId();
     const camp = cid ? campaignStore.getCampaign(cid) : null;
     const isDm = cid ? campaignStore.isCurrentUserDm(cid) : false;
 
@@ -105,8 +111,11 @@
   }
 
   async function handleTransition(nextStatus: 'active' | 'paused' | 'ended') {
-    const cid = campaignStore.getActiveCampaignId();
-    if (!cid) return;
+    const cid = resolveCampaignId();
+    if (!cid || !campaignStore.getCampaign(cid)) {
+      showAlert('La campaña todavía se está cargando. Probá de nuevo en unos segundos.', { kind: 'error' });
+      return;
+    }
 
     if (nextStatus === 'ended') {
       const confirmed = await showConfirm(

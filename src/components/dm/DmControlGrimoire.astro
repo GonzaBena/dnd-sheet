@@ -267,6 +267,19 @@ import TokenEditor from './TokenEditor.astro';
   import { congratulationBanner } from '../../scripts/ui/congratulationBanner';
   import { canPerform, normalizeStatus } from '../../scripts/vtt/sessionStatus.ts';
 
+  /** Valida que se pueda actuar como DM y avisa en vez de fallar en silencio. */
+  function guardDmPlay(camp: any): boolean {
+    if (!camp) {
+      showAlert('La campaña todavía se está cargando. Probá de nuevo en unos segundos.', { kind: 'error' });
+      return false;
+    }
+    if (!canPerform('dmPlay', 'dm', camp.status)) {
+      showAlert('La partida no está en curso. Iniciá o reanudá la sesión para usar esta acción.', { kind: 'info' });
+      return false;
+    }
+    return true;
+  }
+
   const campaignTitleEl = document.getElementById('grimoire-campaign-title');
   const campaignSubEl = document.getElementById('grimoire-campaign-subtitle');
   const weatherEl = document.getElementById('grimoire-weather-text');
@@ -413,7 +426,7 @@ import TokenEditor from './TokenEditor.astro';
           // HP Adjustments
           card.querySelectorAll('.hp-btn').forEach(btn => {
             btn.addEventListener('click', () => {
-              if (!canPerform('dmPlay', 'dm', camp.status)) return;
+              if (!guardDmPlay(camp)) return;
 
               const delta = parseInt(btn.getAttribute('data-delta') || '0');
               char.hp.current = Math.max(0, Math.min(char.hp.max, char.hp.current + delta));
@@ -424,7 +437,7 @@ import TokenEditor from './TokenEditor.astro';
 
           // Inspiration Toggle
           card.querySelector('.inspire-btn')?.addEventListener('click', () => {
-            if (!canPerform('dmPlay', 'dm', camp.status)) return;
+            if (!guardDmPlay(camp)) return;
 
             char.inspiration = !char.inspiration;
             campaignStore.saveCharacter(char);
@@ -592,7 +605,7 @@ import TokenEditor from './TokenEditor.astro';
     btn.addEventListener('click', () => {
       const activeCampId = campaignStore.getActiveCampaignId();
       const camp = activeCampId ? campaignStore.getCampaign(activeCampId) : null;
-      if (!camp || !canPerform('dmPlay', 'dm', camp.status)) return;
+      if (!guardDmPlay(camp)) return;
 
       const formula = btn.getAttribute('data-dice') || '1d20';
       const isSecret = secretDiceCheck?.checked || false;
@@ -618,7 +631,7 @@ import TokenEditor from './TokenEditor.astro';
   document.getElementById('grimoire-milestone-btn')?.addEventListener('click', async () => {
     const activeCampId = campaignStore.getActiveCampaignId();
     const camp = activeCampId ? campaignStore.getCampaign(activeCampId) : null;
-    if (!camp || !canPerform('dmPlay', 'dm', camp.status)) return;
+    if (!guardDmPlay(camp)) return;
 
     const values = await showForm([
       { name: 'title', label: 'Título del hito', value: '¡Hazaña Heroica de la Mesa!', required: true },
@@ -657,7 +670,7 @@ import TokenEditor from './TokenEditor.astro';
     const activeCampId = campaignStore.getActiveCampaignId();
     if (!activeCampId) return;
     const camp = campaignStore.getCampaign(activeCampId);
-    if (!camp || !canPerform('dmPlay', 'dm', camp.status)) return;
+    if (!guardDmPlay(camp)) return;
     if (await showConfirm('Cada personaje de la campaña recupera +8 PG.', { title: '¿Descanso Corto para todo el grupo?', confirmText: 'Aplicar' })) {
       const chars = campaignStore.getCharactersForCampaign(activeCampId);
       chars.forEach(c => {
@@ -679,7 +692,7 @@ import TokenEditor from './TokenEditor.astro';
     const activeCampId = campaignStore.getActiveCampaignId();
     if (!activeCampId) return;
     const camp = campaignStore.getCampaign(activeCampId);
-    if (!camp || !canPerform('dmPlay', 'dm', camp.status)) return;
+    if (!guardDmPlay(camp)) return;
     if (await showConfirm('Todos los personajes recuperan sus PG al máximo.', { title: '¿Descanso Largo para toda la mesa?', confirmText: 'Aplicar' })) {
       const chars = campaignStore.getCharactersForCampaign(activeCampId);
       chars.forEach(c => {
@@ -755,7 +768,7 @@ import TokenEditor from './TokenEditor.astro';
     e.preventDefault();
     const activeCampId = campaignStore.getActiveCampaignId();
     const camp = activeCampId ? campaignStore.getCampaign(activeCampId) : null;
-    if (!camp || !canPerform('dmPlay', 'dm', camp.status)) return;
+    if (!guardDmPlay(camp)) return;
 
     const titleInput = document.getElementById('grimoire-entry-title') as HTMLInputElement;
     const descInput = document.getElementById('grimoire-entry-desc') as HTMLTextAreaElement;

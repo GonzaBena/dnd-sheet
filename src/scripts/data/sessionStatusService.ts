@@ -34,16 +34,19 @@ export async function setSessionStatus(cid: string, next: SessionStatus): Promis
     statusChangedAt: Date.now(),
   });
 
-  // 2. Espejar en RTDB
+  // 2. Espejar en RTDB sin bloquear la UI: si el websocket está colgado (típico en móvil)
+  // el cambio ya quedó aplicado localmente y reconcileStatusMirror lo corrige luego.
   if (isFirebaseConfigured()) {
-    try {
-      const roomId = await ensureRoom(campaign);
-      const { rtdb } = await getFirebase();
-      const db = await import('firebase/database');
-      await db.set(db.ref(rtdb, `rooms/${roomId}/status`), next);
-    } catch (err) {
-      console.warn('[SessionStatusService] No se pudo espejar el status en RTDB', err);
-    }
+    (async () => {
+      try {
+        const roomId = await ensureRoom(campaign);
+        const { rtdb } = await getFirebase();
+        const db = await import('firebase/database');
+        await db.set(db.ref(rtdb, `rooms/${roomId}/status`), next);
+      } catch (err) {
+        console.warn('[SessionStatusService] No se pudo espejar el status en RTDB', err);
+      }
+    })();
   }
 
   // 3. Registrar entrada de sistema en la bitácora

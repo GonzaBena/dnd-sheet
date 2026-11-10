@@ -548,7 +548,7 @@ class CampaignStoreManager {
     if (!this.activeCampaignId && this.storedActiveCampaignId && this.getCampaign(this.storedActiveCampaignId)) {
       this.activeCampaignId = this.storedActiveCampaignId;
     }
-    this.emitCampaigns();
+    this.scheduleRemoteEmit(true, false);
     if (previousActive !== this.activeCampaignId) {
       this.emitActiveCampaign();
     }
@@ -579,8 +579,31 @@ class CampaignStoreManager {
     }
     this.characters = Array.from(merged.values());
     this.refreshCharacterIds();
-    this.emitCharacters();
-    this.emitCampaigns();
+    this.scheduleRemoteEmit(true, true);
+  }
+
+  private pendingEmit: { campaigns: boolean; characters: boolean } | null = null;
+
+  /**
+   * Agrupa las emisiones provocadas por snapshots remotos: varios snapshots seguidos producen un
+   * solo re-render. Re-renders constantes reemplazan el DOM entre touchstart y click y en móvil
+   * el toque se perdía.
+   */
+  private scheduleRemoteEmit(campaigns: boolean, characters: boolean) {
+    if (typeof window === 'undefined') return;
+    if (this.pendingEmit) {
+      this.pendingEmit.campaigns ||= campaigns;
+      this.pendingEmit.characters ||= characters;
+      return;
+    }
+    this.pendingEmit = { campaigns, characters };
+    setTimeout(() => {
+      const pending = this.pendingEmit;
+      this.pendingEmit = null;
+      if (!pending) return;
+      if (pending.characters) this.emitCharacters();
+      if (pending.campaigns) this.emitCampaigns();
+    }, 50);
   }
 
   private refreshCharacterIds() {

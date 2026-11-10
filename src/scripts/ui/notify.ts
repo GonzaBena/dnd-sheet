@@ -309,7 +309,7 @@ function showNext() {
     closed = true;
     const values = readValues();
     document.removeEventListener('keydown', onKey, true);
-    overlay.removeEventListener('mousedown', onBackdrop);
+    overlay.removeEventListener('click', onBackdrop);
     card.classList.remove('opacity-100', 'scale-100');
     card.classList.add('opacity-0', 'scale-95');
     setTimeout(() => {
@@ -373,7 +373,7 @@ function showNext() {
   const readonlyInput = inputs.find(i => i.readOnly);
   if (readonlyInput && firstFocus === readonlyInput) readonlyInput.select();
 
-  overlay.addEventListener('mousedown', onBackdrop);
+  overlay.addEventListener('click', onBackdrop);
   document.addEventListener('keydown', onKey, true);
 }
 
