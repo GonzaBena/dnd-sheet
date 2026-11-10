@@ -22,7 +22,7 @@ import {
   assertFails,
   assertSucceeds,
 } from '@firebase/rules-unit-testing';
-import { ref, get, set, update, remove } from 'firebase/database';
+import { ref, get, set, update, remove, onDisconnect } from 'firebase/database';
 
 const PROJECT_ID = 'demo-dnd-sheet';
 let env;
@@ -195,6 +195,15 @@ test('presencia: el usuario pasa a offline con update y no toca la de otro (T-51
   await assertSucceeds(update(at(PLAYER, `presence/${PLAYER}`), { online: false, lastSeen: 2 }));
   await assertFails(update(at(PLAYER, `presence/${OTHER}`), { online: false, lastSeen: 2 }));
   await assertFails(get(at(STRANGER, `presence/${PLAYER}`)));
+});
+
+test('presencia: onDisconnect parcial sobre un nodo inexistente se rechaza; completo (con name) se acepta', async () => {
+  // Regresión: el cliente registraba onDisconnect().update({online,lastSeen}) antes de crear el nodo,
+  // y sin `name` la validación lo rechazaba (PERMISSION_DENIED también para el DM).
+  const r = at(PLAYER, `presence/${PLAYER}`);
+  await assertFails(onDisconnect(r).update({ online: false, lastSeen: 1 }));
+  await assertSucceeds(onDisconnect(r).set({ name: 'Elena', online: false, lastSeen: 1 }));
+  await assertSucceeds(set(r, { name: 'Elena', online: true, lastSeen: 2 }));
 });
 
 // ------------------------------------------------------------------ pings (T-51b)

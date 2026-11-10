@@ -56,16 +56,19 @@ export function joinPresence(roomId: string, uid: string, name: string): () => v
       const myRef = db.ref(rtdb, `rooms/${roomId}/presence/${uid}`);
       const connRef = db.ref(rtdb, '.info/connected');
 
-      offlineWrite = () => db.update(myRef, { online: false, lastSeen: Date.now() });
+      // DECISION (F5-12): siempre se escribe el objeto COMPLETO ({ name, online, lastSeen }), nunca un update parcial.
+      // Las reglas validan que existan los tres campos sobre el resultado final; con el nodo todavía inexistente
+      // (primera conexión), un update parcial sin `name` se rechaza con PERMISSION_DENIED.
+      offlineWrite = () => db.set(myRef, { name: safeName, online: false, lastSeen: Date.now() });
 
       const off = db.onValue(connRef, async (snap) => {
         if (snap.val() !== true || cancelled) return;
         try {
-          await db.onDisconnect(myRef).update({ online: false, lastSeen: db.serverTimestamp() });
+          await db.onDisconnect(myRef).set({ name: safeName, online: false, lastSeen: db.serverTimestamp() });
           await db.set(myRef, { name: safeName, online: true, lastSeen: db.serverTimestamp() });
         } catch (err) {
-          // Lo más común: PERMISSION_DENIED porque el uid todavía no está en rooms/{roomId}/members
-          // (lo sincroniza el navegador del DM al abrir la app) o las reglas RTDB no están desplegadas.
+          // Causas posibles: el uid no está en rooms/{roomId}/members (lo sincroniza el navegador del DM)
+          // o las reglas RTDB desplegadas no coinciden con database.rules.json.
           console.warn(`[presenceService] No se pudo registrar la presencia de ${uid} en la sala ${roomId}:`, err);
         }
       });
