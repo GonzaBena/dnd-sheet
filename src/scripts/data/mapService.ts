@@ -13,6 +13,7 @@ import { getFirebase, isFirebaseConfigured } from '../firebase/client.ts';
 import { newTokenId } from '../vtt/tokens.ts';
 import { appendFog } from '../vtt/fog.ts';
 import { ensureRoom } from './roomService.ts';
+import { logPartyEvent } from './partyLog.ts';
 
 const LOCAL_MAPS_KEY_PREFIX = 'dnd_maps_';
 const LOCAL_DM_ONLY_KEY_PREFIX = 'dnd_dm_only_';
@@ -291,6 +292,7 @@ export async function deleteMap(cid: string, mid: string): Promise<void> {
 export async function setActiveMap(cid: string, mid: string | null): Promise<void> {
   checkCanPrepare(cid);
 
+  const previousMid = campaignStore.getCampaign(cid)?.activeMapId ?? null;
   campaignStore.updateCampaign(cid, { activeMapId: mid ?? undefined });
 
   if (isFirebaseConfigured()) {
@@ -306,6 +308,12 @@ export async function setActiveMap(cid: string, mid: string | null): Promise<voi
   }
 
   dispatchEvent('active-map-changed', { cid, mid });
+
+  // Bitácora del grupo (RF-43): solo al cambiar a otro mapa y con la partida activa
+  if (mid && mid !== previousMid) {
+    const mapName = getLocalMaps(cid).find((m) => m.id === mid)?.name;
+    if (mapName) logPartyEvent(cid, `El grupo llega a ${mapName}`, `El grupo llega a ${mapName}.`, ['#Mapa']);
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -859,6 +867,9 @@ export async function revealToken(
       console.warn('[mapService] Error restaurando tokenOwners en RTDB tras revelar:', err);
     }
   }
+
+  // 4. Bitácora del grupo (RF-43): solo si la partida está activa
+  logPartyEvent(cid, `Aparece ${clean.name}`, `${clean.name} se revela en el mapa.`, ['#Mapa']);
 }
 
 /**

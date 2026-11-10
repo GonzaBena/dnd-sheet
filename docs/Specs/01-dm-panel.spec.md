@@ -371,12 +371,13 @@ Es la parte más usada por un DM y valida el flujo en vivo con la menor compleji
 
 ### Fase 5 — Extras
 
-- [ ] T-50 Notas privadas del DM (RF-40).
-- [ ] T-51 Presencia y ping (RF-42, RF-14).
-- [ ] T-52 Handouts (RF-41).
-- [ ] T-53 Regla de medición (RF-13).
-- [ ] T-54 Polígonos en la niebla.
-- [ ] T-55 Enlazar combatientes con tokens (RF-05, RF-25).
+- [x] T-50 Notas privadas del DM (RF-40).
+- [x] T-51 Presencia y ping (RF-42, RF-14).
+- [x] T-52 Handouts (RF-41). El DM elige los destinatarios (todos o jugadores concretos).
+- [x] T-53 Regla de medición (RF-13).
+- [x] T-54 Polígonos en la niebla. Resuelto con el pincel de niebla (no se implementó la herramienta de polígono).
+- [x] T-55 Enlazar combatientes con tokens (RF-05, RF-25).
+- [x] RF-43 Bitácora automática: token revelado y llegada a un mapa nuevo (solo con la partida `active`); combate y descansos ya registraban.
 
 ## Criterios de aceptación, cuotas y pruebas
 
