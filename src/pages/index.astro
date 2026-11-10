@@ -634,7 +634,7 @@ import CompendiumModal from '../components/modals/CompendiumModal.astro';
             statusBadgeHtml = `
               <span class="px-2 py-0.5 rounded-full bg-rose-500/25 backdrop-blur-md border border-rose-500/50 text-rose-300 text-[10px] font-bold uppercase flex items-center gap-1 shadow-xs">
                 <span class="w-1.5 h-1.5 rounded-full bg-rose-400"></span>
-                <span>Terminada</span>
+                <span>Finalizada</span>
               </span>
             `;
           }
@@ -649,7 +649,8 @@ import CompendiumModal from '../components/modals/CompendiumModal.astro';
               <div class="absolute inset-0 bg-gradient-to-t from-[#121721] via-[#121721]/40 to-transparent"></div>
 
               <!-- Badges top row -->
-              <div class="absolute top-3 left-3 right-3 flex items-center justify-between gap-2">
+              <div class="absolute top-3 left-3 right-3 flex flex-col gap-1.5">
+                <div class="flex items-start justify-between gap-2">
                 <div class="flex items-center gap-1.5 flex-wrap">
                   ${isCreator ? `
                     <span class="px-2 py-0.5 rounded-full bg-amber-500/20 backdrop-blur-md text-amber-300 text-[10px] font-bold border border-amber-500/40 uppercase tracking-wider flex items-center gap-1 shadow-xs">
@@ -667,18 +668,23 @@ import CompendiumModal from '../components/modals/CompendiumModal.astro';
                       Jugador (DM: ${camp.dmName})
                     </span>
                   `}
-                  <span class="px-2 py-0.5 rounded-full bg-emerald-500/20 backdrop-blur-md border border-emerald-500/30 text-emerald-400 text-[10px] font-bold uppercase">
-                    Sesión ${camp.sessionNumber}
-                  </span>
-                  ${statusBadgeHtml}
                 </div>
 
                 ${isActive ? `
                   <span class="px-2 py-0.5 rounded-full bg-amber-500/20 backdrop-blur-md border border-amber-500/50 text-amber-300 text-[10px] font-bold flex items-center gap-1">
                     <span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
-                    <span>Mesa Activa</span>
+                    <span>Activa</span>
                   </span>
                 ` : ''}
+                </div>
+
+                <!-- Segunda fila: sesión y estado -->
+                <div class="flex items-center gap-1.5 flex-wrap">
+                  <span class="px-2 py-0.5 rounded-full bg-emerald-500/20 backdrop-blur-md border border-emerald-500/30 text-emerald-400 text-[10px] font-bold uppercase">
+                    Sesión ${camp.sessionNumber}
+                  </span>
+                  ${statusBadgeHtml}
+                </div>
               </div>
 
               <!-- Campaign Title on image bottom -->
@@ -713,75 +719,70 @@ import CompendiumModal from '../components/modals/CompendiumModal.astro';
                 </div>
               </div>
 
-              <!-- Action Buttons Row -->
-              <div class="pt-2 border-t border-[#222f42] flex items-center justify-between gap-2 flex-wrap">
-                <div class="flex items-center gap-2 flex-wrap">
-                  <!-- Botón Ver Grupo (Modal flotante) -->
-                  <button
-                    type="button"
-                    class="btn-view-roster flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[#10141d] border border-amber-500/40 hover:bg-amber-500/10 text-amber-300 font-bold transition-all text-xs active:scale-95 cursor-pointer shadow-xs shrink-0"
-                    data-id="${camp.id}"
-                    title="Ver aventureros y miembros de la campaña"
-                  >
-                    <span class="material-symbols-outlined text-[16px]">groups</span>
-                    <span>Ver Grupo</span>
-                  </button>
+              <!-- Action Buttons Row: una sola fila repartida; el DM no necesita "Ver Partida" (el Grimorio del Control ya la cubre) -->
+              <div class="pt-2 border-t border-[#222f42] flex items-stretch gap-2">
+                <button
+                  type="button"
+                  class="btn-view-roster flex-1 flex items-center justify-center gap-1 px-3 py-1.5 rounded-lg bg-[#10141d] border border-amber-500/40 hover:bg-amber-500/10 text-amber-300 font-bold transition-all text-xs active:scale-95 cursor-pointer shadow-xs"
+                  data-id="${camp.id}"
+                  title="Ver aventureros y miembros de la campaña"
+                >
+                  <span class="material-symbols-outlined text-[16px]">groups</span>
+                  <span>Ver Grupo</span>
+                </button>
 
-                  <!-- Botón Ver Partida (VTT) -->
+                ${!isDm ? `
                   <button
                     type="button"
-                    class="btn-view-partida flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[#18202e] border border-amber-500/30 hover:border-amber-400 text-amber-300 font-bold transition-all text-xs active:scale-95 cursor-pointer shadow-xs shrink-0"
+                    class="btn-view-partida flex-1 flex items-center justify-center gap-1 px-3 py-1.5 rounded-lg bg-[#18202e] border border-amber-500/30 hover:border-amber-400 text-amber-300 font-bold transition-all text-xs active:scale-95 cursor-pointer shadow-xs"
                     data-id="${camp.id}"
                     title="Abrir la mesa de partida compartida (VTT)"
                   >
                     <span class="material-symbols-outlined text-[16px]">table_restaurant</span>
                     <span>Ver Partida</span>
                   </button>
-                </div>
+                ` : ''}
 
-                <div class="flex items-center gap-1.5 flex-wrap">
-                  ${isDm ? `
-                    <button
-                      type="button"
-                      class="btn-open-dm flex items-center gap-1 px-3 py-1.5 rounded-lg bg-gradient-to-r from-amber-600 to-amber-500 text-[#0a0d12] font-bold text-xs hover:brightness-110 active:scale-95 transition-all cursor-pointer shadow-xs shrink-0"
-                      data-id="${camp.id}"
-                      title="Abrir el Grimorio del Control para esta campaña"
-                    >
-                      <span class="material-symbols-outlined text-[15px]">crown</span>
-                      <span>Grimorio del Control</span>
-                    </button>
-                  ` : (myCharInCamp ? `
-                    <button
-                      type="button"
-                      class="btn-open-char flex items-center gap-1 px-3 py-1.5 rounded-lg bg-gradient-to-r from-amber-600 to-amber-500 text-[#0a0d12] font-bold text-xs hover:brightness-110 active:scale-95 transition-all cursor-pointer shadow-xs"
-                      data-id="${camp.id}"
-                      title="Jugar con ${myCharInCamp.name}"
-                    >
-                      <span class="material-symbols-outlined text-[15px]">edit_document</span>
-                      <span>Jugar (${myCharInCamp.name.split(' ')[0]})</span>
-                    </button>
-                  ` : `
-                    <button
-                      type="button"
-                      class="btn-join-camp flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-[#10141d] border border-[#222f42] hover:border-amber-500/40 text-[#94a3b8] hover:text-[#f1f5f9] transition-all text-xs font-medium cursor-pointer"
-                      data-id="${camp.id}"
-                      title="Copiar o crear un personaje para esta campaña"
-                    >
-                      <span class="material-symbols-outlined text-[15px] text-amber-400">group_add</span>
-                      <span>Unirse</span>
-                    </button>
-                  `)}
-
-                  <!-- Edit Campaign Trigger -->
+                ${isDm ? `
                   <button
                     type="button"
-                    class="btn-edit-camp w-8 h-8 rounded-lg bg-[#18202e] hover:bg-[#222f42] text-[#94a3b8] hover:text-[#f1f5f9] flex items-center justify-center transition-colors cursor-pointer"
+                    class="btn-open-dm flex-[2] flex items-center justify-center gap-1 px-3 py-1.5 rounded-lg bg-gradient-to-r from-amber-600 to-amber-500 text-[#0a0d12] font-bold text-xs hover:brightness-110 active:scale-95 transition-all cursor-pointer shadow-xs"
                     data-id="${camp.id}"
-                    title="Editar detalles de campaña"
+                    title="Abrir el Grimorio del Control para esta campaña"
                   >
-                    <span class="material-symbols-outlined text-[16px]">settings</span>
+                    <span class="material-symbols-outlined text-[15px]">crown</span>
+                    <span>Grimorio del Control</span>
                   </button>
-                </div>
+                ` : (myCharInCamp ? `
+                  <button
+                    type="button"
+                    class="btn-open-char flex-[2] flex items-center justify-center gap-1 px-3 py-1.5 rounded-lg bg-gradient-to-r from-amber-600 to-amber-500 text-[#0a0d12] font-bold text-xs hover:brightness-110 active:scale-95 transition-all cursor-pointer shadow-xs"
+                    data-id="${camp.id}"
+                    title="Jugar con ${myCharInCamp.name}"
+                  >
+                    <span class="material-symbols-outlined text-[15px]">edit_document</span>
+                    <span class="truncate">Jugar (${myCharInCamp.name.split(' ')[0]})</span>
+                  </button>
+                ` : `
+                  <button
+                    type="button"
+                    class="btn-join-camp flex-1 flex items-center justify-center gap-1 px-2.5 py-1.5 rounded-lg bg-[#10141d] border border-[#222f42] hover:border-amber-500/40 text-[#94a3b8] hover:text-[#f1f5f9] transition-all text-xs font-medium cursor-pointer"
+                    data-id="${camp.id}"
+                    title="Copiar o crear un personaje para esta campaña"
+                  >
+                    <span class="material-symbols-outlined text-[15px] text-amber-400">group_add</span>
+                    <span>Unirse</span>
+                  </button>
+                `)}
+
+                <button
+                  type="button"
+                  class="btn-edit-camp w-9 shrink-0 rounded-lg bg-[#18202e] hover:bg-[#222f42] text-[#94a3b8] hover:text-[#f1f5f9] flex items-center justify-center transition-colors cursor-pointer"
+                  data-id="${camp.id}"
+                  title="Editar detalles de campaña"
+                >
+                  <span class="material-symbols-outlined text-[16px]">settings</span>
+                </button>
               </div>
             </div>
           `;
