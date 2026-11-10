@@ -72,7 +72,7 @@ export class MapStageController extends EventTarget {
   public tokenLayer: any;
   public fogLayer: any;
   public toolLayer: any;
-  /** Efectos transitorios (pulso de turno, pings, regla). No se limpia con clearToolLayer. */
+  /** Grupo de efectos transitorios (pulso de turno, pings, regla) dentro de toolLayer. No se limpia con clearToolLayer. */
   public fxLayer: any;
 
   private longPressTimer: ReturnType<typeof setTimeout> | null = null;
@@ -164,14 +164,16 @@ export class MapStageController extends EventTarget {
     this.tokenLayer = new this.Konva.Layer({ listening: true }); // Fase 3
     this.fogLayer = new this.Konva.Layer({ listening: false }); // Fase 4
     this.toolLayer = new this.Konva.Layer({ listening: false }); // Fase 4 preview
-    this.fxLayer = new this.Konva.Layer({ listening: false }); // Fase 5: pulso de turno, pings, regla
+    // Fase 5: pulso de turno, pings y regla. Es un Group dentro de toolLayer (y no un Layer propio) para no
+    // pasar de las 5 capas que recomienda Konva; clearToolLayer() lo respeta.
+    this.fxLayer = new this.Konva.Group({ listening: false });
+    this.toolLayer.add(this.fxLayer);
 
     this.stage.add(this.bgLayer);
     this.stage.add(this.gridLayer);
     this.stage.add(this.tokenLayer);
     this.stage.add(this.fogLayer);
     this.stage.add(this.toolLayer);
-    this.stage.add(this.fxLayer);
 
     // 3. Nodos de fondo, grilla y niebla
     this.bgImageNode = new this.Konva.Image({
@@ -1810,8 +1812,11 @@ export class MapStageController extends EventTarget {
     if (this.brushCursorNode) {
       this.brushCursorNode.visible(false);
     }
-    if (typeof this.toolLayer.destroyChildren === 'function') {
-      this.toolLayer.destroyChildren();
+    if (typeof this.toolLayer.getChildren === 'function') {
+      // Se conserva fxLayer (pulso de turno, pings, regla): no es una previsualización de herramienta.
+      [...this.toolLayer.getChildren()].forEach((child: any) => {
+        if (child !== this.fxLayer) child.destroy();
+      });
       this.previewRectNode = null;
       this.previewBrushLineNode = null;
       this.previewBrushCircleNode = null;

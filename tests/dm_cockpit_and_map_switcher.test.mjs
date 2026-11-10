@@ -73,6 +73,7 @@ class MockKonvaNode {
   on() {}
   destroy() {}
   destroyChildren() {}
+  getChildren() { return []; }
   batchDraw() {}
   opacity(v) { if (v !== undefined) this._opacity = v; return this._opacity; }
   getContent() { return { style: {}, addEventListener: () => {} }; }
@@ -88,6 +89,7 @@ class MockKonvaNode {
 const MockKonva = {
   Stage: MockKonvaNode,
   Layer: MockKonvaNode,
+  Group: MockKonvaNode,
   Image: MockKonvaNode,
   Shape: MockKonvaNode,
   Rect: MockKonvaNode,

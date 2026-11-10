@@ -443,11 +443,11 @@ class CloudSession {
 
   private bindStoreEvents() {
     window.addEventListener('active-campaign-changed', () => {
-      this.syncCampaignListeners(campaignStore.getAllCampaigns().map(c => c.id));
+      this.syncCampaignListeners(campaignStore.getCampaigns().map(c => c.id));
       this.syncJournalListeners();
     });
     window.addEventListener('campaigns-updated', () => {
-      this.syncCampaignListeners(campaignStore.getAllCampaigns().map(c => c.id));
+      this.syncCampaignListeners(campaignStore.getCampaigns().map(c => c.id));
       this.syncJournalListeners();
     });
 

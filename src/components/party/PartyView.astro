@@ -357,7 +357,7 @@ import PresenceTracker from './PresenceTracker.astro';
     currentCampaignId = params.get('id') || params.get('campaign') || campaignStore.getActiveCampaignId();
 
     if (!currentCampaignId) {
-      const allCamps = campaignStore.getAllCampaigns();
+      const allCamps = campaignStore.getCampaigns();
       if (allCamps.length > 0) {
         currentCampaignId = allCamps[0].id;
       }
