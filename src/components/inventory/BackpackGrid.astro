@@ -69,7 +69,7 @@
 <script>
   import { showAlert } from '../../scripts/ui/notify';
   import { characterStore } from '../../scripts/state/characterStore';
-  import { escapeHtml } from '../../scripts/dnd/catalog';
+  import { escapeHtml, toCatalogEntry } from '../../scripts/dnd/catalog';
   import { customBadgeHtml } from '../../scripts/ui/customBadge';
   import { openModal } from '../../scripts/animations/modalAnimations';
   import { attachSwipeToDelete } from '../../scripts/ui/swipeToDelete';
@@ -205,7 +205,11 @@
     quickSlotContainer.appendChild(card);
   }
 
+  // Fase D: acciones de la ficha que dependen del renglón (confirmación de borrado de cada objeto).
+  const deleteTriggers = new Map<string, () => void>();
+
   function renderBackpack(char: any) {
+    deleteTriggers.clear();
     renderQuickSlot(char);
 
     if (!gearContainer) return;
@@ -399,7 +403,14 @@
       };
 
       card.querySelector('.expand-item-btn')?.addEventListener('click', toggleExpand);
-      card.querySelector('.item-info-trigger')?.addEventListener('click', toggleExpand);
+      deleteTriggers.set(item.id, triggerItemDelete);
+
+      // Fase D: tocar el nombre abre la ficha; el detalle en línea sigue con la flecha.
+      card.querySelector('.item-info-trigger')?.addEventListener('click', () => {
+        window.dispatchEvent(new CustomEvent('open-item-detail', {
+          detail: { entry: toCatalogEntry('item', item), context: 'inventory' }
+        }));
+      });
 
       // Edit item trigger
       const triggerEdit = (e: Event) => {
@@ -441,6 +452,20 @@
   }
 
   renderBackpack(characterStore.get());
+
+  // Acciones de la ficha de objeto abierta desde la mochila (FD-3).
+  window.addEventListener('item-action', ((e: CustomEvent) => {
+    const { entryId, action, context } = e.detail || {};
+    if (context !== 'inventory') return;
+    if (action === 'use') {
+      const res = characterStore.consumeItem(entryId);
+      if (res.success && res.healed && res.healed > 0) {
+        showAlert(`¡Has consumido "${res.name}"! +${res.healed} PG recuperados.`, { kind: 'success' });
+      }
+    } else if (action === 'drop') {
+      deleteTriggers.get(entryId)?.();
+    }
+  }) as EventListener);
 
   window.addEventListener('character-updated', ((e: CustomEvent) => {
     renderBackpack(e.detail.character);

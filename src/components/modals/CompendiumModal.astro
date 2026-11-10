@@ -229,6 +229,16 @@
         <div class="p-3 sm:p-4 bg-[#18202e] border-t border-[#222f42] flex items-center justify-between gap-2 shrink-0 hidden" id="compendium-action-footer">
           <button
             type="button"
+            id="compendium-view-sheet-btn"
+            class="px-3.5 py-2 rounded-xl bg-[#121721] border border-[#222f42] hover:border-amber-500/50 text-[#cbd5e1] hover:text-[#f1f5f9] text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
+            title="Abre la ficha completa"
+          >
+            <span class="material-symbols-outlined text-[16px] text-amber-400">menu_book</span>
+            <span>Ver ficha</span>
+          </button>
+
+          <button
+            type="button"
             id="compendium-edit-before-add-btn"
             class="px-3.5 py-2 rounded-xl bg-[#121721] border border-[#222f42] hover:border-amber-500/50 text-[#cbd5e1] hover:text-[#f1f5f9] text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
             title="Abre el formulario manual con los datos pre-rellenados para ajustarlos"
@@ -252,6 +262,7 @@
 </div>
 
 <script>
+  import { toCatalogEntry } from '../../scripts/dnd/catalog';
   import { dndApiService, type UnifiedSpell, type UnifiedEquipment, type UnifiedMagicItem, type UnifiedFeat, type UnifiedClass, type UnifiedSpecies } from '../../scripts/api/dndApiService';
   import { srdCacheManager, type SrdEdition } from '../../scripts/api/srdCacheManager';
   import { characterStore } from '../../scripts/state/characterStore';
@@ -271,6 +282,7 @@
   const addDirectBtn = document.getElementById('compendium-add-direct-btn');
   const addBtnText = document.getElementById('compendium-add-btn-text');
   const editBeforeAddBtn = document.getElementById('compendium-edit-before-add-btn');
+  const viewSheetBtn = document.getElementById('compendium-view-sheet-btn');
   const resultsCount = document.getElementById('compendium-results-count');
   const filterContainer = document.getElementById('compendium-filter-container');
   const spellLevelSel = document.getElementById('compendium-spell-level') as HTMLSelectElement;
@@ -781,6 +793,26 @@
 
     if (modal && backdrop) closeModal(modal, backdrop);
   });
+
+  // Fase D: la ficha genérica (contexto 'compendium'); "Agregar" reutiliza el alta directa de arriba.
+  viewSheetBtn?.addEventListener('click', () => {
+    if (!selectedItem) return;
+    if (activeCategory === 'spells') {
+      const entry = toCatalogEntry('spell', { ...dndApiService.toSpellPayload(selectedItem), source: 'srd' } as any);
+      window.dispatchEvent(new CustomEvent('open-spell-detail', { detail: { entry, context: 'compendium' } }));
+    } else if (activeCategory === 'feats') {
+      const entry = toCatalogEntry('feat', { name: selectedItem.name, description: selectedItem.description, source: 'srd' } as any);
+      window.dispatchEvent(new CustomEvent('open-item-detail', { detail: { entry, context: 'compendium' } }));
+    } else {
+      const entry = toCatalogEntry('item', { ...dndApiService.toInventoryPayload(selectedItem), source: 'srd' } as any);
+      window.dispatchEvent(new CustomEvent('open-item-detail', { detail: { entry, context: 'compendium' } }));
+    }
+  });
+  const onSheetAction = ((e: CustomEvent) => {
+    if (e.detail?.context === 'compendium' && e.detail?.action === 'add') addDirectBtn?.click();
+  }) as EventListener;
+  window.addEventListener('item-action', onSheetAction);
+  window.addEventListener('spell-action', onSheetAction);
 
   // Action Button: Edit before Add (pre-fills the corresponding manual modal)
   editBeforeAddBtn?.addEventListener('click', () => {

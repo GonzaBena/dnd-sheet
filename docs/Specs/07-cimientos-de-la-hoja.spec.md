@@ -256,10 +256,10 @@ Orden: A → B → C → D → E. Las Fases B y C son independientes entre sí t
 - [x] T-244 Test de reglas del emulador (RF-256)
 
 ### Fase D — Modales genéricos · depende de la Fase C
-- [ ] T-245 `ItemDetailModal` (RF-251)
-- [ ] T-246 `SpellDetailModal` (RF-252)
-- [ ] T-247 Montaje en inventario, compendio y hoja; reuso en botín y handouts (RF-253, RF-255)
-- [ ] T-248 Tests de la lógica de presentación
+- [x] T-245 `ItemDetailModal` (RF-251)
+- [x] T-246 `SpellDetailModal` (RF-252)
+- [x] T-247 Montaje en inventario, compendio y hoja; reuso en botín y handouts (RF-253, RF-255)
+- [x] T-248 Tests de la lógica de presentación
 
 ### Fase E — Panel de efectos y cierre · depende de las Fases B y D
 - [ ] T-249 `ActiveEffectsPanel` (RF-257)

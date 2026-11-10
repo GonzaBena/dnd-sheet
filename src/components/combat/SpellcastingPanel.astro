@@ -62,7 +62,9 @@
 
 <script>
   import { characterStore } from '../../scripts/state/characterStore';
-  import { escapeHtml } from '../../scripts/dnd/catalog';
+  import { escapeHtml, toCatalogEntry } from '../../scripts/dnd/catalog';
+  import { showAlert } from '../../scripts/ui/notify';
+  import type { ActiveEffect } from '../../scripts/models/effect';
   import { customBadgeHtml } from '../../scripts/ui/customBadge';
   import { openModal } from '../../scripts/animations/modalAnimations';
   import { attachSwipeToDelete } from '../../scripts/ui/swipeToDelete';
@@ -122,8 +124,11 @@
     }
   }
 
+  const spellDeleteTriggers = new Map<string, () => void>();
+
   function renderSpells(char: any) {
     if (!spellsContainer) return;
+    spellDeleteTriggers.clear();
     spellsContainer.innerHTML = '';
 
     const spells = char.spellcasting?.spells || [];
@@ -160,7 +165,7 @@
 
       card.innerHTML = `
         <div class="flex items-center justify-between gap-2 flex-wrap sm:flex-nowrap">
-          <div class="flex items-center gap-2 truncate flex-1 mr-1">
+          <div class="spell-detail-trigger flex items-center gap-2 truncate flex-1 mr-1 cursor-pointer" title="Ver ficha del conjuro">
             <span class="w-5 h-5 rounded-md ${isCantrip ? 'bg-purple-500/20 text-purple-300 border border-purple-500/40' : 'bg-[#10141d] text-amber-400 border border-[#222f42]'} font-bold text-[10px] flex items-center justify-center shrink-0" title="${isCantrip ? 'Truco Mágico (Nivel 0)' : `Conjuro Nivel ${sp.level}`}">
               ${isCantrip ? 'T' : sp.level}
             </span>
@@ -323,6 +328,14 @@
       };
 
       card.querySelector('.expand-spell-btn')?.addEventListener('click', toggleExpand);
+      spellDeleteTriggers.set(spellKey, triggerSpellDelete);
+
+      // Fase D: tocar el nombre abre la ficha del conjuro.
+      card.querySelector('.spell-detail-trigger')?.addEventListener('click', () => {
+        window.dispatchEvent(new CustomEvent('open-spell-detail', {
+          detail: { entry: toCatalogEntry('spell', sp), context: 'spellbook' }
+        }));
+      });
 
       // Edit spell trigger
       const triggerEdit = (e: Event) => {
@@ -419,5 +432,31 @@
   window.addEventListener('character-updated', ((e: CustomEvent) => {
     renderSpellSlots(e.detail.character);
     renderSpells(e.detail.character);
+  }) as EventListener);
+
+  // Acciones de la ficha de hechizo abierta desde el grimorio (FD-3).
+  window.addEventListener('spell-action', ((e: CustomEvent) => {
+    const { entryId, action, context, entry, level } = e.detail || {};
+    if (context !== 'spellbook') return;
+    if (action === 'cast') {
+      // Los trucos no traen nivel y no gastan espacio. DECISION (FD-4): sin validar componentes ni estado (H4).
+      if (typeof level === 'number') characterStore.useSpellSlot(level);
+      showAlert(`Has lanzado "${entry.name}"${typeof level === 'number' ? ` con un espacio de nivel ${level}` : ''}.`, { kind: 'success' });
+    } else if (action === 'remove') {
+      spellDeleteTriggers.get(entryId)?.();
+    } else if (action === 'apply-effect' && entry?.effects?.length) {
+      const effect: ActiveEffect = {
+        id: crypto.randomUUID(),
+        name: entry.name,
+        sourceType: 'spell',
+        sourceId: entry.id,
+        // DECISION: la duración por defecto es indefinida; se termina a mano desde los efectos activos.
+        duration: { kind: 'indefinite' },
+        modifiers: entry.effects,
+        appliedAt: Date.now(),
+      };
+      characterStore.applyEffect(effect);
+      showAlert(`Efecto de "${entry.name}" aplicado.`, { kind: 'success' });
+    }
   }) as EventListener);
 </script>
