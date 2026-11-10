@@ -168,6 +168,7 @@ import TurnNotifier from '../components/party/TurnNotifier.astro';
   import { campaignStore } from '../scripts/state/campaignStore';
   import { characterStore } from '../scripts/state/characterStore';
   import { userStore } from '../scripts/state/userStore';
+  import { startEffectsRoundSync } from '../scripts/state/effectsRoundSync';
   import { congratulationBanner } from '../scripts/ui/congratulationBanner';
   import { reorderSectionsDOM, applyCollapseStates, setupSheetDragAndDrop } from '../scripts/ui/sectionOrganizer';
 
@@ -177,6 +178,8 @@ import TurnNotifier from '../components/party/TurnNotifier.astro';
     if (cloudSession.isCloud() && cloudSession.state === 'signed-out') {
       return;
     }
+
+    startEffectsRoundSync();
 
     const params = new URLSearchParams(window.location.search);
 

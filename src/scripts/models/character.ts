@@ -1,4 +1,5 @@
 import type { Resource, SlotState } from './resource.ts';
+import type { ActiveEffect } from './effect.ts';
 
 export interface StatBlock {
   score: number;
@@ -174,6 +175,9 @@ export interface CharacterData {
   };
 
   resources: Resource[];
+
+  activeEffects: ActiveEffect[];
+  effectsLastRound?: { campaignId: string; round: number };
 
   wildShape?: {
     usesTotal: number;

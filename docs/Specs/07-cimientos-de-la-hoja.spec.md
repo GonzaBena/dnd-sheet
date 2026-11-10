@@ -242,11 +242,11 @@ Orden: A → B → C → D → E. Las Fases B y C son independientes entre sí t
 - [x] T-234 Corregir `hitDice.dieType` en `RestModal` (RF-236)
 
 ### Fase B — Motor de efectos · depende de la Fase A
-- [ ] T-235 Tipos de efecto y campo `activeEffects` (RF-237, RF-238)
-- [ ] T-236 `effects.ts`: funciones puras (RF-241, RF-242)
-- [ ] T-237 Acciones de efectos en `characterStore` y expiración por descanso (RF-240)
-- [ ] T-238 Descuento de rondas al avanzar el combate (RF-239)
-- [ ] T-239 Tests de efectos y migraciones
+- [x] T-235 Tipos de efecto y campo `activeEffects` (RF-237, RF-238)
+- [x] T-236 `effects.ts`: funciones puras (RF-241, RF-242)
+- [x] T-237 Acciones de efectos en `characterStore` y expiración por descanso (RF-240)
+- [x] T-238 Descuento de rondas al avanzar el combate (RF-239)
+- [x] T-239 Tests de efectos y migraciones
 
 ### Fase C — Catálogo y entradas propias · depende de la Fase A
 - [ ] T-240 `CatalogEntry` y adaptadores del SRD (RF-245)

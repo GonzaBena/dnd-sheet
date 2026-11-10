@@ -50,6 +50,7 @@ export function recalculateCharacter(char: CharacterData): CharacterData {
   // wildShape se crea más abajo si falta, por eso migrateResources se repite al final.
   migrateSlots(char);
   migrateResources(char);
+  if (!Array.isArray(char.activeEffects)) char.activeEffects = [];
 
   if (!char.rulesEdition) {
     char.rulesEdition = '2024';

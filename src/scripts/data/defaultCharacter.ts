@@ -207,6 +207,8 @@ export const defaultCharacter: CharacterData = {
   
   resources: [],
 
+  activeEffects: [],
+
   wildShape: {
     usesTotal: 2,
     usesRemaining: 2,

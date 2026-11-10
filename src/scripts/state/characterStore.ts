@@ -4,6 +4,8 @@ import { getRandomCharacterAvatar, isBrokenAvatarUrl } from '../data/characterAv
 import { recalculateCharacter, calculateLevelUpHpGain } from '../dnd/calculations.ts';
 import { spend, recover, resetOn, remaining } from '../dnd/resources.ts';
 import type { Resource } from '../models/resource.ts';
+import type { ActiveEffect } from '../models/effect.ts';
+import { addEffect, removeEffect, tickRounds, expireOnRest, roundDelta, type AddResult } from '../dnd/effects.ts';
 import { journalStore } from './journalStore.ts';
 import { campaignStore } from './campaignStore.ts';
 import { userStore } from './userStore.ts';
@@ -572,6 +574,68 @@ class CharacterStoreManager {
     this.saveAndNotify();
   }
 
+  // ---- Efectos activos (Spec 07, Fase B) ----
+
+  private emitEffectsExpired(expired: ActiveEffect[]) {
+    if (expired.length && typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('effects-expired', { detail: { expired } }));
+    }
+  }
+
+  /** Aplica un efecto. Devuelve `replaced` si había otro de concentración (no lo quita, FB-6). */
+  public applyEffect(effect: ActiveEffect): AddResult {
+    const result = addEffect(this.character.activeEffects, effect);
+    this.character.activeEffects = result.effects;
+    this.saveAndNotify();
+    return result;
+  }
+
+  public endEffect(id: string) {
+    this.character.activeEffects = removeEffect(this.character.activeEffects, id);
+    this.saveAndNotify();
+  }
+
+  public clearEffects() {
+    this.character.activeEffects = [];
+    this.saveAndNotify();
+  }
+
+  /** Descuenta rondas y devuelve los efectos expirados. */
+  public tickEffects(rounds: number): ActiveEffect[] {
+    const { effects, expired } = tickRounds(this.character.activeEffects, rounds);
+    this.character.activeEffects = effects;
+    this.saveAndNotify();
+    this.emitEffectsExpired(expired);
+    return expired;
+  }
+
+  /**
+   * FB-2: sincroniza con la ronda del combate en una sola escritura (tick + marca).
+   * Solo descuenta si es la misma campaña y la ronda avanzó (ver `roundDelta`).
+   */
+  public syncEffectsRound(campaignId: string, round: number): ActiveEffect[] {
+    const last = this.character.effectsLastRound;
+    const delta = roundDelta(last, { campaignId, round });
+    const markChanged = !last || last.campaignId !== campaignId || last.round !== round;
+    if (delta <= 0 && !markChanged) return [];
+    let expired: ActiveEffect[] = [];
+    if (delta > 0) {
+      const ticked = tickRounds(this.character.activeEffects, delta);
+      this.character.activeEffects = ticked.effects;
+      expired = ticked.expired;
+    }
+    this.character.effectsLastRound = { campaignId, round };
+    this.saveAndNotify();
+    this.emitEffectsExpired(expired);
+    return expired;
+  }
+
+  private expireEffectsOnRest(rest: 'short' | 'long'): ActiveEffect[] {
+    const { effects, expired } = expireOnRest(this.character.activeEffects, rest);
+    this.character.activeEffects = effects;
+    return expired;
+  }
+
   /** Reinicia recursos según el descanso y devuelve los nombres de los que se recuperaron. */
   private applyRestToResources(rest: 'short' | 'long'): string[] {
     const before = this.character.resources;
@@ -720,11 +784,13 @@ class CharacterStoreManager {
       this.character.wildShape.usesRemaining = this.character.wildShape.usesTotal;
     }
     const recoveredShort = this.applyRestToResources('short');
+    const expiredShort = this.expireEffectsOnRest('short');
     this.saveAndNotify();
+    this.emitEffectsExpired(expiredShort);
 
     journalStore.log(
       'Descanso Corto completado',
-      `Descanso de 1 hora completado. Gastado ${spend} Dado de Golpe (${this.character.hitDice.die}). Recuperados +${healed} PG (Salud actual: ${this.character.hp.current}/${this.character.hp.max}). Dados restantes: ${this.character.hitDice.remaining}/${this.character.hitDice.total}. Usos de Forma Salvaje restaurados al máximo.${recoveredShort.length ? ` Recursos recuperados: ${recoveredShort.join(', ')}.` : ''}`,
+      `Descanso de 1 hora completado. Gastado ${spend} Dado de Golpe (${this.character.hitDice.die}). Recuperados +${healed} PG (Salud actual: ${this.character.hp.current}/${this.character.hp.max}). Dados restantes: ${this.character.hitDice.remaining}/${this.character.hitDice.total}. Usos de Forma Salvaje restaurados al máximo.${recoveredShort.length ? ` Recursos recuperados: ${recoveredShort.join(', ')}.` : ''}${expiredShort.length ? ` Efectos terminados: ${expiredShort.map((e) => e.name).join(', ')}.` : ''}`,
       ['#Descanso']
     );
 
@@ -749,11 +815,13 @@ class CharacterStoreManager {
       this.character.wildShape.activeForm = null;
     }
     const recoveredLong = this.applyRestToResources('long');
+    const expiredLong = this.expireEffectsOnRest('long');
     this.saveAndNotify();
+    this.emitEffectsExpired(expiredLong);
 
     journalStore.log(
       'Descanso Largo completado',
-      `Descanso de 8 horas completado. Salud restaurada al 100% (${this.character.hp.max}/${this.character.hp.max} PG). Recuperados +${restoreDice} Dados de Golpe (${this.character.hitDice.remaining}/${this.character.hitDice.total}). Todos los espacios de conjuro y formas salvajes restablecidos.${recoveredLong.length ? ` Recursos recuperados: ${recoveredLong.join(', ')}.` : ''}`,
+      `Descanso de 8 horas completado. Salud restaurada al 100% (${this.character.hp.max}/${this.character.hp.max} PG). Recuperados +${restoreDice} Dados de Golpe (${this.character.hitDice.remaining}/${this.character.hitDice.total}). Todos los espacios de conjuro y formas salvajes restablecidos.${recoveredLong.length ? ` Recursos recuperados: ${recoveredLong.join(', ')}.` : ''}${expiredLong.length ? ` Efectos terminados: ${expiredLong.map((e) => e.name).join(', ')}.` : ''}`,
       ['#Descanso']
     );
   }
