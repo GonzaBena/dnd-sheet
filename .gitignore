@@ -4,6 +4,10 @@ dist/
 
 # Dependencies
 node_modules/
+.pnpm-store/
+
+# Test & playground pages
+src/pages/test/
 
 # Environment variables (preserve secrets)
 .env

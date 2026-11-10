@@ -1,0 +1,884 @@
+---
+// src/components/ui/ParchmentEnvelope.astro
+// Animación cinematográfica:
+// 1. El sobre entra con el papiro dentro, ligeramente abierto (se mueve en bloque).
+// 2. La solapa se abre en 3D revelando el papiro adentro.
+// 3. El papiro hace un "SALTO" hacia arriba saliendo del sobre.
+// 4. El sobre cae al abismo mientras el papiro desciende al CENTRO EXACTO de la pantalla.
+// 5. El papiro se desenrolla simétricamente en el centro y revela el texto en tinta.
+---
+
+<div
+  id="parchment-overlay"
+  class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md opacity-0 pointer-events-none transition-opacity duration-300 select-none overflow-hidden"
+  role="dialog"
+  aria-modal="true"
+  aria-hidden="true"
+>
+  <!-- Escenario central 3D con perspectiva -->
+  <div class="relative w-full max-w-2xl h-full max-h-[92vh] flex items-center justify-center" style="perspective: 1400px;">
+
+    <!-- ============================================================== -->
+    <!-- ESCENARIO DE CAPAS: Sobre + Papiro integrados                   -->
+    <!-- ============================================================== -->
+    <div id="envelope-scene" class="relative w-[92vw] sm:w-[480px] md:w-[560px] max-w-[620px] h-[220px] sm:h-[250px]">
+
+      <!-- CAPA 0: Sombra proyectada del sobre -->
+      <div id="envelope-shadow" class="absolute -bottom-6 left-6 right-6 h-8 bg-black/60 blur-xl rounded-full scale-90"></div>
+
+      <!-- CAPA 1: Fondo interior del sobre (z-10) -->
+      <div id="envelope-back" class="absolute inset-0 z-10 bg-[#150d08] rounded-md border border-[#4a321e] overflow-hidden shadow-2xl">
+        <div class="absolute inset-0 bg-[radial-gradient(circle_at_center,_#2b1a10_0%,_#0e0805_100%)] opacity-95"></div>
+        <div class="absolute inset-2 border border-[#3d2514] opacity-40 rounded"></div>
+      </div>
+
+      <!-- CAPA 2: WRAPPER DEL PAPIRO (z-15: Dentro del sobre, centrado en el stage) -->
+      <div
+        id="parchment-wrapper"
+        class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-15 pointer-events-none flex flex-col items-center justify-center w-[88vw] sm:w-[460px] md:w-[540px] max-w-[600px]"
+      >
+        <!-- CONTENEDOR DEL PAPIRO (Ejecuta el salto físico y aterriza en translateY: 0) -->
+        <div
+          id="parchment-container"
+          class="w-full flex flex-col items-center"
+          style="will-change: transform, opacity; transform: translateY(28px);"
+        >
+          <!-- RODILLO SUPERIOR DE MADERA TALLADA (Con remates dorados) -->
+          <div id="roller-top" class="w-[104%] h-5 bg-[#3a1d08] rounded-full relative flex items-center justify-between px-1 shadow-lg z-30 border border-[#6b3a14]">
+            <div class="w-3.5 h-5 bg-gradient-to-r from-amber-600 via-yellow-400 to-amber-700 rounded-l shadow"></div>
+            <div class="h-2 w-full mx-2 bg-gradient-to-b from-[#5c3111] via-[#3a1d08] to-[#1c0c03] rounded-sm"></div>
+            <div class="w-3.5 h-5 bg-gradient-to-r from-amber-700 via-yellow-400 to-amber-600 rounded-r shadow"></div>
+          </div>
+
+          <!-- LÁMINA PRINCIPAL DEL PERGAMINO (Ligeramente abierta al inicio: height: 48px) -->
+          <div
+            id="parchment-body"
+            class="w-full overflow-hidden relative shadow-2xl"
+            style="height: 48px; max-height: 88vh; background: linear-gradient(180deg, #f7ecd5 0%, #efe0bf 30%, #e8d5ae 70%, #d8be92 100%);"
+          >
+            <!-- Borde sutil desgastado / manchado -->
+            <div class="absolute inset-0 border-x-4 border-dashed border-[#bfa278]/50 pointer-events-none"></div>
+            <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_transparent_55%,_rgba(115,75,32,0.2)_100%)] pointer-events-none"></div>
+
+            <!-- Marca de agua / Sello de fondo en el papiro -->
+            <div class="absolute inset-0 flex items-center justify-center opacity-5 pointer-events-none">
+              <svg class="w-56 h-56" viewBox="0 0 100 100" fill="currentColor">
+                <path d="M50 5 L90 27 L90 73 L50 95 L10 73 L10 27 Z M50 15 L20 32 L50 85 L80 32 Z" />
+              </svg>
+            </div>
+
+            <!-- CONTENIDO DEL MENSAJE (Vistas conmutables: Carta / Objetos) -->
+            <div id="parchment-content" class="px-5 py-4 sm:px-8 sm:py-6 md:px-9 flex flex-col h-full text-[#2c1a0c] select-text opacity-0 overflow-hidden pb-4">
+              
+              <!-- ========================================== -->
+              <!-- VISTA 1: LA CARTA / HISTORIA               -->
+              <!-- ========================================== -->
+              <div id="view-letter" class="flex flex-col h-full">
+                <!-- Encabezado y Título (Fijo arriba) -->
+                <div class="shrink-0 mb-2">
+                  <div class="flex items-center justify-center gap-2 sm:gap-3 mb-1.5 sm:mb-2">
+                    <span class="h-[1px] w-8 sm:w-16 bg-[#8c673b]"></span>
+                    <span class="text-[11px] sm:text-xs uppercase tracking-[0.25em] font-serif text-[#785125] font-bold truncate max-w-[220px]" id="parchment-sender">Edicto del Reino</span>
+                    <span class="h-[1px] w-8 sm:w-16 bg-[#8c673b]"></span>
+                  </div>
+
+                  <h2 id="parchment-title" class="text-lg sm:text-xl md:text-2xl font-serif font-bold text-center text-[#3a1d08] mb-1.5 sm:mb-2 tracking-wide leading-tight">
+                    Misión Prioritaria
+                  </h2>
+
+                  <div class="w-16 sm:w-20 h-[2px] bg-gradient-to-r from-transparent via-[#b8860b] to-transparent mx-auto"></div>
+                </div>
+
+                <!-- Cuerpo del mensaje -->
+                <div
+                  id="parchment-text"
+                  class="flex-1 min-h-0 overflow-y-auto font-serif text-xs sm:text-sm md:text-base leading-relaxed text-[#382313] text-justify py-2 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+                >
+                  Saludos, aventurero. Las campanas de la torre norte han doblado tres veces...
+                </div>
+
+                <!-- Indicador de Objetos Adjuntos (Si existen) -->
+                <div id="parchment-attachment-badge" class="hidden shrink-0 mt-1 mb-2 px-3 py-1.5 rounded-lg bg-[#5c3a1e]/10 border border-[#8c673b]/40 flex items-center justify-between">
+                  <div class="flex items-center gap-2">
+                    <span class="material-symbols-outlined text-sm text-amber-700">package_2</span>
+                    <span class="text-xs font-serif text-[#5c3a1e] font-semibold" id="parchment-attachment-text">Contiene objetos sellados</span>
+                  </div>
+                  <span class="text-[10px] uppercase font-mono tracking-wider px-1.5 py-0.5 rounded bg-amber-700/20 text-amber-900 font-bold" id="parchment-attachment-count">items</span>
+                </div>
+
+                <!-- Pie de la Carta -->
+                <div class="shrink-0 pt-2 sm:pt-3 mt-auto border-t border-[#cbb38d] flex items-center justify-between gap-2">
+                  <div class="flex items-center gap-1.5 sm:gap-2 min-w-0">
+                    <div class="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-[#8b1818] flex items-center justify-center text-amber-200 text-[10px] sm:text-xs shadow-inner font-serif font-bold shrink-0">
+                      §
+                    </div>
+                    <span class="text-[11px] sm:text-xs italic text-[#614224] font-serif truncate" id="parchment-date">Sellado en Faerûn</span>
+                  </div>
+
+                  <!-- Botón cuando TIENE objetos: "Inspeccionar contenido" -->
+                  <button
+                    id="btn-inspect-items"
+                    type="button"
+                    class="hidden shrink-0 px-3.5 py-1.5 sm:px-4 bg-gradient-to-r from-[#5a3017] to-[#784320] hover:from-[#6b3a1d] hover:to-[#8c4e25] text-amber-100 rounded text-xs font-serif tracking-wider font-semibold shadow-md transition-all active:scale-95 flex items-center gap-1.5 cursor-pointer whitespace-nowrap border border-amber-600/40"
+                  >
+                    <span>Ver contenido adjunto</span>
+                    <span class="material-symbols-outlined text-xs">arrow_forward</span>
+                  </button>
+
+                  <!-- Botón cuando NO tiene objetos: "Guardar rollo" -->
+                  <button
+                    id="btn-close-parchment"
+                    type="button"
+                    class="shrink-0 px-3.5 py-1.5 sm:px-4 bg-[#42220f] hover:bg-[#5a3017] text-amber-100 rounded text-xs font-serif tracking-wider font-semibold shadow transition-all active:scale-95 flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
+                  >
+                    <span id="btn-close-parchment-text">Guardar rollo</span>
+                    <span class="material-symbols-outlined text-xs">inventory_2</span>
+                  </button>
+                </div>
+              </div>
+
+
+              <!-- ========================================== -->
+              <!-- VISTA 2: EL CONTENIDO / OBJETOS ADJUNTOS    -->
+              <!-- ========================================== -->
+              <div id="view-items" class="hidden flex flex-col h-full">
+                <!-- Encabezado de Objetos -->
+                <div class="shrink-0 mb-2">
+                  <div class="flex items-center justify-between mb-1">
+                    <button
+                      id="btn-back-to-letter"
+                      type="button"
+                      class="flex items-center gap-1 text-[11px] font-serif text-[#785125] hover:text-[#3a1d08] font-bold tracking-wider uppercase transition-colors cursor-pointer"
+                    >
+                      <span class="material-symbols-outlined text-xs">arrow_back</span>
+                      <span>Volver a la carta</span>
+                    </button>
+                    <span class="text-[10px] uppercase font-mono tracking-wider text-[#8c673b] font-bold" id="view-items-counter">Alijo</span>
+                  </div>
+
+                  <h2 class="text-lg sm:text-xl md:text-2xl font-serif font-bold text-center text-[#3a1d08] mb-1.5 tracking-wide leading-tight flex items-center justify-center gap-2">
+                    <span class="material-symbols-outlined text-amber-800 text-xl sm:text-2xl">package_2</span>
+                    <span>Pertrechos & Botín Adjunto</span>
+                  </h2>
+
+                  <div class="w-16 sm:w-20 h-[2px] bg-gradient-to-r from-transparent via-[#b8860b] to-transparent mx-auto"></div>
+                </div>
+
+                <!-- Lista de tarjetas de objetos -->
+                <div
+                  id="parchment-items-cards"
+                  class="flex-1 min-h-0 overflow-y-auto flex flex-col gap-2 py-1.5 pr-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+                >
+                  <!-- Items generados dinámicamente -->
+                </div>
+
+                <!-- Pie de la Vista de Objetos -->
+                <div class="shrink-0 pt-2 sm:pt-3 mt-auto border-t border-[#cbb38d] flex items-center justify-between gap-2">
+                  <button
+                    id="btn-back-bottom"
+                    type="button"
+                    class="shrink-0 px-3 py-1.5 text-[#5c3a1e] hover:text-[#3a1d08] text-xs font-serif font-semibold transition-colors flex items-center gap-1 cursor-pointer"
+                  >
+                    <span class="material-symbols-outlined text-xs">arrow_back</span>
+                    <span>Releer nota</span>
+                  </button>
+
+                  <button
+                    id="btn-claim-items"
+                    type="button"
+                    class="shrink-0 px-4 py-1.5 bg-gradient-to-r from-[#42220f] to-[#5a3017] hover:from-[#5a3017] hover:to-[#6d3a1c] text-amber-100 rounded text-xs font-serif tracking-wider font-semibold shadow transition-all active:scale-95 flex items-center gap-1.5 cursor-pointer whitespace-nowrap border border-amber-500/30"
+                  >
+                    <span id="btn-claim-text">Reclamar al Inventario</span>
+                    <span class="material-symbols-outlined text-xs">done_all</span>
+                  </button>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- RODILLO INFERIOR DE MADERA TALLADA -->
+          <div id="roller-bottom" class="w-[104%] h-5 bg-[#3a1d08] rounded-full relative flex items-center justify-between px-1 shadow-xl z-30 border border-[#6b3a14]">
+            <div class="w-3.5 h-5 bg-gradient-to-r from-amber-600 via-yellow-400 to-amber-700 rounded-l shadow"></div>
+            <div class="h-2 w-full mx-2 bg-gradient-to-b from-[#5c3111] via-[#3a1d08] to-[#1c0c03] rounded-sm"></div>
+            <div class="w-3.5 h-5 bg-gradient-to-r from-amber-700 via-yellow-400 to-amber-600 rounded-r shadow"></div>
+          </div>
+        </div><!-- /#parchment-container -->
+      </div><!-- /#parchment-wrapper -->
+
+      <!-- CAPA 3: Bolsillo frontal del sobre (z-20: Tapa el papiro mientras está dentro) -->
+      <div id="envelope-front" class="absolute inset-0 z-20 pointer-events-none overflow-hidden rounded-md">
+        <svg class="w-full h-full filter drop-shadow(0 -2px 5px rgba(0,0,0,0.5))" viewBox="0 0 380 220" preserveAspectRatio="none">
+          <defs>
+            <linearGradient id="pocket-left" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#3b2414" />
+              <stop offset="100%" stop-color="#2a180c" />
+            </linearGradient>
+            <linearGradient id="pocket-right" x1="100%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stop-color="#3b2414" />
+              <stop offset="100%" stop-color="#2a180c" />
+            </linearGradient>
+            <linearGradient id="pocket-bottom" x1="0%" y1="100%" x2="0%" y2="0%">
+              <stop offset="0%" stop-color="#442a17" />
+              <stop offset="100%" stop-color="#2c1a0e" />
+            </linearGradient>
+          </defs>
+
+          <!-- Solapa izquierda -->
+          <polygon points="0,0 200,115 0,220" fill="url(#pocket-left)" stroke="#684728" stroke-width="0.8" />
+          <!-- Solapa derecha -->
+          <polygon points="380,0 180,115 380,220" fill="url(#pocket-right)" stroke="#684728" stroke-width="0.8" />
+          <!-- Solapa inferior frontal -->
+          <polygon points="0,220 190,105 380,220" fill="url(#pocket-bottom)" stroke="#8c6239" stroke-width="1.2" />
+          <!-- Pespunte artesanal inferior -->
+          <polyline points="15,212 190,118 365,212" fill="none" stroke="#c49756" stroke-dasharray="3,3" stroke-width="0.8" opacity="0.6" />
+        </svg>
+      </div>
+
+      <!-- CAPA 4: Solapa superior 3D con sello de lacre (z-30) -->
+      <div
+        id="envelope-flap"
+        class="absolute top-0 left-0 w-full h-[120px] origin-top z-30"
+        style="transform-style: preserve-3d; will-change: transform;"
+      >
+        <!-- Cara exterior de la solapa -->
+        <svg class="w-full h-full filter drop-shadow(0 6px 8px rgba(0,0,0,0.5))" viewBox="0 0 380 120" preserveAspectRatio="none">
+          <defs>
+            <linearGradient id="flap-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stop-color="#4a311d" />
+              <stop offset="60%" stop-color="#362213" />
+              <stop offset="100%" stop-color="#28170c" />
+            </linearGradient>
+            <linearGradient id="flap-border-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stop-color="#8c6239" />
+              <stop offset="50%" stop-color="#d4af37" />
+              <stop offset="100%" stop-color="#8c6239" />
+            </linearGradient>
+          </defs>
+          <polygon points="0,0 380,0 190,120" fill="url(#flap-grad)" stroke="url(#flap-border-grad)" stroke-width="1.5" />
+          <polygon points="12,4 368,4 190,110" fill="none" stroke="#684728" stroke-dasharray="4,4" stroke-width="1" opacity="0.6" />
+        </svg>
+
+        <!-- Sombra interna de la solapa -->
+        <div id="flap-shading" class="absolute inset-0 bg-black/40 pointer-events-none transition-opacity duration-300" style="clip-path: polygon(0 0, 100% 0, 50% 100%);"></div>
+
+        <!-- SELLO DE LACRE DE CERA (Wax Seal) -->
+        <div
+          id="wax-seal"
+          class="absolute left-1/2 bottom-[-18px] -translate-x-1/2 z-40 w-14 h-14 cursor-pointer hover:scale-105 active:scale-95 transition-transform"
+          title="Toca para romper el sello"
+        >
+          <svg class="w-full h-full filter drop-shadow(0 4px 6px rgba(0,0,0,0.7))" viewBox="0 0 100 100">
+            <defs>
+              <radialGradient id="wax-depth" cx="35%" cy="35%" r="65%">
+                <stop offset="0%" stop-color="#dc2626" />
+                <stop offset="50%" stop-color="#991b1b" />
+                <stop offset="85%" stop-color="#580e0e" />
+                <stop offset="100%" stop-color="#2f0606" />
+              </radialGradient>
+              <linearGradient id="gold-seal" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#fef08a" />
+                <stop offset="50%" stop-color="#eab308" />
+                <stop offset="100%" stop-color="#854d0e" />
+              </linearGradient>
+            </defs>
+            <path
+              d="M 50,4 C 64,3 74,10 84,18 C 94,27 98,39 96,52 C 94,66 87,77 78,86 C 68,95 55,98 42,96 C 29,94 18,87 11,76 C 4,66 2,52 6,38 C 10,24 21,12 34,6 Z"
+              fill="url(#wax-depth)"
+            />
+            <circle cx="50" cy="50" r="33" fill="none" stroke="#450a0a" stroke-width="2.5" />
+            <circle cx="50" cy="50" r="31" fill="#7f1d1d" opacity="0.6" />
+            <path
+              d="M50 26 L68 37 L68 63 L50 74 L32 63 L32 37 Z"
+              fill="none"
+              stroke="url(#gold-seal)"
+              stroke-width="2"
+            />
+            <path
+              d="M50 26 L50 74 M32 37 L68 63 M68 37 L32 63"
+              stroke="url(#gold-seal)"
+              stroke-width="1.2"
+              opacity="0.8"
+            />
+            <circle cx="50" cy="50" r="5" fill="url(#gold-seal)" />
+          </svg>
+        </div>
+      </div>
+
+    </div><!-- /#envelope-scene -->
+
+  </div>
+</div>
+
+<script>
+  import anime from 'animejs';
+
+  export type ItemRarity = 'common' | 'uncommon' | 'rare' | 'very-rare' | 'legendary';
+
+  export interface ParchmentItem {
+    name: string;
+    quantity?: number;
+    icon?: string;
+    rarity?: ItemRarity;
+    description?: string;
+  }
+
+  interface EnvelopeMessageData {
+    title?: string;
+    message: string;
+    sender?: string;
+    date?: string;
+    items?: ParchmentItem[];
+    buttonText?: string;
+    onClose?: () => void;
+  }
+
+  const overlay = document.getElementById('parchment-overlay');
+  const envelopeScene = document.getElementById('envelope-scene');
+  const envelopeBack = document.getElementById('envelope-back');
+  const envelopeFront = document.getElementById('envelope-front');
+  const envelopeFlap = document.getElementById('envelope-flap');
+  const flapShading = document.getElementById('flap-shading');
+  const waxSeal = document.getElementById('wax-seal');
+  const envelopeShadow = document.getElementById('envelope-shadow');
+
+  const parchmentWrapper = document.getElementById('parchment-wrapper');
+  const parchmentContainer = document.getElementById('parchment-container');
+  const parchmentBody = document.getElementById('parchment-body');
+  const parchmentContent = document.getElementById('parchment-content');
+  const parchmentTitle = document.getElementById('parchment-title');
+  const parchmentSender = document.getElementById('parchment-sender');
+  const parchmentText = document.getElementById('parchment-text');
+  const parchmentDate = document.getElementById('parchment-date');
+
+  // Vistas conmutables y sus controles
+  const viewLetter = document.getElementById('view-letter');
+  const viewItems = document.getElementById('view-items');
+  const attachmentBadge = document.getElementById('parchment-attachment-badge');
+  const attachmentCount = document.getElementById('parchment-attachment-count');
+  const attachmentText = document.getElementById('parchment-attachment-text');
+  const btnInspectItems = document.getElementById('btn-inspect-items');
+  const btnClose = document.getElementById('btn-close-parchment');
+  const btnCloseText = document.getElementById('btn-close-parchment-text');
+
+  const btnBackToLetter = document.getElementById('btn-back-to-letter');
+  const btnBackBottom = document.getElementById('btn-back-bottom');
+  const btnClaimItems = document.getElementById('btn-claim-items');
+  const btnClaimText = document.getElementById('btn-claim-text');
+  const itemsCardsContainer = document.getElementById('parchment-items-cards');
+  const viewItemsCounter = document.getElementById('view-items-counter');
+
+  let isAnimating = false;
+  let isOpen = false;
+  let currentOnCloseCallback: (() => void) | null = null;
+  let currentActiveItems: ParchmentItem[] = [];
+
+  const RARITY_STYLES: Record<ItemRarity, { border: string; bg: string; text: string; iconBg: string; badge: string; badgeLabel: string }> = {
+    common: {
+      border: 'border-[#8c673b]/40',
+      bg: 'bg-[#5c3a1e]/10',
+      text: 'text-[#4a2e15]',
+      iconBg: 'bg-amber-900/15 text-[#5c3a1e]',
+      badge: 'bg-amber-900/10 text-[#684728]',
+      badgeLabel: 'Común'
+    },
+    uncommon: {
+      border: 'border-emerald-700/60',
+      bg: 'bg-emerald-800/10',
+      text: 'text-emerald-950 font-bold',
+      iconBg: 'bg-emerald-700/20 text-emerald-800',
+      badge: 'bg-emerald-700/25 text-emerald-900',
+      badgeLabel: 'Poco Común'
+    },
+    rare: {
+      border: 'border-blue-700/60',
+      bg: 'bg-blue-800/10',
+      text: 'text-blue-950 font-bold',
+      iconBg: 'bg-blue-700/20 text-blue-800',
+      badge: 'bg-blue-700/25 text-blue-900',
+      badgeLabel: 'Raro'
+    },
+    'very-rare': {
+      border: 'border-purple-700/70',
+      bg: 'bg-purple-800/15',
+      text: 'text-purple-950 font-bold',
+      iconBg: 'bg-purple-700/20 text-purple-900',
+      badge: 'bg-purple-700/25 text-purple-900',
+      badgeLabel: 'Muy Raro'
+    },
+    legendary: {
+      border: 'border-amber-600',
+      bg: 'bg-amber-600/20',
+      text: 'text-amber-950 font-bold',
+      iconBg: 'bg-amber-600/30 text-amber-900',
+      badge: 'bg-amber-600/30 text-amber-950',
+      badgeLabel: 'Legendario'
+    },
+  };
+
+  export function openParchmentEnvelope(data?: EnvelopeMessageData) {
+    if (isAnimating || !overlay) return;
+    isAnimating = true;
+
+    currentOnCloseCallback = data?.onClose || null;
+    currentActiveItems = data?.items || [];
+
+    if (data) {
+      if (parchmentTitle && data.title) parchmentTitle.textContent = data.title;
+      if (parchmentText && data.message) parchmentText.innerHTML = data.message.replace(/\n/g, '<br/>');
+      if (parchmentSender && data.sender) parchmentSender.textContent = data.sender;
+      if (parchmentDate && data.date) parchmentDate.textContent = data.date;
+      if (btnCloseText) btnCloseText.textContent = data.buttonText || 'Guardar rollo';
+      if (btnClaimText && data.buttonText) btnClaimText.textContent = data.buttonText;
+
+      // Configurar modo con o sin objetos adjuntos
+      if (currentActiveItems.length > 0) {
+        if (attachmentBadge && attachmentCount) {
+          attachmentCount.textContent = `${currentActiveItems.length} ${currentActiveItems.length === 1 ? 'objeto' : 'objetos'}`;
+          attachmentBadge.classList.remove('hidden');
+        }
+        if (btnInspectItems) btnInspectItems.classList.remove('hidden');
+        if (btnClose) btnClose.classList.add('hidden');
+
+        // Renderizar lista detallada de tarjetas para la Vista 2
+        renderItemCards(currentActiveItems);
+        if (viewItemsCounter) {
+          viewItemsCounter.textContent = `${currentActiveItems.length} ${currentActiveItems.length === 1 ? 'pertinencia' : 'pertinencias'}`;
+        }
+      } else {
+        if (attachmentBadge) attachmentBadge.classList.add('hidden');
+        if (btnInspectItems) btnInspectItems.classList.add('hidden');
+        if (btnClose) btnClose.classList.remove('hidden');
+      }
+    }
+
+    resetElements();
+
+    // 1. Mostrar Overlay suave
+    overlay.classList.remove('pointer-events-none');
+    overlay.setAttribute('aria-hidden', 'false');
+
+    anime({
+      targets: overlay,
+      opacity: [0, 1],
+      duration: 300,
+      easing: 'easeOutQuad'
+    });
+
+    // 2. El sobre ENTRA EN BLOQUE flotando desde abajo hacia el centro
+    anime({
+      targets: envelopeScene,
+      translateY: [60, 0],
+      scale: [0.85, 1],
+      opacity: [0, 1],
+      duration: 550,
+      easing: 'easeOutBack',
+      complete: () => {
+        startOpeningSequence();
+      }
+    });
+  }
+
+  function renderItemCards(items: ParchmentItem[]) {
+    if (!itemsCardsContainer) return;
+    itemsCardsContainer.innerHTML = '';
+
+    items.forEach((item) => {
+      const rarity = item.rarity || 'common';
+      const style = RARITY_STYLES[rarity] || RARITY_STYLES.common;
+
+      const card = document.createElement('div');
+      card.className = `p-2.5 rounded-lg border ${style.border} ${style.bg} flex items-start gap-3 shadow-xs transition-transform hover:scale-[1.01]`;
+
+      // Icono representativo
+      const iconBox = document.createElement('div');
+      iconBox.className = `w-8 h-8 rounded-md flex items-center justify-center shrink-0 border ${style.border} ${style.iconBg} shadow-inner`;
+      const iconSpan = document.createElement('span');
+      iconSpan.className = 'material-symbols-outlined text-base';
+      iconSpan.textContent = item.icon || 'inventory_2';
+      iconBox.appendChild(iconSpan);
+
+      // Datos del objeto
+      const infoDiv = document.createElement('div');
+      infoDiv.className = 'flex-1 min-w-0';
+
+      const headerRow = document.createElement('div');
+      headerRow.className = 'flex items-center justify-between gap-1.5';
+
+      const nameRow = document.createElement('div');
+      nameRow.className = 'flex items-center gap-1.5 min-w-0';
+
+      const nameSpan = document.createElement('span');
+      nameSpan.className = `text-xs font-serif font-bold ${style.text} truncate`;
+      nameSpan.textContent = item.name;
+
+      nameRow.appendChild(nameSpan);
+
+      if (item.quantity && item.quantity > 1) {
+        const qtyBadge = document.createElement('span');
+        qtyBadge.className = 'text-[10px] font-mono font-bold px-1 py-0.2 rounded bg-amber-900/15 text-amber-950 shrink-0';
+        qtyBadge.textContent = `x${item.quantity}`;
+        nameRow.appendChild(qtyBadge);
+      }
+
+      const rarityBadge = document.createElement('span');
+      rarityBadge.className = `text-[9px] uppercase font-mono tracking-wider px-1.5 py-0.5 rounded font-bold shrink-0 ${style.badge}`;
+      rarityBadge.textContent = style.badgeLabel;
+
+      headerRow.appendChild(nameRow);
+      headerRow.appendChild(rarityBadge);
+      infoDiv.appendChild(headerRow);
+
+      if (item.description) {
+        const descP = document.createElement('p');
+        descP.className = 'text-[11px] font-serif text-[#614224] leading-snug mt-1';
+        descP.textContent = item.description;
+        infoDiv.appendChild(descP);
+      }
+
+      card.appendChild(iconBox);
+      card.appendChild(infoDiv);
+      itemsCardsContainer.appendChild(card);
+    });
+  }
+
+  // Cálculo dinámico de altura: mínimo el contenido natural, máximo 85-90vh
+  function getTargetHeight(view: 'letter' | 'items' = 'letter'): number {
+    const maxAllowed = Math.min(window.innerHeight * 0.88, 780);
+    const minAllowed = 280;
+
+    let needed = 360;
+
+    if (view === 'letter') {
+      const textHeight = parchmentText ? parchmentText.scrollHeight : 160;
+      const hasBadge = attachmentBadge && !attachmentBadge.classList.contains('hidden');
+      const badgeHeight = hasBadge ? 44 : 0;
+      needed = 90 + textHeight + badgeHeight + 55 + 36;
+    } else {
+      // Calcular altura real requerida por todos los items para verlos completos sin scroll
+      let cardsTotalHeight = 0;
+      if (currentActiveItems && currentActiveItems.length > 0) {
+        currentActiveItems.forEach((item) => {
+          cardsTotalHeight += (item.description ? 74 : 46) + 8;
+        });
+      } else {
+        cardsTotalHeight = 220;
+      }
+      // Encabezado (~85) + lista de cartas + pie de acción (~55) + padding (~36)
+      needed = 85 + cardsTotalHeight + 55 + 36;
+    }
+
+    return Math.max(minAllowed, Math.min(needed, maxAllowed));
+  }
+
+  // Transición de enrollado, cambio de vista y desenrollado
+  function flipToView(targetView: 'letter' | 'items') {
+    if (isAnimating || !parchmentBody || !parchmentContent) return;
+    isAnimating = true;
+
+    const currentHeight = parchmentBody.clientHeight || getTargetHeight(targetView === 'items' ? 'letter' : 'items');
+    const newTargetHeight = getTargetHeight(targetView);
+
+    // 1. Enrollar el papiro rápidamente hacia el centro
+    anime({
+      targets: parchmentContent,
+      opacity: [1, 0],
+      duration: 180,
+      easing: 'easeInQuad'
+    });
+
+    anime({
+      targets: parchmentBody,
+      height: [currentHeight, 48],
+      duration: 320,
+      easing: 'easeInOutCubic',
+      complete: () => {
+        // 2. Conmutar vistas en el DOM mientras los rodillos están juntos
+        if (targetView === 'items') {
+          viewLetter?.classList.add('hidden');
+          viewItems?.classList.remove('hidden');
+          if (itemsCardsContainer) itemsCardsContainer.scrollTop = 0;
+        } else {
+          viewItems?.classList.add('hidden');
+          viewLetter?.classList.remove('hidden');
+          if (parchmentText) parchmentText.scrollTop = 0;
+        }
+
+        // 3. Volver a desenrollar elásticamente con la altura calculada para la nueva vista
+        anime({
+          targets: parchmentBody,
+          height: [48, newTargetHeight],
+          duration: 520,
+          easing: 'cubicBezier(0.34, 1.35, 0.64, 1)'
+        });
+
+        anime({
+          targets: parchmentContent,
+          opacity: [0, 1],
+          duration: 320,
+          easing: 'easeOutQuad',
+          delay: 80,
+          complete: () => {
+            isAnimating = false;
+          }
+        });
+      }
+    });
+  }
+
+  function startOpeningSequence() {
+    const envelopeParts = [envelopeBack, envelopeFront, envelopeFlap, envelopeShadow];
+
+    const timeline = anime.timeline({
+      easing: 'easeOutQuad',
+      complete: () => {
+        isAnimating = false;
+        isOpen = true;
+        if (parchmentWrapper) parchmentWrapper.classList.remove('pointer-events-none');
+      }
+    });
+
+    timeline
+      // PASO 1: Ruptura del sello de lacre
+      .add({
+        targets: waxSeal,
+        scale: [1, 1.25, 0],
+        rotate: [0, -10, 15],
+        opacity: [1, 1, 0],
+        duration: 320,
+        easing: 'easeInOutBack'
+      })
+      // PASO 2: Apertura 3D de la solapa superior (rotateX)
+      .add({
+        targets: envelopeFlap,
+        rotateX: [0, 180],
+        duration: 580,
+        easing: 'easeInOutCubic',
+        change: (anim) => {
+          if (envelopeFlap) {
+            envelopeFlap.style.zIndex = anim.progress > 48 ? '5' : '30';
+          }
+        }
+      }, '-=100')
+      .add({
+        targets: flapShading,
+        opacity: [0.5, 0],
+        duration: 320,
+        easing: 'linear'
+      }, '-=500')
+      // PASO 3: EL "SALTO" DEL PAPIRO
+      .add({
+        targets: parchmentContainer,
+        translateY: [28, -200],
+        scale: [1, 1.06],
+        rotateZ: [0, -2, 1],
+        duration: 440,
+        easing: 'easeOutCubic',
+        change: (anim) => {
+          if (parchmentWrapper && anim.progress > 20) {
+            parchmentWrapper.style.zIndex = '50';
+          }
+        }
+      }, '-=60')
+      // PASO 4: EL SOBRE CAE AL ABISMO MIENTRAS EL PAPIRO SE CENTRA EN LA PANTALLA
+      .add({
+        targets: envelopeParts,
+        translateY: [0, 300],
+        rotateZ: [0, -4],
+        opacity: [1, 0],
+        duration: 650,
+        easing: 'easeInQuad'
+      }, '-=180')
+      .add({
+        targets: parchmentContainer,
+        translateY: [-200, 0],
+        scale: [1.06, 1],
+        rotateZ: [1, 0],
+        duration: 600,
+        easing: 'cubicBezier(0.25, 1, 0.5, 1)'
+      }, '-=600')
+      // PASO 5: DESENROLLADO SIMÉTRICO EN EL CENTRO
+      .add({
+        targets: parchmentBody,
+        height: () => [48, getTargetHeight('letter')],
+        duration: 750,
+        easing: 'cubicBezier(0.34, 1.35, 0.64, 1)'
+      }, '-=200')
+      // PASO 6: REVELADO DE TINTA Y TEXTO
+      .add({
+        targets: parchmentContent,
+        opacity: [0, 1],
+        translateY: [10, 0],
+        duration: 380,
+        easing: 'easeOutQuad'
+      }, '-=220');
+  }
+
+  export function closeParchmentEnvelope() {
+    if (isAnimating || !overlay) return;
+    isAnimating = true;
+
+    if (parchmentWrapper) parchmentWrapper.classList.add('pointer-events-none');
+
+    const timeline = anime.timeline({
+      easing: 'easeInOutQuad',
+      complete: () => {
+        overlay.classList.add('pointer-events-none');
+        overlay.setAttribute('aria-hidden', 'true');
+        overlay.style.opacity = '0';
+        resetElements();
+        isAnimating = false;
+        isOpen = false;
+
+        // Notificar y resolver promesa
+        if (currentOnCloseCallback) {
+          currentOnCloseCallback();
+          currentOnCloseCallback = null;
+        }
+        window.dispatchEvent(new CustomEvent('dnd:envelope-closed'));
+      }
+    });
+
+    timeline
+      .add({
+        targets: parchmentContent,
+        opacity: [1, 0],
+        duration: 160
+      })
+      .add({
+        targets: parchmentBody,
+        height: [parchmentBody ? parchmentBody.clientHeight : 400, 48],
+        duration: 360,
+        easing: 'easeInBack'
+      }, '-=40')
+      .add({
+        targets: parchmentContainer,
+        scale: [1, 0.7],
+        opacity: [1, 0],
+        duration: 220
+      }, '-=80')
+      .add({
+        targets: overlay,
+        opacity: [1, 0],
+        duration: 220
+      }, '-=80');
+  }
+
+  function resetElements() {
+    const envelopeParts = [envelopeBack, envelopeFront, envelopeFlap, envelopeShadow];
+    envelopeParts.forEach(part => {
+      if (part) {
+        part.style.transform = '';
+        part.style.opacity = '1';
+      }
+    });
+
+    if (envelopeFlap) {
+      envelopeFlap.style.transform = 'rotateX(0deg)';
+      envelopeFlap.style.zIndex = '30';
+    }
+    if (flapShading) {
+      flapShading.style.opacity = '0.5';
+    }
+    if (waxSeal) {
+      waxSeal.style.transform = 'translateX(-50%) scale(1) rotate(0deg)';
+      waxSeal.style.opacity = '1';
+    }
+    if (parchmentWrapper) {
+      parchmentWrapper.style.zIndex = '15';
+    }
+    if (parchmentContainer) {
+      parchmentContainer.style.opacity = '1';
+      parchmentContainer.style.transform = 'translateY(28px) scale(1) rotate(0deg)';
+    }
+    if (parchmentBody) {
+      parchmentBody.style.height = '48px';
+    }
+    if (parchmentContent) {
+      parchmentContent.style.opacity = '0';
+      parchmentContent.style.transform = 'translateY(0px)';
+    }
+
+    // Siempre reiniciar mostrando la carta original (Vista 1)
+    if (viewLetter && viewItems) {
+      viewLetter.classList.remove('hidden');
+      viewItems.classList.add('hidden');
+    }
+  }
+
+  // Event Listeners
+  if (waxSeal) {
+    waxSeal.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (!isOpen && !isAnimating) {
+        startOpeningSequence();
+      }
+    });
+  }
+
+  // Conmutadores de vista (enrollado y desenrollado)
+  if (btnInspectItems) {
+    btnInspectItems.addEventListener('click', (e) => {
+      e.stopPropagation();
+      flipToView('items');
+    });
+  }
+
+  if (btnBackToLetter) {
+    btnBackToLetter.addEventListener('click', (e) => {
+      e.stopPropagation();
+      flipToView('letter');
+    });
+  }
+
+  if (btnBackBottom) {
+    btnBackBottom.addEventListener('click', (e) => {
+      e.stopPropagation();
+      flipToView('letter');
+    });
+  }
+
+  if (btnClaimItems) {
+    btnClaimItems.addEventListener('click', (e) => {
+      e.stopPropagation();
+      closeParchmentEnvelope();
+    });
+  }
+
+  if (btnClose) {
+    btnClose.addEventListener('click', (e) => {
+      e.stopPropagation();
+      closeParchmentEnvelope();
+    });
+  }
+
+  if (overlay) {
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay && isOpen && !isAnimating) {
+        closeParchmentEnvelope();
+      }
+    });
+  }
+
+  declare global {
+    interface Window {
+      dndEnvelope: {
+        open: (data?: EnvelopeMessageData) => void;
+        close: () => void;
+      };
+    }
+  }
+
+  window.dndEnvelope = {
+    open: openParchmentEnvelope,
+    close: closeParchmentEnvelope,
+  };
+
+  window.addEventListener('dnd:open-envelope', ((e: CustomEvent<EnvelopeMessageData>) => {
+    openParchmentEnvelope(e.detail);
+  }) as EventListener);
+
+  window.addEventListener('dnd:close-envelope', () => {
+    closeParchmentEnvelope();
+  });
+</script>

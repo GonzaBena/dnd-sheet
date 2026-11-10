@@ -3,6 +3,7 @@ import '../styles/global.css';
 import AuthGate from '../components/auth/AuthGate.astro';
 import MilestoneCelebrationModal from '../components/modals/MilestoneCelebrationModal.astro';
 import DiceRollerModal from '../components/modals/DiceRollerModal.astro';
+import ParchmentEnvelope from '../components/ui/ParchmentEnvelope.astro';
 
 interface Props {
   title?: string;
@@ -48,6 +49,7 @@ const {
     <AuthGate />
     <MilestoneCelebrationModal />
     <DiceRollerModal />
+    <ParchmentEnvelope />
   </body>
 </html>
 
