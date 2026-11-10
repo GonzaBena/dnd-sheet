@@ -105,7 +105,7 @@
   function updateBadge() {
     const char = characterStore.get();
     if (hitDiceBadge && char?.hitDice) {
-      hitDiceBadge.textContent = `${char.hitDice.remaining}/${char.hitDice.total} ${char.hitDice.dieType}`;
+      hitDiceBadge.textContent = `${char.hitDice.remaining}/${char.hitDice.total} ${char.hitDice.die}`;
     }
   }
 

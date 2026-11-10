@@ -1,3 +1,5 @@
+import type { Resource, SlotState } from './resource.ts';
+
 export interface StatBlock {
   score: number;
   modifier: number;
@@ -167,12 +169,11 @@ export interface CharacterData {
     ability: 'str' | 'dex' | 'con' | 'int' | 'wis' | 'cha';
     saveDc: number;
     attackBonus: number;
-    slots: {
-      level1: { total: number; used: number };
-      level2: { total: number; used: number };
-    };
+    slots: Record<number, SlotState>; // claves 1–9
     spells: SpellItem[];
   };
+
+  resources: Resource[];
 
   wildShape?: {
     usesTotal: number;

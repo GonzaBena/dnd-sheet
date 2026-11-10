@@ -1,4 +1,5 @@
 import type { CharacterData, StatBlock, SkillItem } from '../models/character';
+import { migrateSlots, migrateResources } from './resources.ts';
 
 export const STANDARD_5E_SKILLS: { id: string; name: string; stat: 'str' | 'dex' | 'con' | 'int' | 'wis' | 'cha' }[] = [
   { id: 'acrobatics', name: 'Acrobacias', stat: 'dex' },
@@ -45,6 +46,11 @@ export function calculateLevelUpHpGain(die: string, conModifier: number, levelsG
 }
 
 export function recalculateCharacter(char: CharacterData): CharacterData {
+  // Migraciones idempotentes (Spec 07, Fase A): slots 1–9 y registro de recursos.
+  // wildShape se crea más abajo si falta, por eso migrateResources se repite al final.
+  migrateSlots(char);
+  migrateResources(char);
+
   if (!char.rulesEdition) {
     char.rulesEdition = '2024';
   }
@@ -202,6 +208,7 @@ export function recalculateCharacter(char: CharacterData): CharacterData {
       usesRemaining: 2,
       activeForm: null
     };
+    migrateResources(char);
   }
 
   return char;

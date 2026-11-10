@@ -235,11 +235,11 @@ El rango 259 queda libre. La Spec 08 arranca en 260.
 Orden: A → B → C → D → E. Las Fases B y C son independientes entre sí tras la A. Planes detallados en [`docs/Plans/07-cimientos-de-la-hoja/`](../Plans/07-cimientos-de-la-hoja/README.md).
 
 ### Fase A — Recursos y migración · sin dependencias
-- [ ] T-230 Tipos `Resource` y espacios 1–9; valores por defecto (RF-230, RF-232)
-- [ ] T-231 Migración en `recalculateCharacter` (RF-233)
-- [ ] T-232 Acciones de recursos y espacios 1–9 en `characterStore` (RF-231, RF-235)
-- [ ] T-233 Los descansos recorren el registro (RF-234)
-- [ ] T-234 Corregir `hitDice.dieType` en `RestModal` (RF-236)
+- [x] T-230 Tipos `Resource` y espacios 1–9; valores por defecto (RF-230, RF-232)
+- [x] T-231 Migración en `recalculateCharacter` (RF-233)
+- [x] T-232 Acciones de recursos y espacios 1–9 en `characterStore` (RF-231, RF-235)
+- [x] T-233 Los descansos recorren el registro (RF-234)
+- [x] T-234 Corregir `hitDice.dieType` en `RestModal` (RF-236)
 
 ### Fase B — Motor de efectos · depende de la Fase A
 - [ ] T-235 Tipos de efecto y campo `activeEffects` (RF-237, RF-238)

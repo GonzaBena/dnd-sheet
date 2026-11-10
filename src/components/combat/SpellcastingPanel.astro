@@ -48,29 +48,9 @@
   </div>
 
   <div class="section-body space-y-4">
-    <!-- Spell Slots Tracker -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-      <!-- Level 1 Slots -->
-      <div class="p-3 rounded-xl bg-[#18202e] border border-[#222f42] flex items-center justify-between">
-        <div>
-          <span class="text-xs font-headline font-bold text-[#f1f5f9] block">Espacios Nivel 1</span>
-          <span class="text-[10px] text-[#94a3b8]" id="slot-l1-label">2 / 4 Disponibles</span>
-        </div>
-        <div class="flex items-center gap-1.5" id="slot-l1-pips">
-          <!-- Pips rendered by JS -->
-        </div>
-      </div>
-
-      <!-- Level 2 Slots -->
-      <div class="p-3 rounded-xl bg-[#18202e] border border-[#222f42] flex items-center justify-between">
-        <div>
-          <span class="text-xs font-headline font-bold text-[#f1f5f9] block">Espacios Nivel 2</span>
-          <span class="text-[10px] text-[#94a3b8]" id="slot-l2-label">1 / 2 Disponibles</span>
-        </div>
-        <div class="flex items-center gap-1.5" id="slot-l2-pips">
-          <!-- Pips rendered by JS -->
-        </div>
-      </div>
+    <!-- Spell Slots Tracker (niveles 1–9; se muestran 1–2 siempre y el resto si tiene total > 0) -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3" id="spell-slots-grid">
+      <!-- Rendered by JS -->
     </div>
 
     <!-- Prepared Spells & Cantrips List -->
@@ -86,8 +66,7 @@
   import { attachSwipeToDelete } from '../../scripts/ui/swipeToDelete';
 
   const spellsContainer = document.getElementById('spells-list-container');
-  const l1PipsContainer = document.getElementById('slot-l1-pips');
-  const l2PipsContainer = document.getElementById('slot-l2-pips');
+  const slotsGrid = document.getElementById('spell-slots-grid');
   const addSpellBtn = document.getElementById('open-add-spell-btn');
 
   const expandedSpells = new Set<string>();
@@ -105,54 +84,39 @@
   function renderSpellSlots(char: any) {
     const dcEl = document.getElementById('spell-dc-num');
     const atkEl = document.getElementById('spell-atk-num');
-    const l1Label = document.getElementById('slot-l1-label');
-    const l2Label = document.getElementById('slot-l2-label');
 
     if (dcEl) dcEl.textContent = String(char.spellcasting.saveDc);
     if (atkEl) atkEl.textContent = `+${char.spellcasting.attackBonus}`;
 
-    const s1 = char.spellcasting.slots?.level1 || { total: 4, used: 0 };
-    const s2 = char.spellcasting.slots?.level2 || { total: 2, used: 0 };
+    if (!slotsGrid) return;
+    slotsGrid.innerHTML = '';
+    const slots = char.spellcasting.slots || {};
+    for (let level = 1; level <= 9; level++) {
+      const s = slots[level] || { total: 0, used: 0 };
+      if (level > 2 && s.total <= 0) continue;
 
-    if (l1Label) l1Label.textContent = `${s1.total - s1.used} / ${s1.total} Disponibles`;
-    if (l2Label) l2Label.textContent = `${s2.total - s2.used} / ${s2.total} Disponibles`;
-
-    // Render L1 pips
-    if (l1PipsContainer) {
-      l1PipsContainer.innerHTML = '';
-      for (let i = 0; i < s1.total; i++) {
-        const isUsed = i < s1.used;
+      const card = document.createElement('div');
+      card.className = 'p-3 rounded-xl bg-[#18202e] border border-[#222f42] flex items-center justify-between';
+      card.innerHTML = `
+        <div>
+          <span class="text-xs font-headline font-bold text-[#f1f5f9] block">Espacios Nivel ${level}</span>
+          <span class="text-[10px] text-[#94a3b8]" id="slot-l${level}-label">${s.total - s.used} / ${s.total} Disponibles</span>
+        </div>
+        <div class="flex items-center gap-1.5 flex-wrap justify-end" id="slot-l${level}-pips"></div>
+      `;
+      const pips = card.querySelector(`#slot-l${level}-pips`)!;
+      for (let i = 0; i < s.total; i++) {
+        const isUsed = i < s.used;
         const pip = document.createElement('button');
         pip.className = `w-5 h-5 rounded-md border transition-all cursor-pointer ${isUsed ? 'bg-[#10141d] border-[#222f42] opacity-40' : 'bg-amber-500/30 border-amber-500/60 shadow-[0_0_8px_rgba(245,158,11,0.4)]'}`;
         pip.title = isUsed ? 'Ranura gastada (clic para restaurar)' : 'Ranura activa (clic para gastar)';
         pip.addEventListener('click', () => {
-          if (isUsed) {
-            characterStore.restoreSpellSlot(1);
-          } else {
-            characterStore.useSpellSlot(1);
-          }
+          if (isUsed) characterStore.restoreSpellSlot(level);
+          else characterStore.useSpellSlot(level);
         });
-        l1PipsContainer.appendChild(pip);
+        pips.appendChild(pip);
       }
-    }
-
-    // Render L2 pips
-    if (l2PipsContainer) {
-      l2PipsContainer.innerHTML = '';
-      for (let i = 0; i < s2.total; i++) {
-        const isUsed = i < s2.used;
-        const pip = document.createElement('button');
-        pip.className = `w-5 h-5 rounded-md border transition-all cursor-pointer ${isUsed ? 'bg-[#10141d] border-[#222f42] opacity-40' : 'bg-amber-500/30 border-amber-500/60 shadow-[0_0_8px_rgba(245,158,11,0.4)]'}`;
-        pip.title = isUsed ? 'Ranura gastada (clic para restaurar)' : 'Ranura activa (clic para gastar)';
-        pip.addEventListener('click', () => {
-          if (isUsed) {
-            characterStore.restoreSpellSlot(2);
-          } else {
-            characterStore.useSpellSlot(2);
-          }
-        });
-        l2PipsContainer.appendChild(pip);
-      }
+      slotsGrid.appendChild(card);
     }
   }
 
