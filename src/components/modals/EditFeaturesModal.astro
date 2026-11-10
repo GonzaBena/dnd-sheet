@@ -65,8 +65,8 @@
 <script>
   import { characterStore } from '../../scripts/state/characterStore';
   import { closeModal, openModal } from '../../scripts/animations/modalAnimations';
-  import { showForm } from '../../scripts/ui/notify';
-  import { escapeHtml } from '../../scripts/dnd/catalog';
+  import { showForm, showAlert } from '../../scripts/ui/notify';
+  import { escapeHtml, parseEffectsText, effectsToText } from '../../scripts/dnd/catalog';
   import { customBadgeHtml } from '../../scripts/ui/customBadge';
   import { FEAT_TYPE_LABELS, type FeatType } from '../../scripts/models/catalog';
 
@@ -88,6 +88,8 @@
     featType?: FeatType;
     resourceId?: string;
     effects?: any[];
+    effectsText?: string;
+    effectsError?: string;
     custom?: boolean;
   }
   let tempFeatures: TempFeature[] = [];
@@ -104,6 +106,7 @@
       featType: f.featType,
       resourceId: f.resourceId,
       effects: f.effects,
+      effectsText: effectsToText(f.effects),
       custom: f.custom
     }));
     renderList();
@@ -181,6 +184,16 @@
         </div>
 
         <div>
+          <label class="text-[#94a3b8] text-[10px] block mb-0.5">Efectos al activar (opcional, una línea por modificador: objetivo operación valor)</label>
+          <textarea
+            rows="2"
+            class="feat-effects-inp w-full p-2 rounded-lg bg-[#10141d] border border-[#222f42] text-[#cbd5e1] font-mono focus:border-amber-500 focus:outline-none resize-none"
+            placeholder="ac add 2&#10;save.dex advantage"
+          >${escapeHtml(feat.effectsText || '')}</textarea>
+          <p class="feat-effects-error text-[10px] text-rose-400 mt-0.5 ${feat.effectsError ? '' : 'hidden'}">${escapeHtml(feat.effectsError || '')}</p>
+        </div>
+
+        <div>
           <label class="text-[#94a3b8] text-[10px] block mb-0.5">Descripción y Reglas</label>
           <textarea
             rows="2"
@@ -231,6 +244,22 @@
           feat.resourceId = created.id;
         }
         renderList();
+      });
+
+      card.querySelector('.feat-effects-inp')?.addEventListener('input', (e: any) => {
+        feat.effectsText = e.target.value;
+        const parsed = parseEffectsText(feat.effectsText || '');
+        const errEl = card.querySelector('.feat-effects-error') as HTMLElement | null;
+        if (Array.isArray(parsed)) {
+          feat.effects = parsed.length ? parsed : undefined;
+          feat.effectsError = undefined;
+        } else {
+          feat.effectsError = parsed.error;
+        }
+        if (errEl) {
+          errEl.textContent = feat.effectsError ?? '';
+          errEl.classList.toggle('hidden', !feat.effectsError);
+        }
       });
 
       card.querySelector('.feat-title-inp')?.addEventListener('input', (e: any) => {
@@ -297,9 +326,14 @@
   });
 
   saveBtn?.addEventListener('click', () => {
+    const bad = tempFeatures.find(f => f.title.trim() && f.effectsError);
+    if (bad) {
+      showAlert(`Corrige los efectos de "${bad.title}": ${bad.effectsError}`, { kind: 'warning' });
+      return;
+    }
     const valid = tempFeatures
       .filter(f => f.title.trim())
-      .map(f => ({ ...f, featType: f.featType ?? 'passive' }));
+      .map(({ effectsText, effectsError, ...f }) => ({ ...f, featType: f.featType ?? 'passive' }));
     characterStore.updateFeatures(valid);
     if (modal && backdrop) closeModal(modal, backdrop);
   });

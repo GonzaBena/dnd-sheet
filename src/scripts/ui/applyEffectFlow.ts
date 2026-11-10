@@ -19,6 +19,7 @@ export function isInstant(entry: CatalogEntry): boolean {
 
 async function askDuration(): Promise<EffectDuration | null> {
   const choice = await showChoice('¿Cuánto dura el efecto?', [
+    { value: 'concentration', label: 'Concentración' },
     { value: 'rounds', label: 'Por rondas' },
     { value: 'short', label: 'Hasta descanso corto' },
     { value: 'long', label: 'Hasta descanso largo' },
@@ -31,6 +32,8 @@ async function askDuration(): Promise<EffectDuration | null> {
       const n = parseInt(raw ?? '', 10);
       return n > 0 ? { kind: 'rounds', remaining: n } : null;
     }
+    case 'concentration':
+      return { kind: 'concentration' };
     case 'short':
       return { kind: 'untilRest', rest: 'short' };
     case 'long':
