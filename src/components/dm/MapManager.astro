@@ -273,6 +273,7 @@
 
   let currentCampaignMaps: MapDoc[] = [];
   let selectedMap: MapDoc | null = null;
+  let lastListSignature = '';
 
   function getStageController() {
     const stageRoot = document.querySelector<any>('[data-map-stage-root][data-mode="dm"]');
@@ -389,6 +390,7 @@
     }
 
     if (currentCampaignMaps.length === 0) {
+      lastListSignature = '';
       mapsListEl.innerHTML = '';
       mapsEmptyEl?.classList.remove('hidden');
       setSelectedMap(null);
@@ -396,6 +398,16 @@
     }
 
     mapsEmptyEl?.classList.add('hidden');
+
+    // Evitar recrear las miniaturas (parpadeo) si nada relevante cambió
+    const signature = JSON.stringify([
+      activeMapId,
+      selectedMap?.id,
+      canPrepare,
+      currentCampaignMaps.map((m) => [m.id, m.name, m.imageUrl, m.imageWidth, m.imageHeight, m.grid.size]),
+    ]);
+    if (signature === lastListSignature && mapsListEl.childElementCount > 0) return;
+    lastListSignature = signature;
 
     mapsListEl.innerHTML = currentCampaignMaps
       .map((m) => {
@@ -755,18 +767,26 @@
     if (collapseIcon) collapseIcon.textContent = 'expand_more';
   }
 
-  collapseBtn?.addEventListener('click', () => {
-    const isCollapsed = managerBody?.classList.contains('hidden');
-    if (isCollapsed) {
-      managerBody?.classList.remove('hidden');
-      collapseBtn.setAttribute('aria-expanded', 'true');
-      if (collapseIcon) collapseIcon.textContent = 'expand_less';
-    } else {
-      managerBody?.classList.add('hidden');
-      collapseBtn.setAttribute('aria-expanded', 'false');
-      if (collapseIcon) collapseIcon.textContent = 'expand_more';
-    }
-  });
+  function setManagerCollapsed(collapsed: boolean) {
+    const body = document.getElementById('dm-map-manager-body');
+    const btn = document.getElementById('dm-map-manager-collapse-btn');
+    const icon = document.getElementById('dm-map-manager-collapse-icon');
+    body?.classList.toggle('hidden', collapsed);
+    btn?.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+    if (icon) icon.textContent = collapsed ? 'expand_more' : 'expand_less';
+  }
+
+  // Delegado en document: sigue funcionando aunque el DOM se re-renderice.
+  const w = window as any;
+  if (!w.__dmMapManagerCollapseBound) {
+    w.__dmMapManagerCollapseBound = true;
+    document.addEventListener('click', (e) => {
+      const btn = (e.target as HTMLElement | null)?.closest('#dm-map-manager-collapse-btn');
+      if (!btn) return;
+      const body = document.getElementById('dm-map-manager-body');
+      setManagerCollapsed(!body?.classList.contains('hidden'));
+    });
+  }
 
   window.addEventListener('open-map-manager', () => {
     managerBody?.classList.remove('hidden');

@@ -252,7 +252,6 @@ const { mode = 'player', class: className = '', id } = Astro.props;
   // DECISION (F2-3): watchActiveMap se suscribe únicamente al mapa activo y limpia el listener anterior.
   // DECISION (F2-4): Límites de zoom de 0.1x a 8x y fit automático en apertura.
 
-  import anime from 'animejs';
   import { MapStageController } from '../../scripts/vtt/mapStage.ts';
   import { normalizeStatus } from '../../scripts/vtt/sessionStatus.ts';
   import {
@@ -825,11 +824,16 @@ const { mode = 'player', class: className = '', id } = Astro.props;
         }
       }
 
-      // Transición animada de cambio de mapa (T-24)
+      // Cambio de mapa (T-24). Sin fundido a opacidad 0: setMap precarga la imagen
+      // antes de reemplazar la anterior, así el lienzo nunca queda en negro.
+      let transitionSeq = 0;
+      let pendingMapId: string | null = null;
       async function onMapDocReceived(map: MapDoc | null) {
         lastReceivedMap = map;
         try {
           if (!map) {
+            transitionSeq++;
+            pendingMapId = null;
             if (liveUnsub) {
               liveUnsub();
               liveUnsub = null;
@@ -850,7 +854,7 @@ const { mode = 'player', class: className = '', id } = Astro.props;
           emptyOverlay?.classList.add('hidden');
           updateTitle(map);
 
-          // Si es el mismo mapa que ya está cargado, actualizar grilla, tokens y niebla sin reiniciar el stage
+          // Mismo mapa ya cargado: actualizar grilla, tokens y niebla sin reiniciar el stage
           if (currentMapId === map.id) {
             controller.setGrid(map.grid);
             controller.setTokens(map.tokens || {});
@@ -864,6 +868,13 @@ const { mode = 'player', class: className = '', id } = Astro.props;
             return;
           }
 
+          // Carga del mismo mapa ya en curso: ignorar el duplicado
+          if (pendingMapId === map.id) return;
+
+          const seq = ++transitionSeq;
+          pendingMapId = map.id;
+          const isStale = () => seq !== transitionSeq;
+
           if (liveUnsub) {
             liveUnsub();
             liveUnsub = null;
@@ -873,47 +884,36 @@ const { mode = 'player', class: className = '', id } = Astro.props;
             dmOnlyUnsub = null;
           }
 
-          currentMapId = map.id;
-
-          // Animación de salida (fade + scale out)
-          anime.remove(canvasContainer);
-          await new Promise<void>((resolve) => {
-            anime({
-              targets: canvasContainer,
-              opacity: [1, 0],
-              scale: [1, 0.98],
-              duration: 180,
-              easing: 'easeInOutQuad',
-              complete: () => resolve(),
-            });
-          });
-
-          // Cargar mapa en Konva y centrar
           try {
             await controller.setMap(map);
-            updatePlayerHud(map);
-            controller.fit();
-            syncFogToolsUi(map);
-
-            // Suscribirse a dmOnly si es DM (T-42)
-            const dmCid = getActiveCampaignId();
-            if (mode === 'dm' && dmCid && map.id) {
-              dmOnlyUnsub = subscribeDmOnly(dmCid, map.id, (dmOnly) => {
-                controller.setSecretTokens(dmOnly.secretTokens || {});
-                window.dispatchEvent(
-                  new CustomEvent('dm-only-changed', {
-                    detail: { cid: dmCid, mid: map.id, dmOnly },
-                  })
-                );
-              });
-            }
           } catch (err) {
             console.error('[MapStage] Error cargando mapa:', err);
+            if (!isStale()) pendingMapId = null;
+            return;
+          }
+          if (isStale()) return;
+
+          pendingMapId = null;
+          currentMapId = map.id;
+          updatePlayerHud(map);
+          controller.fit();
+          syncFogToolsUi(map);
+
+          // Suscribirse a dmOnly si es DM (T-42)
+          const dmCid = getActiveCampaignId();
+          if (mode === 'dm' && dmCid && map.id) {
+            dmOnlyUnsub = subscribeDmOnly(dmCid, map.id, (dmOnly) => {
+              controller.setSecretTokens(dmOnly.secretTokens || {});
+              window.dispatchEvent(
+                new CustomEvent('dm-only-changed', {
+                  detail: { cid: dmCid, mid: map.id, dmOnly },
+                })
+              );
+            });
           }
 
           // Suscribirse a live tokens en RTDB (T-32, T-33)
-          const activeCid = getActiveCampaignId();
-          const camp = activeCid ? campaignStore.getCampaign(activeCid) : null;
+          const camp = dmCid ? campaignStore.getCampaign(dmCid) : null;
           const roomId = camp?.liveRoomId;
           const uid = userStore.getCurrentUser()?.id || '';
 
@@ -923,18 +923,9 @@ const { mode = 'player', class: className = '', id } = Astro.props;
             });
           }
 
-          if (mode === 'dm' && activeCid) {
-            reconcileTokenOwners(activeCid, map.id, map);
+          if (mode === 'dm' && dmCid) {
+            reconcileTokenOwners(dmCid, map.id, map);
           }
-
-          // Animación de entrada (fade + scale in)
-          anime({
-            targets: canvasContainer,
-            opacity: [0, 1],
-            scale: [1.02, 1],
-            duration: 220,
-            easing: 'easeOutCubic',
-          });
         } finally {
           showLoading(false);
         }

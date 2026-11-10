@@ -102,6 +102,7 @@ export class MapStageController extends EventTarget {
   private currentViewer: TokenViewer = { uid: null, isDm: false };
   private currentStatus: SessionStatus = 'active';
   private imageCache = new Map<string, HTMLImageElement>();
+  private mapLoadSeq = 0;
   private remoteLivePositions = new Map<string, LiveTokenPosition>();
   private tweenStates = new Map<string, { x: number; y: number }>();
   private isPlacementMode = false;
@@ -559,6 +560,7 @@ export class MapStageController extends EventTarget {
    * Carga y renderiza un nuevo mapa en el stage.
    */
   public async setMap(map: MapDoc | null): Promise<void> {
+    const loadSeq = ++this.mapLoadSeq;
     const isDifferentMap = !this.currentMap || (map && map.id !== this.currentMap.id);
     this.currentMap = map;
     this.currentGrid = map?.grid ? { ...map.grid } : null;
@@ -601,6 +603,9 @@ export class MapStageController extends EventTarget {
         reject(new Error(`No se pudo cargar la imagen del mapa: ${map.imageUrl}`));
       };
     });
+
+    // Una carga más reciente superó a esta: no pisar su imagen.
+    if (loadSeq !== this.mapLoadSeq) return;
 
     this.currentHtmlImage = img;
     this.bgImageNode.image(img);
