@@ -189,3 +189,46 @@ test('cada uno escribe solo su presencia', async () => {
   await assertSucceeds(get(at(OTHER, 'presence')));
   await assertFails(get(at(STRANGER, 'presence')));
 });
+
+test('presencia: el usuario pasa a offline con update y no toca la de otro (T-51a)', async () => {
+  await assertSucceeds(set(at(PLAYER, `presence/${PLAYER}`), { name: 'Elena', online: true, lastSeen: 1 }));
+  await assertSucceeds(update(at(PLAYER, `presence/${PLAYER}`), { online: false, lastSeen: 2 }));
+  await assertFails(update(at(PLAYER, `presence/${OTHER}`), { online: false, lastSeen: 2 }));
+  await assertFails(get(at(STRANGER, `presence/${PLAYER}`)));
+});
+
+// ------------------------------------------------------------------ pings (T-51b)
+
+const ping = (by, extra = {}) => ({ x: 100, y: 200, by, at: Date.now(), ...extra });
+
+test('el miembro pinguea en active y no en paused', async () => {
+  await assertSucceeds(set(at(PLAYER, 'pings/m1/p1'), ping(PLAYER)));
+  await assertSucceeds(set(at(DM, 'pings/m1/p2'), ping(DM)));
+  await setStatus('paused');
+  await assertFails(set(at(PLAYER, 'pings/m1/p3'), ping(PLAYER)));
+  await setStatus('ended');
+  await assertFails(set(at(PLAYER, 'pings/m1/p3'), ping(PLAYER)));
+});
+
+test('no se borra ni se pisa el ping de otro; el propio sí, también en pausa', async () => {
+  await assertSucceeds(set(at(PLAYER, 'pings/m1/p1'), ping(PLAYER)));
+  await assertFails(remove(at(OTHER, 'pings/m1/p1')));
+  await assertFails(remove(at(DM, 'pings/m1/p1')));
+  await assertFails(set(at(OTHER, 'pings/m1/p1'), ping(OTHER)));
+  await setStatus('paused');
+  await assertSucceeds(remove(at(PLAYER, 'pings/m1/p1')));
+});
+
+test('el ping exige by propio, coordenadas numéricas y sin campos extra', async () => {
+  await assertFails(set(at(PLAYER, 'pings/m1/p1'), ping(OTHER)));
+  await assertFails(set(at(PLAYER, 'pings/m1/p1'), ping(PLAYER, { x: 'a' })));
+  await assertFails(set(at(PLAYER, 'pings/m1/p1'), { x: 1, y: 1, by: PLAYER }));
+  await assertFails(set(at(PLAYER, 'pings/m1/p1'), ping(PLAYER, { extra: 1 })));
+});
+
+test('los pings los leen los miembros; un extraño no ni escribe', async () => {
+  await assertSucceeds(set(at(PLAYER, 'pings/m1/p1'), ping(PLAYER)));
+  await assertSucceeds(get(at(OTHER, 'pings/m1')));
+  await assertFails(get(at(STRANGER, 'pings/m1')));
+  await assertFails(set(at(STRANGER, 'pings/m1/p2'), ping(STRANGER)));
+});

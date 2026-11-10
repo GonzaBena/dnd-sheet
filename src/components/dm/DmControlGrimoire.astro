@@ -6,6 +6,7 @@ import MapStage from '../map/MapStage.astro';
 import MapManager from './MapManager.astro';
 import TokenEditor from './TokenEditor.astro';
 import DmNotes from './DmNotes.astro';
+import PresenceList from '../party/PresenceList.astro';
 ---
 
 <div id="dm-control-root" class="space-y-6">
@@ -155,6 +156,9 @@ import DmNotes from './DmNotes.astro';
 
   <!-- [editar mapas] (FULL WIDTH) -->
   <MapManager />
+
+  <!-- [presencia de la mesa] (RF-42) -->
+  <PresenceList />
 
   <!-- [notas privadas del DM] (RF-40) -->
   <DmNotes />

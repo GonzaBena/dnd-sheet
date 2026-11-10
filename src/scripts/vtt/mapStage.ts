@@ -26,6 +26,7 @@ import {
 } from './fog.ts';
 import anime from 'animejs';
 import { measureCells, formatMeasurement } from './measure.ts';
+import { LONG_PRESS_MS, exceedsLongPressMove, pingColor } from './ping.ts';
 import {
   fitToContainer,
   zoomAtPoint,
@@ -73,6 +74,10 @@ export class MapStageController extends EventTarget {
   public toolLayer: any;
   /** Efectos transitorios (pulso de turno, pings, regla). No se limpia con clearToolLayer. */
   public fxLayer: any;
+
+  private longPressTimer: ReturnType<typeof setTimeout> | null = null;
+  private longPressStart: Point | null = null;
+  private suppressNextClick = false;
 
   private measureStart: Point | null = null;
   private measureArrow: any = null;
@@ -367,6 +372,8 @@ export class MapStageController extends EventTarget {
       const p = this.stage.getPointerPosition();
       if (p) pointerDownPos = { ...p };
       didDragStage = false;
+      this.suppressNextClick = false;
+      if (p) this.beginLongPress(p);
     });
 
     this.stage.on('mousemove touchmove', () => {
@@ -378,6 +385,8 @@ export class MapStageController extends EventTarget {
         y: this.stage.y(),
       };
       const mapPt = screenToMap(p, currentView);
+
+      if (this.longPressStart && exceedsLongPressMove(this.longPressStart, p)) this.cancelLongPress();
 
       if (this.measureStart) {
         this.updateMeasure(mapPt);
@@ -407,6 +416,7 @@ export class MapStageController extends EventTarget {
     });
 
     this.stage.on('mouseleave', () => {
+      this.cancelLongPress();
       if (this.measureStart) this.endMeasure();
       if (this.brushCursorNode) {
         this.brushCursorNode.visible(false);
@@ -415,6 +425,7 @@ export class MapStageController extends EventTarget {
     });
 
     this.stage.on('mouseup touchend touchcancel', () => {
+      this.cancelLongPress();
       if (this.measureStart) {
         this.endMeasure();
         return;
@@ -476,6 +487,7 @@ export class MapStageController extends EventTarget {
     // Notificar movimiento de viewport al arrastrar
     this.stage.on('dragmove', () => {
       didDragStage = true;
+      this.cancelLongPress();
       this.emitViewChanged();
       this.gridLayer.batchDraw();
     });
@@ -488,6 +500,10 @@ export class MapStageController extends EventTarget {
 
     // Clic en mapa para selección o coordenadas
     this.stage.on('click tap', (e: any) => {
+      if (this.suppressNextClick) {
+        this.suppressNextClick = false;
+        return;
+      }
       if (didDragStage || this.currentTool !== 'none') return;
       const pointer = this.stage.getPointerPosition();
       if (!pointer) return;
@@ -515,6 +531,7 @@ export class MapStageController extends EventTarget {
 
     content.addEventListener('touchstart', (e: TouchEvent) => {
       if (e.touches.length === 2) {
+        this.cancelLongPress();
         e.preventDefault();
         if (this.stage.isDragging()) {
           this.stage.stopDrag();
@@ -1950,6 +1967,67 @@ export class MapStageController extends EventTarget {
     this.dispatchEvent(new CustomEvent('view-changed', { detail: view }));
   }
 
+  // --- Ping (T-51b): clic largo sobre el mapa ---
+
+  private beginLongPress(p: Point): void {
+    this.cancelLongPress();
+    // El ping cuenta como jugar: solo con la partida activa y fuera del modo colocación.
+    if (this.currentTool !== 'none' || this.isPlacementMode || this.currentStatus !== 'active') return;
+    this.longPressStart = { ...p };
+    this.longPressTimer = setTimeout(() => {
+      const start = this.longPressStart;
+      this.cancelLongPress();
+      if (!start || this.draggingTokenId || this.stage.isDragging()) return;
+      const m = screenToMap(start, this.getView());
+      const w = this.currentMap?.imageWidth ?? Infinity;
+      const h = this.currentMap?.imageHeight ?? Infinity;
+      if (m.x < 0 || m.y < 0 || m.x > w || m.y > h) return;
+      this.suppressNextClick = true;
+      this.dispatchEvent(new CustomEvent('map-ping', { detail: { x: m.x, y: m.y } }));
+    }, LONG_PRESS_MS);
+  }
+
+  private cancelLongPress(): void {
+    if (this.longPressTimer) clearTimeout(this.longPressTimer);
+    this.longPressTimer = null;
+    this.longPressStart = null;
+  }
+
+  /** Dibuja un ping en (x, y) en px de imagen: círculo que se expande y se desvanece, 2 veces. */
+  public showPing(x: number, y: number, uid: string): void {
+    const color = pingColor(uid || '');
+    const s = this.getView().scale || 1;
+    const circle = new this.Konva.Circle({
+      x,
+      y,
+      radius: 0,
+      stroke: color,
+      strokeWidth: 4 / s,
+      opacity: 1,
+      listening: false,
+      perfectDrawEnabled: false,
+    });
+    this.fxLayer.add(circle);
+    const state = { r: 0, o: 1 };
+    anime({
+      targets: state,
+      r: 60 / s,
+      o: 0,
+      duration: 1200,
+      easing: 'easeOutQuad',
+      loop: 2,
+      update: () => {
+        circle.radius(state.r);
+        circle.opacity(state.o);
+        this.fxLayer.batchDraw();
+      },
+      complete: () => {
+        circle.destroy();
+        this.fxLayer?.batchDraw();
+      },
+    });
+  }
+
   // --- Regla de medición (T-53): local, sin escrituras ---
 
   private beginMeasure(start: Point): void {
@@ -2085,6 +2163,8 @@ export class MapStageController extends EventTarget {
       this.resizeObserver = null;
     }
     this.stopTurnRing();
+    this.cancelLongPress();
+    this.endMeasure();
     this.clearToolLayer();
     this.clearTokens();
     this.stage.destroy();

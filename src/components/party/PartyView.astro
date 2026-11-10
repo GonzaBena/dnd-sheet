@@ -6,6 +6,7 @@ import InitiativeList from './InitiativeList.astro';
 import MapStage from '../map/MapStage.astro';
 import CombatTracker from '../dm/CombatTracker.astro';
 import MapManager from '../dm/MapManager.astro';
+import PresenceList from './PresenceList.astro';
 ---
 
 <div id="party-view-root" class="w-full max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
@@ -224,6 +225,9 @@ import MapManager from '../dm/MapManager.astro';
 
     <!-- STATUS BANNER FLOTANTE (PAUSED / ENDED) -->
     <StatusBanner />
+
+    <!-- PRESENCIA (T-51a) -->
+    <PresenceList />
 
     <!-- 1. VISTA DM TÁCTICA COCKPIT (Cuando el usuario conectado es DM) -->
     <div id="party-dm-cockpit" class="hidden space-y-6">

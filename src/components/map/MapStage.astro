@@ -284,6 +284,7 @@ const { mode = 'player', class: className = '', id } = Astro.props;
   import { campaignStore } from '../../scripts/state/campaignStore.ts';
   import { userStore } from '../../scripts/state/userStore.ts';
   import { subscribeCombat } from '../../scripts/data/combatService.ts';
+  import { sendPing, subscribePings } from '../../scripts/data/pingService.ts';
   import { currentTurnCombatant } from '../../scripts/vtt/initiative.ts';
   import { buildTokenCardData } from '../../scripts/vtt/tokenCard.ts';
   import { getConditionInfo } from '../../scripts/vtt/conditions.ts';
@@ -614,6 +615,15 @@ const { mode = 'player', class: className = '', id } = Astro.props;
             currentPublisher = null;
           }
         }
+      }) as EventListener);
+
+      // Clic largo → ping para toda la mesa (T-51b). Cuenta como jugar: el controller ya exige partida activa.
+      controller.addEventListener('map-ping', ((e: CustomEvent) => {
+        const cid = getActiveCampaignId();
+        const roomId = cid ? campaignStore.getCampaign(cid)?.liveRoomId : null;
+        const uid = userStore.getCurrentUser()?.id || '';
+        if (!roomId || !uid || !currentMapId) return;
+        void sendPing(roomId, currentMapId, e.detail.x, e.detail.y, uid);
       }) as EventListener);
 
       controller.addEventListener('token-select', ((e: CustomEvent) => {
@@ -1041,9 +1051,15 @@ const { mode = 'player', class: className = '', id } = Astro.props;
           const uid = userStore.getCurrentUser()?.id || '';
 
           if (roomId && map.id) {
-            liveUnsub = subscribeLive(roomId, map.id, uid, (tid, pos) => {
+            const stopLive = subscribeLive(roomId, map.id, uid, (tid, pos) => {
               controller.applyRemoteLiveMove(tid, pos);
             });
+            // Pings (T-51b): se limpian junto con el live del mapa anterior.
+            const stopPings = subscribePings(roomId, map.id, (p) => controller.showPing(p.x, p.y, p.by));
+            liveUnsub = () => {
+              stopLive();
+              stopPings();
+            };
           }
 
           if (mode === 'dm' && dmCid) {
