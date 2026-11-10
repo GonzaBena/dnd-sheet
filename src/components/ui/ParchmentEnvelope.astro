@@ -326,6 +326,8 @@
   interface EnvelopeMessageData {
     title?: string;
     message: string;
+    /** Imagen opcional (https) que se muestra sobre el texto. */
+    imageUrl?: string;
     sender?: string;
     date?: string;
     items?: ParchmentItem[];
@@ -416,16 +418,50 @@
     },
   };
 
-  export function openParchmentEnvelope(data?: EnvelopeMessageData) {
-    if (isAnimating || !overlay) return;
+  /** Rellena #parchment-text sin interpretar HTML: imagen opcional + texto con saltos de línea. */
+  function renderLetterBody(message: string, imageUrl?: string, alt?: string): Promise<void> {
+    if (!parchmentText) return Promise.resolve();
+    parchmentText.replaceChildren();
+    parchmentText.style.whiteSpace = 'pre-wrap';
+
+    let loaded: Promise<void> = Promise.resolve();
+    if (imageUrl) {
+      const img = document.createElement('img');
+      img.referrerPolicy = 'no-referrer';
+      img.alt = alt || '';
+      img.className = 'block mx-auto mb-2 max-w-full max-h-[38vh] object-contain rounded border border-[#8c673b]/40';
+      // Esperar la carga (con tope) para que la altura del pergamino se calcule con la imagen ya dimensionada.
+      loaded = new Promise<void>((resolve) => {
+        const timer = window.setTimeout(resolve, 2500);
+        const done = () => { window.clearTimeout(timer); resolve(); };
+        img.onload = done;
+        img.onerror = () => {
+          const note = document.createElement('p');
+          note.className = 'mb-2 text-center italic text-[#785125]';
+          note.textContent = 'La imagen no se pudo cargar.';
+          img.replaceWith(note);
+          done();
+        };
+      });
+      img.src = imageUrl;
+      parchmentText.appendChild(img);
+    }
+    if (message) parchmentText.appendChild(document.createTextNode(message));
+    return loaded;
+  }
+
+  /** Devuelve false si el sobre ya está abierto o animándose (no se abre otro encima). */
+  export function openParchmentEnvelope(data?: EnvelopeMessageData): boolean {
+    if (isAnimating || isOpen || !overlay) return false;
     isAnimating = true;
+    let bodyReady: Promise<void> = Promise.resolve();
 
     currentOnCloseCallback = data?.onClose || null;
     currentActiveItems = data?.items || [];
 
     if (data) {
       if (parchmentTitle && data.title) parchmentTitle.textContent = data.title;
-      if (parchmentText && data.message) parchmentText.innerHTML = data.message.replace(/\n/g, '<br/>');
+      bodyReady = renderLetterBody(data.message ?? '', data.imageUrl, data.title);
       if (parchmentSender && data.sender) parchmentSender.textContent = data.sender;
       if (parchmentDate && data.date) parchmentDate.textContent = data.date;
       if (btnCloseText) btnCloseText.textContent = data.buttonText || 'Guardar rollo';
@@ -452,6 +488,12 @@
       }
     }
 
+    void bodyReady.then(() => playOpening());
+    return true;
+  }
+
+  function playOpening() {
+    if (!overlay) return;
     resetElements();
 
     // 1. Mostrar Overlay suave
@@ -863,7 +905,7 @@
   declare global {
     interface Window {
       dndEnvelope: {
-        open: (data?: EnvelopeMessageData) => void;
+        open: (data?: EnvelopeMessageData) => boolean;
         close: () => void;
       };
     }

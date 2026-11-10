@@ -15,55 +15,25 @@
   <ul id="party-handouts-list" class="grid grid-cols-1 sm:grid-cols-2 gap-2"></ul>
 </section>
 
-<div data-handout-backdrop class="hidden fixed inset-0 z-[60] bg-black/70 backdrop-blur-sm"></div>
-<div
-  data-handout-modal
-  role="dialog"
-  aria-modal="true"
-  aria-labelledby="handout-modal-title"
-  class="hidden fixed inset-0 z-[61] flex items-center justify-center p-4 pointer-events-none"
->
-  <div class="modal-content pointer-events-auto w-full max-w-2xl max-h-[85vh] overflow-y-auto rounded-2xl bg-[#121721] border border-amber-500/40 shadow-2xl p-5 space-y-3">
-    <div class="flex items-start justify-between gap-3">
-      <h3 id="handout-modal-title" data-handout-title class="font-headline font-bold text-lg text-[#f1f5f9]"></h3>
-      <button
-        type="button"
-        data-handout-close
-        aria-label="Cerrar"
-        class="w-8 h-8 rounded-lg bg-[#18202e] border border-[#222f42] text-[#cbd5e1] hover:border-amber-500/50 flex items-center justify-center shrink-0"
-      >
-        <span class="material-symbols-outlined text-[18px]">close</span>
-      </button>
-    </div>
-    <img data-handout-img alt="" referrerpolicy="no-referrer" class="hidden w-full max-h-[60vh] object-contain rounded-xl bg-[#0c1017]" />
-    <p data-handout-body class="whitespace-pre-wrap text-sm leading-relaxed text-[#cbd5e1]"></p>
-  </div>
-</div>
-
 <script>
   import { campaignStore } from '../../scripts/state/campaignStore';
   import { userStore } from '../../scripts/state/userStore';
-  import { openModal, closeModal } from '../../scripts/animations/modalAnimations.ts';
   import { subscribeHandouts } from '../../scripts/data/handoutService.ts';
   import { pickHandoutToOpen } from '../../scripts/vtt/handouts.ts';
+  import { showParchment } from '../../scripts/ui/parchmentModal.ts';
   import type { Handout } from '../../scripts/models/handout.ts';
 
   const section = document.getElementById('party-handouts-section');
   const listEl = document.getElementById('party-handouts-list');
   const countEl = document.getElementById('party-handouts-count');
-  const modalEl = document.querySelector<HTMLElement>('[data-handout-modal]');
-  const backdropEl = document.querySelector<HTMLElement>('[data-handout-backdrop]');
-  const titleEl = document.querySelector<HTMLElement>('[data-handout-title]');
-  const bodyEl = document.querySelector<HTMLElement>('[data-handout-body]');
-  const imgEl = document.querySelector<HTMLImageElement>('[data-handout-img]');
-  const closeBtn = document.querySelector<HTMLElement>('[data-handout-close]');
 
   let currentCid: string | null = null;
   let currentUid = '';
   let unsubscribe: (() => void) | null = null;
   /** Último sentAt visto. null = esta persona nunca vio esta campaña (ver pickHandoutToOpen). */
   let seen: number | null = null;
-  let isOpen = false;
+  /** Cola: los handouts se muestran de a uno en el sobre. */
+  let chain: Promise<unknown> = Promise.resolve();
 
   function getCid(): string | null {
     const params = new URLSearchParams(window.location.search);
@@ -90,29 +60,16 @@
     }
   }
 
-  function show(h: Handout) {
-    if (!modalEl || !backdropEl || !titleEl || !bodyEl || !imgEl) return;
-    titleEl.textContent = h.title;
-    // textContent (no innerHTML): el contenido lo escribe el DM pero nunca se interpreta como HTML.
-    bodyEl.textContent = h.body ?? '';
-    bodyEl.classList.toggle('hidden', !h.body);
-    if (h.kind === 'image' && h.imageUrl) {
-      imgEl.src = h.imageUrl;
-      imgEl.alt = h.title;
-      imgEl.classList.remove('hidden');
-    } else {
-      imgEl.removeAttribute('src');
-      imgEl.classList.add('hidden');
-    }
-    isOpen = true;
-    openModal(modalEl, backdropEl);
-    closeBtn?.focus();
-  }
-
-  function hide() {
-    if (!isOpen || !modalEl || !backdropEl) return;
-    isOpen = false;
-    closeModal(modalEl, backdropEl);
+  /** Muestra el handout en el sobre de pergamino, encolado tras el que esté abierto. */
+  function openHandout(h: Handout) {
+    chain = chain.then(() =>
+      showParchment({
+        title: h.title,
+        sender: 'Dungeon Master',
+        message: h.body ?? '',
+        imageUrl: h.kind === 'image' ? h.imageUrl : undefined,
+      })
+    );
   }
 
   function renderList(list: Handout[]) {
@@ -133,7 +90,7 @@
       name.className = 'text-sm font-bold text-[#f1f5f9] truncate';
       name.textContent = h.title;
       b.append(icon, name);
-      b.addEventListener('click', () => show(h));
+      b.addEventListener('click', () => openHandout(h));
       li.appendChild(b);
       listEl.appendChild(li);
     });
@@ -146,7 +103,7 @@
       seen = nextSeen;
       writeSeen(nextSeen);
     }
-    if (open) show(open);
+    if (open) openHandout(open);
   }
 
   function init() {
@@ -171,11 +128,6 @@
     unsubscribe = subscribeHandouts(cid, false, uid, onHandouts);
   }
 
-  closeBtn?.addEventListener('click', hide);
-  backdropEl?.addEventListener('click', hide);
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') hide();
-  });
   window.addEventListener('DOMContentLoaded', init);
   window.addEventListener('campaigns-updated', init);
   window.addEventListener('active-campaign-changed', init);

@@ -97,7 +97,8 @@
 
   function applyKind() {
     const isImage = (kindEl?.value as HandoutKind) === 'image';
-    bodyEl?.classList.toggle('hidden', isImage);
+    // El texto es obligatorio en handouts de texto y opcional (pie) en los de imagen.
+    if (bodyEl) bodyEl.placeholder = isImage ? 'Texto que acompaña a la imagen (opcional)…' : 'Texto del handout…';
     urlEl?.classList.toggle('hidden', !isImage);
   }
 

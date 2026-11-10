@@ -37,7 +37,10 @@ export interface ParchmentOptions {
   title?: string;
   sender?: string;
   date?: string;
+  /** Puede ir vacío (p. ej. handout de imagen sin pie). */
   message: string;
+  /** Imagen https opcional mostrada sobre el texto. */
+  imageUrl?: string;
   items?: ParchmentItem[];
   buttonText?: string;
   onClose?: () => void;
@@ -57,10 +60,12 @@ export function showParchment(options: ParchmentOptions): Promise<boolean> {
     };
 
     if (window.dndEnvelope) {
-      window.dndEnvelope.open({
+      const opened = window.dndEnvelope.open({
         ...options,
         onClose: handleClose,
       });
+      // Sobre ocupado (ya hay uno abierto): no se abrió, así que no habrá onClose.
+      if (!opened) resolve(false);
       return;
     }
 
