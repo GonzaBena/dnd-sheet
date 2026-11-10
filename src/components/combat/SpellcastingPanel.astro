@@ -64,7 +64,7 @@
   import { characterStore } from '../../scripts/state/characterStore';
   import { escapeHtml, toCatalogEntry } from '../../scripts/dnd/catalog';
   import { showAlert } from '../../scripts/ui/notify';
-  import type { ActiveEffect } from '../../scripts/models/effect';
+  import { applyFromEntry, isInstant } from '../../scripts/ui/applyEffectFlow';
   import { customBadgeHtml } from '../../scripts/ui/customBadge';
   import { openModal } from '../../scripts/animations/modalAnimations';
   import { attachSwipeToDelete } from '../../scripts/ui/swipeToDelete';
@@ -435,28 +435,19 @@
   }) as EventListener);
 
   // Acciones de la ficha de hechizo abierta desde el grimorio (FD-3).
-  window.addEventListener('spell-action', ((e: CustomEvent) => {
+  window.addEventListener('spell-action', (async (e: CustomEvent) => {
     const { entryId, action, context, entry, level } = e.detail || {};
     if (context !== 'spellbook') return;
     if (action === 'cast') {
       // Los trucos no traen nivel y no gastan espacio. DECISION (FD-4): sin validar componentes ni estado (H4).
       if (typeof level === 'number') characterStore.useSpellSlot(level);
-      showAlert(`Has lanzado "${entry.name}"${typeof level === 'number' ? ` con un espacio de nivel ${level}` : ''}.`, { kind: 'success' });
+      await showAlert(`Has lanzado "${entry.name}"${typeof level === 'number' ? ` con un espacio de nivel ${level}` : ''}.`, { kind: 'success' });
+      // FE-5: un hechizo con efectos y duración no instantánea deja su efecto en el panel.
+      if (entry?.effects?.length && !isInstant(entry)) await applyFromEntry(entry);
     } else if (action === 'remove') {
       spellDeleteTriggers.get(entryId)?.();
     } else if (action === 'apply-effect' && entry?.effects?.length) {
-      const effect: ActiveEffect = {
-        id: crypto.randomUUID(),
-        name: entry.name,
-        sourceType: 'spell',
-        sourceId: entry.id,
-        // DECISION: la duración por defecto es indefinida; se termina a mano desde los efectos activos.
-        duration: { kind: 'indefinite' },
-        modifiers: entry.effects,
-        appliedAt: Date.now(),
-      };
-      characterStore.applyEffect(effect);
-      showAlert(`Efecto de "${entry.name}" aplicado.`, { kind: 'success' });
+      await applyFromEntry(entry);
     }
   }) as EventListener);
 </script>

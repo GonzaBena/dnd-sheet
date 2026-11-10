@@ -41,7 +41,8 @@
 
 <script>
   import { characterStore } from '../../scripts/state/characterStore';
-  import { escapeHtml } from '../../scripts/dnd/catalog';
+  import { escapeHtml, toCatalogEntry } from '../../scripts/dnd/catalog';
+  import { applyFromEntry } from '../../scripts/ui/applyEffectFlow';
   import { customBadgeHtml } from '../../scripts/ui/customBadge';
   import { FEAT_TYPE_LABELS } from '../../scripts/models/catalog';
 
@@ -104,6 +105,18 @@
       card.querySelector('.toggle-feat-btn')?.addEventListener('click', () => {
         characterStore.toggleFeature(featId);
       });
+
+      // FE-5/FE-7: las dotes activas con efectos se activan desde aquí.
+      if (isEnabled && feat.featType === 'active' && feat.effects?.length) {
+        const activate = document.createElement('button');
+        activate.type = 'button';
+        activate.className = 'px-2 py-1 rounded text-[10px] font-bold border bg-amber-500/10 text-amber-300 border-amber-500/30 hover:bg-amber-500/20 cursor-pointer';
+        activate.textContent = 'Activar';
+        activate.addEventListener('click', () => {
+          applyFromEntry(toCatalogEntry('feat', { ...feat, id: featId }));
+        });
+        card.appendChild(activate);
+      }
 
       container.appendChild(card);
     });

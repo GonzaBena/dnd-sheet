@@ -1,0 +1,108 @@
+---
+// src/components/character/ResourcesSection.astro
+// UI mínima de recursos: crear, gastar, recuperar y borrar (Spec 07, Fase E: FE-8).
+---
+
+<section id="resources-section" class="mt-4" aria-label="Recursos">
+  <div class="flex items-center justify-between mb-1.5">
+    <h3 class="text-[10px] font-headline font-bold text-[#94a3b8] uppercase tracking-wider flex items-center gap-1">
+      <span class="material-symbols-outlined text-amber-500 text-[14px]">bolt</span>
+      <span>Recursos</span>
+    </h3>
+    <button
+      type="button"
+      id="resource-new-btn"
+      class="text-[10px] text-amber-400 hover:text-amber-300 font-bold bg-amber-500/10 hover:bg-amber-500/20 px-2 py-0.5 rounded-lg border border-amber-500/30 cursor-pointer transition-colors"
+    >
+      + Nuevo recurso
+    </button>
+  </div>
+  <div id="resources-list" class="space-y-1.5"></div>
+</section>
+
+<script>
+  import { characterStore } from '../../scripts/state/characterStore';
+  import { remaining } from '../../scripts/dnd/resources';
+  import { showForm, showConfirm } from '../../scripts/ui/notify';
+  import type { Resource } from '../../scripts/models/resource';
+
+  const list = document.getElementById('resources-list');
+
+  function btn(label: string, title: string, onClick: () => void, extra = ''): HTMLButtonElement {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.title = title;
+    b.setAttribute('aria-label', title);
+    b.textContent = label;
+    b.className = `w-6 h-6 rounded-md bg-[#10141d] border border-[#222f42] hover:border-amber-500/40 text-[#cbd5e1] text-sm leading-none cursor-pointer ${extra}`;
+    b.addEventListener('click', onClick);
+    return b;
+  }
+
+  function render(char: { resources?: Resource[] }) {
+    if (!list) return;
+    // La Forma Salvaje tiene su propio panel.
+    const resources = (char.resources ?? []).filter((r) => r.source !== 'wildShape');
+    list.replaceChildren();
+    if (!resources.length) {
+      const empty = document.createElement('p');
+      empty.className = 'text-[11px] text-[#64748b]';
+      empty.textContent = 'Sin recursos. Crea uno con "Nuevo recurso".';
+      list.appendChild(empty);
+      return;
+    }
+    for (const r of resources) {
+      const row = document.createElement('div');
+      row.className = 'flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-[#18202e] border border-[#222f42] text-xs';
+      const name = document.createElement('span');
+      name.className = 'flex-1 min-w-0 truncate font-bold text-[#f1f5f9]';
+      name.textContent = r.name;
+      const count = document.createElement('span');
+      count.className = 'font-mono text-[#94a3b8]';
+      count.textContent = `${r.used}/${r.max}`;
+      count.title = `Quedan ${remaining(r)}`;
+      row.append(
+        name,
+        count,
+        btn('−', 'Gastar 1', () => characterStore.spendResource(r.id, 1)),
+        btn('+', 'Recuperar 1', () => characterStore.recoverResource(r.id, 1)),
+        btn('×', 'Borrar recurso', async () => {
+          if (await showConfirm(`¿Borrar "${r.name}"?`, { danger: true, confirmText: 'Borrar' })) {
+            characterStore.removeResource(r.id);
+          }
+        }, 'hover:text-rose-400')
+      );
+      list.appendChild(row);
+    }
+  }
+
+  document.getElementById('resource-new-btn')?.addEventListener('click', async () => {
+    const values = await showForm(
+      [
+        { name: 'name', label: 'Nombre', type: 'text', required: true, placeholder: 'Inspiración Bárdica' },
+        { name: 'max', label: 'Máximo', type: 'number', value: '1', min: 1, required: true },
+        {
+          name: 'rechargeOn',
+          label: 'Se reinicia con',
+          type: 'select',
+          value: 'longRest',
+          options: [
+            { value: 'longRest', label: 'Descanso largo' },
+            { value: 'shortRest', label: 'Descanso corto' },
+            { value: 'turn', label: 'Cada turno' },
+            { value: 'manual', label: 'Manual' },
+          ],
+        },
+      ],
+      { title: 'Nuevo recurso', confirmText: 'Crear' }
+    );
+    if (!values) return;
+    const name = values.name.trim();
+    const max = parseInt(values.max, 10);
+    if (!name || !(max > 0)) return;
+    characterStore.addResource({ name, max, rechargeOn: values.rechargeOn as Resource['rechargeOn'] });
+  });
+
+  render(characterStore.get());
+  window.addEventListener('character-updated', ((e: CustomEvent) => render(e.detail.character)) as EventListener);
+</script>
