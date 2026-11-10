@@ -5,9 +5,9 @@
 // Al stage se le aplican escala y traslación para el zoom y pan.
 // DECISION (F2-2): La imagen se dibuja directamente en Konva sin toDataURL ni conversiones de exportación.
 
-import type { MapDoc, GridConfig, Token } from '../models/map.ts';
+import type { MapDoc, GridConfig, Token, FogShape } from '../models/map.ts';
 import type { SessionStatus } from '../models/campaign.ts';
-import { normalizeStatus } from './sessionStatus.ts';
+import { normalizeStatus, canPerform } from './sessionStatus.ts';
 import {
   canMoveToken,
   tokenPixelSize,
@@ -16,6 +16,14 @@ import {
   type TokenViewer,
   type LiveTokenPosition,
 } from './tokens.ts';
+import {
+  normalizeRect,
+  clampRectToImage,
+  isTinyRect,
+  fogOps,
+  simplifyPoints,
+  createBrushShape,
+} from './fog.ts';
 import anime from 'animejs';
 import {
   fitToContainer,
@@ -26,6 +34,13 @@ import {
   type Point,
   ZOOM_LIMITS,
 } from './geometry.ts';
+
+export type MapTool =
+  | 'none'
+  | 'fog-reveal'
+  | 'fog-cover'
+  | 'fog-brush-reveal'
+  | 'fog-brush-cover';
 
 function hexToRgba(hex: string, alpha: number): string {
   let c = (hex || '#ffffff').replace('#', '');
@@ -53,9 +68,13 @@ export class MapStageController extends EventTarget {
   public gridLayer: any;
   public tokenLayer: any;
   public fogLayer: any;
+  public toolLayer: any;
 
   private bgImageNode: any;
   private gridShapeNode: any;
+  private fogShapeNode: any = null;
+  private fogShapes: FogShape[] = [];
+  private isPlayerFogView = false;
 
   private currentMap: MapDoc | null = null;
   private currentGrid: GridConfig | null = null;
@@ -64,6 +83,18 @@ export class MapStageController extends EventTarget {
 
   private resizeObserver: ResizeObserver | null = null;
   private hasInitialFit = false;
+
+  // Estado y herramientas de Niebla (Fase 4: T-40, T-41, Pincel)
+  private currentTool: MapTool = 'none';
+  private isDrawingFog = false;
+  private fogDragStart: Point | null = null;
+  private previewRectNode: any = null;
+  private brushRadius = 25;
+  private isDrawingBrush = false;
+  private brushPoints: number[] = [];
+  private previewBrushLineNode: any = null;
+  private previewBrushCircleNode: any = null;
+  private brushCursorNode: any = null;
 
   // Estado y sincronización de Tokens (Fase 3: T-31, T-33, T-35)
   private tokenNodes = new Map<string, any>();
@@ -74,6 +105,10 @@ export class MapStageController extends EventTarget {
   private remoteLivePositions = new Map<string, LiveTokenPosition>();
   private tweenStates = new Map<string, { x: number; y: number }>();
   private isPlacementMode = false;
+
+  // Tokens secretos para el DM (Fase 4: T-42, T-43)
+  private secretTokenNodes = new Map<string, any>();
+  private currentSecretTokens: Record<string, Token> = {};
 
   // Touch tracking para pinch-zoom
   private p1Prev: Point | null = null;
@@ -105,18 +140,20 @@ export class MapStageController extends EventTarget {
       this.stage.dragDistance(4);
     }
 
-    // 2. Capas en orden estricto (fondo, grilla, tokens, niebla)
+    // 2. Capas en orden estricto (fondo, grilla, tokens, niebla, herramientas)
     this.bgLayer = new this.Konva.Layer({ listening: true });
     this.gridLayer = new this.Konva.Layer({ listening: false });
     this.tokenLayer = new this.Konva.Layer({ listening: true }); // Fase 3
     this.fogLayer = new this.Konva.Layer({ listening: false }); // Fase 4
+    this.toolLayer = new this.Konva.Layer({ listening: false }); // Fase 4 preview
 
     this.stage.add(this.bgLayer);
     this.stage.add(this.gridLayer);
     this.stage.add(this.tokenLayer);
     this.stage.add(this.fogLayer);
+    this.stage.add(this.toolLayer);
 
-    // 3. Nodos de fondo y grilla
+    // 3. Nodos de fondo, grilla y niebla
     this.bgImageNode = new this.Konva.Image({
       x: 0,
       y: 0,
@@ -132,6 +169,17 @@ export class MapStageController extends EventTarget {
       },
     });
     this.gridLayer.add(this.gridShapeNode);
+
+    this.fogShapeNode = new this.Konva.Shape({
+      listening: false,
+      sceneFunc: (context: any, shape: any) => {
+        this.drawFog(context, shape);
+      },
+    });
+    this.fogLayer.add(this.fogShapeNode);
+    if (typeof this.fogLayer.opacity === 'function') {
+      this.fogLayer.opacity(this.mode === 'dm' ? 0.5 : 1.0);
+    }
 
     // 4. Inicializar eventos de interacción
     this.setupInteractions();
@@ -266,14 +314,131 @@ export class MapStageController extends EventTarget {
     let pointerDownPos: Point | null = null;
     let didDragStage = false;
 
-    this.stage.on('mousedown touchstart', () => {
+    this.stage.on('mousedown touchstart', (e: any) => {
+      if (this.currentTool === 'fog-reveal' || this.currentTool === 'fog-cover') {
+        const p = this.stage.getPointerPosition();
+        if (p) {
+          const currentView: Viewport = {
+            scale: this.stage.scaleX(),
+            x: this.stage.x(),
+            y: this.stage.y(),
+          };
+          this.isDrawingFog = true;
+          this.fogDragStart = screenToMap(p, currentView);
+          this.updateFogPreview(this.fogDragStart);
+        }
+        return;
+      }
+      if (this.currentTool === 'fog-brush-reveal' || this.currentTool === 'fog-brush-cover') {
+        const p = this.stage.getPointerPosition();
+        if (p) {
+          const currentView: Viewport = {
+            scale: this.stage.scaleX(),
+            x: this.stage.x(),
+            y: this.stage.y(),
+          };
+          const mapPt = screenToMap(p, currentView);
+          this.isDrawingBrush = true;
+          this.brushPoints = [mapPt.x, mapPt.y];
+          this.updateBrushPreview(this.brushPoints);
+        }
+        return;
+      }
       const p = this.stage.getPointerPosition();
       if (p) pointerDownPos = { ...p };
       didDragStage = false;
     });
 
+    this.stage.on('mousemove touchmove', () => {
+      const p = this.stage.getPointerPosition();
+      if (!p) return;
+      const currentView: Viewport = {
+        scale: this.stage.scaleX(),
+        x: this.stage.x(),
+        y: this.stage.y(),
+      };
+      const mapPt = screenToMap(p, currentView);
+
+      if (this.isDrawingFog && this.fogDragStart) {
+        this.updateFogPreview(mapPt);
+        return;
+      }
+
+      if (this.isDrawingBrush) {
+        const lastX = this.brushPoints[this.brushPoints.length - 2];
+        const lastY = this.brushPoints[this.brushPoints.length - 1];
+        const dx = mapPt.x - lastX;
+        const dy = mapPt.y - lastY;
+        if (dx * dx + dy * dy >= 25) { // al menos 5px en coords de mapa
+          this.brushPoints.push(mapPt.x, mapPt.y);
+          this.updateBrushPreview(this.brushPoints);
+        }
+        return;
+      }
+
+      if (this.currentTool === 'fog-brush-reveal' || this.currentTool === 'fog-brush-cover') {
+        this.updateBrushCursor(mapPt);
+      }
+    });
+
+    this.stage.on('mouseleave', () => {
+      if (this.brushCursorNode) {
+        this.brushCursorNode.visible(false);
+        this.toolLayer.batchDraw();
+      }
+    });
+
+    this.stage.on('mouseup touchend', () => {
+      if (this.isDrawingFog && this.fogDragStart) {
+        const p = this.stage.getPointerPosition();
+        this.isDrawingFog = false;
+        const start = this.fogDragStart;
+        this.fogDragStart = null;
+        this.clearToolLayer();
+
+        if (p && this.currentMap && start) {
+          const currentView: Viewport = {
+            scale: this.stage.scaleX(),
+            x: this.stage.x(),
+            y: this.stage.y(),
+          };
+          const end = screenToMap(p, currentView);
+          const rawRect = normalizeRect(start.x, start.y, end.x, end.y);
+          const clamped = clampRectToImage(rawRect, this.currentMap.imageWidth, this.currentMap.imageHeight);
+
+          if (!isTinyRect(clamped)) {
+            const shape: FogShape = {
+              kind: 'rect',
+              x: Math.round(clamped.x),
+              y: Math.round(clamped.y),
+              w: Math.round(clamped.w),
+              h: Math.round(clamped.h),
+              ...(this.currentTool === 'fog-cover' ? { op: 'cover' as const } : {}),
+            };
+            this.dispatchEvent(new CustomEvent('fog-shape', { detail: { shape } }));
+          }
+        }
+        return;
+      }
+
+      if (this.isDrawingBrush) {
+        this.isDrawingBrush = false;
+        const pts = this.brushPoints;
+        this.brushPoints = [];
+        this.clearToolLayer();
+
+        if (pts.length >= 2 && this.currentMap) {
+          const simplified = simplifyPoints(pts, 8);
+          const isCover = this.currentTool === 'fog-brush-cover';
+          const shape = createBrushShape(simplified, this.brushRadius, isCover);
+          this.dispatchEvent(new CustomEvent('fog-shape', { detail: { shape } }));
+        }
+        return;
+      }
+    });
+
     this.stage.on('dragstart', () => {
-      if (this.draggingTokenId) {
+      if (this.draggingTokenId || this.currentTool !== 'none') {
         this.stage.stopDrag();
       }
     });
@@ -293,7 +458,7 @@ export class MapStageController extends EventTarget {
 
     // Clic en mapa para selección o coordenadas
     this.stage.on('click tap', (e: any) => {
-      if (didDragStage) return;
+      if (didDragStage || this.currentTool !== 'none') return;
       const pointer = this.stage.getPointerPosition();
       if (!pointer) return;
       if (pointerDownPos) {
@@ -397,11 +562,16 @@ export class MapStageController extends EventTarget {
     const isDifferentMap = !this.currentMap || (map && map.id !== this.currentMap.id);
     this.currentMap = map;
     this.currentGrid = map?.grid ? { ...map.grid } : null;
+    if (map?.grid?.size) {
+      this.brushRadius = Math.max(10, Math.round(map.grid.size / 2));
+    }
 
     if (!map) {
       this.clearTokens();
       this.currentHtmlImage = null;
       this.bgImageNode.image(null);
+      this.fogShapes = [];
+      this.clearToolLayer();
       this.bgLayer.batchDraw();
       this.gridLayer.batchDraw();
       this.tokenLayer.batchDraw();
@@ -439,6 +609,9 @@ export class MapStageController extends EventTarget {
 
     // Cargar y sincronizar tokens del mapa (T-31)
     this.setTokens(map.tokens || {});
+
+    // Cargar y sincronizar niebla de guerra (T-41)
+    this.setFog(map.fogRevealed || []);
 
     if (isDifferentMap || !this.hasInitialFit) {
       this.fit();
@@ -482,6 +655,79 @@ export class MapStageController extends EventTarget {
     }
   }
 
+  /**
+   * Cambia la herramienta activa del DM (none, fog-reveal, fog-cover, fog-brush-reveal, fog-brush-cover) (T-40).
+   */
+  public setTool(tool: MapTool): void {
+    if (this.currentTool === tool) return;
+    this.currentTool = tool;
+    this.clearToolLayer();
+
+    if (tool !== 'none') {
+      if (this.isPlacementMode) {
+        this.setPlacementMode(false);
+      }
+      if (this.stage.isDragging()) {
+        this.stage.stopDrag();
+      }
+      this.stage.draggable(false);
+      this.container.style.cursor = 'crosshair';
+      const content = this.stage.getContent();
+      if (content) content.style.cursor = 'crosshair';
+    } else {
+      this.stage.draggable(true);
+      this.container.style.cursor = 'default';
+      const content = this.stage.getContent();
+      if (content) content.style.cursor = 'default';
+    }
+
+    this.dispatchEvent(new CustomEvent('tool-changed', { detail: { tool: this.currentTool } }));
+  }
+
+  public getTool(): MapTool {
+    return this.currentTool;
+  }
+
+  public setBrushRadius(radius: number): void {
+    this.brushRadius = Math.max(4, Math.round(radius));
+    if (this.brushCursorNode && typeof this.brushCursorNode.radius === 'function') {
+      this.brushCursorNode.radius(this.brushRadius);
+      this.toolLayer.batchDraw();
+    }
+  }
+
+  public getBrushRadius(): number {
+    return this.brushRadius;
+  }
+
+  /**
+   * Sincroniza la lista de formas de niebla reveladas/cubiertas (T-41).
+   */
+  public setFog(shapes: FogShape[]): void {
+    this.fogShapes = shapes || [];
+    if (this.currentMap) {
+      this.currentMap.fogRevealed = [...this.fogShapes];
+    }
+    this.fogLayer.batchDraw();
+  }
+
+  /**
+   * Alterna la opacidad de la niebla en modo DM entre semitransparente (0.5) y vista de jugador (1.0).
+   */
+  public setPlayerFogView(enable: boolean): void {
+    this.isPlayerFogView = enable;
+    if (this.mode === 'dm') {
+      if (typeof this.fogLayer.opacity === 'function') {
+        this.fogLayer.opacity(enable ? 1.0 : 0.5);
+      }
+      this.fogLayer.batchDraw();
+    }
+  }
+
+  public getPlayerFogView(): boolean {
+    return this.isPlayerFogView;
+  }
+
   // -------------------------------------------------------------------------
   // Gestión de Tokens en Konva (Fase 3: T-31, T-33, T-35)
   // -------------------------------------------------------------------------
@@ -503,15 +749,20 @@ export class MapStageController extends EventTarget {
     this.currentStatus = nextStatus;
 
     // Si se pausa o termina durante un arrastre, cancelar y revertir posición
-    if (nextStatus !== 'active' && this.draggingTokenId) {
-      const tid = this.draggingTokenId;
-      const node = this.tokenNodes.get(tid);
-      if (node && node.isDragging()) {
-        node.stopDrag();
+    if (nextStatus !== 'active') {
+      if (this.currentTool !== 'none') {
+        this.setTool('none');
       }
-      this.draggingTokenId = null;
-      this.stage.container().style.cursor = 'default';
-      this.revertTokenMove(tid);
+      if (this.draggingTokenId) {
+        const tid = this.draggingTokenId;
+        const node = this.tokenNodes.get(tid);
+        if (node && node.isDragging()) {
+          node.stopDrag();
+        }
+        this.draggingTokenId = null;
+        this.stage.container().style.cursor = 'default';
+        this.revertTokenMove(tid);
+      }
     }
 
     this.updateTokensInteractivity();
@@ -921,6 +1172,12 @@ export class MapStageController extends EventTarget {
       const d = tokenPixelSize(token, grid);
       this.buildTokenVisuals(node, token, d);
     }
+
+    const canMoveSecrets = canPerform('dmPrepare', 'dm', this.currentStatus);
+    for (const [_, node] of this.secretTokenNodes) {
+      node.draggable(canMoveSecrets);
+    }
+
     this.tokenLayer.batchDraw();
   }
 
@@ -934,6 +1191,12 @@ export class MapStageController extends EventTarget {
       if (!token) continue;
       const d = tokenPixelSize(token, grid);
       this.buildTokenVisuals(node, token, d);
+    }
+    for (const [_, node] of this.secretTokenNodes) {
+      const token = (node as any).__tokenData;
+      if (!token) continue;
+      const d = tokenPixelSize(token, grid);
+      this.buildSecretTokenVisuals(node, token, d);
     }
     this.tokenLayer.batchDraw();
   }
@@ -1010,6 +1273,494 @@ export class MapStageController extends EventTarget {
     });
   }
 
+  // -------------------------------------------------------------------------
+  // Gestión de Tokens Ocultos / Secretos (Fase 4: T-42, T-43)
+  // -------------------------------------------------------------------------
+
+  /**
+   * Sincroniza tokens secretos en modo DM (T-42).
+   */
+  public setSecretTokens(tokens: Record<string, Token>): void {
+    if (this.mode !== 'dm') return;
+    this.currentSecretTokens = { ...tokens };
+
+    const existingIds = new Set(this.secretTokenNodes.keys());
+
+    for (const [tid, token] of Object.entries(tokens || {})) {
+      existingIds.delete(tid);
+      const existingNode = this.secretTokenNodes.get(tid);
+
+      if (existingNode) {
+        (existingNode as any).__tokenData = { ...token };
+        if (this.draggingTokenId !== tid) {
+          existingNode.position({ x: token.x, y: token.y });
+        }
+        const grid = this.currentGrid || { size: 50, offsetX: 0, offsetY: 0, visible: true };
+        const d = tokenPixelSize(token, grid);
+        this.buildSecretTokenVisuals(existingNode, token, d);
+
+        const canMove = canPerform('dmPrepare', 'dm', this.currentStatus);
+        existingNode.draggable(canMove);
+      } else {
+        const newNode = this.createSecretTokenNode(tid, token);
+        this.secretTokenNodes.set(tid, newNode);
+        this.tokenLayer.add(newNode);
+      }
+    }
+
+    for (const removedId of existingIds) {
+      const node = this.secretTokenNodes.get(removedId);
+      if (node) {
+        node.destroy();
+        this.secretTokenNodes.delete(removedId);
+      }
+    }
+
+    this.tokenLayer.batchDraw();
+  }
+
+  private createSecretTokenNode(tid: string, token: Token): any {
+    const grid = this.currentGrid || { size: 50, offsetX: 0, offsetY: 0, visible: true };
+    const d = tokenPixelSize(token, grid);
+    const canMove = canPerform('dmPrepare', 'dm', this.currentStatus);
+
+    const group = new this.Konva.Group({
+      id: `secret-${tid}`,
+      x: token.x,
+      y: token.y,
+      draggable: canMove,
+      dragDistance: 3,
+      opacity: 0.55,
+      perfectDrawEnabled: false,
+      shadowForStrokeEnabled: false,
+    });
+
+    (group as any).__tokenData = { ...token };
+    (group as any).__isSecretToken = true;
+    this.buildSecretTokenVisuals(group, token, d);
+
+    group.on('dragstart', (e: any) => {
+      e.cancelBubble = true;
+      if (this.stage.isDragging()) {
+        this.stage.stopDrag();
+      }
+      this.draggingTokenId = tid;
+      group.moveToTop();
+      this.stage.container().style.cursor = 'grabbing';
+    });
+
+    group.on('dragmove', (e: any) => {
+      e.cancelBubble = true;
+      this.tokenLayer.batchDraw();
+    });
+
+    group.on('dragend', (e: any) => {
+      e.cancelBubble = true;
+      this.draggingTokenId = null;
+      this.stage.container().style.cursor = 'default';
+
+      const bounds = this.currentMap
+        ? { width: this.currentMap.imageWidth, height: this.currentMap.imageHeight }
+        : undefined;
+      const snapped = snapTokenPosition(
+        { x: group.x(), y: group.y() },
+        token,
+        this.currentGrid || { size: 50, offsetX: 0, offsetY: 0 },
+        bounds
+      );
+
+      (group as any).__tokenData = {
+        ...((group as any).__tokenData || token),
+        x: snapped.x,
+        y: snapped.y,
+      };
+      if (this.currentSecretTokens[tid]) {
+        this.currentSecretTokens[tid].x = snapped.x;
+        this.currentSecretTokens[tid].y = snapped.y;
+      }
+
+      group.to({
+        x: snapped.x,
+        y: snapped.y,
+        duration: 0.08,
+        easing: this.Konva.Easings.EaseOut,
+        onFinish: () => {
+          this.tokenLayer.batchDraw();
+        },
+      });
+
+      this.dispatchEvent(
+        new CustomEvent('secret-token-drag-end', {
+          detail: { tid, x: snapped.x, y: snapped.y, token },
+        })
+      );
+    });
+
+    group.on('click tap', (e: any) => {
+      e.cancelBubble = true;
+      this.dispatchEvent(new CustomEvent('token-select', { detail: { tid, token, isSecret: true } }));
+    });
+
+    group.on('mouseenter', () => {
+      if (canPerform('dmPrepare', 'dm', this.currentStatus)) {
+        this.stage.container().style.cursor = 'grab';
+      }
+    });
+
+    group.on('mouseleave', () => {
+      if (!this.draggingTokenId) {
+        this.stage.container().style.cursor = 'default';
+      }
+    });
+
+    return group;
+  }
+
+  private buildSecretTokenVisuals(group: any, token: Token, d: number): void {
+    group.destroyChildren();
+
+    const r = d / 2;
+    const strokeWidth = 2.5;
+
+    // 0. Hit area
+    const hitArea = new this.Konva.Circle({
+      x: r,
+      y: r,
+      radius: r,
+      fill: 'rgba(0,0,0,0.001)',
+      listening: true,
+    });
+    group.add(hitArea);
+
+    // 1. Círculo base con borde punteado ámbar
+    const baseCircle = new this.Konva.Circle({
+      x: r,
+      y: r,
+      radius: Math.max(1, r - strokeWidth / 2),
+      fill: token.color || '#1e293b',
+      stroke: '#f59e0b',
+      strokeWidth,
+      dash: [4, 4],
+      listening: true,
+      shadowColor: 'rgba(0,0,0,0.6)',
+      shadowBlur: 4,
+    });
+    group.add(baseCircle);
+
+    // 2. Imagen o iniciales
+    if (token.imageUrl) {
+      let cachedImg = this.imageCache.get(token.imageUrl);
+      if (cachedImg) {
+        const clipGroup = new this.Konva.Group({
+          clipFunc: (ctx: any) => {
+            ctx.arc(r, r, Math.max(1, r - strokeWidth / 2), 0, Math.PI * 2, false);
+          },
+          listening: false,
+        });
+        const kImg = new this.Konva.Image({
+          image: cachedImg,
+          x: 0,
+          y: 0,
+          width: d,
+          height: d,
+          listening: false,
+          perfectDrawEnabled: false,
+        });
+        clipGroup.add(kImg);
+        group.add(clipGroup);
+
+        const ring = new this.Konva.Circle({
+          x: r,
+          y: r,
+          radius: Math.max(1, r - strokeWidth / 2),
+          stroke: '#f59e0b',
+          strokeWidth: 2,
+          dash: [4, 4],
+          listening: false,
+        });
+        group.add(ring);
+      } else {
+        const img = new Image();
+        if (token.imageUrl.startsWith('http://') || token.imageUrl.startsWith('https://')) {
+          img.crossOrigin = 'anonymous';
+        }
+        img.src = token.imageUrl;
+        const tidKey = group.id().replace('secret-', '');
+        img.onload = () => {
+          this.imageCache.set(token.imageUrl!, img);
+          if (this.secretTokenNodes.has(tidKey)) {
+            this.buildSecretTokenVisuals(group, token, d);
+            this.tokenLayer.batchDraw();
+          }
+        };
+      }
+    } else {
+      const initials = (token.name || 'T').substring(0, 2).toUpperCase();
+      const initText = new this.Konva.Text({
+        x: 0,
+        y: r - Math.max(6, d * 0.16),
+        width: d,
+        text: initials,
+        align: 'center',
+        fontSize: Math.max(11, Math.round(d * 0.32)),
+        fontStyle: 'bold',
+        fill: '#ffffff',
+        listening: false,
+      });
+      group.add(initText);
+    }
+
+    // 3. Badge "OCULTO"
+    const badgeW = Math.min(d, 52);
+    const badgeGroup = new this.Konva.Group({
+      x: (d - badgeW) / 2,
+      y: -6,
+      listening: false,
+    });
+    const badgeBg = new this.Konva.Rect({
+      width: badgeW,
+      height: 12,
+      cornerRadius: 6,
+      fill: 'rgba(15, 23, 42, 0.95)',
+      stroke: '#f59e0b',
+      strokeWidth: 1,
+    });
+    const badgeTxt = new this.Konva.Text({
+      text: 'OCULTO',
+      fontSize: 8,
+      fontStyle: 'bold',
+      fill: '#fbbf24',
+      width: badgeW,
+      align: 'center',
+      y: 2,
+    });
+    badgeGroup.add(badgeBg);
+    badgeGroup.add(badgeTxt);
+    group.add(badgeGroup);
+
+    // 4. Nombre
+    const fontSize = Math.max(9, Math.min(13, Math.round(d * 0.2)));
+    const labelGroup = new this.Konva.Group({
+      y: d - Math.round(fontSize * 0.4),
+      listening: false,
+    });
+    const nameText = new this.Konva.Text({
+      text: token.name,
+      fontSize,
+      fontStyle: 'bold',
+      fill: '#fbbf24',
+      align: 'center',
+      width: d,
+    });
+    labelGroup.add(nameText);
+    group.add(labelGroup);
+  }
+
+  // -------------------------------------------------------------------------
+  // Render de Niebla y Vista Previa (Fase 4: T-40, T-41)
+  // -------------------------------------------------------------------------
+
+  private drawFog(context: any, _shape: any): void {
+    if (!this.currentMap || !this.currentMap.imageWidth || !this.currentMap.imageHeight) {
+      return;
+    }
+    const w = this.currentMap.imageWidth;
+    const h = this.currentMap.imageHeight;
+    const ctx = context._context || context;
+
+    ctx.save();
+    ctx.fillStyle = '#05070a';
+    ctx.fillRect(0, 0, w, h);
+
+    const ops = fogOps(this.fogShapes);
+    for (const op of ops) {
+      const s = op.shape;
+      if (op.op === 'reveal') {
+        ctx.globalCompositeOperation = 'destination-out';
+        ctx.fillStyle = '#000000';
+        ctx.strokeStyle = '#000000';
+      } else {
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.fillStyle = '#05070a';
+        ctx.strokeStyle = '#05070a';
+      }
+
+      if (s.kind === 'rect') {
+        ctx.beginPath();
+        ctx.rect(s.x, s.y, s.w, s.h);
+        ctx.fill();
+      } else if (s.kind === 'circle') {
+        ctx.beginPath();
+        ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+        ctx.fill();
+      } else if (s.kind === 'brush' && (s as any).points && (s as any).points.length >= 2) {
+        const pts = (s as any).points;
+        const r = (s as any).radius || 25;
+        if (pts.length === 2) {
+          ctx.beginPath();
+          ctx.arc(pts[0], pts[1], r, 0, Math.PI * 2);
+          ctx.fill();
+        } else {
+          ctx.beginPath();
+          ctx.lineWidth = r * 2;
+          ctx.lineCap = 'round';
+          ctx.lineJoin = 'round';
+          ctx.moveTo(pts[0], pts[1]);
+          for (let i = 2; i < pts.length; i += 2) {
+            ctx.lineTo(pts[i], pts[i + 1]);
+          }
+          ctx.stroke();
+        }
+      } else if (s.kind === 'poly' && (s as any).points && (s as any).points.length >= 6) {
+        const pts = (s as any).points;
+        ctx.beginPath();
+        ctx.moveTo(pts[0], pts[1]);
+        for (let i = 2; i < pts.length; i += 2) {
+          ctx.lineTo(pts[i], pts[i + 1]);
+        }
+        ctx.closePath();
+        ctx.fill();
+      }
+    }
+
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.restore();
+  }
+
+  private updateFogPreview(currentMapPt: Point): void {
+    if (!this.fogDragStart || !this.currentMap) return;
+    const rawRect = normalizeRect(this.fogDragStart.x, this.fogDragStart.y, currentMapPt.x, currentMapPt.y);
+    const clamped = clampRectToImage(rawRect, this.currentMap.imageWidth, this.currentMap.imageHeight);
+
+    if (!this.previewRectNode && this.Konva.Rect) {
+      this.previewRectNode = new this.Konva.Rect({
+        listening: false,
+      });
+      this.toolLayer.add(this.previewRectNode);
+    }
+
+    if (this.previewRectNode) {
+      const scale = this.stage.scaleX() || 1;
+      const isCover = this.currentTool === 'fog-cover';
+      this.previewRectNode.x(clamped.x);
+      this.previewRectNode.y(clamped.y);
+      this.previewRectNode.width(clamped.w);
+      this.previewRectNode.height(clamped.h);
+      this.previewRectNode.stroke(isCover ? '#f43f5e' : '#38bdf8');
+      this.previewRectNode.strokeWidth(2 / scale);
+      this.previewRectNode.dash([6 / scale, 3 / scale]);
+      this.previewRectNode.fill(isCover ? 'rgba(244, 63, 94, 0.25)' : 'rgba(56, 189, 248, 0.25)');
+      this.previewRectNode.visible(true);
+      this.toolLayer.batchDraw();
+    }
+  }
+
+  private updateBrushCursor(mapPt: Point): void {
+    if (!this.Konva.Circle) return;
+    const isBrushTool = this.currentTool === 'fog-brush-reveal' || this.currentTool === 'fog-brush-cover';
+    if (!isBrushTool) {
+      if (this.brushCursorNode) {
+        this.brushCursorNode.visible(false);
+        this.toolLayer.batchDraw();
+      }
+      return;
+    }
+
+    if (!this.brushCursorNode) {
+      this.brushCursorNode = new this.Konva.Circle({
+        listening: false,
+      });
+      this.toolLayer.add(this.brushCursorNode);
+    }
+
+    const scale = this.stage.scaleX() || 1;
+    const isCover = this.currentTool === 'fog-brush-cover';
+    this.brushCursorNode.x(mapPt.x);
+    this.brushCursorNode.y(mapPt.y);
+    this.brushCursorNode.radius(this.brushRadius);
+    this.brushCursorNode.stroke(isCover ? '#f43f5e' : '#38bdf8');
+    this.brushCursorNode.strokeWidth(1.5 / scale);
+    this.brushCursorNode.dash([4 / scale, 4 / scale]);
+    this.brushCursorNode.visible(true);
+    this.toolLayer.batchDraw();
+  }
+
+  private updateBrushPreview(points: number[]): void {
+    if (points.length < 2) return;
+    const isCover = this.currentTool === 'fog-brush-cover';
+    const strokeColor = isCover ? 'rgba(244, 63, 94, 0.45)' : 'rgba(56, 189, 248, 0.45)';
+
+    if (points.length === 2) {
+      if (!this.previewBrushCircleNode && this.Konva.Circle) {
+        this.previewBrushCircleNode = new this.Konva.Circle({
+          listening: false,
+        });
+        this.toolLayer.add(this.previewBrushCircleNode);
+      }
+      if (this.previewBrushCircleNode) {
+        this.previewBrushCircleNode.x(points[0]);
+        this.previewBrushCircleNode.y(points[1]);
+        this.previewBrushCircleNode.radius(this.brushRadius);
+        this.previewBrushCircleNode.fill(strokeColor);
+        this.previewBrushCircleNode.visible(true);
+      }
+      if (this.previewBrushLineNode) {
+        this.previewBrushLineNode.visible(false);
+      }
+    } else {
+      if (this.previewBrushCircleNode) {
+        this.previewBrushCircleNode.visible(false);
+      }
+      if (!this.previewBrushLineNode && this.Konva.Line) {
+        this.previewBrushLineNode = new this.Konva.Line({
+          listening: false,
+          lineCap: 'round',
+          lineJoin: 'round',
+        });
+        this.toolLayer.add(this.previewBrushLineNode);
+      }
+      if (this.previewBrushLineNode) {
+        this.previewBrushLineNode.points(points);
+        this.previewBrushLineNode.stroke(strokeColor);
+        this.previewBrushLineNode.strokeWidth(this.brushRadius * 2);
+        this.previewBrushLineNode.visible(true);
+      }
+    }
+
+    this.toolLayer.batchDraw();
+  }
+
+  private clearToolLayer(): void {
+    if (this.previewRectNode) {
+      this.previewRectNode.visible(false);
+    }
+    if (this.previewBrushLineNode) {
+      this.previewBrushLineNode.visible(false);
+    }
+    if (this.previewBrushCircleNode) {
+      this.previewBrushCircleNode.visible(false);
+    }
+    if (this.brushCursorNode) {
+      this.brushCursorNode.visible(false);
+    }
+    if (typeof this.toolLayer.destroyChildren === 'function') {
+      this.toolLayer.destroyChildren();
+      this.previewRectNode = null;
+      this.previewBrushLineNode = null;
+      this.previewBrushCircleNode = null;
+      this.brushCursorNode = null;
+    }
+    this.toolLayer.batchDraw();
+  }
+
+  public clearSecretTokens(): void {
+    for (const [_, node] of this.secretTokenNodes) {
+      node.destroy();
+    }
+    this.secretTokenNodes.clear();
+    this.currentSecretTokens = {};
+  }
+
   /**
    * Limpia todos los tokens y animaciones activas.
    */
@@ -1018,6 +1769,7 @@ export class MapStageController extends EventTarget {
     this.tweenStates.clear();
     this.tokenNodes.forEach((node) => node.destroy());
     this.tokenNodes.clear();
+    this.clearSecretTokens();
     this.remoteLivePositions.clear();
     this.draggingTokenId = null;
   }
@@ -1156,6 +1908,7 @@ export class MapStageController extends EventTarget {
       this.resizeObserver.disconnect();
       this.resizeObserver = null;
     }
+    this.clearToolLayer();
     this.clearTokens();
     this.stage.destroy();
   }

@@ -364,10 +364,10 @@ Es la parte más usada por un DM y valida el flujo en vivo con la menor compleji
 
 ### Fase 4 — Niebla y tokens ocultos
 
-- [ ] T-40 Herramienta de revelar y cubrir rectángulos (RF-30).
-- [ ] T-41 Render diferenciado DM y jugador (RF-31).
-- [ ] T-42 Mover tokens entre `tokens` y `dmOnly.secretTokens` (RF-24).
-- [ ] T-43 Verificar con reglas que un jugador no puede leer `private/**`.
+- [x] T-40 Herramienta de revelar y cubrir rectángulos (RF-30).
+- [x] T-41 Render diferenciado DM y jugador (RF-31).
+- [x] T-42 Mover tokens entre `tokens` y `dmOnly.secretTokens` (RF-24).
+- [x] T-43 Verificar con reglas que un jugador no puede leer `private/**`.
 
 ### Fase 5 — Extras
 

@@ -4,15 +4,18 @@
 // DECISION (F2-3): La lista de mapas la lee solo el DM con getDocs (lectura puntual sin listener).
 // El mapa activo usa un único onSnapshot que se desuscribe al cambiar de mapa.
 
-import type { MapDoc, GridConfig, Token } from '../models/map.ts';
+import type { MapDoc, GridConfig, Token, FogShape, DmOnly } from '../models/map.ts';
+import { MAP_LIMITS } from '../models/map.ts';
 import { campaignStore } from '../state/campaignStore.ts';
 import { userStore } from '../state/userStore.ts';
 import { normalizeStatus, canPerform } from '../vtt/sessionStatus.ts';
 import { getFirebase, isFirebaseConfigured } from '../firebase/client.ts';
 import { newTokenId } from '../vtt/tokens.ts';
+import { appendFog } from '../vtt/fog.ts';
 import { ensureRoom } from './roomService.ts';
 
 const LOCAL_MAPS_KEY_PREFIX = 'dnd_maps_';
+const LOCAL_DM_ONLY_KEY_PREFIX = 'dnd_dm_only_';
 
 export interface CreateMapData {
   name: string;
@@ -85,11 +88,51 @@ function saveLocalMaps(cid: string, maps: MapDoc[]): void {
   }
 }
 
+function getLocalDmOnly(cid: string, mid: string): DmOnly {
+  const storage = getStorage();
+  if (!storage) return { secretTokens: {} };
+  try {
+    const raw = storage.getItem(LOCAL_DM_ONLY_KEY_PREFIX + cid + '_' + mid);
+    return raw ? JSON.parse(raw) : { secretTokens: {} };
+  } catch (e) {
+    return { secretTokens: {} };
+  }
+}
+
+function saveLocalDmOnly(cid: string, mid: string, data: DmOnly): void {
+  const storage = getStorage();
+  if (!storage) return;
+  try {
+    storage.setItem(LOCAL_DM_ONLY_KEY_PREFIX + cid + '_' + mid, JSON.stringify(data));
+    dispatchEvent('dm-only-updated', { cid, mid, dmOnly: data });
+  } catch (e) {
+    console.warn('[mapService] Error guardando dmOnly local:', e);
+  }
+}
+
+function sanitizeToken(token: Token): Record<string, any> {
+  const clean: Record<string, any> = {};
+  for (const [k, v] of Object.entries(token)) {
+    if (v !== undefined) {
+      clean[k] = v;
+    }
+  }
+  return clean;
+}
+
 function checkCanPrepare(cid: string): void {
   const campaign = campaignStore.getCampaign(cid);
   const status = normalizeStatus(campaign?.status);
   if (!canPerform('dmPrepare', 'dm', status)) {
     throw new Error('No puedes preparar mapas con la partida en el estado actual.');
+  }
+}
+
+function checkCanPlayDm(cid: string): void {
+  const campaign = campaignStore.getCampaign(cid);
+  const status = normalizeStatus(campaign?.status);
+  if (!canPerform('dmPlay', 'dm', status)) {
+    throw new Error('Solo se puede editar la niebla con la partida activa.');
   }
 }
 
@@ -218,6 +261,12 @@ export async function deleteMap(cid: string, mid: string): Promise<void> {
 
   const maps = getLocalMaps(cid).filter((m) => m.id !== mid);
   saveLocalMaps(cid, maps);
+  const storage = getStorage();
+  if (storage) {
+    try {
+      storage.removeItem(LOCAL_DM_ONLY_KEY_PREFIX + cid + '_' + mid);
+    } catch (_) {}
+  }
 
   if (isFirebaseConfigured()) {
     try {
@@ -560,6 +609,442 @@ export async function commitTokenMove(
       throw err;
     }
   }
+}
+
+// ---------------------------------------------------------------------------
+// Gestión de Niebla de Guerra (Fase 4: T-40, T-41)
+// ---------------------------------------------------------------------------
+
+/**
+ * Añade una forma a la niebla de guerra del mapa (solo DM con partida active).
+ * Retorna { warn: boolean } indicando si se superaron las 450 formas.
+ */
+export async function addFogShape(
+  cid: string,
+  mid: string,
+  current: FogShape[],
+  shape: FogShape
+): Promise<{ warn: boolean }> {
+  checkCanPlayDm(cid);
+
+  const res = appendFog(current, shape, MAP_LIMITS.maxFogShapes);
+  if (res.rejected) {
+    throw new Error('Se alcanzó el límite máximo de 500 formas de niebla.');
+  }
+
+  const now = Date.now();
+
+  // Actualizar caché local
+  const maps = getLocalMaps(cid);
+  const idx = maps.findIndex((m) => m.id === mid);
+  if (idx !== -1) {
+    maps[idx].fogRevealed = res.list;
+    maps[idx].updatedAt = now;
+    saveLocalMaps(cid, maps);
+    dispatchEvent('map-updated', { cid, mid, map: maps[idx] });
+  }
+
+  if (isFirebaseConfigured()) {
+    try {
+      const { db } = await getFirebase();
+      const fs = await import('firebase/firestore');
+      await fs.updateDoc(fs.doc(db, 'campaigns', cid, 'maps', mid), {
+        fogRevealed: res.list,
+        updatedAt: now,
+      });
+    } catch (err) {
+      console.warn('[mapService] Error guardando niebla en Firestore:', err);
+      throw err;
+    }
+  }
+
+  return { warn: res.warn };
+}
+
+/**
+ * Reemplaza completamente la lista de niebla ("Cubrir todo" con [] o "Revelar todo").
+ * Solo DM con partida active.
+ */
+export async function setFog(
+  cid: string,
+  mid: string,
+  list: FogShape[]
+): Promise<void> {
+  checkCanPlayDm(cid);
+
+  if (list.length > MAP_LIMITS.maxFogShapes) {
+    throw new Error('La lista de niebla excede el límite máximo de 500 formas.');
+  }
+
+  const now = Date.now();
+
+  const maps = getLocalMaps(cid);
+  const idx = maps.findIndex((m) => m.id === mid);
+  if (idx !== -1) {
+    maps[idx].fogRevealed = list;
+    maps[idx].updatedAt = now;
+    saveLocalMaps(cid, maps);
+    dispatchEvent('map-updated', { cid, mid, map: maps[idx] });
+  }
+
+  if (isFirebaseConfigured()) {
+    try {
+      const { db } = await getFirebase();
+      const fs = await import('firebase/firestore');
+      await fs.updateDoc(fs.doc(db, 'campaigns', cid, 'maps', mid), {
+        fogRevealed: list,
+        updatedAt: now,
+      });
+    } catch (err) {
+      console.warn('[mapService] Error actualizando niebla en Firestore:', err);
+      throw err;
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Gestión de Tokens Ocultos / Secretos (Fase 4: T-42, T-43, RF-24)
+// ---------------------------------------------------------------------------
+
+/**
+ * Oculta un token visible, moviéndolo atómicamente a maps/{mid}/private/dmOnly (solo DM).
+ * Limpia tokenOwners y live en RTDB (RF-24, F4-5).
+ * // DECISION: F4-4 Los tokens visibles bajo la niebla se ven tapados en la UI, pero para
+ * ocultar datos reales al jugador se mueven a private/dmOnly (RF-24).
+ * // DECISION: F4-5 Ocultar y revelar se hacen con writeBatch atómico entre tokens y secretTokens.
+ */
+export async function hideToken(
+  cid: string,
+  mid: string,
+  tid: string,
+  token: Token
+): Promise<void> {
+  checkCanPrepare(cid);
+
+  const clean = sanitizeToken(token);
+  const now = Date.now();
+
+  // 1. Caché local
+  const maps = getLocalMaps(cid);
+  const idx = maps.findIndex((m) => m.id === mid);
+  if (idx !== -1 && maps[idx].tokens?.[tid]) {
+    delete maps[idx].tokens[tid];
+    maps[idx].updatedAt = now;
+    saveLocalMaps(cid, maps);
+    dispatchEvent('map-updated', { cid, mid, map: maps[idx] });
+  }
+
+  const dmOnly = getLocalDmOnly(cid, mid);
+  dmOnly.secretTokens[tid] = clean as Token;
+  saveLocalDmOnly(cid, mid, dmOnly);
+
+  // 2. Transacción / Batch atómico en Firestore
+  if (isFirebaseConfigured()) {
+    try {
+      const { db } = await getFirebase();
+      const fs = await import('firebase/firestore');
+      const batch = fs.writeBatch(db);
+
+      const mapRef = fs.doc(db, 'campaigns', cid, 'maps', mid);
+      const dmOnlyRef = fs.doc(db, 'campaigns', cid, 'maps', mid, 'private', 'dmOnly');
+
+      batch.update(mapRef, {
+        [`tokens.${tid}`]: fs.deleteField(),
+        updatedAt: now,
+      });
+      batch.set(
+        dmOnlyRef,
+        {
+          secretTokens: { [tid]: clean },
+        },
+        { merge: true }
+      );
+
+      await batch.commit();
+    } catch (err) {
+      console.warn('[mapService] Error ocultando token en Firestore batch:', err);
+      throw err;
+    }
+  }
+
+  // 3. RTDB: limpiar tokenOwners y live (el token ya no existe para los jugadores)
+  if (isFirebaseConfigured()) {
+    try {
+      const roomId = await getRoomIdForCampaign(cid);
+      if (roomId) {
+        const { rtdb } = await getFirebase();
+        const rtdbSdk = await import('firebase/database');
+        await Promise.all([
+          rtdbSdk.remove(rtdbSdk.ref(rtdb, `rooms/${roomId}/tokenOwners/${mid}/${tid}`)),
+          rtdbSdk.remove(rtdbSdk.ref(rtdb, `rooms/${roomId}/live/${mid}/${tid}`)),
+        ]);
+      }
+    } catch (err) {
+      console.warn('[mapService] Error limpiando RTDB tras ocultar token:', err);
+    }
+  }
+}
+
+/**
+ * Revela un token oculto, devolviéndolo atómicamente a maps/{mid}.tokens (solo DM).
+ * Si tiene dueño, sincroniza tokenOwners en RTDB (RF-24, F4-5).
+ */
+export async function revealToken(
+  cid: string,
+  mid: string,
+  tid: string,
+  token: Token
+): Promise<void> {
+  checkCanPrepare(cid);
+
+  const clean = sanitizeToken(token);
+  const now = Date.now();
+
+  // 1. Caché local
+  const dmOnly = getLocalDmOnly(cid, mid);
+  if (dmOnly.secretTokens[tid]) {
+    delete dmOnly.secretTokens[tid];
+    saveLocalDmOnly(cid, mid, dmOnly);
+  }
+
+  const maps = getLocalMaps(cid);
+  const idx = maps.findIndex((m) => m.id === mid);
+  if (idx !== -1) {
+    if (!maps[idx].tokens) maps[idx].tokens = {};
+    maps[idx].tokens[tid] = clean as Token;
+    maps[idx].updatedAt = now;
+    saveLocalMaps(cid, maps);
+    dispatchEvent('map-updated', { cid, mid, map: maps[idx] });
+  }
+
+  // 2. Batch atómico en Firestore
+  if (isFirebaseConfigured()) {
+    try {
+      const { db } = await getFirebase();
+      const fs = await import('firebase/firestore');
+      const batch = fs.writeBatch(db);
+
+      const mapRef = fs.doc(db, 'campaigns', cid, 'maps', mid);
+      const dmOnlyRef = fs.doc(db, 'campaigns', cid, 'maps', mid, 'private', 'dmOnly');
+
+      batch.update(mapRef, {
+        [`tokens.${tid}`]: clean,
+        updatedAt: now,
+      });
+      batch.update(dmOnlyRef, {
+        [`secretTokens.${tid}`]: fs.deleteField(),
+      });
+
+      await batch.commit();
+    } catch (err) {
+      console.warn('[mapService] Error revelando token en Firestore batch:', err);
+      throw err;
+    }
+  }
+
+  // 3. RTDB: restaurar tokenOwners si tiene dueño
+  if (isFirebaseConfigured() && token.ownerUid) {
+    try {
+      const roomId = await getRoomIdForCampaign(cid);
+      if (roomId) {
+        const { rtdb } = await getFirebase();
+        const rtdbSdk = await import('firebase/database');
+        await rtdbSdk.set(
+          rtdbSdk.ref(rtdb, `rooms/${roomId}/tokenOwners/${mid}/${tid}`),
+          token.ownerUid
+        );
+      }
+    } catch (err) {
+      console.warn('[mapService] Error restaurando tokenOwners en RTDB tras revelar:', err);
+    }
+  }
+}
+
+/**
+ * Crea un token directamente en estado oculto (private/dmOnly).
+ */
+export async function addSecretToken(
+  cid: string,
+  mid: string,
+  token: Token,
+  specifiedId?: string
+): Promise<string> {
+  checkCanPrepare(cid);
+
+  const tid = specifiedId || newTokenId();
+  const clean = sanitizeToken(token);
+
+  const dmOnly = getLocalDmOnly(cid, mid);
+  dmOnly.secretTokens[tid] = clean as Token;
+  saveLocalDmOnly(cid, mid, dmOnly);
+
+  if (isFirebaseConfigured()) {
+    try {
+      const { db } = await getFirebase();
+      const fs = await import('firebase/firestore');
+      const dmOnlyRef = fs.doc(db, 'campaigns', cid, 'maps', mid, 'private', 'dmOnly');
+      await fs.setDoc(
+        dmOnlyRef,
+        {
+          secretTokens: { [tid]: clean },
+        },
+        { merge: true }
+      );
+    } catch (err) {
+      console.warn('[mapService] Error guardando token secreto en Firestore:', err);
+      throw err;
+    }
+  }
+
+  return tid;
+}
+
+/**
+ * Actualiza propiedades o posición de un token oculto en private/dmOnly (solo DM).
+ * DECISION (F4-4): La posición de tokens secretos NUNCA toca el mapa público ni RTDB live.
+ */
+export async function updateSecretToken(
+  cid: string,
+  mid: string,
+  tid: string,
+  patch: Partial<Token>
+): Promise<void> {
+  checkCanPrepare(cid);
+
+  const dmOnly = getLocalDmOnly(cid, mid);
+  if (dmOnly.secretTokens[tid]) {
+    const updated = { ...dmOnly.secretTokens[tid] };
+    for (const [k, v] of Object.entries(patch)) {
+      if (v === undefined) {
+        delete (updated as any)[k];
+      } else {
+        (updated as any)[k] = v;
+      }
+    }
+    dmOnly.secretTokens[tid] = updated;
+    saveLocalDmOnly(cid, mid, dmOnly);
+  }
+
+  if (isFirebaseConfigured()) {
+    try {
+      const { db } = await getFirebase();
+      const fs = await import('firebase/firestore');
+      const updatePayload: Record<string, any> = {};
+      for (const [key, val] of Object.entries(patch)) {
+        if (val === undefined) {
+          updatePayload[`secretTokens.${tid}.${key}`] = fs.deleteField();
+        } else {
+          updatePayload[`secretTokens.${tid}.${key}`] = val;
+        }
+      }
+      await fs.updateDoc(
+        fs.doc(db, 'campaigns', cid, 'maps', mid, 'private', 'dmOnly'),
+        updatePayload
+      );
+    } catch (err) {
+      console.warn('[mapService] Error actualizando token secreto en Firestore:', err);
+      throw err;
+    }
+  }
+}
+
+/**
+ * Elimina definitivamente un token oculto de private/dmOnly.
+ */
+export async function removeSecretToken(
+  cid: string,
+  mid: string,
+  tid: string
+): Promise<void> {
+  checkCanPrepare(cid);
+
+  const dmOnly = getLocalDmOnly(cid, mid);
+  if (dmOnly.secretTokens[tid]) {
+    delete dmOnly.secretTokens[tid];
+    saveLocalDmOnly(cid, mid, dmOnly);
+  }
+
+  if (isFirebaseConfigured()) {
+    try {
+      const { db } = await getFirebase();
+      const fs = await import('firebase/firestore');
+      await fs.updateDoc(fs.doc(db, 'campaigns', cid, 'maps', mid, 'private', 'dmOnly'), {
+        [`secretTokens.${tid}`]: fs.deleteField(),
+      });
+    } catch (err) {
+      console.warn('[mapService] Error eliminando token secreto en Firestore:', err);
+      throw err;
+    }
+  }
+}
+
+/**
+ * Suscripción exclusiva del DM al documento private/dmOnly del mapa activo.
+ * // DECISION: F4-3 El DM tiene un segundo onSnapshot sobre private/dmOnly del mapa abierto.
+ * Los jugadores nunca llaman a esta función (y las reglas de seguridad les deniegan acceso).
+ */
+export function subscribeDmOnly(
+  cid: string,
+  mid: string,
+  callback: (dmOnly: DmOnly) => void
+): () => void {
+  // Emitir valor local de inmediato
+  const initialLocal = getLocalDmOnly(cid, mid);
+  callback(initialLocal);
+
+  if (isFirebaseConfigured()) {
+    let isCancelled = false;
+    let fsUnsub: (() => void) | null = null;
+
+    getFirebase()
+      .then(async ({ db }) => {
+        if (isCancelled) return;
+        const fs = await import('firebase/firestore');
+        const docRef = fs.doc(db, 'campaigns', cid, 'maps', mid, 'private', 'dmOnly');
+
+        fsUnsub = fs.onSnapshot(
+          docRef,
+          (snap) => {
+            const data: DmOnly = {
+              secretTokens: snap.exists() ? ((snap.data() as any).secretTokens || {}) : {},
+            };
+            saveLocalDmOnly(cid, mid, data);
+            callback(data);
+          },
+          (error) => {
+            console.warn(`[mapService] onSnapshot error en dmOnly ${mid}:`, error);
+            callback(getLocalDmOnly(cid, mid));
+          }
+        );
+
+        if (isCancelled && fsUnsub) {
+          fsUnsub();
+        }
+      })
+      .catch((err) => {
+        console.warn('[mapService] Error suscribiendo a dmOnly:', err);
+        callback(getLocalDmOnly(cid, mid));
+      });
+
+    return () => {
+      isCancelled = true;
+      if (fsUnsub) fsUnsub();
+    };
+  }
+
+  // Manejador local de eventos
+  const localHandler = (event: Event) => {
+    const customEvent = event as CustomEvent<{ cid: string; mid: string; dmOnly?: DmOnly }>;
+    if (customEvent.detail && customEvent.detail.cid === cid && customEvent.detail.mid === mid) {
+      callback(customEvent.detail.dmOnly || getLocalDmOnly(cid, mid));
+    }
+  };
+
+  addListener('dm-only-updated', localHandler as EventListener);
+
+  return () => {
+    removeListener('dm-only-updated', localHandler as EventListener);
+  };
 }
 
 // ---------------------------------------------------------------------------

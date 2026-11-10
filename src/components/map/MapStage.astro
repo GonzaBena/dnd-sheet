@@ -6,6 +6,8 @@
 // reemplazando el patrón client:only sin requerir frameworks externos (React/Vue).
 // DECISION (F2-1): Todo se guarda y calcula en píxeles de la imagen original.
 
+import FogTools from '../dm/FogTools.astro';
+
 interface Props {
   mode?: 'dm' | 'player';
   class?: string;
@@ -31,25 +33,25 @@ const { mode = 'player', class: className = '', id } = Astro.props;
   ></div>
 
   <!-- Barra de estado y cabecera del mapa (top-left) -->
-  <div class="absolute top-3 left-3 z-20 flex items-center gap-2 pointer-events-none">
+  <div class="absolute top-3 left-3 z-20 flex items-center gap-2 pointer-events-none isolate">
     {mode === 'dm' ? (
-      <div class="relative pointer-events-auto" data-map-dropdown-wrapper>
+      <div class="relative pointer-events-auto isolate" data-map-dropdown-wrapper>
         <button
           type="button"
           data-map-dropdown-toggle
-          class="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[#10141d]/90 backdrop-blur-md border border-[#222f42] hover:border-amber-500/50 text-xs shadow-md transition-all cursor-pointer group select-none"
+          class="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[#10141d]/90 backdrop-blur-md border border-[#222f42] hover:border-amber-500/50 text-xs shadow-md transition-colors duration-150 cursor-pointer select-none"
           title="Cambiar mapa activo o gestionar biblioteca"
           aria-haspopup="true"
           aria-expanded="false"
         >
-          <span class="material-symbols-outlined text-[16px] text-amber-400 group-hover:scale-110 transition-transform">map</span>
+          <span class="material-symbols-outlined text-[16px] text-amber-400">map</span>
           <span data-map-title class="font-headline font-bold text-[#f1f5f9] truncate max-w-[160px] sm:max-w-xs text-left">
             Sin mapa activo
           </span>
           <span data-active-badge class="hidden px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 shrink-0">
             ACTIVO
           </span>
-          <span data-map-dropdown-arrow class="material-symbols-outlined text-[16px] text-[#94a3b8] group-hover:text-amber-400 transition-transform shrink-0">
+          <span data-map-dropdown-arrow class="material-symbols-outlined text-[16px] text-[#94a3b8] group-hover:text-amber-400 transition-colors shrink-0">
             arrow_drop_down
           </span>
         </button>
@@ -57,7 +59,7 @@ const { mode = 'player', class: className = '', id } = Astro.props;
         <!-- Menú desplegable de mapas para el DM -->
         <div
           data-map-dropdown-menu
-          class="hidden absolute top-full left-0 mt-1.5 w-72 max-h-80 overflow-y-auto rounded-xl bg-[#121721] border border-[#222f42] shadow-[0_10px_35px_rgba(0,0,0,0.8)] p-1.5 space-y-1 z-30 font-label text-xs backdrop-blur-md"
+          class="hidden absolute top-full left-0 mt-1 w-72 max-h-80 overflow-y-auto rounded-xl bg-[#121721] border border-[#222f42] shadow-[0_10px_35px_rgba(0,0,0,0.8)] p-1.5 space-y-1 z-30 font-label text-xs backdrop-blur-md pointer-events-auto isolate"
         >
           <div class="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-[#94a3b8] flex items-center justify-between border-b border-[#222f42]/60 pb-1">
             <span>Mapas de la Campaña</span>
@@ -76,7 +78,7 @@ const { mode = 'player', class: className = '', id } = Astro.props;
             <button
               type="button"
               data-map-dropdown-manage-btn
-              class="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-amber-300 hover:bg-amber-500/15 hover:text-amber-200 transition-colors text-left font-bold text-[11px] cursor-pointer"
+              class="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-amber-300 hover:bg-amber-500/15 hover:text-amber-200 transition-colors duration-150 text-left font-bold text-[11px] cursor-pointer"
             >
               <span class="material-symbols-outlined text-[15px]">tune</span>
               <span>Gestionar / Subir Mapas...</span>
@@ -85,7 +87,7 @@ const { mode = 'player', class: className = '', id } = Astro.props;
         </div>
       </div>
     ) : (
-      <div class="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[#10141d]/85 backdrop-blur-md border border-[#222f42] text-xs shadow-md pointer-events-auto">
+      <div class="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[#10141d]/85 backdrop-blur-md border border-[#222f42] text-xs shadow-md pointer-events-auto isolate">
         <span class="material-symbols-outlined text-[16px] text-amber-400">map</span>
         <span data-map-title class="font-headline font-bold text-[#f1f5f9] truncate max-w-[200px] sm:max-w-xs">
           Sin mapa activo
@@ -135,7 +137,8 @@ const { mode = 'player', class: className = '', id } = Astro.props;
   </div>
 
   <!-- Controles flotantes de navegación (bottom-right) (T-22) -->
-  <div class="absolute bottom-3 right-3 z-10 flex items-center gap-1.5 p-1.5 rounded-xl bg-[#10141d]/85 backdrop-blur-md border border-[#222f42] shadow-xl">
+  <!-- Controles de navegación y cuadrícula (bottom-right) -->
+  <div class="absolute bottom-3 right-3 z-10 flex items-center gap-1.5 p-1.5 rounded-xl bg-[#10141d]/85 backdrop-blur-md border border-[#222f42] shadow-xl isolate">
     <span
       data-zoom-indicator
       class="text-[11px] font-mono font-bold text-[#94a3b8] px-2 py-1 select-none"
@@ -148,7 +151,7 @@ const { mode = 'player', class: className = '', id } = Astro.props;
     <button
       type="button"
       data-grid-toggle-btn
-      class="w-8 h-8 rounded-lg bg-[#18202e] border border-[#222f42] hover:border-amber-500/50 text-[#cbd5e1] hover:text-amber-300 flex items-center justify-center transition-all active:scale-95 cursor-pointer"
+      class="w-8 h-8 rounded-lg bg-[#18202e] border border-[#222f42] hover:border-amber-500/50 text-[#cbd5e1] hover:text-amber-300 flex items-center justify-center transition-colors duration-150 active:bg-amber-500/20 cursor-pointer"
       title="Alternar cuadrícula: Alto Contraste / Sutil / Oculta"
     >
       <span data-grid-toggle-icon class="material-symbols-outlined text-[18px] text-amber-400">grid_on</span>
@@ -157,7 +160,7 @@ const { mode = 'player', class: className = '', id } = Astro.props;
     <button
       type="button"
       data-zoom-out-btn
-      class="w-8 h-8 rounded-lg bg-[#18202e] border border-[#222f42] hover:border-amber-500/50 text-[#cbd5e1] hover:text-amber-300 flex items-center justify-center transition-all active:scale-95 cursor-pointer"
+      class="w-8 h-8 rounded-lg bg-[#18202e] border border-[#222f42] hover:border-amber-500/50 text-[#cbd5e1] hover:text-amber-300 flex items-center justify-center transition-colors duration-150 active:bg-amber-500/20 cursor-pointer"
       title="Alejar zoom (−)"
     >
       <span class="material-symbols-outlined text-[18px]">remove</span>
@@ -166,7 +169,7 @@ const { mode = 'player', class: className = '', id } = Astro.props;
     <button
       type="button"
       data-zoom-in-btn
-      class="w-8 h-8 rounded-lg bg-[#18202e] border border-[#222f42] hover:border-amber-500/50 text-[#cbd5e1] hover:text-amber-300 flex items-center justify-center transition-all active:scale-95 cursor-pointer"
+      class="w-8 h-8 rounded-lg bg-[#18202e] border border-[#222f42] hover:border-amber-500/50 text-[#cbd5e1] hover:text-amber-300 flex items-center justify-center transition-colors duration-150 active:bg-amber-500/20 cursor-pointer"
       title="Acercar zoom (+)"
     >
       <span class="material-symbols-outlined text-[18px]">add</span>
@@ -175,12 +178,19 @@ const { mode = 'player', class: className = '', id } = Astro.props;
     <button
       type="button"
       data-fit-btn
-      class="w-8 h-8 rounded-lg bg-[#18202e] border border-[#222f42] hover:border-amber-500/50 text-[#cbd5e1] hover:text-amber-300 flex items-center justify-center transition-all active:scale-95 cursor-pointer"
+      class="w-8 h-8 rounded-lg bg-[#18202e] border border-[#222f42] hover:border-amber-500/50 text-[#cbd5e1] hover:text-amber-300 flex items-center justify-center transition-colors duration-150 active:bg-amber-500/20 cursor-pointer"
       title="Encuadrar mapa completo"
     >
       <span class="material-symbols-outlined text-[18px]">fit_screen</span>
     </button>
   </div>
+
+  <!-- Barra de Herramientas de Niebla del DM (bottom-left) (Fase 4: T-40, T-41) -->
+  {mode === 'dm' && (
+    <div class="absolute bottom-3 left-3 z-20 pointer-events-auto">
+      <FogTools />
+    </div>
+  )}
 
   <!-- Overlay de Carga (oculto por defecto para evitar pantallas de carga bloqueadas) -->
   <div
@@ -234,6 +244,10 @@ const { mode = 'player', class: className = '', id } = Astro.props;
     setActiveMap,
     commitTokenMove,
     reconcileTokenOwners,
+    addFogShape,
+    setFog,
+    subscribeDmOnly,
+    updateSecretToken,
   } from '../../scripts/data/mapService.ts';
   import { createLivePublisher, subscribeLive, type LivePublisher } from '../../scripts/data/liveService.ts';
   import { campaignStore } from '../../scripts/state/campaignStore.ts';
@@ -351,14 +365,15 @@ const { mode = 'player', class: className = '', id } = Astro.props;
           const isActive = m.id === activeId;
           const item = document.createElement('button');
           item.type = 'button';
-          item.className = `w-full flex items-center justify-between gap-2 px-2.5 py-2 rounded-lg text-left transition-all cursor-pointer ${
+          item.setAttribute('data-dropdown-map-id', m.id);
+          item.className = `w-full flex items-center justify-between gap-2 px-2.5 py-2 rounded-lg text-left transition-colors duration-150 cursor-pointer ${
             isActive
               ? 'bg-amber-500/15 border border-amber-500/30 text-amber-300 font-bold'
               : 'hover:bg-[#18202e] text-[#cbd5e1] hover:text-[#f1f5f9]'
           }`;
 
           item.innerHTML = `
-            <div class="flex items-center gap-2 min-w-0">
+            <div class="flex items-center gap-2 min-w-0 pointer-events-none">
               <span class="material-symbols-outlined text-[16px] ${isActive ? 'text-amber-400' : 'text-[#64748b]'}">
                 ${isActive ? 'check_circle' : 'map'}
               </span>
@@ -367,10 +382,11 @@ const { mode = 'player', class: className = '', id } = Astro.props;
                 <span class="block text-[10px] text-[#64748b] font-mono">${m.imageWidth}×${m.imageHeight}px</span>
               </div>
             </div>
-            ${isActive ? '<span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40">ACTIVO</span>' : ''}
+            ${isActive ? '<span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40 shrink-0 pointer-events-none">ACTIVO</span>' : ''}
           `;
 
-          item.addEventListener('click', async () => {
+          item.addEventListener('click', async (e) => {
+            e.stopPropagation();
             dropdownMenu?.classList.add('hidden');
             if (isActive) return;
             try {
@@ -423,7 +439,26 @@ const { mode = 'player', class: className = '', id } = Astro.props;
       let activeUnsub: (() => void) | null = null;
       let dmManualMapUnsub: (() => void) | null = null;
       let liveUnsub: (() => void) | null = null;
+      let dmOnlyUnsub: (() => void) | null = null;
       let currentPublisher: LivePublisher | null = null;
+
+      function syncFogToolsUi(map: MapDoc | null) {
+        if (mode !== 'dm') return;
+        const fogTools = root.querySelector<HTMLElement>('[data-fog-tools-root]');
+        if (!fogTools) return;
+        const cid = getActiveCampaignId();
+        const camp = cid ? campaignStore.getCampaign(cid) : null;
+        const status = camp ? normalizeStatus(camp.status) : 'paused';
+        fogTools.dispatchEvent(
+          new CustomEvent('update-fog-status', {
+            detail: {
+              shapesCount: map?.fogRevealed?.length || 0,
+              status,
+              tool: controller.getTool(),
+            },
+          })
+        );
+      }
 
       function showNotice(msg: string) {
         const toast = root.querySelector<HTMLElement>('[data-map-toast]');
@@ -448,6 +483,7 @@ const { mode = 'player', class: className = '', id } = Astro.props;
         } else if (!cid) {
           controller.setStatus('paused');
         }
+        syncFogToolsUi(lastReceivedMap);
       }
 
       updateViewerAndStatus();
@@ -455,6 +491,7 @@ const { mode = 'player', class: className = '', id } = Astro.props;
       window.addEventListener('session-status-changed', ((e: CustomEvent) => {
         if (e.detail?.status) {
           controller.setStatus(e.detail.status);
+          syncFogToolsUi(lastReceivedMap);
         }
       }) as EventListener);
 
@@ -545,6 +582,80 @@ const { mode = 'player', class: className = '', id } = Astro.props;
         }
       }) as EventListener);
 
+      // Eventos de niebla de guerra (T-40, T-41)
+      controller.addEventListener('fog-shape', (async (e: CustomEvent) => {
+        const { shape } = e.detail;
+        const cid = getActiveCampaignId();
+        if (!cid || !currentMapId) return;
+        try {
+          const currentList = lastReceivedMap?.fogRevealed || [];
+          const res = await addFogShape(cid, currentMapId, currentList, shape);
+          if (res.warn) {
+            showNotice('Niebla: se han aplicado más de 450 formas. Conviene "Cubrir todo" y rehacer.');
+          }
+        } catch (err: any) {
+          console.error('[MapStage] Error guardando forma de niebla:', err);
+          showNotice(err.message || 'No se pudo guardar la niebla');
+        }
+      }) as EventListener);
+
+      root.addEventListener('fog-tool-select', ((e: CustomEvent) => {
+        controller.setTool(e.detail.tool);
+      }) as EventListener);
+
+      root.addEventListener('fog-brush-size', ((e: CustomEvent) => {
+        const mult = Number(e.detail.multiplier) || 1;
+        const cellSize = (lastReceivedMap && lastReceivedMap.grid && lastReceivedMap.grid.size) || 50;
+        const newRadius = Math.max(6, Math.round((cellSize / 2) * mult));
+        controller.setBrushRadius(newRadius);
+      }) as EventListener);
+
+      root.addEventListener('fog-action-reveal-all', (async () => {
+        const cid = getActiveCampaignId();
+        if (!cid || !currentMapId || !lastReceivedMap) return;
+        try {
+          await setFog(cid, currentMapId, [
+            { kind: 'rect', x: 0, y: 0, w: lastReceivedMap.imageWidth, h: lastReceivedMap.imageHeight },
+          ]);
+        } catch (err: any) {
+          console.error('[MapStage] Error revelando todo el mapa:', err);
+          showNotice(err.message || 'No se pudo guardar la niebla');
+        }
+      }) as EventListener);
+
+      root.addEventListener('fog-action-cover-all', (async () => {
+        const cid = getActiveCampaignId();
+        if (!cid || !currentMapId) return;
+        try {
+          await setFog(cid, currentMapId, []);
+        } catch (err: any) {
+          console.error('[MapStage] Error cubriendo todo el mapa:', err);
+          showNotice(err.message || 'No se pudo guardar la niebla');
+        }
+      }) as EventListener);
+
+      root.addEventListener('fog-toggle-player-view', ((e: CustomEvent) => {
+        controller.setPlayerFogView(Boolean(e.detail.enabled));
+      }) as EventListener);
+
+      controller.addEventListener('tool-changed', ((e: CustomEvent) => {
+        const fogTools = root.querySelector<HTMLElement>('[data-fog-tools-root]');
+        fogTools?.dispatchEvent(new CustomEvent('update-fog-status', { detail: { tool: e.detail.tool } }));
+      }) as EventListener);
+
+      // Eventos de tokens secretos (T-42)
+      controller.addEventListener('secret-token-drag-end', (async (e: CustomEvent) => {
+        const { tid, x, y } = e.detail;
+        const cid = getActiveCampaignId();
+        if (!cid || !currentMapId) return;
+        try {
+          await updateSecretToken(cid, currentMapId, tid, { x, y });
+        } catch (err: any) {
+          console.error('[MapStage] Error guardando posición de token secreto:', err);
+          showNotice('No se pudo guardar la posición del token secreto');
+        }
+      }) as EventListener);
+
       function showLoading(show: boolean) {
         if (!loadingOverlay) return;
         if (show) {
@@ -576,8 +687,17 @@ const { mode = 'player', class: className = '', id } = Astro.props;
             activeBadgeEl.classList.add('hidden');
           }
         }
-        if (dropdownMenu && !dropdownMenu.classList.contains('hidden')) {
-          populateMapDropdown();
+        if (dropdownMenu && !dropdownMenu.classList.contains('hidden') && dropdownList) {
+          const activeMid = map ? map.id : null;
+          dropdownList.querySelectorAll<HTMLButtonElement>('[data-dropdown-map-id]').forEach((btn) => {
+            const btnMid = btn.getAttribute('data-dropdown-map-id');
+            const isItemActive = btnMid === activeMid;
+            btn.className = `w-full flex items-center justify-between gap-2 px-2.5 py-2 rounded-lg text-left transition-colors duration-150 cursor-pointer ${
+              isItemActive
+                ? 'bg-amber-500/15 border border-amber-500/30 text-amber-300 font-bold'
+                : 'hover:bg-[#18202e] text-[#cbd5e1] hover:text-[#f1f5f9]'
+            }`;
+          });
         }
       }
 
@@ -672,10 +792,15 @@ const { mode = 'player', class: className = '', id } = Astro.props;
               liveUnsub();
               liveUnsub = null;
             }
+            if (dmOnlyUnsub) {
+              dmOnlyUnsub();
+              dmOnlyUnsub = null;
+            }
             currentMapId = null;
             await controller.setMap(null);
             updateTitle(null);
             updatePlayerHud(null);
+            syncFogToolsUi(null);
             emptyOverlay?.classList.remove('hidden');
             return;
           }
@@ -683,10 +808,12 @@ const { mode = 'player', class: className = '', id } = Astro.props;
           emptyOverlay?.classList.add('hidden');
           updateTitle(map);
 
-          // Si es el mismo mapa que ya está cargado, actualizar grilla y tokens sin reiniciar el stage
+          // Si es el mismo mapa que ya está cargado, actualizar grilla, tokens y niebla sin reiniciar el stage
           if (currentMapId === map.id) {
             controller.setGrid(map.grid);
             controller.setTokens(map.tokens || {});
+            controller.setFog(map.fogRevealed || []);
+            syncFogToolsUi(map);
             updatePlayerHud(map);
             const cid = getActiveCampaignId();
             if (mode === 'dm' && cid) {
@@ -698,6 +825,10 @@ const { mode = 'player', class: className = '', id } = Astro.props;
           if (liveUnsub) {
             liveUnsub();
             liveUnsub = null;
+          }
+          if (dmOnlyUnsub) {
+            dmOnlyUnsub();
+            dmOnlyUnsub = null;
           }
 
           currentMapId = map.id;
@@ -720,6 +851,19 @@ const { mode = 'player', class: className = '', id } = Astro.props;
             await controller.setMap(map);
             updatePlayerHud(map);
             controller.fit();
+            syncFogToolsUi(map);
+
+            // Suscribirse a dmOnly si es DM (T-42)
+            if (mode === 'dm' && activeCid && map.id) {
+              dmOnlyUnsub = subscribeDmOnly(activeCid, map.id, (dmOnly) => {
+                controller.setSecretTokens(dmOnly.secretTokens || {});
+                window.dispatchEvent(
+                  new CustomEvent('dm-only-changed', {
+                    detail: { cid: activeCid, mid: map.id, dmOnly },
+                  })
+                );
+              });
+            }
           } catch (err) {
             console.error('[MapStage] Error cargando mapa:', err);
           }
@@ -766,6 +910,10 @@ const { mode = 'player', class: className = '', id } = Astro.props;
         if (liveUnsub) {
           liveUnsub();
           liveUnsub = null;
+        }
+        if (dmOnlyUnsub) {
+          dmOnlyUnsub();
+          dmOnlyUnsub = null;
         }
 
         showLoading(true);
@@ -865,8 +1013,17 @@ const { mode = 'player', class: className = '', id } = Astro.props;
         updatePlayerHud(lastReceivedMap);
       });
       window.addEventListener('maps-updated', () => {
-        if (dropdownMenu && !dropdownMenu.classList.contains('hidden')) {
-          populateMapDropdown();
+        if (dropdownMenu && !dropdownMenu.classList.contains('hidden') && dropdownList) {
+          const activeMid = lastReceivedMap ? lastReceivedMap.id : null;
+          dropdownList.querySelectorAll<HTMLButtonElement>('[data-dropdown-map-id]').forEach((btn) => {
+            const btnMid = btn.getAttribute('data-dropdown-map-id');
+            const isItemActive = btnMid === activeMid;
+            btn.className = `w-full flex items-center justify-between gap-2 px-2.5 py-2 rounded-lg text-left transition-colors duration-150 cursor-pointer ${
+              isItemActive
+                ? 'bg-amber-500/15 border border-amber-500/30 text-amber-300 font-bold'
+                : 'hover:bg-[#18202e] text-[#cbd5e1] hover:text-[#f1f5f9]'
+            }`;
+          });
         }
       });
     }

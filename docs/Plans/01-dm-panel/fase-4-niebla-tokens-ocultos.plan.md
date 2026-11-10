@@ -184,6 +184,6 @@ En `mapService.ts`:
 - Vista en vivo del arrastre de tokens secretos.
 
 ## 10. Checklist de cierre
-- [ ] T-40 … T-43 marcadas en la spec.
-- [ ] `// DECISION:` para F4-1, F4-3 y F4-4.
-- [ ] Tests verdes y build estático OK.
+- [x] T-40 … T-43 marcadas en la spec.
+- [x] `// DECISION:` para F4-1, F4-3 y F4-4.
+- [x] Tests verdes y build estático OK.

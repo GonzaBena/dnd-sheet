@@ -1,0 +1,282 @@
+---
+// src/components/dm/FogTools.astro
+// Barra de herramientas flotante del DM para la niebla de guerra (T-40, T-41, Pincel).
+// Formato compacto solo iconos con tooltips, pincel para curvas y selector de tamaño.
+---
+
+<div
+  data-fog-tools-root
+  class="flex items-center gap-1 p-1 rounded-2xl bg-[#10141d]/90 backdrop-blur-md border border-[#222f42] shadow-2xl text-xs font-label select-none isolate transition-colors duration-150"
+>
+  <!-- Grupo de Herramientas de Puntero, Pincel y Rectángulo -->
+  <div class="flex items-center bg-[#18202e]/80 rounded-xl p-0.5 border border-[#222f42]/60 gap-0.5">
+    <!-- Puntero -->
+    <button
+      type="button"
+      data-fog-tool-btn="none"
+      class="w-8 h-8 flex items-center justify-center rounded-lg text-amber-300 bg-amber-500/20 border border-amber-500/40 font-bold transition-colors duration-150 cursor-pointer"
+      title="Puntero: navegar y mover mapa / tokens"
+      aria-label="Puntero"
+    >
+      <span class="material-symbols-outlined text-[17px]">pan_tool</span>
+    </button>
+
+    <!-- Pincel Revelar -->
+    <button
+      type="button"
+      data-fog-tool-btn="fog-brush-reveal"
+      class="w-8 h-8 flex items-center justify-center rounded-lg text-[#94a3b8] hover:text-[#f1f5f9] hover:bg-[#222f42]/60 border border-transparent transition-colors duration-150 cursor-pointer"
+      title="Pincel: revelar niebla a mano alzada (curvas y círculos)"
+      aria-label="Pincel Revelar"
+    >
+      <span class="material-symbols-outlined text-[17px] text-cyan-400">brush</span>
+    </button>
+
+    <!-- Pincel Cubrir -->
+    <button
+      type="button"
+      data-fog-tool-btn="fog-brush-cover"
+      class="w-8 h-8 flex items-center justify-center rounded-lg text-[#94a3b8] hover:text-[#f1f5f9] hover:bg-[#222f42]/60 border border-transparent transition-colors duration-150 cursor-pointer"
+      title="Pincel: volver a cubrir niebla a mano alzada"
+      aria-label="Pincel Cubrir"
+    >
+      <span class="material-symbols-outlined text-[17px] text-rose-400">format_paint</span>
+    </button>
+
+    <!-- Rectángulo Revelar -->
+    <button
+      type="button"
+      data-fog-tool-btn="fog-reveal"
+      class="w-8 h-8 flex items-center justify-center rounded-lg text-[#94a3b8] hover:text-[#f1f5f9] hover:bg-[#222f42]/60 border border-transparent transition-colors duration-150 cursor-pointer"
+      title="Rectángulo: revelar área rectangular de niebla"
+      aria-label="Rectángulo Revelar"
+    >
+      <span class="material-symbols-outlined text-[17px] text-cyan-400">crop_square</span>
+    </button>
+
+    <!-- Rectángulo Cubrir -->
+    <button
+      type="button"
+      data-fog-tool-btn="fog-cover"
+      class="w-8 h-8 flex items-center justify-center rounded-lg text-[#94a3b8] hover:text-[#f1f5f9] hover:bg-[#222f42]/60 border border-transparent transition-colors duration-150 cursor-pointer"
+      title="Rectángulo: volver a cubrir área rectangular con niebla"
+      aria-label="Rectángulo Cubrir"
+    >
+      <span class="material-symbols-outlined text-[17px] text-rose-400">cloud</span>
+    </button>
+  </div>
+
+  <!-- Selector de Tamaño de Pincel (0.5x, 1x, 2x de la celda) -->
+  <button
+    type="button"
+    data-fog-brush-size-btn
+    class="w-8 h-8 flex items-center justify-center rounded-xl bg-[#18202e] hover:bg-[#222f42]/80 border border-[#222f42] hover:border-amber-500/40 text-[#cbd5e1] hover:text-amber-300 transition-colors duration-150 cursor-pointer font-mono font-bold text-[10px]"
+    title="Tamaño de pincel: 1x celda (Clic para alternar: 0.5x, 1x, 2x)"
+    aria-label="Tamaño de Pincel"
+  >
+    <span data-fog-brush-size-label>1x</span>
+  </button>
+
+  <div class="h-4 w-px bg-[#222f42]"></div>
+
+  <!-- Acciones Globales Rápidas (F4-2) -->
+  <div class="flex items-center gap-0.5">
+    <button
+      type="button"
+      data-fog-reveal-all-btn
+      class="w-8 h-8 flex items-center justify-center rounded-xl bg-[#18202e] hover:bg-cyan-500/15 border border-[#222f42] hover:border-cyan-500/40 text-[#cbd5e1] hover:text-cyan-300 transition-colors duration-150 cursor-pointer"
+      title="Revelar mapa completo a los jugadores"
+      aria-label="Revelar Todo el Mapa"
+    >
+      <span class="material-symbols-outlined text-[16px] text-cyan-400">wb_sunny</span>
+    </button>
+
+    <button
+      type="button"
+      data-fog-cover-all-btn
+      class="w-8 h-8 flex items-center justify-center rounded-xl bg-[#18202e] hover:bg-rose-500/15 border border-[#222f42] hover:border-rose-500/40 text-[#cbd5e1] hover:text-rose-300 transition-colors duration-150 cursor-pointer"
+      title="Cubrir mapa completo con niebla oscura"
+      aria-label="Cubrir Todo el Mapa"
+    >
+      <span class="material-symbols-outlined text-[16px] text-rose-400">cloud_off</span>
+    </button>
+  </div>
+
+  <div class="h-4 w-px bg-[#222f42]"></div>
+
+  <!-- Toggle "Ver como Jugador" (T-41) -->
+  <button
+    type="button"
+    data-fog-player-view-btn
+    class="w-8 h-8 flex items-center justify-center rounded-xl bg-[#18202e] border border-[#222f42] hover:border-amber-500/40 text-[#cbd5e1] hover:text-amber-300 transition-colors duration-150 cursor-pointer"
+    title="Alternar vista: Semitransparente (DM) o 100% opaca (Jugador)"
+    aria-label="Ver como Jugador"
+  >
+    <span data-fog-player-view-icon class="material-symbols-outlined text-[16px] text-[#94a3b8]">preview</span>
+  </button>
+
+  <!-- Contador de formas de niebla (F4-2) -->
+  <div
+    data-fog-counter-badge
+    class="hidden px-1.5 py-1 rounded-lg bg-[#18202e] border border-[#222f42] text-[10px] font-mono text-[#94a3b8]"
+    title="Formas de niebla aplicadas (máximo 500)"
+  >
+    <span data-fog-count-text>0/500</span>
+  </div>
+
+  <!-- Aviso de advertencia límite niebla (>= 450 formas) -->
+  <div
+    data-fog-warn-badge
+    class="hidden items-center justify-center w-8 h-8 rounded-lg bg-amber-500/20 border border-amber-500/40 text-amber-300 animate-pulse"
+    title="¡Cerca del límite de 500 formas! Conviene 'Cubrir todo' y rehacer"
+  >
+    <span class="material-symbols-outlined text-[16px]">warning</span>
+  </div>
+
+  <!-- Aviso de partida en pausa -->
+  <div
+    data-fog-disabled-notice
+    class="hidden items-center justify-center w-8 h-8 rounded-lg bg-amber-500/15 border border-amber-500/30 text-amber-300"
+    title="Partida en pausa: inicia la partida para modificar la niebla"
+  >
+    <span class="material-symbols-outlined text-[16px]">pause_circle</span>
+  </div>
+</div>
+
+<script>
+  // Inicialización de la barra de niebla
+  function initFogTools() {
+    const roots = document.querySelectorAll<HTMLElement>('[data-fog-tools-root]');
+    roots.forEach((root) => {
+      if ((root as any).__initialized) return;
+      (root as any).__initialized = true;
+
+      const toolBtns = root.querySelectorAll<HTMLButtonElement>('[data-fog-tool-btn]');
+      const brushSizeBtn = root.querySelector<HTMLButtonElement>('[data-fog-brush-size-btn]');
+      const brushSizeLabel = root.querySelector<HTMLElement>('[data-fog-brush-size-label]');
+      const revealAllBtn = root.querySelector<HTMLButtonElement>('[data-fog-reveal-all-btn]');
+      const coverAllBtn = root.querySelector<HTMLButtonElement>('[data-fog-cover-all-btn]');
+      const playerViewBtn = root.querySelector<HTMLButtonElement>('[data-fog-player-view-btn]');
+      const playerViewIcon = root.querySelector<HTMLElement>('[data-fog-player-view-icon]');
+      const counterBadge = root.querySelector<HTMLElement>('[data-fog-counter-badge]');
+      const countText = root.querySelector<HTMLElement>('[data-fog-count-text]');
+      const warnBadge = root.querySelector<HTMLElement>('[data-fog-warn-badge]');
+      const disabledNotice = root.querySelector<HTMLElement>('[data-fog-disabled-notice]');
+
+      let currentTool = 'none';
+      let isPlayerView = false;
+      let isSessionActive = true;
+
+      // Ciclo de tamaños de pincel: 0.5x, 1x, 2x
+      const BRUSH_SIZES = [0.5, 1, 2];
+      let brushSizeIndex = 1; // 1x por defecto
+
+      const updateToolButtonsUi = (tool: string) => {
+        currentTool = tool;
+        toolBtns.forEach((btn) => {
+          const btnTool = btn.getAttribute('data-fog-tool-btn');
+          if (btnTool === tool) {
+            btn.className = 'w-8 h-8 flex items-center justify-center rounded-lg text-amber-300 bg-amber-500/20 border border-amber-500/40 font-bold transition-colors duration-150 cursor-pointer';
+          } else {
+            btn.className = 'w-8 h-8 flex items-center justify-center rounded-lg text-[#94a3b8] hover:text-[#f1f5f9] hover:bg-[#222f42]/60 border border-transparent transition-colors duration-150 cursor-pointer';
+          }
+        });
+      };
+
+      toolBtns.forEach((btn) => {
+        btn.addEventListener('click', () => {
+          if (!isSessionActive) return;
+          const tool = btn.getAttribute('data-fog-tool-btn') || 'none';
+          root.dispatchEvent(new CustomEvent('fog-tool-select', { detail: { tool }, bubbles: true }));
+        });
+      });
+
+      brushSizeBtn?.addEventListener('click', () => {
+        brushSizeIndex = (brushSizeIndex + 1) % BRUSH_SIZES.length;
+        const mult = BRUSH_SIZES[brushSizeIndex];
+        if (brushSizeLabel) {
+          brushSizeLabel.textContent = `${mult}x`;
+        }
+        brushSizeBtn.title = `Tamaño de pincel: ${mult}x celda (Clic para alternar: 0.5x, 1x, 2x)`;
+        root.dispatchEvent(new CustomEvent('fog-brush-size', { detail: { multiplier: mult }, bubbles: true }));
+      });
+
+      revealAllBtn?.addEventListener('click', () => {
+        if (!isSessionActive) return;
+        root.dispatchEvent(new CustomEvent('fog-action-reveal-all', { bubbles: true }));
+      });
+
+      coverAllBtn?.addEventListener('click', () => {
+        if (!isSessionActive) return;
+        root.dispatchEvent(new CustomEvent('fog-action-cover-all', { bubbles: true }));
+      });
+
+      playerViewBtn?.addEventListener('click', () => {
+        isPlayerView = !isPlayerView;
+        if (playerViewIcon) {
+          playerViewIcon.textContent = isPlayerView ? 'visibility' : 'preview';
+          playerViewIcon.className = isPlayerView
+            ? 'material-symbols-outlined text-[16px] text-amber-400'
+            : 'material-symbols-outlined text-[16px] text-[#94a3b8]';
+        }
+        if (playerViewBtn) {
+          if (isPlayerView) {
+            playerViewBtn.classList.add('bg-amber-500/20', 'border-amber-500/40', 'text-amber-300');
+          } else {
+            playerViewBtn.classList.remove('bg-amber-500/20', 'border-amber-500/40', 'text-amber-300');
+          }
+        }
+        root.dispatchEvent(new CustomEvent('fog-toggle-player-view', { detail: { enabled: isPlayerView }, bubbles: true }));
+      });
+
+      // Escuchar eventos externos de sincronización
+      root.addEventListener('update-fog-status', ((e: CustomEvent) => {
+        const { shapesCount, status, tool } = e.detail || {};
+        if (status !== undefined) {
+          isSessionActive = status === 'active';
+          if (!isSessionActive) {
+            disabledNotice?.classList.remove('hidden');
+            disabledNotice?.classList.add('flex');
+            toolBtns.forEach((b) => b.classList.add('opacity-40', 'pointer-events-none'));
+            if (brushSizeBtn) brushSizeBtn.classList.add('opacity-40', 'pointer-events-none');
+            if (revealAllBtn) revealAllBtn.classList.add('opacity-40', 'pointer-events-none');
+            if (coverAllBtn) coverAllBtn.classList.add('opacity-40', 'pointer-events-none');
+          } else {
+            disabledNotice?.classList.add('hidden');
+            disabledNotice?.classList.remove('flex');
+            toolBtns.forEach((b) => b.classList.remove('opacity-40', 'pointer-events-none'));
+            if (brushSizeBtn) brushSizeBtn.classList.remove('opacity-40', 'pointer-events-none');
+            if (revealAllBtn) revealAllBtn.classList.remove('opacity-40', 'pointer-events-none');
+            if (coverAllBtn) coverAllBtn.classList.remove('opacity-40', 'pointer-events-none');
+          }
+        }
+
+        if (tool !== undefined) {
+          updateToolButtonsUi(tool);
+        }
+
+        if (typeof shapesCount === 'number') {
+          if (counterBadge && countText) {
+            counterBadge.classList.remove('hidden');
+            countText.textContent = `${shapesCount}/500`;
+          }
+          if (warnBadge) {
+            if (shapesCount >= 450) {
+              warnBadge.classList.remove('hidden');
+              warnBadge.classList.add('flex');
+            } else {
+              warnBadge.classList.add('hidden');
+              warnBadge.classList.remove('flex');
+            }
+          }
+        }
+      }) as EventListener);
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initFogTools);
+  } else {
+    initFogTools();
+  }
+</script>

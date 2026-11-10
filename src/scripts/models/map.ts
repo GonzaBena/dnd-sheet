@@ -30,6 +30,8 @@ export interface Token {
 
 export type FogShape =
   | { kind: 'rect'; x: number; y: number; w: number; h: number; op?: 'cover' }
+  | { kind: 'circle'; x: number; y: number; r: number; op?: 'cover' }
+  | { kind: 'brush'; points: number[]; radius: number; op?: 'cover' }
   | { kind: 'poly'; points: number[]; op?: 'cover' };
 
 /**

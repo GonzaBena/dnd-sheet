@@ -72,8 +72,17 @@ class MockKonvaNode {
   add() {}
   on() {}
   destroy() {}
+  destroyChildren() {}
   batchDraw() {}
+  opacity(v) { if (v !== undefined) this._opacity = v; return this._opacity; }
   getContent() { return { style: {}, addEventListener: () => {} }; }
+  points(p) { if (p !== undefined) this._points = p; return this._points; }
+  radius(r) { if (r !== undefined) this._radius = r; return this._radius; }
+  stroke() {}
+  strokeWidth() {}
+  dash() {}
+  fill() {}
+  visible(v) { if (v !== undefined) this._visible = v; return this._visible; }
 }
 
 const MockKonva = {
@@ -81,6 +90,9 @@ const MockKonva = {
   Layer: MockKonvaNode,
   Image: MockKonvaNode,
   Shape: MockKonvaNode,
+  Rect: MockKonvaNode,
+  Line: MockKonvaNode,
+  Circle: MockKonvaNode,
   hitOnDragEnabled: true,
 };
 
