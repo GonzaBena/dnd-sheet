@@ -25,6 +25,7 @@ import {
   createBrushShape,
 } from './fog.ts';
 import anime from 'animejs';
+import { measureCells, formatMeasurement } from './measure.ts';
 import {
   fitToContainer,
   zoomAtPoint,
@@ -40,7 +41,8 @@ export type MapTool =
   | 'fog-reveal'
   | 'fog-cover'
   | 'fog-brush-reveal'
-  | 'fog-brush-cover';
+  | 'fog-brush-cover'
+  | 'measure';
 
 function hexToRgba(hex: string, alpha: number): string {
   let c = (hex || '#ffffff').replace('#', '');
@@ -71,6 +73,10 @@ export class MapStageController extends EventTarget {
   public toolLayer: any;
   /** Efectos transitorios (pulso de turno, pings, regla). No se limpia con clearToolLayer. */
   public fxLayer: any;
+
+  private measureStart: Point | null = null;
+  private measureArrow: any = null;
+  private measureLabel: any = null;
 
   private turnTokenId: string | null = null;
   private turnRing: any = null;
@@ -324,6 +330,11 @@ export class MapStageController extends EventTarget {
     let didDragStage = false;
 
     this.stage.on('mousedown touchstart', (e: any) => {
+      if (this.currentTool === 'measure') {
+        const p = this.stage.getPointerPosition();
+        if (p) this.beginMeasure(screenToMap(p, this.getView()));
+        return;
+      }
       if (this.currentTool === 'fog-reveal' || this.currentTool === 'fog-cover') {
         const p = this.stage.getPointerPosition();
         if (p) {
@@ -368,6 +379,11 @@ export class MapStageController extends EventTarget {
       };
       const mapPt = screenToMap(p, currentView);
 
+      if (this.measureStart) {
+        this.updateMeasure(mapPt);
+        return;
+      }
+
       if (this.isDrawingFog && this.fogDragStart) {
         this.updateFogPreview(mapPt);
         return;
@@ -391,13 +407,18 @@ export class MapStageController extends EventTarget {
     });
 
     this.stage.on('mouseleave', () => {
+      if (this.measureStart) this.endMeasure();
       if (this.brushCursorNode) {
         this.brushCursorNode.visible(false);
         this.toolLayer.batchDraw();
       }
     });
 
-    this.stage.on('mouseup touchend', () => {
+    this.stage.on('mouseup touchend touchcancel', () => {
+      if (this.measureStart) {
+        this.endMeasure();
+        return;
+      }
       if (this.isDrawingFog && this.fogDragStart) {
         const p = this.stage.getPointerPosition();
         this.isDrawingFog = false;
@@ -673,6 +694,7 @@ export class MapStageController extends EventTarget {
    */
   public setTool(tool: MapTool): void {
     if (this.currentTool === tool) return;
+    this.endMeasure();
     this.currentTool = tool;
     this.clearToolLayer();
 
@@ -863,6 +885,8 @@ export class MapStageController extends EventTarget {
     this.buildTokenVisuals(group, token, d);
 
     group.on('mousedown touchstart', (e: any) => {
+      // Con la regla activa el token no captura el gesto: el stage inicia la medición.
+      if (this.currentTool === 'measure') return;
       e.cancelBubble = true;
       const currentToken = (group as any).__tokenData || token;
       const canMove = canMoveToken(currentToken, this.currentViewer, this.currentStatus);
@@ -906,6 +930,10 @@ export class MapStageController extends EventTarget {
 
     group.on('dragstart', (e: any) => {
       e.cancelBubble = true;
+      if (this.currentTool === 'measure') {
+        group.stopDrag();
+        return;
+      }
       if (this.stage.isDragging()) {
         this.stage.stopDrag();
       }
@@ -971,6 +999,7 @@ export class MapStageController extends EventTarget {
 
     group.on('click tap', (e: any) => {
       e.cancelBubble = true;
+      if (this.currentTool === 'measure') return;
       this.dispatchEvent(new CustomEvent('token-select', { detail: { tid, token } }));
     });
 
@@ -1358,6 +1387,10 @@ export class MapStageController extends EventTarget {
 
     group.on('dragstart', (e: any) => {
       e.cancelBubble = true;
+      if (this.currentTool === 'measure') {
+        group.stopDrag();
+        return;
+      }
       if (this.stage.isDragging()) {
         this.stage.stopDrag();
       }
@@ -1915,6 +1948,55 @@ export class MapStageController extends EventTarget {
   private emitViewChanged(): void {
     const view = this.getView();
     this.dispatchEvent(new CustomEvent('view-changed', { detail: view }));
+  }
+
+  // --- Regla de medición (T-53): local, sin escrituras ---
+
+  private beginMeasure(start: Point): void {
+    this.endMeasure();
+    this.measureStart = start;
+    this.measureArrow = new this.Konva.Arrow({
+      points: [start.x, start.y, start.x, start.y],
+      stroke: '#38bdf8',
+      fill: '#38bdf8',
+      lineCap: 'round',
+      listening: false,
+    });
+    const label = new this.Konva.Label({ listening: false });
+    label.add(new this.Konva.Tag({ fill: 'rgba(16,20,29,0.92)', stroke: '#38bdf8', strokeWidth: 1, cornerRadius: 6 }));
+    label.add(
+      new this.Konva.Text({ text: '', fontSize: 14, fontStyle: 'bold', fill: '#f1f5f9', padding: 6, listening: false })
+    );
+    this.measureLabel = label;
+    this.fxLayer.add(this.measureArrow);
+    this.fxLayer.add(label);
+    this.updateMeasure(start);
+  }
+
+  private updateMeasure(end: Point): void {
+    if (!this.measureStart || !this.measureArrow || !this.measureLabel) return;
+    const grid = this.currentGrid || { size: 50, offsetX: 0, offsetY: 0, visible: true };
+    const s = this.getView().scale || 1;
+    // Grosor y etiqueta constantes en pantalla, sin importar el zoom.
+    this.measureArrow.points([this.measureStart.x, this.measureStart.y, end.x, end.y]);
+    this.measureArrow.strokeWidth(3 / s);
+    this.measureArrow.pointerLength(12 / s);
+    this.measureArrow.pointerWidth(12 / s);
+    this.measureLabel.getText().text(formatMeasurement(measureCells(this.measureStart, end, grid)));
+    this.measureLabel.scale({ x: 1 / s, y: 1 / s });
+    this.measureLabel.position({ x: end.x + 14 / s, y: end.y + 14 / s });
+    this.fxLayer.batchDraw();
+  }
+
+  private endMeasure(): void {
+    this.measureStart = null;
+    if (this.measureArrow || this.measureLabel) {
+      this.measureArrow?.destroy();
+      this.measureLabel?.destroy();
+      this.measureArrow = null;
+      this.measureLabel = null;
+      this.fxLayer?.batchDraw();
+    }
   }
 
   /** Centro y radio (en px de imagen) de un token público, o null si no está en el mapa. */

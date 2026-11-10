@@ -171,6 +171,16 @@ const { mode = 'player', class: className = '', id } = Astro.props;
 
     <button
       type="button"
+      data-measure-btn
+      aria-pressed="false"
+      class="w-8 h-8 rounded-lg bg-[#18202e] border border-[#222f42] hover:border-amber-500/50 text-[#cbd5e1] hover:text-amber-300 flex items-center justify-center transition-colors duration-150 active:bg-amber-500/20 cursor-pointer"
+      title="Regla: arrastra para medir distancias (5 ft por celda)"
+    >
+      <span class="material-symbols-outlined text-[18px]">straighten</span>
+    </button>
+
+    <button
+      type="button"
       data-zoom-out-btn
       class="w-8 h-8 rounded-lg bg-[#18202e] border border-[#222f42] hover:border-amber-500/50 text-[#cbd5e1] hover:text-amber-300 flex items-center justify-center transition-colors duration-150 active:bg-amber-500/20 cursor-pointer"
       title="Alejar zoom (−)"
@@ -355,6 +365,19 @@ const { mode = 'player', class: className = '', id } = Astro.props;
           gridToggleBtn.title = 'Cuadrícula: Oculta (clic para alto contraste)';
         }
       };
+
+      // Regla de medición (T-53): alterna la herramienta 'measure'; el resto de herramientas la desactivan.
+      const measureBtn = root.querySelector<HTMLButtonElement>('[data-measure-btn]');
+      measureBtn?.addEventListener('click', () => {
+        controller.setTool(controller.getTool() === 'measure' ? 'none' : 'measure');
+      });
+      controller.addEventListener('tool-changed', ((e: CustomEvent) => {
+        const on = e.detail?.tool === 'measure';
+        measureBtn?.setAttribute('aria-pressed', String(on));
+        measureBtn?.classList.toggle('bg-amber-500/25', on);
+        measureBtn?.classList.toggle('border-amber-500/60', on);
+        measureBtn?.classList.toggle('text-amber-300', on);
+      }) as EventListener);
 
       gridToggleBtn?.addEventListener('click', () => {
         const nextMode = controller.cycleGridMode();
