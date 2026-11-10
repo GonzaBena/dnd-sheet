@@ -295,6 +295,7 @@ class CampaignStoreManager {
   private syncedCharacters = new Map<string, string>();
   private remoteCharacterScopes = new Map<string, CharacterData[]>();
   private campaignsLoaded = false;
+  private charactersLoaded = false;
   /** Campaña activa guardada en localStorage, que se valida cuando llegan las campañas de la nube. */
   private storedActiveCampaignId: string | null = null;
   /**
@@ -488,6 +489,7 @@ class CampaignStoreManager {
     this.syncedCharacters.clear();
     this.remoteCharacterScopes.clear();
     this.campaignsLoaded = false;
+    this.charactersLoaded = false;
     this.campaigns = [];
     this.characters = [];
     this.activeCampaignId = null;
@@ -509,6 +511,10 @@ class CampaignStoreManager {
 
   public hasLoadedCampaigns(): boolean {
     return !this.cloud || this.campaignsLoaded;
+  }
+
+  public hasLoadedCharacters(): boolean {
+    return !this.cloud || this.charactersLoaded;
   }
 
   public applyRemoteCampaigns(remote: Campaign[]) {
@@ -551,6 +557,7 @@ class CampaignStoreManager {
   /** `scope` identifica el listener: 'mine' o 'campaign:{id}'. `null` lo da de baja. */
   public applyRemoteCharacters(scope: string, remote: CharacterData[] | null) {
     if (!this.cloud) return;
+    if (scope === 'mine' && remote !== null) this.charactersLoaded = true;
     if (remote === null) {
       this.remoteCharacterScopes.delete(scope);
     } else {

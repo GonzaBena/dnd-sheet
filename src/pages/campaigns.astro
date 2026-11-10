@@ -187,7 +187,9 @@ import CompendiumModal from '../components/modals/CompendiumModal.astro';
     const myChars = campaignStore.getAllCharacters().filter(c => campaignStore.isCharacterOwner(c, currentUser.id));
 
     // If user has NO characters and is NOT DM of an active campaign, redirect to / (campaigns manager)
-    if (!isDm && myChars.length === 0 && !targetChar) {
+    // (sólo con los datos ya cargados: un store todavía vacío no significa "sin personajes").
+    const dataLoaded = !cloudSession.isCloud() || (campaignStore.hasLoadedCampaigns() && campaignStore.hasLoadedCharacters());
+    if (dataLoaded && !isDm && myChars.length === 0 && !targetChar) {
       window.location.href = '/';
     }
 

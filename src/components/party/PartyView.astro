@@ -611,6 +611,17 @@ import MapManager from '../dm/MapManager.astro';
     }
   }
 
+  // Evita recrear los hijos del enlace en cada evento en vivo: en táctil el click se pierde si el nodo cambia.
+  function setLinkContent(link: HTMLElement, icon: string, label: string) {
+    const key = `${icon}|${label}`;
+    if (link.dataset.content === key) return;
+    link.dataset.content = key;
+    link.innerHTML = `
+      <span class="material-symbols-outlined text-[16px]">${icon}</span>
+      <span>${label}</span>
+    `;
+  }
+
   function render() {
     if (!currentCampaignId) return;
     const camp = campaignStore.getCampaign(currentCampaignId);
@@ -664,20 +675,14 @@ import MapManager from '../dm/MapManager.astro';
     // Link a la ficha o al grimorio DM
     if (sheetLink) {
       if (isDm) {
-        sheetLink.href = `/campaigns?campaign=${encodeURIComponent(camp.id)}`;
-        sheetLink.innerHTML = `
-          <span class="material-symbols-outlined text-[16px]">shield_with_heart</span>
-          <span>Grimorio DM</span>
-        `;
+        sheetLink.href = `/campaigns?campaign=${encodeURIComponent(camp.id)}&mode=dm`;
+        setLinkContent(sheetLink, 'shield_with_heart', 'Grimorio DM');
         sheetLink.classList.remove('hidden');
       } else {
         const myChar = campaignStore.getMyCharacterForCampaign(camp.id);
         if (myChar) {
           sheetLink.href = `/campaigns?campaign=${encodeURIComponent(camp.id)}&character=${encodeURIComponent(myChar.id)}`;
-          sheetLink.innerHTML = `
-            <span class="material-symbols-outlined text-[16px]">badge</span>
-            <span>Mi Ficha</span>
-          `;
+          setLinkContent(sheetLink, 'badge', 'Mi Ficha');
           sheetLink.classList.remove('hidden');
         } else {
           sheetLink.href = `/campaigns?campaign=${encodeURIComponent(camp.id)}`;

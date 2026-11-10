@@ -33,6 +33,8 @@ export type CloudSessionState = 'local' | 'loading' | 'signed-out' | 'ready';
 const CHARACTER_DEBOUNCE_MS = 400;
 const DM_EVENT_WINDOW_MS = 45000;
 const JOURNAL_LIMIT = 150;
+const READY_SAFETY_MS = 20000;
+const BASE_SUBSCRIBE_TIMEOUT_MS = 20000;
 
 type Fs = typeof import('firebase/firestore');
 
@@ -70,16 +72,6 @@ class CloudSession {
   /** Se resuelve en modo local enseguida, o cuando hay sesión y llegaron los primeros datos. */
   public ready(): Promise<void> {
     this.start();
-    // Temporizador de seguridad global: si pasan 5s y sigue cargando, resolvemos para evitar congelar la UI.
-    if (typeof window !== 'undefined') {
-      setTimeout(() => {
-        if (this.state === 'loading') {
-          console.warn('[CloudSync] Timeout global de ready() alcanzado, desbloqueando interfaz.');
-          this.setState(this.uid ? 'ready' : 'signed-out');
-          this.resolveReady();
-        }
-      }, 5000);
-    }
     return this.readyPromise;
   }
 
@@ -101,6 +93,15 @@ class CloudSession {
       this.resolveReady();
       return;
     }
+
+    // Red de seguridad única y larga: sólo libera a quien espera, no cambia el estado de la sesión
+    // (pasar a 'signed-out' por timeout mostraba el login y dejaba las vistas vacías).
+    setTimeout(() => {
+      if (this.state === 'loading') {
+        console.warn('[CloudSync] ready() liberado por seguridad tras 20s sin completar la carga.');
+        this.resolveReady();
+      }
+    }, READY_SAFETY_MS);
 
     onAuthChange(user => {
       if (user) {
@@ -251,12 +252,12 @@ class CloudSession {
         if (campaignsLoaded && charactersLoaded) finish();
       };
 
-      // Si Firestore tarda más de 3.5s por contención de bloqueos IndexedDB o latencia de red,
-      // resolvemos para no congelar la carga. Los snapshots seguirán actualizando la UI en vivo.
+      // Sólo como último recurso (sin red ni caché): resolvemos para no congelar la carga.
+      // Los snapshots seguirán actualizando la UI en vivo.
       const timeoutId = setTimeout(() => {
-        console.warn('[CloudSync] subscribeBase timeout alcanzado (3.5s), procediendo con datos disponibles');
+        console.warn('[CloudSync] subscribeBase timeout alcanzado, procediendo con datos disponibles');
         finish();
-      }, 3500);
+      }, BASE_SUBSCRIBE_TIMEOUT_MS);
 
       this.baseUnsubs.push(fs.onSnapshot(
         fs.query(fs.collection(db, 'campaigns'), fs.where('memberUserIds', 'array-contains', uid)),

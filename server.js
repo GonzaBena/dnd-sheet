@@ -35,6 +35,13 @@ const server = http.createServer((req, res) => {
 
   let filePath = path.join(DIST_DIR, reqPath);
 
+  // Evita salir de dist/ con rutas tipo ../
+  if (!filePath.startsWith(DIST_DIR)) {
+    res.writeHead(403, { 'Content-Type': 'text/plain; charset=utf-8' });
+    res.end('403 Forbidden');
+    return;
+  }
+
   // If path doesn't have an extension, resolve folder or index.html
   if (!path.extname(filePath)) {
     if (fs.existsSync(filePath) && fs.statSync(filePath).isDirectory()) {
@@ -48,9 +55,16 @@ const server = http.createServer((req, res) => {
 
   fs.stat(filePath, (err, stats) => {
     if (err || !stats.isFile()) {
+      // Un asset (JS/CSS/imagen) inexistente debe dar 404; devolver index.html con 200 hacía que
+      // un HTML viejo tras un deploy cargara "JS" que en realidad era HTML y rompiera la app.
+      if (path.extname(reqPath)) {
+        res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' });
+        res.end('404 Not Found');
+        return;
+      }
       const fallbackPath = path.join(DIST_DIR, 'index.html');
       if (fs.existsSync(fallbackPath)) {
-        res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+        res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-cache' });
         fs.createReadStream(fallbackPath).pipe(res);
       } else {
         res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
@@ -61,7 +75,9 @@ const server = http.createServer((req, res) => {
 
     const ext = path.extname(filePath).toLowerCase();
     const contentType = MIME_TYPES[ext] || 'application/octet-stream';
-    res.writeHead(200, { 'Content-Type': contentType });
+    // Los assets con hash de Astro son inmutables; el HTML siempre se revalida tras un deploy.
+    const cacheControl = reqPath.startsWith('/_astro/') ? 'public, max-age=31536000, immutable' : 'no-cache';
+    res.writeHead(200, { 'Content-Type': contentType, 'Cache-Control': cacheControl });
     fs.createReadStream(filePath).pipe(res);
   });
 });
