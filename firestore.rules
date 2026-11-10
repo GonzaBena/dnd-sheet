@@ -227,15 +227,24 @@ service cloud.firestore {
           && (!('imageUrl' in d) || (d.imageUrl is string && d.imageUrl.size() <= 2048 && d.imageUrl.matches('^https://.*')))
           && (d.kind != 'image' || 'imageUrl' in d)
           && 'sentAt' in d && (d.sentAt == null || d.sentAt is number)
+          // recipients: [] en borrador; ['*'] = todos; o los uids elegidos. Invariante: vacío <=> sin enviar.
+          // Así la lectura del jugador no necesita mirar sentAt (una consulta no podría demostrarlo).
+          && d.recipients is list && d.recipients.size() <= 50
+          && ((d.recipients.size() == 0) == (d.sentAt == null))
           && d.createdAt is number;
       }
       match /handouts/{handoutId} {
-        allow read: if signedIn() && (isDm(campaignId) || (isMember(campaignId) && resource.data.sentAt != null));
+        // DECISION (F5-17): el DM elige a quién enviar. El jugador lee solo si es destinatario ('*' o su uid).
+        // Su consulta es where('recipients', 'array-contains-any', ['*', uid]).
+        allow read: if signedIn() && (isDm(campaignId)
+          || (isMember(campaignId) && resource.data.recipients.hasAny(['*', request.auth.uid])));
         allow create: if signedIn() && isDm(campaignId) && validHandout(request.resource.data)
           && (request.resource.data.sentAt == null ? canPrepare() : canPlay());
+        // Cambiar sentAt o los destinatarios cuenta como jugar (es enviar); el resto, como preparar.
         allow update: if signedIn() && isDm(campaignId) && validHandout(request.resource.data)
           && request.resource.data.createdAt == resource.data.createdAt
-          && (request.resource.data.sentAt == resource.data.sentAt ? canPrepare() : canPlay());
+          && ((request.resource.data.sentAt == resource.data.sentAt
+               && request.resource.data.recipients == resource.data.recipients) ? canPrepare() : canPlay());
         allow delete: if signedIn() && isDm(campaignId) && canPrepare();
       }
 

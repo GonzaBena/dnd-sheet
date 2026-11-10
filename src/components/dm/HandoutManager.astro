@@ -61,10 +61,12 @@
 
 <script>
   import { campaignStore } from '../../scripts/state/campaignStore';
-  import { showConfirm, showAlert } from '../../scripts/ui/notify';
+  import { userStore } from '../../scripts/state/userStore';
+  import { showConfirm, showAlert, showForm } from '../../scripts/ui/notify';
   import { canPerform, normalizeStatus } from '../../scripts/vtt/sessionStatus.ts';
   import { subscribeHandouts, createHandout, sendHandout, deleteHandout } from '../../scripts/data/handoutService.ts';
-  import type { Handout, HandoutKind } from '../../scripts/models/handout.ts';
+  import { buildRecipients, describeRecipients } from '../../scripts/vtt/handouts.ts';
+  import { RECIPIENTS_ALL, type Handout, type HandoutKind } from '../../scripts/models/handout.ts';
 
   const root = document.getElementById('dm-handouts-root');
   const form = document.getElementById('dm-handouts-form') as HTMLFormElement | null;
@@ -116,6 +118,22 @@
     render();
   }
 
+  /** Jugadores de la campaña (miembros que no son el DM) con un nombre legible: personaje + usuario. */
+  function getPlayers(): Array<{ uid: string; label: string }> {
+    if (!currentCid) return [];
+    const camp = campaignStore.getCampaign(currentCid);
+    const chars = campaignStore.getCharactersForCampaign(currentCid);
+    return (camp?.memberUserIds || [])
+      .filter((uid) => uid && uid !== camp?.dmId)
+      .map((uid) => {
+        const userName = userStore.getUser(uid)?.name || 'Jugador';
+        const charName = chars.find((c) => c.userId === uid)?.name;
+        return { uid, label: charName ? `${charName} (${userName})` : userName };
+      });
+  }
+
+  const nameOf = (uid: string) => getPlayers().find((p) => p.uid === uid)?.label || 'Jugador';
+
   function fmt(ts: number): string {
     return new Date(ts).toLocaleString('es', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' });
   }
@@ -160,7 +178,9 @@
       const badge = document.createElement('span');
       const sent = h.sentAt != null;
       badge.className = `text-[10px] font-bold ${sent ? 'text-emerald-400' : 'text-[#94a3b8]'}`;
-      badge.textContent = sent ? `Enviado ${fmt(h.sentAt as number)}` : 'Borrador';
+      badge.textContent = sent
+        ? `Enviado ${fmt(h.sentAt as number)} · a ${describeRecipients(h.recipients, nameOf)}`
+        : 'Borrador';
       texts.append(title, badge);
       info.append(icon, texts);
 
@@ -191,8 +211,33 @@
 
   async function onSend(h: Handout) {
     if (!currentCid) return;
+    const players = getPlayers();
+    if (players.length === 0) {
+      showAlert('Todavía no hay jugadores en la campaña a quienes enviarles el handout.', { kind: 'info' });
+      return;
+    }
+
+    // Al reenviar se preselecciona lo que se había elegido la vez anterior; la primera vez, todos.
+    const prev = h.recipients ?? [];
+    const prevAll = prev.length === 0 || prev.includes(RECIPIENTS_ALL);
+    const result = await showForm(
+      [
+        { name: 'all', label: 'Todos los jugadores', type: 'checkbox', value: prevAll, hint: 'Si lo marcás, se ignora la selección de abajo.' },
+        ...players.map((p, i) => ({ name: `p${i}`, label: p.label, type: 'checkbox' as const, value: !prevAll && prev.includes(p.uid) })),
+      ],
+      { title: `Enviar "${h.title}"`, confirmText: 'Enviar' }
+    );
+    if (!result) return;
+
+    const selected = players.filter((_, i) => result[`p${i}`] === 'true').map((p) => p.uid);
+    const recipients = buildRecipients(result.all === 'true', selected);
+    if (!recipients) {
+      showAlert('Elegí al menos un jugador o marcá "Todos los jugadores".', { kind: 'info' });
+      return;
+    }
+
     try {
-      await sendHandout(currentCid, h.id);
+      await sendHandout(currentCid, h.id, recipients);
     } catch (err) {
       console.warn('[HandoutManager] Error al enviar:', err);
       showAlert(err instanceof Error ? err.message : 'No se pudo enviar el handout.', { kind: 'error' });
@@ -238,7 +283,7 @@
       unsubscribe?.();
       currentCid = cid;
       items = [];
-      unsubscribe = subscribeHandouts(cid, true, (list) => {
+      unsubscribe = subscribeHandouts(cid, true, '', (list) => {
         items = list;
         render();
       });

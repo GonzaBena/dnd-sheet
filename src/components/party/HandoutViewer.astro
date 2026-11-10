@@ -168,7 +168,7 @@
     currentCid = cid;
     currentUid = uid;
     seen = readSeen();
-    unsubscribe = subscribeHandouts(cid, false, onHandouts);
+    unsubscribe = subscribeHandouts(cid, false, uid, onHandouts);
   }
 
   closeBtn?.addEventListener('click', hide);

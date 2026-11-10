@@ -7,6 +7,9 @@ import {
   buildDraftDoc,
   sentHandouts,
   pickHandoutToOpen,
+  isRecipient,
+  buildRecipients,
+  describeRecipients,
 } from '../src/scripts/vtt/handouts.ts';
 
 const h = (id, sentAt, extra = {}) => ({ id, kind: 'text', title: id, body: 'x', sentAt, createdAt: 1, ...extra });
@@ -33,9 +36,9 @@ test('validateHandoutDraft: texto exige cuerpo y admite hasta 5000', () => {
 
 test('buildDraftDoc: borrador sin enviar, recortado y sin campos del otro tipo', () => {
   const t = buildDraftDoc({ kind: 'text', title: '  Carta ', body: ' hola ', imageUrl: 'https://ignorada' }, 7);
-  assert.deepEqual(t, { kind: 'text', title: 'Carta', sentAt: null, createdAt: 7, body: 'hola' });
+  assert.deepEqual(t, { kind: 'text', title: 'Carta', sentAt: null, recipients: [], createdAt: 7, body: 'hola' });
   const i = buildDraftDoc({ kind: 'image', title: 'Mapa', imageUrl: ' https://a.com/m.png ', body: '' }, 7);
-  assert.deepEqual(i, { kind: 'image', title: 'Mapa', sentAt: null, createdAt: 7, imageUrl: 'https://a.com/m.png' });
+  assert.deepEqual(i, { kind: 'image', title: 'Mapa', sentAt: null, recipients: [], createdAt: 7, imageUrl: 'https://a.com/m.png' });
   assert.equal(buildDraftDoc({ kind: 'image', title: 'M', imageUrl: 'https://a.com/m.png', body: 'Pie' }, 7).body, 'Pie');
 });
 
@@ -60,6 +63,29 @@ test('pickHandoutToOpen: abre el más reciente posterior al último visto', () =
 
 test('pickHandoutToOpen: sin novedades no abre y no retrocede nextSeen', () => {
   assert.deepEqual(pickHandoutToOpen([h('a', 5)], 9), { open: null, nextSeen: 9 });
+});
+
+test('isRecipient: "todos" llega a cualquiera; una lista solo a los elegidos; el borrador a nadie', () => {
+  assert.equal(isRecipient({ sentAt: 5, recipients: ['*'] }, 'u1'), true);
+  assert.equal(isRecipient({ sentAt: 5, recipients: ['u1', 'u2'] }, 'u2'), true);
+  assert.equal(isRecipient({ sentAt: 5, recipients: ['u1'] }, 'u2'), false);
+  assert.equal(isRecipient({ sentAt: null, recipients: [] }, 'u1'), false);
+  assert.equal(isRecipient({ sentAt: 5, recipients: [] }, 'u1'), false);
+  assert.equal(isRecipient({ sentAt: 5, recipients: ['u1'] }, ''), false);
+});
+
+test('buildRecipients: todos => ["*"]; selección sin repetidos; vacío => null', () => {
+  assert.deepEqual(buildRecipients(true, ['u1']), ['*']);
+  assert.deepEqual(buildRecipients(false, ['u1', 'u2', 'u1', '']), ['u1', 'u2']);
+  assert.equal(buildRecipients(false, []), null);
+  assert.equal(buildRecipients(false, Array.from({ length: 51 }, (_, i) => `u${i}`)), null);
+});
+
+test('describeRecipients: "todos" o los nombres elegidos', () => {
+  const nameOf = (u) => ({ u1: 'Elena', u2: 'Brom' }[u] ?? u);
+  assert.equal(describeRecipients(['*'], nameOf), 'todos');
+  assert.equal(describeRecipients(['u1', 'u2'], nameOf), 'Elena, Brom');
+  assert.equal(describeRecipients(undefined, nameOf), '');
 });
 
 test('pickHandoutToOpen: un reenvío (sentAt mayor) vuelve a abrirse', () => {

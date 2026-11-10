@@ -2,7 +2,7 @@
 // Lógica pura de handouts (T-52, RF-41): validación del borrador y cuál abrir al jugador. Sin DOM ni Firebase.
 
 import type { Handout, HandoutKind } from '../models/handout.ts';
-import { HANDOUT_LIMITS } from '../models/handout.ts';
+import { HANDOUT_LIMITS, RECIPIENTS_ALL } from '../models/handout.ts';
 
 export interface HandoutDraft {
   kind: HandoutKind;
@@ -31,7 +31,7 @@ export function validateHandoutDraft(d: HandoutDraft): string | null {
 
 /** Documento a guardar para un borrador (sin campos vacíos ni del otro tipo). */
 export function buildDraftDoc(d: HandoutDraft, now = Date.now()): Omit<Handout, 'id'> {
-  const doc: Omit<Handout, 'id'> = { kind: d.kind, title: d.title.trim(), sentAt: null, createdAt: now };
+  const doc: Omit<Handout, 'id'> = { kind: d.kind, title: d.title.trim(), sentAt: null, recipients: [], createdAt: now };
   const body = (d.body ?? '').trim();
   if (d.kind === 'text') doc.body = body;
   if (d.kind === 'image') {
@@ -39,6 +39,31 @@ export function buildDraftDoc(d: HandoutDraft, now = Date.now()): Omit<Handout, 
     if (body) doc.body = body; // pie de imagen opcional
   }
   return doc;
+}
+
+/** true si el handout (enviado) le corresponde a ese usuario: va a todos o su uid está en la lista. */
+export function isRecipient(h: Pick<Handout, 'sentAt' | 'recipients'>, uid: string): boolean {
+  if (h.sentAt == null) return false;
+  const r = h.recipients ?? [];
+  return r.includes(RECIPIENTS_ALL) || (!!uid && r.includes(uid));
+}
+
+/**
+ * Lista final de destinatarios a guardar al enviar. `all` = enviar a todos.
+ * Devuelve null si no se eligió a nadie (el DM tiene que elegir al menos un jugador).
+ */
+export function buildRecipients(all: boolean, selectedUids: string[]): string[] | null {
+  if (all) return [RECIPIENTS_ALL];
+  const uniq = Array.from(new Set(selectedUids.filter(Boolean)));
+  if (uniq.length === 0 || uniq.length > HANDOUT_LIMITS.maxRecipients) return null;
+  return uniq;
+}
+
+/** Texto corto para la etiqueta "Enviado a …". */
+export function describeRecipients(recipients: string[] | undefined, nameOf: (uid: string) => string): string {
+  const r = recipients ?? [];
+  if (r.includes(RECIPIENTS_ALL)) return 'todos';
+  return r.map(nameOf).join(', ');
 }
 
 /** Solo los enviados, el más reciente primero. */

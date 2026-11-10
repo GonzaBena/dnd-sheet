@@ -10,7 +10,8 @@ import type { Handout } from '../models/handout.ts';
 import { getFirebase, isFirebaseConfigured } from '../firebase/client.ts';
 import { campaignStore } from '../state/campaignStore.ts';
 import { normalizeStatus, canPerform } from '../vtt/sessionStatus.ts';
-import { buildDraftDoc, validateHandoutDraft, sentHandouts, type HandoutDraft } from '../vtt/handouts.ts';
+import { RECIPIENTS_ALL } from '../models/handout.ts';
+import { buildDraftDoc, validateHandoutDraft, sentHandouts, isRecipient, type HandoutDraft } from '../vtt/handouts.ts';
 
 const LOCAL_PREFIX = 'dnd_handouts_';
 
@@ -36,9 +37,13 @@ function sortForDm(list: Handout[]): Handout[] {
   return [...list].sort((a, b) => b.createdAt - a.createdAt);
 }
 
-/** El DM ve todos (borradores primero por fecha); el jugador solo los enviados. */
-export function subscribeHandouts(cid: string, isDm: boolean, cb: (list: Handout[]) => void): () => void {
-  const project = (list: Handout[]) => (isDm ? sortForDm(list) : sentHandouts(list));
+/**
+ * El DM ve todos (más recientes primero, borradores incluidos); el jugador (`uid`) solo los que le enviaron:
+ * a todos ('*') o con su uid en `recipients`.
+ */
+export function subscribeHandouts(cid: string, isDm: boolean, uid: string, cb: (list: Handout[]) => void): () => void {
+  const project = (list: Handout[]) =>
+    isDm ? sortForDm(list) : sentHandouts(list.filter((h) => isRecipient(h, uid)));
 
   if (!isFirebaseConfigured()) {
     const handler = (e: Event) => {
@@ -56,13 +61,14 @@ export function subscribeHandouts(cid: string, isDm: boolean, cb: (list: Handout
       const fs = await import('firebase/firestore');
       if (cancelled) return;
       const col = fs.collection(db, 'campaigns', cid, 'handouts');
-      // El jugador DEBE filtrar por sentAt != null: las reglas deniegan listar la colección entera.
+      // El jugador DEBE consultar por sus destinatarios: las reglas deniegan listar la colección entera.
+      // Sin orderBy (evita un índice compuesto): project() ordena por sentAt en el cliente.
       const q = isDm
         ? fs.query(col, fs.orderBy('createdAt', 'desc'))
-        : fs.query(col, fs.where('sentAt', '!=', null), fs.orderBy('sentAt', 'desc'));
+        : fs.query(col, fs.where('recipients', 'array-contains-any', [RECIPIENTS_ALL, uid]));
       unsub = fs.onSnapshot(
         q,
-        (snap) => cb(snap.docs.map((d) => ({ ...(d.data() as Omit<Handout, 'id'>), id: d.id }))),
+        (snap) => cb(project(snap.docs.map((d) => ({ ...(d.data() as Omit<Handout, 'id'>), id: d.id })))),
         (err) => console.warn('[handoutService] onSnapshot error:', err)
       );
       if (cancelled) unsub();
@@ -91,21 +97,25 @@ export async function createHandout(cid: string, draft: HandoutDraft): Promise<s
   return ref.id;
 }
 
-/** Envía (o reenvía) un handout a los jugadores. Solo con la partida activa (cuenta como jugar). */
-export async function sendHandout(cid: string, id: string): Promise<void> {
+/**
+ * Envía (o reenvía) un handout a los destinatarios (`['*']` = todos o una lista de uids). Solo con la partida
+ * activa (cuenta como jugar). Reenviar vuelve a abrirle el modal a quienes lo reciben.
+ */
+export async function sendHandout(cid: string, id: string, recipients: string[]): Promise<void> {
   const status = normalizeStatus(campaignStore.getCampaign(cid)?.status);
   if (!canPerform('dmPlay', 'dm', status)) {
     throw new Error('La partida no está en curso. Iniciá o reanudá la sesión para enviar handouts.');
   }
-  const sentAt = Date.now();
+  if (recipients.length === 0) throw new Error('Elegí al menos un destinatario.');
+  const patch = { sentAt: Date.now(), recipients };
 
   if (!isFirebaseConfigured()) {
-    writeLocal(cid, readLocal(cid).map((h) => (h.id === id ? { ...h, sentAt } : h)));
+    writeLocal(cid, readLocal(cid).map((h) => (h.id === id ? { ...h, ...patch } : h)));
     return;
   }
   const { db } = await getFirebase();
   const fs = await import('firebase/firestore');
-  await fs.updateDoc(fs.doc(db, 'campaigns', cid, 'handouts', id), { sentAt });
+  await fs.updateDoc(fs.doc(db, 'campaigns', cid, 'handouts', id), patch);
 }
 
 export async function deleteHandout(cid: string, id: string): Promise<void> {
