@@ -104,7 +104,11 @@ export async function syncRoomMembers(roomId: string, memberUserIds: string[]): 
   for (const id of wanted) if (!existing.includes(id)) patch[id] = true;
   for (const id of existing) if (!wanted.includes(id)) patch[id] = null;
 
-  if (Object.keys(patch).length > 0) await db.update(membersRef, patch);
+  if (Object.keys(patch).length > 0) {
+    await db.update(membersRef, patch);
+    // Útil para diagnosticar "el jugador no aparece conectado": confirma qué uids quedaron en la sala.
+    console.info(`[RoomService] members de ${roomId} actualizados:`, patch);
+  }
   syncedMembers.set(roomId, key);
 }
 

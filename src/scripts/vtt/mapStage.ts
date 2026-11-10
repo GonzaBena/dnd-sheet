@@ -1972,6 +1972,11 @@ export class MapStageController extends EventTarget {
     this.dispatchEvent(new CustomEvent('view-changed', { detail: view }));
   }
 
+  /** fxLayer es un Group (no tiene batchDraw): se redibuja la capa que lo contiene. */
+  private drawFx(): void {
+    this.toolLayer?.batchDraw();
+  }
+
   // --- Ping (T-51b): clic largo sobre el mapa ---
 
   private beginLongPress(p: Point): void {
@@ -2024,11 +2029,11 @@ export class MapStageController extends EventTarget {
       update: () => {
         circle.radius(state.r);
         circle.opacity(state.o);
-        this.fxLayer.batchDraw();
+        this.drawFx();
       },
       complete: () => {
         circle.destroy();
-        this.fxLayer?.batchDraw();
+        this.drawFx();
       },
     });
   }
@@ -2068,7 +2073,7 @@ export class MapStageController extends EventTarget {
     this.measureLabel.getText().text(formatMeasurement(measureCells(this.measureStart, end, grid)));
     this.measureLabel.scale({ x: 1 / s, y: 1 / s });
     this.measureLabel.position({ x: end.x + 14 / s, y: end.y + 14 / s });
-    this.fxLayer.batchDraw();
+    this.drawFx();
   }
 
   private endMeasure(): void {
@@ -2078,7 +2083,7 @@ export class MapStageController extends EventTarget {
       this.measureLabel?.destroy();
       this.measureArrow = null;
       this.measureLabel = null;
-      this.fxLayer?.batchDraw();
+      this.drawFx();
     }
   }
 
@@ -2141,10 +2146,10 @@ export class MapStageController extends EventTarget {
         this.turnRing.position({ x: cur.cx, y: cur.cy });
         this.turnRing.radius((cur.r + 4) * state.s);
         this.turnRing.opacity(state.o);
-        this.fxLayer.batchDraw();
+        this.drawFx();
       },
     });
-    this.fxLayer.batchDraw();
+    this.drawFx();
   }
 
   private stopTurnRing(): void {
@@ -2155,7 +2160,7 @@ export class MapStageController extends EventTarget {
     if (this.turnRing) {
       this.turnRing.destroy();
       this.turnRing = null;
-      this.fxLayer?.batchDraw();
+      this.drawFx();
     }
   }
 
