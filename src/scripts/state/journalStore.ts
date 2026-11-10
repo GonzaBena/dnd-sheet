@@ -223,13 +223,14 @@ class JournalStoreManager {
     }
   }
 
-  public addEntry(entryData: Omit<JournalEntry, 'id' | 'timestamp'> & { timestamp?: number }): JournalEntry {
+  public addEntry(entryData: Omit<JournalEntry, 'id' | 'timestamp'> & { timestamp?: number; id?: string }): JournalEntry {
     const ts = entryData.timestamp || Date.now();
     const activeCampId = campaignStore.getActiveCampaignId() || undefined;
     const newEntry: JournalEntry = {
       ...entryData,
       campaignId: entryData.campaignId || activeCampId,
-      id: `entry-${ts}-${Math.random().toString(36).substr(2, 5)}`,
+      // Un id explícito permite migraciones idempotentes (p. ej. las notas del DM pasadas a la bitácora).
+      id: entryData.id || `entry-${ts}-${Math.random().toString(36).substr(2, 5)}`,
       timestamp: ts,
       timeAgoText: entryData.timeAgoText || formatLogTime(ts),
     };

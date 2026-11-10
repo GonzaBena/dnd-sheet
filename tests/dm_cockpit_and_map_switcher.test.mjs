@@ -250,7 +250,7 @@ test('5. Verificación estática de plantillas de combate, gestor de mapas y gri
   );
   assert.ok(
     ctContent.includes('id="dm-active-combat-controls"') &&
-      ctContent.includes('flex flex-col items-center justify-center gap-2'),
+      ctContent.includes('flex flex-wrap items-center justify-center gap-2'),
     'Botones de combate deben estar centrados en 2 filas con flex flex-col items-center'
   );
   assert.ok(

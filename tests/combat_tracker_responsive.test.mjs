@@ -75,8 +75,8 @@ test('CombatTracker responsive layout & anti-overflow checks', () => {
 
   // 10. Active combat controls are 100% centered horizontally in 2 rows
   assert.ok(
-    content.includes('id="dm-active-combat-controls" class="hidden w-full flex flex-col items-center justify-center gap-2.5"'),
-    'Active combat controls container must be centered with w-full flex flex-col items-center justify-center'
+    content.includes('id="dm-active-combat-controls" class="hidden w-full flex flex-wrap items-center justify-center gap-2"'),
+    'Active combat controls container must be a centered flex-wrap row'
   );
 });
 

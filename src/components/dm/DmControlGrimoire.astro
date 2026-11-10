@@ -5,7 +5,6 @@ import CombatTracker from './CombatTracker.astro';
 import MapStage from '../map/MapStage.astro';
 import MapManager from './MapManager.astro';
 import TokenEditor from './TokenEditor.astro';
-import DmNotes from './DmNotes.astro';
 import PresenceTracker from '../party/PresenceTracker.astro';
 import HandoutManager from './HandoutManager.astro';
 ---
@@ -133,8 +132,8 @@ import HandoutManager from './HandoutManager.astro';
 
   <!-- [mapa,mapa,combate] -->
   <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-    <!-- COLUMNA IZQUIERDA (7 COLS LG): MAPA TÁCTICO -->
-    <div class="lg:col-span-7 space-y-2">
+    <!-- MAPA TÁCTICO -->
+    <div class="lg:col-span-7 xl:col-span-8 min-w-0 space-y-2" data-index-section="Mapa táctico" data-index-icon="map" data-index-order="10">
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-2">
           <span class="material-symbols-outlined text-[20px] text-amber-400">map</span>
@@ -144,50 +143,73 @@ import HandoutManager from './HandoutManager.astro';
       </div>
       <!-- Visor de mapa en modo DM con selector de mapa y cuadrícula -->
       <MapStage mode="dm" />
-
-      <!-- Gestión y edición de tokens tácticos (Fase 3: T-30) -->
-      <TokenEditor />
     </div>
 
-    <!-- COLUMNA DERECHA (5 COLS LG): COMBAT TRACKER -->
-    <div class="lg:col-span-5">
+    <!-- COMBAT TRACKER -->
+    <div class="lg:col-span-5 xl:col-span-4 min-w-0" data-index-section="Combate" data-index-icon="swords" data-index-order="20">
       <CombatTracker />
     </div>
   </div>
 
-  <!-- [editar mapas] (FULL WIDTH) -->
-  <MapManager />
+  <!-- [tokens, miembros] -->
+  <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+    <!-- Gestión y edición de tokens tácticos (Fase 3: T-30) -->
+    <div class="lg:col-span-7 xl:col-span-8 min-w-0" data-index-section="Tokens" data-index-icon="token" data-index-order="30">
+      <TokenEditor />
+    </div>
+
+    <!-- AVENTUREROS EN LA MESA -->
+    <section id="grimoire-roster" class="lg:col-span-5 xl:col-span-4 min-w-0 space-y-3" data-index-section="Aventureros" data-index-icon="groups" data-index-order="40">
+      <div class="flex items-center justify-between gap-3">
+        <div class="flex items-center gap-2">
+          <span class="material-symbols-outlined text-[22px] text-amber-400">groups</span>
+          <h2 class="text-base font-headline font-bold text-[#f1f5f9]">Aventureros</h2>
+        </div>
+        <span id="grimoire-roster-count" class="px-3 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 text-xs font-bold font-label">
+          3 Aventureros
+        </span>
+      </div>
+
+      <!-- Live Characters Grid -->
+      <div id="grimoire-players-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-1 2xl:grid-cols-2 gap-3">
+        <!-- Populated via JavaScript -->
+      </div>
+    </section>
+  </div>
 
   <!-- [presencia de la mesa] (RF-42): sin sección propia, marca las cards de aventureros -->
   <PresenceTracker />
 
-  <!-- [handouts para los jugadores] (RF-41) -->
-  <HandoutManager />
-
-  <!-- [notas privadas del DM] (RF-40) -->
-  <DmNotes />
-
-  <!-- SECTION 1: AVENTUREROS EN LA MESA (LOS PERSONAJES) -->
-  <section class="space-y-4">
-    <div class="flex items-center justify-between gap-3">
-      <div class="flex items-center gap-2">
-        <span class="material-symbols-outlined text-[22px] text-amber-400">groups</span>
-        <div>
-          <h2 class="text-base font-headline font-bold text-[#f1f5f9]">Aventureros en la Mesa de Juego</h2>
-          <span class="text-xs text-[#94a3b8]">Supervisión y control táctico de PG, armadura e inspiración en tiempo real</span>
+      <!-- PESTAÑAS: bitácora (con las notas secretas del DM), handouts y mapas -->
+      <section id="grimoire-tabs" data-tabs-root class="space-y-4">
+        <div role="tablist" aria-label="Herramientas de la mesa" class="relative flex items-center gap-1 overflow-x-auto no-scrollbar border-b border-[#222f42]">
+          <!-- Indicador que se desliza hasta la pestaña activa -->
+          <span data-tab-indicator aria-hidden="true" class="absolute bottom-0 left-0 h-0.5 w-0 rounded-full bg-amber-500 transition-[transform,width] duration-300 ease-out"></span>
+          <button
+            type="button" role="tab" id="grimoire-tab-journal" aria-controls="grimoire-panel-journal" aria-selected="true" data-tab="journal"
+            class="grimoire-tab shrink-0 flex items-center gap-1.5 px-4 py-2.5 -mb-px border-b-2 border-transparent text-xs font-bold text-[#94a3b8] hover:text-[#f1f5f9] aria-selected:text-amber-300 transition-colors cursor-pointer"
+          >
+            <span class="material-symbols-outlined text-[18px]">history_edu</span>
+            <span>Bitácora</span>
+          </button>
+          <button
+            type="button" role="tab" id="grimoire-tab-handouts" aria-controls="grimoire-panel-handouts" aria-selected="false" tabindex="-1" data-tab="handouts"
+            class="grimoire-tab shrink-0 flex items-center gap-1.5 px-4 py-2.5 -mb-px border-b-2 border-transparent text-xs font-bold text-[#94a3b8] hover:text-[#f1f5f9] aria-selected:text-amber-300 transition-colors cursor-pointer"
+          >
+            <span class="material-symbols-outlined text-[18px]">description</span>
+            <span>Handouts</span>
+          </button>
+          <button
+            type="button" role="tab" id="grimoire-tab-maps" aria-controls="grimoire-panel-maps" aria-selected="false" tabindex="-1" data-tab="maps"
+            class="grimoire-tab shrink-0 flex items-center gap-1.5 px-4 py-2.5 -mb-px border-b-2 border-transparent text-xs font-bold text-[#94a3b8] hover:text-[#f1f5f9] aria-selected:text-amber-300 transition-colors cursor-pointer"
+          >
+            <span class="material-symbols-outlined text-[18px]">collections</span>
+            <span>Mapas</span>
+          </button>
         </div>
-      </div>
-      <span id="grimoire-roster-count" class="px-3 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 text-xs font-bold font-label">
-        3 Aventureros
-      </span>
-    </div>
 
-    <!-- Live Characters Grid -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5" id="grimoire-players-grid">
-      <!-- Populated via JavaScript -->
-    </div>
-  </section>
-
+        <!-- PESTAÑA BITÁCORA: crónicas, tiradas y notas secretas (RF-40 se unificó con RF-53) -->
+        <div role="tabpanel" id="grimoire-panel-journal" aria-labelledby="grimoire-tab-journal" data-tab-panel="journal" data-index-section="Bitácora y notas" data-index-icon="history_edu" data-index-tab="journal" data-index-order="40">
   <!-- SECTION 2: BITÁCORA DE CAMPAÑA (LA BITÁCORA DEL DM) -->
   <section class="w-full rounded-2xl bg-[#121721] border border-[#222f42] p-5 lg:p-8 shadow-sm space-y-6">
     <!-- Header with Filters & Status -->
@@ -198,7 +220,7 @@ import HandoutManager from './HandoutManager.astro';
         </div>
         <div>
           <h3 class="text-lg font-headline font-bold text-[#f1f5f9]">Bitácora de la Campaña</h3>
-          <span class="text-xs text-[#94a3b8] font-label">Crónicas, tiradas públicas y notas secretas exclusivas del Dungeon Master</span>
+          <span class="text-xs text-[#94a3b8] font-label">Crónicas y tiradas de la mesa, más tus notas secretas (solo las ves vos)</span>
         </div>
       </div>
 
@@ -249,7 +271,7 @@ import HandoutManager from './HandoutManager.astro';
           <input type="checkbox" id="grimoire-entry-private" class="rounded bg-[#18202e] border-[#222f42] text-amber-500 focus:ring-amber-500/40" />
           <span class="flex items-center gap-1 font-bold text-amber-400">
             <span>🔒</span>
-            <span>Nota Secreta (Solo visible para el DM)</span>
+            <span>Nota secreta (solo vos)</span>
           </span>
         </label>
 
@@ -258,7 +280,7 @@ import HandoutManager from './HandoutManager.astro';
           class="px-5 py-2 rounded-lg bg-gradient-to-r from-amber-600 to-amber-500 text-[#0a0d12] text-xs font-bold shadow-[0_0_12px_rgba(245,158,11,0.3)] hover:brightness-110 active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer"
         >
           <span class="material-symbols-outlined text-[16px]">send</span>
-          <span>Publicar en Bitácora</span>
+          <span id="grimoire-entry-submit-label">Publicar en la bitácora</span>
         </button>
       </div>
     </form>
@@ -268,6 +290,19 @@ import HandoutManager from './HandoutManager.astro';
       <!-- Populated via JavaScript -->
     </div>
   </section>
+        </div>
+
+        <!-- PESTAÑA HANDOUTS (RF-41): el DM prepara y envía -->
+        <div role="tabpanel" id="grimoire-panel-handouts" aria-labelledby="grimoire-tab-handouts" data-tab-panel="handouts" data-index-section="Handouts" data-index-icon="description" data-index-tab="handouts" data-index-order="50" class="hidden">
+          <HandoutManager />
+        </div>
+
+        <!-- PESTAÑA MAPAS -->
+        <div role="tabpanel" id="grimoire-panel-maps" aria-labelledby="grimoire-tab-maps" data-tab-panel="maps" data-index-section="Gestión de mapas" data-index-icon="collections" data-index-tab="maps" data-index-order="60" class="hidden">
+          <!-- [editar mapas] (FULL WIDTH) -->
+          <MapManager />
+        </div>
+      </section>
 </div>
 
 <script>
@@ -278,6 +313,8 @@ import HandoutManager from './HandoutManager.astro';
   import { userStore } from '../../scripts/state/userStore';
   import { congratulationBanner } from '../../scripts/ui/congratulationBanner';
   import { canPerform, normalizeStatus } from '../../scripts/vtt/sessionStatus.ts';
+  import { subscribeNotes } from '../../scripts/data/notesService.ts';
+  import { initTabs } from '../../scripts/ui/tabs.ts';
 
   /** Valida que se pueda actuar como DM y avisa en vez de fallar en silencio. */
   function guardDmPlay(camp: any): boolean {
@@ -353,86 +390,63 @@ import HandoutManager from './HandoutManager.astro';
             statusColor = 'text-amber-300 bg-amber-500/10 border-amber-500/30';
           }
 
-          card.className = 'p-4 sm:p-5 rounded-2xl bg-[#121721] border border-[#222f42] hover:border-amber-500/50 shadow-[0_4px_20px_rgba(0,0,0,0.5)] transition-all flex flex-col justify-between gap-4 font-label text-xs';
+          card.className = 'min-w-0 p-3.5 rounded-2xl bg-[#121721] border border-[#222f42] hover:border-amber-500/50 shadow-[0_4px_20px_rgba(0,0,0,0.5)] transition-colors flex flex-col gap-2.5 font-label text-xs';
           if (char.userId) card.dataset.presenceUid = char.userId;
 
           const passivePerception = 10 + (char.stats?.wis?.modifier || 2) + (char.proficiencyBonus || 3);
 
           card.innerHTML = `
-            <div>
-              <!-- Top Row: Avatar, Identity and Status -->
-              <div class="flex items-center justify-between gap-3 mb-3">
-                <div class="flex items-center gap-3 min-w-0">
-                  <div class="relative w-12 h-12 rounded-xl overflow-hidden shrink-0 border border-amber-500/40 shadow-md bg-[#10141d]">
-                    <img src="${char.avatarUrl || '/characters/ch-1.avif'}" alt="${char.name}" class="w-full h-full object-cover" onerror="this.onerror=null;this.src='/characters/ch-1.avif';" />
-                  </div>
-                  <div class="min-w-0">
-                    <h4 class="font-headline font-bold text-sm text-[#f1f5f9] truncate">${char.name}</h4>
-                    <div class="text-[11px] text-[#94a3b8] truncate">
-                      <span class="text-[#cbd5e1] font-semibold">${char.race}</span> •
-                      <span class="text-amber-400 font-bold">${char.className} Nvl. ${char.level}</span>
-                    </div>
-                    <span class="text-[10px] text-[#64748b]">Jugador: <strong class="text-[#cbd5e1]">${char.playerName || 'Jugador'}</strong></span>
+            <!-- Identidad y estado -->
+            <div class="flex items-center justify-between gap-2">
+              <div class="flex items-center gap-2.5 min-w-0">
+                <div class="relative w-10 h-10 rounded-xl overflow-hidden shrink-0 border border-amber-500/40 bg-[#10141d]">
+                  <img src="${char.avatarUrl || '/characters/ch-1.avif'}" alt="${char.name}" class="w-full h-full object-cover" onerror="this.onerror=null;this.src='/characters/ch-1.avif';" />
+                </div>
+                <div class="min-w-0">
+                  <h4 class="font-headline font-bold text-sm text-[#f1f5f9] truncate">${char.name}</h4>
+                  <div class="text-[11px] text-[#94a3b8] truncate">
+                    <span class="text-amber-400 font-bold">${char.className} Nvl. ${char.level}</span> •
+                    <span class="text-[#cbd5e1]">${char.playerName || 'Jugador'}</span>
                   </div>
                 </div>
+              </div>
+              <span class="px-2 py-0.5 rounded-full border text-[9px] font-bold shrink-0 ${statusColor}">${statusText}</span>
+            </div>
 
-                <span class="px-2 py-0.5 rounded-full border text-[9px] font-bold uppercase tracking-wider shrink-0 ${statusColor}">
-                  ${statusText}
+            <!-- PG con ajuste rápido en una sola fila -->
+            <div class="space-y-1">
+              <div class="flex items-center justify-between text-[11px]">
+                <span class="text-[#94a3b8] font-semibold">PG</span>
+                <span class="font-headline font-bold text-xs text-[#f1f5f9]">
+                  ${char.hp.current} / ${char.hp.max} ${char.hp.temp ? `<span class="text-amber-400">(+${char.hp.temp})</span>` : ''}
                 </span>
               </div>
-
-              <!-- Health Bar & Quick Adjustment Controls -->
-              <div class="p-3 rounded-xl bg-[#18202e] border border-[#222f42] space-y-2 mb-3">
-                <div class="flex items-center justify-between">
-                  <span class="text-[10px] uppercase font-bold text-[#94a3b8]">Puntos de Golpe</span>
-                  <span class="font-headline font-bold text-xs text-[#f1f5f9]">
-                    ${char.hp.current} / ${char.hp.max} PG ${char.hp.temp ? `<span class="text-amber-400">(+${char.hp.temp})</span>` : ''}
-                  </span>
-                </div>
-                <div class="w-full h-2.5 rounded-full bg-[#10141d] overflow-hidden">
-                  <div class="h-full ${hpColor} transition-all duration-300" style="width: ${hpPercent}%"></div>
-                </div>
-                <div class="flex items-center justify-between pt-1">
-                  <div class="flex items-center gap-1">
-                    <button type="button" class="hp-btn px-2 py-0.5 rounded-md bg-rose-950/60 hover:bg-rose-900 border border-rose-800/80 text-rose-300 font-bold text-[10px] active:scale-95 transition-all cursor-pointer" data-id="${char.id}" data-delta="-5">-5</button>
-                    <button type="button" class="hp-btn px-2 py-0.5 rounded-md bg-rose-950/60 hover:bg-rose-900 border border-rose-800/80 text-rose-300 font-bold text-[10px] active:scale-95 transition-all cursor-pointer" data-id="${char.id}" data-delta="-1">-1</button>
-                  </div>
-                  <div class="flex items-center gap-1">
-                    <button type="button" class="hp-btn px-2 py-0.5 rounded-md bg-emerald-950/60 hover:bg-emerald-900 border border-emerald-800/80 text-emerald-300 font-bold text-[10px] active:scale-95 transition-all cursor-pointer" data-id="${char.id}" data-delta="1">+1</button>
-                    <button type="button" class="hp-btn px-2 py-0.5 rounded-md bg-emerald-950/60 hover:bg-emerald-900 border border-emerald-800/80 text-emerald-300 font-bold text-[10px] active:scale-95 transition-all cursor-pointer" data-id="${char.id}" data-delta="5">+5</button>
-                  </div>
-                </div>
+              <div class="w-full h-2 rounded-full bg-[#10141d] overflow-hidden">
+                <div class="h-full ${hpColor} transition-all duration-300" style="width: ${hpPercent}%"></div>
               </div>
-
-              <!-- Tactical Combat Chips -->
-              <div class="grid grid-cols-3 gap-2 text-center text-[10px]">
-                <div class="p-1.5 rounded-xl bg-[#10141d] border border-[#222f42]">
-                  <span class="text-[#64748b] block font-semibold">CA</span>
-                  <strong class="text-amber-400 font-headline text-xs">${char.armorClass}</strong>
-                </div>
-                <div class="p-1.5 rounded-xl bg-[#10141d] border border-[#222f42]">
-                  <span class="text-[#64748b] block font-semibold">Percep. Pas.</span>
-                  <strong class="text-[#cbd5e1] font-headline text-xs">${passivePerception}</strong>
-                </div>
-                <div class="p-1.5 rounded-xl bg-[#10141d] border border-[#222f42]">
-                  <span class="text-[#64748b] block font-semibold">Iniciativa</span>
-                  <strong class="text-emerald-400 font-headline text-xs">+${char.initiativeBonus || 3}</strong>
-                </div>
+              <div class="grid grid-cols-4 gap-1.5 pt-0.5">
+                <button type="button" class="hp-btn py-1 rounded-md bg-rose-950/60 hover:bg-rose-900 border border-rose-800/80 text-rose-300 font-bold text-[11px] active:scale-95 transition-all cursor-pointer" data-id="${char.id}" data-delta="-5" aria-label="Restar 5 PG a ${char.name}">-5</button>
+                <button type="button" class="hp-btn py-1 rounded-md bg-rose-950/60 hover:bg-rose-900 border border-rose-800/80 text-rose-300 font-bold text-[11px] active:scale-95 transition-all cursor-pointer" data-id="${char.id}" data-delta="-1" aria-label="Restar 1 PG a ${char.name}">-1</button>
+                <button type="button" class="hp-btn py-1 rounded-md bg-emerald-950/60 hover:bg-emerald-900 border border-emerald-800/80 text-emerald-300 font-bold text-[11px] active:scale-95 transition-all cursor-pointer" data-id="${char.id}" data-delta="1" aria-label="Sumar 1 PG a ${char.name}">+1</button>
+                <button type="button" class="hp-btn py-1 rounded-md bg-emerald-950/60 hover:bg-emerald-900 border border-emerald-800/80 text-emerald-300 font-bold text-[11px] active:scale-95 transition-all cursor-pointer" data-id="${char.id}" data-delta="5" aria-label="Sumar 5 PG a ${char.name}">+5</button>
               </div>
             </div>
 
-            <!-- Footer: Inspiration Toggle -->
-            <div class="pt-2 border-t border-[#222f42] flex items-center justify-between">
+            <!-- Datos tácticos e inspiración -->
+            <div class="flex items-center justify-between gap-2 pt-2 border-t border-[#222f42]">
+              <div class="flex items-center gap-3 text-[11px] text-[#94a3b8]">
+                <span title="Clase de armadura">CA <strong class="text-amber-400 font-headline text-xs">${char.armorClass}</strong></span>
+                <span title="Percepción pasiva">PP <strong class="text-[#cbd5e1] font-headline text-xs">${passivePerception}</strong></span>
+                <span title="Iniciativa">Ini <strong class="text-emerald-400 font-headline text-xs">+${char.initiativeBonus || 3}</strong></span>
+              </div>
               <button
                 type="button"
-                class="inspire-btn flex items-center gap-1.5 px-3 py-1.5 rounded-xl ${char.inspiration ? 'bg-amber-500/20 text-amber-300 border border-amber-500/50 shadow-xs' : 'bg-[#18202e] text-[#94a3b8] border border-[#222f42]'} hover:text-amber-300 hover:border-amber-500/40 transition-all text-xs font-bold active:scale-95 cursor-pointer"
+                class="inspire-btn flex items-center gap-1 px-2.5 py-1 rounded-lg ${char.inspiration ? 'bg-amber-500/20 text-amber-300 border border-amber-500/50' : 'bg-[#18202e] text-[#94a3b8] border border-[#222f42]'} hover:text-amber-300 hover:border-amber-500/40 transition-all text-[11px] font-bold active:scale-95 cursor-pointer"
                 data-id="${char.id}"
               >
-                <span class="material-symbols-outlined text-[16px] ${char.inspiration ? 'text-amber-400' : 'text-[#64748b]'}">hotel_class</span>
-                <span>${char.inspiration ? 'Inspirado ✨' : 'Dar Inspiración'}</span>
+                <span class="material-symbols-outlined text-[15px] ${char.inspiration ? 'text-amber-400' : 'text-[#64748b]'}">hotel_class</span>
+                <span>${char.inspiration ? 'Inspirado' : 'Inspirar'}</span>
               </button>
-
-              <span class="text-[10px] text-[#64748b]">Ficha Protegida</span>
             </div>
           `;
 
@@ -472,6 +486,9 @@ import HandoutManager from './HandoutManager.astro';
 
     // 4. Aplicar bloqueos según el estado de la sesión (RF-54, D7)
     applyStatusLocks();
+
+    // 5. Pasar las notas privadas viejas a la bitácora (una vez por campaña y sesión)
+    migrateDmNotes(camp.id);
   }
 
   function applyStatusLocks() {
@@ -510,8 +527,9 @@ import HandoutManager from './HandoutManager.astro';
     // PG e inspiración en tarjetas de aventureros
     document.querySelectorAll<HTMLElement>('.hp-btn').forEach(btn => setDisabled(btn, !canPlay));
     document.querySelectorAll<HTMLElement>('.inspire-btn').forEach(btn => setDisabled(btn, !canPlay));
-    // Formulario de bitácora
-    document.querySelectorAll<HTMLElement>('#grimoire-entry-form input, #grimoire-entry-form textarea, #grimoire-entry-form button').forEach(el => setDisabled(el, !canPlay));
+    // Formulario de bitácora: las notas secretas también se escriben con la partida en pausa (preparación)
+    const canPrepare = isDm && canPerform('dmPrepare', 'dm', s);
+    document.querySelectorAll<HTMLElement>('#grimoire-entry-form input, #grimoire-entry-form textarea, #grimoire-entry-form button').forEach(el => setDisabled(el, !canPrepare));
   }
 
   function renderJournalFeed(campaignId: string) {
@@ -781,7 +799,6 @@ import HandoutManager from './HandoutManager.astro';
     e.preventDefault();
     const activeCampId = campaignStore.getActiveCampaignId();
     const camp = activeCampId ? campaignStore.getCampaign(activeCampId) : null;
-    if (!guardDmPlay(camp)) return;
 
     const titleInput = document.getElementById('grimoire-entry-title') as HTMLInputElement;
     const descInput = document.getElementById('grimoire-entry-desc') as HTMLTextAreaElement;
@@ -790,6 +807,16 @@ import HandoutManager from './HandoutManager.astro';
     const title = titleInput?.value.trim() || 'Nota del Dungeon Master';
     const content = descInput?.value.trim();
     const isPrivate = privateCheck?.checked || false;
+
+    // Publicar a la mesa exige partida en curso; una nota secreta solo exige que no esté terminada.
+    if (isPrivate) {
+      if (!camp || !canPerform('dmPrepare', 'dm', normalizeStatus(camp.status))) {
+        showAlert('La partida terminó: la bitácora queda en solo lectura.', { kind: 'info' });
+        return;
+      }
+    } else if (!guardDmPlay(camp)) {
+      return;
+    }
 
     if (!content) return;
 
@@ -813,6 +840,58 @@ import HandoutManager from './HandoutManager.astro';
 
     if (activeCampId) renderJournalFeed(activeCampId);
   });
+
+  // El botón de enviar dice lo que va a pasar: publicar a la mesa o guardar una nota secreta
+  const submitLabel = document.getElementById('grimoire-entry-submit-label');
+  document.getElementById('grimoire-entry-private')?.addEventListener('change', (e) => {
+    if (submitLabel) {
+      submitLabel.textContent = (e.target as HTMLInputElement).checked ? 'Guardar nota secreta' : 'Publicar en la bitácora';
+    }
+  });
+
+  // Pestañas (bitácora / handouts / mapas)
+  initTabs(document.getElementById('grimoire-tabs'), 'dnd_grimoire_tab');
+
+  // Migración (RF-40 → RF-53): las notas privadas viejas pasan a la bitácora como entradas "solo DM".
+  // DECISION: el id de la entrada se deriva del de la nota, así repetir la migración (otro navegador,
+  // recarga) sobrescribe en vez de duplicar. Las notas originales NO se borran: si la escritura falla
+  // por permisos o red no se pierde nada, y se pueden limpiar más adelante.
+  const migratedCampaigns = new Set<string>();
+
+  function migrateDmNotes(cid: string) {
+    if (migratedCampaigns.has(cid)) return;
+    if (!campaignStore.isCurrentUserDm(cid)) return;
+    const camp = campaignStore.getCampaign(cid);
+    if (!camp || !canPerform('dmPrepare', 'dm', normalizeStatus(camp.status))) return;
+    migratedCampaigns.add(cid);
+
+    let unsubscribe: (() => void) | null = null;
+    let done = false;
+    unsubscribe = subscribeNotes(cid, (notes) => {
+      if (done) return;
+      done = true;
+      queueMicrotask(() => unsubscribe?.());
+
+      const existing = new Set(journalStore.getEntries(undefined, undefined, true).map(e => e.id));
+      notes.forEach((note) => {
+        const id = `migrated-note-${note.id}`;
+        if (existing.has(id)) return;
+        const body = (note.body || '').trim();
+        if (!note.title && !body) return;
+        journalStore.addEntry({
+          id,
+          sessionNumber: camp.sessionNumber || 1,
+          title: note.title || 'Nota del Dungeon Master',
+          content: body,
+          tags: ['#Privado'],
+          isDmOnly: true,
+          authorName: 'Dungeon Master',
+          campaignId: cid,
+          timestamp: note.updatedAt || Date.now()
+        });
+      });
+    });
+  }
 
   // Listeners
   window.addEventListener('dm-grimoire-refresh', () => renderGrimoire());

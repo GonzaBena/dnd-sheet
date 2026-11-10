@@ -11,7 +11,7 @@ import HandoutViewer from './HandoutViewer.astro';
 import HandoutManager from '../dm/HandoutManager.astro';
 ---
 
-<div id="party-view-root" class="w-full max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
+<div id="party-view-root" class="w-full max-w-[92rem] mx-auto px-4 sm:px-6 py-6 space-y-6">
   <!-- AVISO MODO LOCAL (D10) -->
   <div id="party-local-notice" class="hidden p-6 rounded-2xl bg-amber-950/40 border border-amber-500/40 text-amber-200 text-center space-y-2">
     <span class="material-symbols-outlined text-4xl text-amber-400">cloud_off</span>
@@ -231,39 +231,10 @@ import HandoutManager from '../dm/HandoutManager.astro';
     <!-- PRESENCIA (T-51a): sin sección propia, marca las cards del roster -->
     <PresenceTracker />
 
-    <!-- 1. VISTA DM TÁCTICA COCKPIT (Cuando el usuario conectado es DM) -->
-    <div id="party-dm-cockpit" class="hidden space-y-6">
-      <!-- [mapa,mapa,combate] -->
-      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        <!-- Columna Izquierda (7 cols): Mapa modo DM con selector de mapa y cuadrícula -->
-        <div class="lg:col-span-7 space-y-2">
-          <div class="flex items-center justify-between">
-            <div class="flex items-center gap-2">
-              <span class="material-symbols-outlined text-[20px] text-amber-400">map</span>
-              <h2 class="text-sm font-headline font-bold text-[#f1f5f9]">Mapa Táctico de la Mesa</h2>
-            </div>
-            <span class="text-[11px] text-[#94a3b8] font-label">Visor VTT interactivo</span>
-          </div>
-          <MapStage mode="dm" id="party-dm-map-stage" />
-        </div>
-
-        <!-- Columna Derecha (5 cols): CombatTracker -->
-        <div class="lg:col-span-5">
-          <CombatTracker />
-        </div>
-      </div>
-
-      <!-- [editar mapas] (FULL WIDTH) -->
-      <MapManager />
-
-      <!-- [handouts] (RF-41): el DM prepara y envía -->
-      <HandoutManager />
-    </div>
-
-    <!-- 2. VISTA PASIVA DE JUGADOR (Cuando el usuario conectado es jugador) -->
-    <div id="party-player-tactical-view" class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-      <!-- Columna Izquierda (7 cols): Mapa modo Jugador con selector/visor interactivo -->
-      <div class="lg:col-span-7 space-y-2">
+    <!-- [mapa,mapa,combate] -->
+    <!-- 1. VISTA DM TÁCTICA (cuando el usuario conectado es DM) -->
+    <div id="party-dm-cockpit" class="hidden grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+      <div class="lg:col-span-7 xl:col-span-8 min-w-0 space-y-2" data-index-section="Mapa táctico" data-index-icon="map" data-index-order="10">
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-2">
             <span class="material-symbols-outlined text-[20px] text-amber-400">map</span>
@@ -271,22 +242,90 @@ import HandoutManager from '../dm/HandoutManager.astro';
           </div>
           <span class="text-[11px] text-[#94a3b8] font-label">Visor VTT interactivo</span>
         </div>
+        <!-- Mapa modo DM con selector de mapa y cuadrícula -->
+        <MapStage mode="dm" id="party-dm-map-stage" />
+      </div>
+
+      <div class="lg:col-span-5 xl:col-span-4 min-w-0" data-index-section="Combate" data-index-icon="swords" data-index-order="20">
+        <CombatTracker />
+      </div>
+    </div>
+
+    <!-- 2. VISTA PASIVA DE JUGADOR (cuando el usuario conectado es jugador) -->
+    <div id="party-player-tactical-view" class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+      <div class="lg:col-span-7 xl:col-span-8 min-w-0 space-y-2" data-index-section="Mapa táctico" data-index-icon="map" data-index-order="10">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-[20px] text-amber-400">map</span>
+            <h2 class="text-sm font-headline font-bold text-[#f1f5f9]">Mapa Táctico de la Mesa</h2>
+          </div>
+          <span class="text-[11px] text-[#94a3b8] font-label">Visor VTT interactivo</span>
+        </div>
+        <!-- Mapa modo Jugador con selector/visor interactivo -->
         <MapStage mode="player" id="party-player-map-stage" />
       </div>
 
-      <!-- Columna Derecha (5 cols): Tracker de Iniciativa y Combate -->
-      <div class="lg:col-span-5">
+      <div class="lg:col-span-5 xl:col-span-4 min-w-0" data-index-section="Iniciativa" data-index-icon="swords" data-index-order="20">
         <InitiativeList />
       </div>
     </div>
 
-    <!-- HANDOUTS RECIBIDOS (RF-41): solo jugadores; abre un modal cuando el DM envía uno -->
-    <HandoutViewer />
+    <!-- [pestañas, miembros]: crónica, handouts y mapas a la izquierda; el grupo siempre a la vista a la derecha -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+      <section id="party-tabs" class="lg:col-span-7 xl:col-span-8 min-w-0 space-y-4">
+        <div role="tablist" aria-label="Crónica y herramientas de la mesa" class="relative flex items-center gap-1 overflow-x-auto no-scrollbar border-b border-[#222f42]">
+          <!-- Indicador que se desliza hasta la pestaña activa -->
+          <span data-tab-indicator aria-hidden="true" class="absolute bottom-0 left-0 h-0.5 w-0 rounded-full bg-amber-500 transition-[transform,width] duration-300 ease-out"></span>
+          <button
+            type="button" role="tab" id="party-tab-journal" aria-controls="party-panel-journal" aria-selected="true" data-tab="journal"
+            class="shrink-0 flex items-center gap-1.5 px-4 py-2.5 -mb-px text-xs font-bold text-[#94a3b8] hover:text-[#f1f5f9] aria-selected:text-amber-300 transition-colors cursor-pointer"
+          >
+            <span class="material-symbols-outlined text-[18px]">auto_stories</span>
+            <span>Crónica</span>
+          </button>
+          <button
+            type="button" role="tab" id="party-tab-handouts" aria-controls="party-panel-handouts" aria-selected="false" tabindex="-1" data-tab="handouts"
+            class="shrink-0 flex items-center gap-1.5 px-4 py-2.5 -mb-px text-xs font-bold text-[#94a3b8] hover:text-[#f1f5f9] aria-selected:text-amber-300 transition-colors cursor-pointer"
+          >
+            <span class="material-symbols-outlined text-[18px]">description</span>
+            <span>Handouts</span>
+          </button>
+          <button
+            id="party-tab-maps"
+            type="button" role="tab" aria-controls="party-panel-maps" aria-selected="false" tabindex="-1" data-tab="maps"
+            class="hidden shrink-0 items-center gap-1.5 px-4 py-2.5 -mb-px text-xs font-bold text-[#94a3b8] hover:text-[#f1f5f9] aria-selected:text-amber-300 transition-colors cursor-pointer"
+          >
+            <span class="material-symbols-outlined text-[18px]">collections</span>
+            <span>Mapas</span>
+          </button>
+        </div>
 
-    <!-- SECCIÓN INFERIOR: GRUPO Y BITÁCORA -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
-      <!-- 1. GRUPO DE AVENTUREROS (ROSTER) -->
-      <section class="space-y-4">
+        <!-- CRÓNICA DE LA PARTIDA (BITÁCORA PÚBLICA) -->
+        <div role="tabpanel" id="party-panel-journal" aria-labelledby="party-tab-journal" data-tab-panel="journal" data-index-section="Crónica" data-index-icon="auto_stories" data-index-tab="journal" data-index-order="40">
+          <div id="party-journal-feed" class="space-y-3 max-h-[600px] overflow-y-auto pr-1">
+            <!-- Renderizado dinámico de entradas de la bitácora -->
+          </div>
+        </div>
+
+        <!-- HANDOUTS: el DM prepara y envía (RF-41); el jugador recibe un modal y los relee acá -->
+        <div role="tabpanel" id="party-panel-handouts" aria-labelledby="party-tab-handouts" data-tab-panel="handouts" data-index-section="Handouts" data-index-icon="description" data-index-tab="handouts" data-index-order="50" class="hidden">
+          <div id="party-dm-handouts-panel" class="hidden">
+            <HandoutManager />
+          </div>
+          <HandoutViewer />
+          <p id="party-handouts-empty" class="peer-[:not(.hidden)]:hidden p-6 rounded-xl bg-[#121721] border border-[#222f42] text-center text-xs text-[#94a3b8]">
+            Todavía no recibiste handouts. Cuando el DM te envíe uno, lo vas a encontrar acá.
+          </p>
+        </div>
+
+        <!-- MAPAS: solo DM -->
+        <div role="tabpanel" id="party-panel-maps" aria-labelledby="party-tab-maps" data-tab-panel="maps" data-index-section="Gestión de mapas" data-index-icon="collections" data-index-tab="maps" data-index-order="60" class="hidden">
+          <MapManager />
+        </div>
+      </section>
+
+      <!-- GRUPO DE AVENTUREROS (ROSTER) -->
+      <aside class="lg:col-span-5 xl:col-span-4 min-w-0 space-y-3" data-index-section="Miembros" data-index-icon="groups" data-index-order="30">
         <div class="flex items-center justify-between gap-2 border-b border-[#222f42] pb-3">
           <div class="flex items-center gap-2">
             <span class="material-symbols-outlined text-amber-500 text-[20px]">groups</span>
@@ -295,25 +334,10 @@ import HandoutManager from '../dm/HandoutManager.astro';
           <span id="party-roster-count" class="text-xs text-[#94a3b8] font-label">0 Aventureros</span>
         </div>
 
-        <div id="party-characters-list" class="space-y-3">
+        <div id="party-characters-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-1 gap-3">
           <!-- Renderizado dinámico de tarjetas de aventureros -->
         </div>
-      </section>
-
-      <!-- 2. CRÓNICA DE LA PARTIDA (BITÁCORA PÚBLICA) -->
-      <section class="space-y-4">
-        <div class="flex items-center justify-between gap-2 border-b border-[#222f42] pb-3">
-          <div class="flex items-center gap-2">
-            <span class="material-symbols-outlined text-amber-500 text-[20px]">auto_stories</span>
-            <h2 class="font-headline font-bold text-base text-[#f1f5f9]">Crónica de la Partida</h2>
-          </div>
-          <span class="text-xs text-[#94a3b8] font-label">Bitácora pública</span>
-        </div>
-
-        <div id="party-journal-feed" class="space-y-3 max-h-[600px] overflow-y-auto pr-1">
-          <!-- Renderizado dinámico de entradas de la bitácora -->
-        </div>
-      </section>
+      </aside>
     </div>
   </div>
 </div>
@@ -326,6 +350,7 @@ import HandoutManager from '../dm/HandoutManager.astro';
   import { characterStore } from '../../scripts/state/characterStore.ts';
   import { userStore } from '../../scripts/state/userStore.ts';
   import { showAlert, showConfirm, showForm } from '../../scripts/ui/notify.ts';
+  import { initTabs } from '../../scripts/ui/tabs.ts';
 
   const root = document.getElementById('party-view-root');
   const localNotice = document.getElementById('party-local-notice');
@@ -345,6 +370,30 @@ import HandoutManager from '../dm/HandoutManager.astro';
   const journalFeed = document.getElementById('party-journal-feed');
 
   let currentCampaignId: string | null = null;
+
+  // Pestañas de crónica / handouts / mapas (comparten implementación con el Grimorio DM)
+  initTabs(document.getElementById('party-tabs'), 'dnd_party_tab');
+
+  const mapsTabBtn = document.getElementById('party-tab-maps');
+  const mapsPanel = document.getElementById('party-panel-maps');
+  const dmHandoutsPanel = document.getElementById('party-dm-handouts-panel');
+  const handoutsEmpty = document.getElementById('party-handouts-empty');
+
+  /** Lo que es solo del DM se muestra o se oculta, también para el índice flotante. */
+  function applyRoleTabs(isDm: boolean) {
+    mapsTabBtn?.classList.toggle('hidden', !isDm);
+    mapsTabBtn?.classList.toggle('flex', isDm);
+    dmHandoutsPanel?.classList.toggle('hidden', !isDm);
+    handoutsEmpty?.classList.toggle('hidden', isDm);
+    if (mapsPanel) {
+      if (isDm) mapsPanel.setAttribute('data-index-section', 'Gestión de mapas');
+      else {
+        mapsPanel.removeAttribute('data-index-section');
+        // Si la pestaña de mapas quedó guardada de una sesión como DM, se vuelve a la crónica
+        if (!mapsPanel.classList.contains('hidden')) window.dispatchEvent(new CustomEvent('index:open-tab', { detail: { tab: 'journal' } }));
+      }
+    }
+  }
 
   async function initPartyView() {
     // 1. Modo local sin Firebase configurado (D10)
@@ -665,6 +714,8 @@ import HandoutManager from '../dm/HandoutManager.astro';
 
     const dmDice = document.getElementById('party-dm-dice-container');
     const playerDice = document.getElementById('party-player-dice-container');
+
+    applyRoleTabs(isDm);
 
     if (isDm) {
       dmCockpit?.classList.remove('hidden');

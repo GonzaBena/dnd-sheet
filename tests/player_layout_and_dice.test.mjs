@@ -36,11 +36,11 @@ test('Player VTT view (PartyView) distribution & dice layout checks', () => {
     'PartyView player tactical view must use grid-cols-12 layout matching DM view'
   );
   assert.ok(
-    content.includes('lg:col-span-7 space-y-2') && content.includes('Mapa Táctico de la Mesa'),
+    content.includes('lg:col-span-7 xl:col-span-8 min-w-0 space-y-2') && content.includes('Mapa Táctico de la Mesa'),
     'Player tactical view must place tactical map in 7 cols with title header'
   );
   assert.ok(
-    content.includes('lg:col-span-5') && content.includes('<InitiativeList />'),
+    content.includes('lg:col-span-5 xl:col-span-4') && content.includes('<InitiativeList />'),
     'Player tactical view must place InitiativeList combat card in 5 cols'
   );
 

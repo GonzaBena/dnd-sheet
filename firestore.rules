@@ -127,9 +127,12 @@ service cloud.firestore {
           && (
             canPlay()
             || (isDm(campaignId) && request.resource.data.get('systemEvent', '') == 'status' && request.resource.data.visibility == 'party')
+            // Las notas secretas del DM también se preparan con la partida en pausa (antes vivían en /notes).
+            || (isDm(campaignId) && request.resource.data.visibility == 'dm' && canPrepare())
           );
 
-        allow update: if signedIn() && isMember(campaignId) && canPlay()
+        allow update: if signedIn() && isMember(campaignId)
+          && (canPlay() || (isDm(campaignId) && resource.data.visibility == 'dm' && canPrepare()))
           && resource.data.authorUid == uid()
           && request.resource.data.authorUid == uid()
           && validVisibility(request.resource.data);

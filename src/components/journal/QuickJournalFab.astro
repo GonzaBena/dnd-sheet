@@ -30,7 +30,7 @@
   <!-- Índice Popup Popover -->
   <div
     id="sections-index-popup"
-    class="hidden absolute bottom-16 right-0 w-72 sm:w-80 rounded-2xl bg-[#121721]/95 backdrop-blur-xl border border-amber-500/40 shadow-[0_20px_50px_rgba(0,0,0,0.9)] p-3.5 space-y-3 z-50 animate-fade-in"
+    class="hidden absolute bottom-16 right-0 w-72 max-w-[calc(100vw-2rem)] sm:w-80 rounded-2xl bg-[#121721]/95 backdrop-blur-xl border border-amber-500/40 shadow-[0_20px_50px_rgba(0,0,0,0.9)] p-3.5 space-y-3 z-50 animate-fade-in"
   >
     <!-- Header del Índice -->
     <div class="flex items-center justify-between pb-2 border-b border-[#222f42]">
@@ -113,6 +113,7 @@
     if (isHidden) {
       renderIndexSections();
       indexPopup.classList.remove('hidden');
+      updateActiveSection();
     } else {
       indexPopup.classList.add('hidden');
     }
@@ -133,48 +134,107 @@
     }
   });
 
+  // Secciones de la página actual (data-index-section / -icon / -order / -tab / -open="details")
+  interface PageSection {
+    key: string;
+    name: string;
+    icon: string;
+    order: number;
+    el: HTMLElement;
+    tab?: string;
+    isDetails: boolean;
+  }
+
+  /** Un bloque dentro de una pestaña inactiva cuenta como presente si la barra de pestañas se ve. */
+  function isPresent(el: HTMLElement): boolean {
+    const tabsRoot = el.dataset.indexTab ? el.closest<HTMLElement>('[data-tabs-root]') : null;
+    return (tabsRoot ?? el).getClientRects().length > 0;
+  }
+
+  function collectPageSections(): PageSection[] {
+    return Array.from(document.querySelectorAll<HTMLElement>('[data-index-section]'))
+      .filter(isPresent)
+      .map((el, i) => ({
+        key: `idx-${i}`,
+        name: el.dataset.indexSection || 'Sección',
+        icon: el.dataset.indexIcon || 'bookmark',
+        order: Number(el.dataset.indexOrder) || 100,
+        el,
+        tab: el.dataset.indexTab,
+        isDetails: el.dataset.indexOpen === 'details'
+      }))
+      .sort((a, b) => a.order - b.order);
+  }
+
+  function goToSection(sec: PageSection) {
+    if (sec.tab) window.dispatchEvent(new CustomEvent('index:open-tab', { detail: { tab: sec.tab } }));
+    if (sec.isDetails && sec.el instanceof HTMLDetailsElement) sec.el.open = true;
+
+    // Esperar un frame: la pestaña o el desplegable recién abiertos todavía no tienen alto
+    requestAnimationFrame(() => {
+      sec.el.style.scrollMarginTop = '6rem';
+      sec.el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      sec.el.classList.add('ring-2', 'ring-amber-400/80', 'transition-all');
+      setTimeout(() => sec.el.classList.remove('ring-2', 'ring-amber-400/80'), 1500);
+    });
+  }
+
+  /** Marca en el índice la sección que más ocupa la pantalla ahora mismo. */
+  function updateActiveSection() {
+    if (!indexList || !indexPopup || indexPopup.classList.contains('hidden')) return;
+    const sections = collectPageSections();
+    if (sections.length === 0) return;
+
+    const vh = window.innerHeight;
+    let best: PageSection | null = null;
+    let bestArea = 0;
+    sections.forEach((sec) => {
+      // Un bloque dentro de una pestaña cerrada no se ve: no puede ser la sección actual
+      if (sec.el.getClientRects().length === 0) return;
+      const r = sec.el.getBoundingClientRect();
+      const area = Math.max(0, Math.min(r.bottom, vh) - Math.max(r.top, 0)) * r.width;
+      if (area > bestArea) {
+        bestArea = area;
+        best = sec;
+      }
+    });
+
+    const activeName = (best as PageSection | null)?.name;
+    indexList.querySelectorAll<HTMLElement>('[data-index-key]').forEach((btn, i) => {
+      const isActive = sections[i]?.name === activeName;
+      btn.classList.toggle('border-amber-500/70', isActive);
+      btn.classList.toggle('bg-amber-500/10', isActive);
+      if (isActive) btn.setAttribute('aria-current', 'location');
+      else btn.removeAttribute('aria-current');
+    });
+  }
+
+  let spyFrame = 0;
+  window.addEventListener('scroll', () => {
+    if (spyFrame) return;
+    spyFrame = requestAnimationFrame(() => {
+      spyFrame = 0;
+      updateActiveSection();
+    });
+  }, { passive: true });
+
   // 3. Renderizar las secciones activas en el índice
   function renderIndexSections() {
     if (!indexList) return;
     indexList.innerHTML = '';
 
     const globalActions = document.getElementById('sections-index-global-actions');
-    const isPartyView = Boolean(document.getElementById('party-view-root'));
+    // El índice sigue a la página: cualquier bloque marcado con data-index-section y visible entra en la lista.
+    // Si la página no marca ninguno (la hoja de personaje), se usan las secciones propias de la ficha.
+    const pageSections = collectPageSections();
 
-    if (isPartyView) {
+    if (pageSections.length > 0) {
       if (globalActions) globalActions.classList.add('hidden');
 
-      const partySections = [
-        {
-          id: 'party-map',
-          name: 'Mapa Táctico',
-          icon: 'map',
-          target: document.getElementById('party-player-map-stage') || document.getElementById('party-dm-map-stage')
-        },
-        {
-          id: 'party-combat',
-          name: 'Iniciativa y Combate',
-          icon: 'bolt',
-          target: document.getElementById('party-player-tactical-view') || document.getElementById('party-dm-cockpit')
-        },
-        {
-          id: 'party-roster',
-          name: 'Grupo de Aventureros',
-          icon: 'groups',
-          target: document.getElementById('party-characters-list')
-        },
-        {
-          id: 'party-journal',
-          name: 'Crónica de la Partida',
-          icon: 'auto_stories',
-          target: document.getElementById('party-journal-feed')
-        }
-      ];
-
-      partySections.forEach(sec => {
-        if (!sec.target) return;
+      pageSections.forEach((sec) => {
         const btn = document.createElement('button');
         btn.type = 'button';
+        btn.dataset.indexKey = sec.key;
         btn.className = 'w-full px-2.5 py-2 rounded-xl bg-[#18202e]/80 hover:bg-[#18202e] border border-[#222f42] hover:border-amber-500/50 text-left transition-all flex items-center justify-between group cursor-pointer active:scale-98';
         btn.innerHTML = `
           <div class="flex items-center gap-2 min-w-0">
@@ -185,15 +245,12 @@
         `;
         btn.addEventListener('click', (e) => {
           e.stopPropagation();
-          sec.target?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          sec.target?.classList.add('ring-2', 'ring-amber-400/80', 'transition-all');
-          setTimeout(() => {
-            sec.target?.classList.remove('ring-2', 'ring-amber-400/80');
-          }, 1500);
+          goToSection(sec);
           indexPopup?.classList.add('hidden');
         });
         indexList.appendChild(btn);
       });
+      updateActiveSection();
       return;
     }
 
