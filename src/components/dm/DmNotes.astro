@@ -1,0 +1,241 @@
+---
+// src/components/dm/DmNotes.astro
+// Notas privadas del DM (RF-40). Solo se monta en el panel del DM; nunca en /partida.
+---
+
+<section id="dm-notes-root" class="w-full rounded-2xl bg-[#121721] border border-[#222f42] p-5 lg:p-6 shadow-sm space-y-4">
+  <div class="flex items-center justify-between gap-3 flex-wrap">
+    <div class="flex items-center gap-2">
+      <span class="material-symbols-outlined text-amber-500 text-[22px]">sticky_note_2</span>
+      <h2 class="font-headline font-bold text-lg text-[#f1f5f9]">Notas del DM</h2>
+      <span class="px-2 py-0.5 rounded-full bg-[#18202e] border border-[#222f42] text-[10px] text-[#94a3b8] font-label">Privadas</span>
+    </div>
+    <div class="flex items-center gap-2">
+      <span id="dm-notes-save-state" class="text-[11px] text-[#64748b] font-label" aria-live="polite"></span>
+      <button id="dm-notes-new-btn" type="button" class="px-3 py-1.5 rounded-lg bg-amber-500/15 border border-amber-500/40 text-amber-300 text-xs font-bold hover:bg-amber-500/25 transition-colors flex items-center gap-1">
+        <span class="material-symbols-outlined text-[16px]">add</span> Nueva nota
+      </button>
+    </div>
+  </div>
+
+  <p id="dm-notes-readonly" class="hidden text-[11px] text-[#94a3b8] bg-[#18202e] border border-[#222f42] rounded-lg px-3 py-2">
+    La partida terminó: las notas están en modo solo lectura.
+  </p>
+
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <ul id="dm-notes-list" class="md:col-span-1 space-y-1.5 max-h-72 overflow-y-auto pr-1"></ul>
+
+    <div id="dm-notes-editor" class="md:col-span-2 space-y-2 hidden">
+      <input
+        id="dm-notes-title"
+        type="text"
+        maxlength="120"
+        placeholder="Título de la nota"
+        class="w-full rounded-lg bg-[#18202e] border border-[#222f42] px-3 py-2 text-sm text-[#f1f5f9] focus:border-amber-500/50 focus:outline-none"
+      />
+      <textarea
+        id="dm-notes-body"
+        maxlength="20000"
+        rows="9"
+        placeholder="Escribí tus notas…"
+        class="w-full rounded-lg bg-[#18202e] border border-[#222f42] px-3 py-2 text-sm text-[#cbd5e1] focus:border-amber-500/50 focus:outline-none resize-y"
+      ></textarea>
+      <div class="flex justify-end">
+        <button id="dm-notes-delete-btn" type="button" class="px-3 py-1.5 rounded-lg bg-red-500/10 border border-red-500/30 text-red-300 text-xs font-bold hover:bg-red-500/20 transition-colors flex items-center gap-1">
+          <span class="material-symbols-outlined text-[16px]">delete</span> Borrar
+        </button>
+      </div>
+    </div>
+
+    <p id="dm-notes-empty" class="md:col-span-2 text-xs text-[#64748b] py-6 text-center">
+      Seleccioná o creá una nota.
+    </p>
+  </div>
+</section>
+
+<script>
+  import { campaignStore } from '../../scripts/state/campaignStore';
+  import { showConfirm } from '../../scripts/ui/notify';
+  import { canPerform, normalizeStatus } from '../../scripts/vtt/sessionStatus.ts';
+  import { subscribeNotes, createNote, updateNote, deleteNote } from '../../scripts/data/notesService.ts';
+  import type { DmNote } from '../../scripts/models/dmNote.ts';
+
+  // DECISION (F5-3): autoguardado con debounce de 1,5 s y al perder el foco: 1 escritura por pausa de edición, no por tecla.
+  const DEBOUNCE_MS = 1500;
+
+  const rootEl = document.getElementById('dm-notes-root');
+  const listEl = document.getElementById('dm-notes-list') as HTMLUListElement | null;
+  const editorEl = document.getElementById('dm-notes-editor');
+  const emptyEl = document.getElementById('dm-notes-empty');
+  const titleEl = document.getElementById('dm-notes-title') as HTMLInputElement | null;
+  const bodyEl = document.getElementById('dm-notes-body') as HTMLTextAreaElement | null;
+  const newBtn = document.getElementById('dm-notes-new-btn') as HTMLButtonElement | null;
+  const delBtn = document.getElementById('dm-notes-delete-btn') as HTMLButtonElement | null;
+  const stateEl = document.getElementById('dm-notes-save-state');
+  const readonlyEl = document.getElementById('dm-notes-readonly');
+
+  let currentCid: string | null = null;
+  let unsubscribe: (() => void) | null = null;
+  let notes: DmNote[] = [];
+  let selectedId: string | null = null;
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  let dirty = false;
+
+  function getCid(): string | null {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('id') || params.get('campaign') || campaignStore.getActiveCampaignId();
+  }
+
+  function canEdit(): boolean {
+    if (!currentCid) return false;
+    const status = normalizeStatus(campaignStore.getCampaign(currentCid)?.status);
+    return canPerform('dmPrepare', 'dm', status);
+  }
+
+  function setState(text: string) {
+    if (stateEl) stateEl.textContent = text;
+  }
+
+  function applyReadOnly() {
+    const editable = canEdit();
+    readonlyEl?.classList.toggle('hidden', editable);
+    if (titleEl) titleEl.readOnly = !editable;
+    if (bodyEl) bodyEl.readOnly = !editable;
+    newBtn?.toggleAttribute('disabled', !editable);
+    delBtn?.toggleAttribute('disabled', !editable);
+    newBtn?.classList.toggle('opacity-50', !editable);
+    delBtn?.classList.toggle('opacity-50', !editable);
+  }
+
+  async function flush() {
+    if (timer) {
+      clearTimeout(timer);
+      timer = null;
+    }
+    if (!dirty || !currentCid || !selectedId || !canEdit()) return;
+    dirty = false;
+    const id = selectedId;
+    try {
+      setState('Guardando…');
+      await updateNote(currentCid, id, { title: titleEl?.value ?? '', body: bodyEl?.value ?? '' });
+      setState('Guardado');
+    } catch (err) {
+      dirty = true;
+      console.warn('[DmNotes] Error al guardar:', err);
+      setState('Error al guardar');
+    }
+  }
+
+  function scheduleSave() {
+    if (!canEdit()) return;
+    dirty = true;
+    setState('Sin guardar…');
+    if (timer) clearTimeout(timer);
+    timer = setTimeout(flush, DEBOUNCE_MS);
+  }
+
+  function renderList() {
+    if (!listEl) return;
+    listEl.innerHTML = '';
+    notes.forEach((n) => {
+      const li = document.createElement('li');
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.dataset.noteId = n.id;
+      btn.textContent = n.title.trim() || 'Sin título';
+      btn.className =
+        'w-full text-left truncate px-3 py-2 rounded-lg border text-xs transition-colors ' +
+        (n.id === selectedId
+          ? 'bg-amber-500/15 border-amber-500/40 text-amber-200'
+          : 'bg-[#18202e] border-[#222f42] text-[#cbd5e1] hover:border-amber-500/30');
+      btn.addEventListener('click', async () => {
+        await flush();
+        select(n.id);
+      });
+      li.appendChild(btn);
+      listEl.appendChild(li);
+    });
+  }
+
+  function select(id: string | null) {
+    selectedId = id;
+    const note = notes.find((n) => n.id === id);
+    editorEl?.classList.toggle('hidden', !note);
+    emptyEl?.classList.toggle('hidden', Boolean(note));
+    if (note && titleEl && bodyEl) {
+      titleEl.value = note.title;
+      bodyEl.value = note.body;
+    }
+    renderList();
+    applyReadOnly();
+  }
+
+  function onNotes(next: DmNote[]) {
+    notes = next;
+    // No pisar lo que se está tipeando: solo se recarga el editor si no hay cambios sin guardar.
+    if (selectedId && !notes.some((n) => n.id === selectedId)) {
+      select(null);
+    } else if (!dirty) {
+      select(selectedId);
+    } else {
+      renderList();
+    }
+  }
+
+  function init() {
+    const cid = getCid();
+    if (!cid) return;
+    if (cid !== currentCid) {
+      unsubscribe?.();
+      currentCid = cid;
+      selectedId = null;
+      unsubscribe = subscribeNotes(cid, onNotes);
+    }
+    applyReadOnly();
+  }
+
+  titleEl?.addEventListener('input', scheduleSave);
+  bodyEl?.addEventListener('input', scheduleSave);
+  titleEl?.addEventListener('blur', flush);
+  bodyEl?.addEventListener('blur', flush);
+
+  newBtn?.addEventListener('click', async () => {
+    if (!currentCid || !canEdit()) return;
+    await flush();
+    try {
+      const id = await createNote(currentCid, { title: 'Nueva nota', body: '' });
+      selectedId = id;
+      // La suscripción repinta la lista; si ya llegó, seleccionamos de inmediato.
+      if (notes.some((n) => n.id === id)) select(id);
+    } catch (err) {
+      console.warn('[DmNotes] Error al crear:', err);
+      setState('No se pudo crear la nota');
+    }
+  });
+
+  delBtn?.addEventListener('click', async () => {
+    if (!currentCid || !selectedId || !canEdit()) return;
+    const ok = await showConfirm('¿Borrar esta nota? No se puede deshacer.', { confirmText: 'Borrar', danger: true });
+    if (!ok) return;
+    dirty = false;
+    if (timer) clearTimeout(timer);
+    const id = selectedId;
+    selectedId = null;
+    try {
+      await deleteNote(currentCid, id);
+    } catch (err) {
+      console.warn('[DmNotes] Error al borrar:', err);
+      setState('No se pudo borrar');
+    }
+  });
+
+  window.addEventListener('pagehide', () => {
+    void flush();
+  });
+  window.addEventListener('DOMContentLoaded', init);
+  window.addEventListener('popstate', init);
+  window.addEventListener('campaign-activated', init);
+  window.addEventListener('campaigns-updated', init);
+  window.addEventListener('session-status-changed', applyReadOnly);
+  if (rootEl) init();
+</script>
