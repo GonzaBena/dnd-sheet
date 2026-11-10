@@ -4,7 +4,7 @@ Nov 9, 2026 · @Gonzalo Benavente
 
 > **Borrador.** Define objetivo, requisitos y fases a grandes rasgos. Se completa (modelo de datos, reglas exactas, cuotas, criterios) cuando la Spec 03 esté implementada, porque depende de su modelo de eventos y sesiones.
 
-Etapa 3 del [roadmap](../ROADMAP.md). Ideas I-12, I-21 e I-22 de [`IDEAS.md`](../IDEAS.md).
+Etapa 3 del [roadmap](../ROADMAP-vtt.md). Ideas I-12, I-21 e I-22 de [`IDEAS.md`](../IDEAS.md).
 
 ## Objetivo y alcance
 

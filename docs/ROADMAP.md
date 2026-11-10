@@ -1,128 +1,164 @@
-# Roadmap
+# Roadmap · Hoja viva
 
-Nov 9, 2026 · @Gonzalo Benavente
+Nov 10, 2026 · @Gonzalo Benavente
 
-Orden de implementación de las ideas de [`IDEAS.md`](IDEAS.md). Cada etapa se convierte en **una spec** (`docs/Specs/NN-*.spec.md`) y en **planes por fase** (`docs/Plans/NN-*/`), igual que la Spec 01.
+Orden de implementación de las mejoras de la hoja de personaje. Parten de [`NOTAS.notas.md`](NOTAS.notas.md) y de la conversación de ideas del 10/11. Cada etapa se convierte en **una spec** (`docs/Specs/NN-*.spec.md`) y en **planes por fase** (`docs/Plans/NN-*/`).
 
 ## Reglas
 
-1. **Una etapa grande a la vez.** No se abre la spec de una etapa hasta cerrar la anterior (tests verdes y prueba manual con DM + jugador).
-2. **Victorias rápidas intercalables.** Las ideas de tamaño **S** marcadas como ⚡ se pueden meter entre fases de otra etapa si no tocan los mismos archivos.
-3. **Primero los cimientos.** Nada del bloque "memoria" (estadísticas, crónica, previously on) arranca sin el registro de eventos (I-10).
-4. **Cada etapa termina en algo que se puede jugar.** Al cerrarla, el grupo tiene que notar la diferencia en la próxima sesión.
+1. **Una etapa a la vez.** No se abre la spec de una etapa hasta cerrar la anterior (tests verdes y prueba manual con DM + jugador).
+2. **Primero los cimientos.** Nada de armas, conjuros, dotes o reacciones arranca sin el motor de efectos y recursos (H1).
+3. **La hoja avisa, no bloquea.** Las incompatibilidades (armadura sin competencia, conjuro sin componentes) se señalan y aplican sus penalizaciones, pero el DM siempre puede decidir otra cosa.
+4. **Catálogo base + entradas propias.** Objetos, hechizos y dotes se cargan de un catálogo o se crean a mano, con el mismo esquema. No hay edición del catálogo por campaña por ahora.
+5. **Cuidar la cuota de Firestore.** Todo lo posible se escribe en el documento del personaje y no en eventos sueltos; lo que necesite tiempo real se diseña con pocas escrituras.
+6. **Cada etapa termina en algo que se puede jugar.**
 
 ## Vista general
 
 ```
-Etapa 0  VTT mínimo (Spec 01, fases 2–3)
-   │
-Etapa 1  Mesa viva ──────────────── Spec 02
-   │
-Etapa 2  Memoria: cimiento ──────── Spec 03   (I-10 es la base de todo lo que sigue)
-   │
-   ├──► Etapa 3  Personajes vivos ── Spec 04
-   │
-   └──► Etapa 4  Crecimiento ─────── Spec 05   (independiente; se puede adelantar)
-           │
-Etapa 5  El relato ──────────────── Spec 06   (crónica + "Previously on…", lo último)
+H1  Cimientos ──────── motor de efectos + catálogo + modales
+ │
+ ├─► H2  Equipo ────── armaduras, armas, CA, compatibilidad
+ │
+ ├─► H3  Descansos y recursos
+ │
+ └─► H4  Combate en la hoja ── ataque, conjuros, ventaja, dotes
+        │
+        ├─► H5  Reacciones ───── aviso en vivo
+        │
+        └─► H6  Alcance y tokens propios ── depende del mapa y los tokens (Spec 01)
 
-En paralelo, cuando haga falta: Spec 01 fases 4 (niebla) y 5 (extras).
+H7  Layouts DM / jugador / sin mapa   (al final; necesita cuota y decisiones previas)
 ```
 
-## Etapa 0 — VTT mínimo · *en curso*
+H2 y H3 solo dependen de H1 y se pueden hacer en cualquier orden entre sí. H4 conviene después de H2 (necesita armas estructuradas) y de H3 (necesita recursos con reinicio).
 
-**Objetivo:** que se pueda jugar online con un mapa y tokens, para que nadie se vaya por no tenerlo.
+## H1 · Cimientos
 
-| Incluye | Ya está |
-| --- | --- |
-| Spec 01, Fase 2 (mapa estático) y Fase 3 (tokens en vivo) | Fases 0, 0B y 1 (base, estado de partida, combate) |
+**Objetivo:** que la hoja entienda qué efectos están activos y de dónde vienen. Todo lo demás cuelga de esto.
 
-**Criterio de cierre:** el DM sube un mapa y los jugadores mueven sus tokens en vivo desde otro navegador.
-
-La Fase 4 (niebla) y la Fase 5 (extras: notas, ping, regla de medición, handouts…) **no bloquean** las etapas siguientes: se hacen cuando un grupo real las pida.
-
-## Etapa 1 — Mesa viva · [Spec 02](Specs/02-mesa-viva.spec.md)
-
-**Objetivo:** que la app se sienta hecha para la mesa física. Aprovecha el combate, que ya está hecho.
-
-| Idea | Tamaño | Nota |
+| Pieza | Tamaño | Nota |
 | --- | --- | --- |
-| I-02 Aviso de turno | S ⚡ | Lo primero: es barato y se nota enseguida. Incluye "pantalla siempre encendida", adelantada de I-03 |
-| I-42 Invitación por link y QR | S ⚡ | El link ya existe; falta el QR. Independiente: se puede hacer incluso durante la Etapa 0 |
-| I-06 Terminar mi turno desde el celular | S | Requiere una regla nueva sobre `combat/current` |
-| I-30 Susurros del DM a un jugador | S ⚡ | También en pausa. Revisar el solapamiento con los handouts (Spec 01, T-52) |
+| Modelo de **efecto activo** (origen, duración, modificadores, usos, disparador) | L | Define el contrato del que dependen las demás etapas |
+| Modelo de **recurso** (usos máximos y cuándo se reinicia: turno, descanso corto o largo) | M | Inspiración Bárdica, dados guardados del mago, Furia, etc. |
+| **Catálogo base + entradas propias** de objetos, hechizos y dotes | L | Mismo esquema; las propias se marcan como tales |
+| **Modal genérico de objeto** y **de hechizo** | M | Imagen arriba a la izquierda, título, descripción y datos. Sirve en inventario, botín y handouts |
+| Panel **"Efectos activos"** con duración y botón para terminar | M | Primera pantalla visible del motor |
 
-**Criterio de cierre:** en una sesión, los jugadores reciben el aviso de su turno, terminan su turno y reciben los susurros del DM desde el celular, y un jugador nuevo entra escaneando el QR.
+**Criterio de cierre:** se agrega un objeto propio y uno del catálogo, ambos se abren en el modal, y un efecto con duración aparece y expira en el panel.
 
-## Etapa 2 — Memoria: cimiento · [Spec 03](Specs/03-memoria-cimiento.spec.md)
+## H2 · Equipo
 
-**Objetivo:** que la partida empiece a "recordar" sola. Es la etapa más importante en arquitectura.
+**Objetivo:** que lo que el personaje lleva puesto afecte a sus números.
 
-| Idea | Tamaño | Nota |
+| Pieza | Tamaño | Nota |
 | --- | --- | --- |
-| I-10 Registro de eventos estructurado | L | Primero. Define el modelo `events` y quién lo escribe (dados, combate, hitos) |
-| I-24 Sesiones como episodios | S | Botón "Sesión nueva" (solo en pausa) y recordatorio a las 12 h. Título **opcional** por sesión, editable en cualquier momento (incluso con la partida terminada); tarjeta al iniciar |
-| I-20 Escenas en momentos clave | M | Crítico, pifia, KO, muerte, subida de nivel, emitidos a todos |
-| I-11 Momentos épicos | M | Detección automática + "marcar como momento" del DM |
-| Salvaciones contra la muerte | M | Agregadas a la hoja; generan los eventos de estabilizado, muerte y "vuelve en sí" |
+| **Slots de equipo** y **sintonización** (máx. 3) | M | Cabeza, cuerpo, manos, cuello, 2 anillos, botas, capa |
+| **Armaduras**: categoría, CA base, tope de DES, requisito de FUE, desventaja en Sigilo | M | Sus efectos entran al motor de H1 |
+| **Compatibilidad** por competencias de clase, raza y dotes | M | Avisa y aplica penalizaciones; no bloquea |
+| **Desglose de la CA** y elección de la mejor fórmula | M | Incluye Armadura sin Armadura y Armadura de Mago |
+| **Armas estructuradas**: dado de daño, propiedades, alcance, bono mágico | M | Prepara H4 |
 
-**Criterio de cierre:** después de una sesión, la campaña muestra un timeline con sus momentos, sin que nadie los haya escrito a mano.
+**Criterio de cierre:** al equipar una armadura pesada a un mago aparece el aviso con sus penalizaciones, y la CA queda desglosada y correcta.
 
-**Riesgo:** cuota de Firestore. Hay que definir en la spec qué se guarda como evento y qué no (no cada tirada de habilidad).
+## H3 · Descansos y recursos
 
-## Etapa 3 — Personajes vivos · [Spec 04](Specs/04-personajes-vivos.spec.md) *(borrador)*
+**Objetivo:** que descansar reponga lo correcto y pida las tiradas que corresponden.
 
-**Objetivo:** apego al personaje.
-
-| Idea | Tamaño | Nota |
+| Pieza | Tamaño | Nota |
 | --- | --- | --- |
-| I-12 Estadísticas de personaje y de grupo | M | Incluye los premios de fin de sesión |
-| I-21 Evolución del personaje | M | Usa los retratos (I-23) y los eventos |
-| I-22 Relaciones entre personajes | M | No depende de I-10; se puede mover |
+| **Descanso corto** con dados de golpe: se elige cuántos gastar, se pide tirar cada dado y se suma CON | M | Soporta dados distintos por multiclase |
+| **Descanso largo**: reinicia recursos y efectos "hasta el descanso", recupera la mitad de los dados | M | |
+| **Dados guardados** (Portento y similares) como recurso con valores concretos | S | Se tiran en el descanso largo y se gastan para reemplazar una tirada |
+| **Resumen** del descanso ("recuperaste 14 PG, 2 espacios de nivel 1…") | S ⚡ | |
 
-## Etapa 4 — Crecimiento · [Spec 05](Specs/05-crecimiento.spec.md) *(borrador)*
+**Criterio de cierre:** un descanso corto y uno largo reponen todo lo que corresponde y muestran el resumen.
 
-**Objetivo:** que lleguen grupos nuevos y que los novatos no se pierdan. Es independiente de las Etapas 2 y 3; se puede adelantar si aparece un grupo nuevo para probar.
+## H4 · Combate en la hoja
 
-| Idea | Tamaño | Nota |
+**Objetivo:** que atacar y lanzar conjuros respete las reglas sin que el jugador lleve la cuenta a mano.
+
+| Pieza | Tamaño | Nota |
 | --- | --- | --- |
-| I-03 Modo mesa (celular minimalista) | M | |
-| I-41 Onboarding para jugadores nuevos | M | |
-| I-40 Español nativo | continuo | Se trabaja en cada etapa, no tiene cierre propio |
+| **Selector de modificadores** al atacar (qué efectos aplicar al impacto) y consumo de "1 vez por turno" | L | Si el primer ataque falla, el efecto sigue disponible para el segundo |
+| **Validación de conjuros**: espacio del nivel adecuado, componentes V/S/M, estado del personaje, nivel superior, rituales | L | Descuenta el espacio al lanzar |
+| **Concentración**: una a la vez, aviso al lanzar otra, salvación al recibir daño | M | |
+| **Ventaja y desventaja explicadas**: la tirada muestra por qué | M | Se calcula con condiciones, efectos y armadura |
+| **Dotes** con efectos pasivos y condicionales | L | Precisión Élfica solo hace efecto con ventaja |
+| **Rasgos** clasificados como activo, reacción, pasivo o condicional, con búsqueda | M | |
+| **Efectos de toque y de hablar**: exigir poder tocar al objetivo o poder hablar | S | Se apoya en las condiciones del personaje |
 
-## Etapa 5 — El relato · [Spec 06](Specs/06-el-relato.spec.md) *(borrador)*
+**Criterio de cierre:** un ataque múltiple con un efecto de una vez por turno lo consume una sola vez, y un conjuro sin espacio del nivel adecuado no se puede lanzar.
 
-**Objetivo:** cerrar el círculo: la campaña se cuenta sola.
+## H5 · Reacciones
 
-| Idea | Tamaño | Nota |
+**Objetivo:** que las reacciones se ofrezcan en el momento justo, aunque el turno sea de otro.
+
+| Pieza | Tamaño | Nota |
 | --- | --- | --- |
-| I-13 Crónica exportable | L | Página tipo libro + PDF |
-| I-14 "Previously on…" | M | Al reanudar una partida pausada o al iniciar una sesión nueva. v1 sin IA |
+| **Disparadores** declarados por el DM y aviso al jugador con una reacción compatible | L | Reusa el aviso de turno ya hecho |
+| **Una reacción por ronda**, con recuperación al inicio del turno | M | Las demás quedan atenuadas |
+| **Tiempo límite opcional** por campaña, con "no usar" por defecto | S | |
+| Reacciones de ejemplo: Escudo, desviar estados de miedo, Capa de Desplazamiento | M | |
 
-**Pregunta abierta:** si se quiere un resumen con IA, hace falta backend (Cloud Function o similar) y un costo por uso. Decidirlo al escribir la Spec 06.
+**Riesgo:** es lo que más cuota consume. Hay que definir en la spec un solo documento de "disparador activo" por mesa.
 
-## Fuera del roadmap
+**Criterio de cierre:** el DM declara un ataque, el jugador con Escudo ve el aviso, lo acepta y la CA sube solo para ese ataque.
 
-| Idea | Estado | Motivo |
+## H6 · Alcance y tokens propios
+
+**Objetivo:** que la hoja sepa dónde está cada quien. Depende del mapa y los tokens de la Spec 01 (Fases 2 y 3).
+
+| Pieza | Tamaño | Nota |
 | --- | --- | --- |
-| I-05 Escaneo de dados con la cámara | ❌ | Se usan dados propios con carga manual o dados digitales |
-| I-31 Preparar la sesión en 10 minutos | ❌ por ahora | Complejidad alta para el valor actual |
-| I-32 Calendario y asistencia | ⏳ | WhatsApp lo resuelve hoy |
-| I-01 Pantalla de mesa (tablet / TV) | ⏳ | Fuera del MVP: online ya se ve todo en `/partida`, y en persona los grupos usan tablero físico, no TV ni proyector |
+| **Filtro por distancia**: el botón de atacar solo aparece en objetivos que se alcanzan, y al elegir uno se ve solo lo usable a esa distancia | L | Incluye aliados, para boosts y curaciones |
+| **Desventaja a distancia** con enemigos adyacentes y alcance largo | S | |
+| **Tokens controlados por el jugador** (ilusiones, no muertos, compañeros) con dueño | M | Solo el creador y el DM los mueven; si termina la concentración, desaparecen |
+| **Celdas de movimiento** según la velocidad y las ya gastadas en el turno | M | Terreno difícil y velocidades alternativas |
+| Aviso de **ataque de oportunidad** al salir del alcance | S | |
+
+**Criterio de cierre:** un personaje con alcance de 30 pies no puede atacar a un enemigo a 120, y el mapa resalta hasta dónde puede moverse.
+
+## H7 · Layouts de DM, jugador y modo sin mapa
+
+**Objetivo:** que cada rol vea lo que necesita y que la campaña funcione sin mapa.
+
+| Pieza | Tamaño | Nota |
+| --- | --- | --- |
+| **Layout de DM**: mapa, iniciativa, monstruos, efectos de todos, bitácora y botín | L | |
+| **Layout de jugador**: hoja y acciones en primer plano, mapa como apoyo | L | |
+| **Ajuste de campaña "sin mapa"** (teatro de la mente) | M | Cambia el layout y quita el mapa |
+| **Rangos abstractos** (cuerpo a cuerpo, cerca, lejos, muy lejos) como alternativa a las coordenadas | M | El filtro de H6 debe aceptar ambos modelos |
+
+**Antes de arrancar:** decidir que el motor de alcance de H6 se diseñe ya para aceptar rangos abstractos, para no rehacerlo aquí.
+
+**Criterio de cierre:** una campaña sin mapa se juega entera, y el DM y los jugadores ven layouts distintos.
+
+## Ideas sueltas (sin etapa)
+
+Se asignan a una etapa cuando haga falta:
+
+- Historial de tiradas con filtro y reroll con recurso (Suerte, Inspiración).
+- Inventario con peso, capacidad de carga y objetos con cargas (varitas, pociones).
+- Selector de condiciones que aplique sus efectos mecánicos (Aturdido, Hechizado, Agotamiento por niveles).
+- Indicador de lo que queda en el turno: acción, adicional, reacción, movimiento, interacción con objeto.
+- Modo "turno rápido" para móvil, con lo que se hace ahora arriba y el resto plegado.
+- Tiempos de ponerse y quitarse la armadura.
 
 ## Estado de las specs
 
 | Spec | Etapa | Estado |
 | --- | --- | --- |
-| [01 — VTT y panel de DM](Specs/01-dm-panel.spec.md) | 0 | Fases 0, 0B y 1 hechas; 2–5 pendientes |
-| [02 — Mesa viva](Specs/02-mesa-viva.spec.md) | 1 | Completa, con [planes](Plans/02-mesa-viva/README.md) listos |
-| [03 — Memoria: cimiento](Specs/03-memoria-cimiento.spec.md) | 2 | Completa, con preguntas abiertas |
-| [04 — Personajes vivos](Specs/04-personajes-vivos.spec.md) | 3 | Borrador: se completa al cerrar la Spec 03 |
-| [05 — Crecimiento](Specs/05-crecimiento.spec.md) | 4 | Borrador: independiente |
-| [06 — El relato](Specs/06-el-relato.spec.md) | 5 | Borrador: se completa al cerrar las Specs 03 y 04 |
+| [07 — Cimientos de la hoja](Specs/07-cimientos-de-la-hoja.spec.md) | H1 | Completa, con [planes](Plans/07-cimientos-de-la-hoja/README.md) listos |
+| 08 — Equipo | H2 | Por escribir |
+| 09 — Descansos y recursos | H3 | Por escribir |
+| 10 — Combate en la hoja | H4 | Por escribir |
+| 11 — Reacciones | H5 | Por escribir |
+| 12 — Alcance y tokens propios | H6 | Por escribir |
+| 13 — Layouts y modo sin mapa | H7 | Por escribir |
 
-Numeración de IDs: cada spec usa su propio rango (Spec 02: RF/T-60…99; Spec 03: 100…139; Spec 04: 140…169; Spec 05: 170…199; Spec 06: 200…).
+Los rangos de IDs de cada spec nueva se asignan al abrirla, a partir del 230 (las anteriores llegan hasta RF-213 y T-116).
 
 ## Próximo paso
 
-Terminar la Etapa 0 (planes de la Spec 01, Fases 2 y 3). Después, ejecutar los planes de la Spec 02 (`docs/Plans/02-mesa-viva/`); su Fase A (QR) se puede hacer antes.
+Ejecutar los planes de la Spec 07 (`docs/Plans/07-cimientos-de-la-hoja/`), empezando por la Fase A (recursos y migración). Antes de abrir la Spec 08 (H2), cerrar H1 con tests verdes y prueba manual.

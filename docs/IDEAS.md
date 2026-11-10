@@ -2,7 +2,7 @@
 
 Nov 9, 2026 · @Gonzalo Benavente
 
-Catálogo de ideas surgido del brainstorming. **No es una spec**: cada idea se baja a una spec cuando entra en el roadmap ([`ROADMAP.md`](ROADMAP.md)).
+Catálogo de ideas surgido del brainstorming. **No es una spec**: cada idea se baja a una spec cuando entra en el roadmap ([`ROADMAP.md`](ROADMAP-vtt.md)).
 
 ## Posicionamiento
 

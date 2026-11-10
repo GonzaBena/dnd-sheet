@@ -4,7 +4,7 @@ Planes derivados de [`docs/Specs/02-mesa-viva.spec.md`](../../Specs/02-mesa-viva
 
 ## Cuándo se ejecutan
 
-Según el [roadmap](../../ROADMAP.md), esta etapa va **después de la Etapa 0** (Spec 01, Fases 2 y 3: mapa y tokens). Excepción: la **Fase A (QR)** es independiente y se puede hacer en cualquier momento.
+Según el [roadmap](../../ROADMAP-vtt.md), esta etapa va **después de la Etapa 0** (Spec 01, Fases 2 y 3: mapa y tokens). Excepción: la **Fase A (QR)** es independiente y se puede hacer en cualquier momento.
 
 ## Índice
 
