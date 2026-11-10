@@ -5,7 +5,7 @@ export function openDrawer(drawerEl: HTMLElement, backdropEl?: HTMLElement) {
   drawerEl.style.bottom = '';
   drawerEl.style.maxHeight = '';
   drawerEl.classList.remove('keyboard-open');
-  if (backdropEl) backdropEl.classList.remove('hidden');
+  if (backdropEl) { backdropEl.classList.remove('hidden'); backdropEl.style.pointerEvents = ''; }
 
   anime.remove(drawerEl);
   if (backdropEl) anime.remove(backdropEl);
@@ -39,7 +39,7 @@ export function openDrawer(drawerEl: HTMLElement, backdropEl?: HTMLElement) {
 
 export function openSideDrawer(drawerEl: HTMLElement, backdropEl?: HTMLElement) {
   drawerEl.classList.remove('hidden');
-  if (backdropEl) backdropEl.classList.remove('hidden');
+  if (backdropEl) { backdropEl.classList.remove('hidden'); backdropEl.style.pointerEvents = ''; }
 
   anime.remove(drawerEl);
   if (backdropEl) anime.remove(backdropEl);
@@ -134,7 +134,10 @@ export function closeDrawer(drawerEl: HTMLElement, backdropEl?: HTMLElement, onC
 
 export function openModal(modalEl: HTMLElement, backdropEl?: HTMLElement) {
   modalEl.classList.remove('hidden');
-  if (backdropEl) backdropEl.classList.remove('hidden');
+  if (backdropEl) {
+    backdropEl.classList.remove('hidden');
+    backdropEl.style.pointerEvents = '';
+  }
 
   const content = (modalEl.querySelector('.modal-content') || modalEl) as HTMLElement;
   anime.remove(content);
@@ -170,7 +173,15 @@ export function openModal(modalEl: HTMLElement, backdropEl?: HTMLElement) {
 export function closeModal(modalEl: HTMLElement, backdropEl?: HTMLElement, onComplete?: () => void) {
   const content = (modalEl.querySelector('.modal-content') || modalEl) as HTMLElement;
   anime.remove(content);
-  if (backdropEl) anime.remove(backdropEl);
+  if (backdropEl) {
+    anime.remove(backdropEl);
+    // El backdrop deja de capturar toques al instante; si la animación no llega a completarse
+    // (pestaña en segundo plano, rAF pausado) el respaldo lo oculta igualmente.
+    backdropEl.style.pointerEvents = 'none';
+    setTimeout(() => {
+      if (backdropEl.style.pointerEvents === 'none') backdropEl.classList.add('hidden');
+    }, 400);
+  }
 
   anime({
     targets: content,

@@ -16,7 +16,7 @@ import CompendiumModal from '../components/modals/CompendiumModal.astro';
   <header class="fixed top-0 w-full z-40 bg-[#0a0d12]/95 backdrop-blur-xl border-b border-[#222f42] shadow-[0_4px_25px_rgba(0,0,0,0.6)]">
     <div class="h-16 sm:h-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-3">
       <!-- Brand / Title -->
-      <a href="/" class="flex items-center gap-2.5 sm:gap-3 shrink min-w-0 hover:opacity-90 transition-opacity">
+      <a href="/" data-app-title-link class="relative z-10 touch-manipulation min-h-[44px] flex items-center gap-2.5 sm:gap-3 shrink min-w-0 hover:opacity-90 transition-opacity">
         <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-500 to-amber-700 flex items-center justify-center shadow-[0_0_12px_rgba(245,158,11,0.5)] border border-amber-400/40 shrink-0">
           <span class="material-symbols-outlined text-[#0a0d12] text-xl font-bold">auto_stories</span>
         </div>
@@ -320,6 +320,14 @@ import CompendiumModal from '../components/modals/CompendiumModal.astro';
 </BaseLayout>
 
 <script>
+  // Título: ya estamos en "/", así que el enlace sube al inicio en vez de parecer roto.
+  document.querySelectorAll<HTMLAnchorElement>('[data-app-title-link]').forEach(link => {
+    link.addEventListener('click', (e) => {
+      e.preventDefault();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+  });
+
   import { showAlert, showConfirm, showPrompt } from '../scripts/ui/notify';
   import { campaignStore } from '../scripts/state/campaignStore';
   import { characterStore } from '../scripts/state/characterStore';

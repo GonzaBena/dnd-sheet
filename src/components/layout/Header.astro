@@ -5,7 +5,7 @@
 <header class="fixed top-0 w-full z-40 bg-[#0a0d12]/95 backdrop-blur-xl border-b border-[#222f42] shadow-[0_4px_25px_rgba(0,0,0,0.6)]">
   <div class="h-16 sm:h-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-3">
     <!-- Brand / Title -->
-    <a href="/" class="flex items-center gap-3 shrink-0 hover:opacity-90 transition-opacity" title="Ir a Campañas">
+    <a href="/" data-app-title-link class="relative z-10 touch-manipulation min-h-[44px] flex items-center gap-3 shrink-0 hover:opacity-90 transition-opacity" title="Ir a Campañas">
       <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-500 to-amber-700 flex items-center justify-center shadow-[0_0_12px_rgba(245,158,11,0.5)] border border-amber-400/40">
         <span class="material-symbols-outlined text-[#0a0d12] text-xl font-bold">auto_stories</span>
       </div>
@@ -162,6 +162,16 @@
   import { openModal } from '../../scripts/animations/modalAnimations';
   import { userStore } from '../../scripts/state/userStore';
   import { cloudSession } from '../../scripts/data/cloudSync';
+
+  // Título: en la página de campañas ("/") el enlace no cambiaba nada y parecía roto.
+  document.querySelectorAll<HTMLAnchorElement>('[data-app-title-link]').forEach(link => {
+    link.addEventListener('click', (e) => {
+      if (window.location.pathname === '/' ) {
+        e.preventDefault();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    });
+  });
 
   // Toggle profile menu
   const profileBtn = document.getElementById('header-profile-btn');

@@ -34,7 +34,7 @@
       <button
         type="button"
         id="dm-map-manager-collapse-btn"
-        class="w-8 h-8 rounded-xl bg-[#18202e] border border-[#222f42] hover:border-amber-500/50 text-[#cbd5e1] hover:text-amber-300 flex items-center justify-center transition-all cursor-pointer"
+        class="w-11 h-11 sm:w-8 sm:h-8 touch-manipulation rounded-xl bg-[#18202e] border border-[#222f42] hover:border-amber-500/50 text-[#cbd5e1] hover:text-amber-300 flex items-center justify-center transition-all cursor-pointer"
         title="Plegar / desplegar gestor de mapas"
         aria-expanded="true"
       >
@@ -48,7 +48,7 @@
     <!-- Contenedor principal: Lista de mapas + Editor de grilla -->
     <div class="grid grid-cols-1 xl:grid-cols-12 gap-6">
     <!-- Columna Izquierda (7 cols): Lista de Mapas -->
-    <div class="lg:col-span-7 space-y-3">
+    <div class="xl:col-span-7 space-y-3">
       <div class="flex items-center justify-between">
         <span class="text-xs font-headline font-bold text-[#f1f5f9] uppercase tracking-wider flex items-center gap-1.5">
           <span class="material-symbols-outlined text-[16px] text-amber-400">collections</span>
@@ -73,7 +73,7 @@
     </div>
 
     <!-- Columna Derecha (5 cols): Editor y Ajuste de Grilla -->
-    <div class="lg:col-span-5 rounded-xl bg-[#10141d] border border-[#222f42] p-4 sm:p-5 space-y-4">
+    <div class="xl:col-span-5 rounded-xl bg-[#10141d] border border-[#222f42] p-4 sm:p-5 space-y-4">
       <div class="flex items-center justify-between pb-3 border-b border-[#222f42]">
         <div class="min-w-0">
           <span class="text-xs font-headline font-bold text-[#f1f5f9] uppercase tracking-wider flex items-center gap-1.5">
@@ -747,6 +747,13 @@
   const collapseBtn = document.getElementById('dm-map-manager-collapse-btn');
   const collapseIcon = document.getElementById('dm-map-manager-collapse-icon');
   const managerBody = document.getElementById('dm-map-manager-body');
+
+  // En móvil el gestor ocupa varias pantallas: arranca plegado.
+  if (window.matchMedia('(max-width: 767px)').matches) {
+    managerBody?.classList.add('hidden');
+    collapseBtn?.setAttribute('aria-expanded', 'false');
+    if (collapseIcon) collapseIcon.textContent = 'expand_more';
+  }
 
   collapseBtn?.addEventListener('click', () => {
     const isCollapsed = managerBody?.classList.contains('hidden');
