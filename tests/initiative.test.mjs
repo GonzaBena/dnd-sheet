@@ -12,6 +12,9 @@ import {
   visibleHp,
   syncCombatantsWithCharacters,
   areAllPlayersInInitiative,
+  findCombatantByToken,
+  currentTurnCombatant,
+  computeAutoLinks,
 } from '../src/scripts/vtt/initiative.ts';
 
 function combatant(id, name, initiative, isPlayer = false, hiddenHp = true, ownerUid = null) {

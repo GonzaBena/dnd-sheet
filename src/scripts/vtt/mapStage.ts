@@ -69,6 +69,12 @@ export class MapStageController extends EventTarget {
   public tokenLayer: any;
   public fogLayer: any;
   public toolLayer: any;
+  /** Efectos transitorios (pulso de turno, pings, regla). No se limpia con clearToolLayer. */
+  public fxLayer: any;
+
+  private turnTokenId: string | null = null;
+  private turnRing: any = null;
+  private turnRingState: { s: number; o: number } | null = null;
 
   private bgImageNode: any;
   private gridShapeNode: any;
@@ -147,12 +153,14 @@ export class MapStageController extends EventTarget {
     this.tokenLayer = new this.Konva.Layer({ listening: true }); // Fase 3
     this.fogLayer = new this.Konva.Layer({ listening: false }); // Fase 4
     this.toolLayer = new this.Konva.Layer({ listening: false }); // Fase 4 preview
+    this.fxLayer = new this.Konva.Layer({ listening: false }); // Fase 5: pulso de turno, pings, regla
 
     this.stage.add(this.bgLayer);
     this.stage.add(this.gridLayer);
     this.stage.add(this.tokenLayer);
     this.stage.add(this.fogLayer);
     this.stage.add(this.toolLayer);
+    this.stage.add(this.fxLayer);
 
     // 3. Nodos de fondo, grilla y niebla
     this.bgImageNode = new this.Konva.Image({
@@ -828,6 +836,9 @@ export class MapStageController extends EventTarget {
     }
 
     this.tokenLayer.batchDraw();
+
+    // Si el token en turno no existía todavía (o fue recreado), se reengancha el pulso.
+    if (this.turnTokenId && !this.turnRing) this.setTurnToken(this.turnTokenId);
   }
 
   /**
@@ -1906,6 +1917,83 @@ export class MapStageController extends EventTarget {
     this.dispatchEvent(new CustomEvent('view-changed', { detail: view }));
   }
 
+  /** Centro y radio (en px de imagen) de un token público, o null si no está en el mapa. */
+  private tokenCenter(tid: string): { cx: number; cy: number; r: number } | null {
+    const node = this.tokenNodes.get(tid);
+    const data = node ? ((node as any).__tokenData as Token | undefined) : undefined;
+    if (!node || !data) return null;
+    const grid = this.currentGrid || { size: 50, offsetX: 0, offsetY: 0, visible: true };
+    const r = tokenPixelSize(data, grid) / 2;
+    return { cx: node.x() + r, cy: node.y() + r, r };
+  }
+
+  /**
+   * Posición del token en coordenadas de pantalla relativas al contenedor (para anclar la tarjeta, RF-25).
+   */
+  public getTokenAnchor(tid: string): { x: number; y: number; r: number } | null {
+    const c = this.tokenCenter(tid);
+    if (!c) return null;
+    const v = this.getView();
+    return { x: c.cx * v.scale + v.x, y: c.cy * v.scale + v.y, r: c.r * v.scale };
+  }
+
+  /**
+   * Resalta con un pulso el token del combatiente en turno (RF-05). null detiene el pulso.
+   */
+  public setTurnToken(tid: string | null): void {
+    this.turnTokenId = tid;
+    this.stopTurnRing();
+    if (!tid) return;
+    const c = this.tokenCenter(tid);
+    if (!c) return; // Se reintenta en setTokens cuando aparezca el nodo.
+
+    const ring = new this.Konva.Circle({
+      x: c.cx,
+      y: c.cy,
+      radius: c.r + 4,
+      stroke: '#f59e0b',
+      strokeWidth: 3,
+      listening: false,
+      perfectDrawEnabled: false,
+    });
+    this.fxLayer.add(ring);
+    this.turnRing = ring;
+    const state = { s: 1, o: 0.95 };
+    this.turnRingState = state;
+
+    anime({
+      targets: state,
+      s: 1.3,
+      o: 0.15,
+      duration: 900,
+      easing: 'easeInOutSine',
+      direction: 'alternate',
+      loop: true,
+      update: () => {
+        // El token puede haberse movido o redimensionado durante el turno.
+        const cur = this.turnTokenId ? this.tokenCenter(this.turnTokenId) : null;
+        if (!cur || !this.turnRing) return;
+        this.turnRing.position({ x: cur.cx, y: cur.cy });
+        this.turnRing.radius((cur.r + 4) * state.s);
+        this.turnRing.opacity(state.o);
+        this.fxLayer.batchDraw();
+      },
+    });
+    this.fxLayer.batchDraw();
+  }
+
+  private stopTurnRing(): void {
+    if (this.turnRingState) {
+      anime.remove(this.turnRingState);
+      this.turnRingState = null;
+    }
+    if (this.turnRing) {
+      this.turnRing.destroy();
+      this.turnRing = null;
+      this.fxLayer?.batchDraw();
+    }
+  }
+
   /**
    * Destruye el stage y libera observers y listeners.
    */
@@ -1914,6 +2002,7 @@ export class MapStageController extends EventTarget {
       this.resizeObserver.disconnect();
       this.resizeObserver = null;
     }
+    this.stopTurnRing();
     this.clearToolLayer();
     this.clearTokens();
     this.stage.destroy();

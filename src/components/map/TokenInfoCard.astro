@@ -1,0 +1,19 @@
+---
+// src/components/map/TokenInfoCard.astro
+// Tarjeta flotante con nombre, PG (si son visibles) y condiciones del token tocado (RF-25).
+// La posiciona y rellena el script de MapStage.astro; aquí solo vive el marcado.
+---
+
+<div
+  data-token-card
+  role="dialog"
+  aria-label="Información del token"
+  class="hidden absolute z-20 w-48 -translate-x-1/2 -translate-y-full px-3 py-2 rounded-xl bg-[#10141d]/95 border border-amber-500/40 shadow-xl backdrop-blur-md space-y-1.5"
+>
+  <p data-token-card-name class="text-xs font-bold text-[#f1f5f9] truncate"></p>
+  <div data-token-card-hp class="hidden items-center gap-1.5 text-[11px] font-mono text-[#cbd5e1]">
+    <span class="material-symbols-outlined text-[14px] text-rose-400">favorite</span>
+    <span data-token-card-hp-text></span>
+  </div>
+  <div data-token-card-conds class="flex flex-wrap gap-1"></div>
+</div>

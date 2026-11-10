@@ -460,11 +460,11 @@
     syncCombatWithLiveCharacters,
   } from '../../scripts/data/combatService.ts';
   import { DND_CONDITIONS, getConditionInfo } from '../../scripts/vtt/conditions.ts';
-  import { areAllPlayersInInitiative } from '../../scripts/vtt/initiative.ts';
+  import { areAllPlayersInInitiative, computeAutoLinks } from '../../scripts/vtt/initiative.ts';
   import { campaignStore } from '../../scripts/state/campaignStore.ts';
   import { showConfirm, showForm, showAlert } from '../../scripts/ui/notify.ts';
   import { animateHpBar } from '../../scripts/animations/hpAnimations.ts';
-  import { listMaps, addToken } from '../../scripts/data/mapService.ts';
+  import { listMaps, addToken, watchActiveMap } from '../../scripts/data/mapService.ts';
   import { snapToGrid } from '../../scripts/vtt/geometry.ts';
   import type { Combat, Combatant } from '../../scripts/models/combat.ts';
   import type { Token } from '../../scripts/models/map.ts';
@@ -510,6 +510,46 @@
     return params.get('id') || params.get('campaign') || campaignStore.getActiveCampaignId();
   }
 
+  // --- Enlace combatiente ↔ token (T-55) ---
+  // DECISION (F5-4): solo se enlazan tokens públicos del mapa activo. Los tokens secretos cambian de id al revelarse,
+  // por lo que el DM los enlaza una vez revelados.
+  let activeTokens: Record<string, Token> = {};
+  let unsubscribeMap: (() => void) | null = null;
+
+  function escapeHtml(s: string): string {
+    return s.replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch] as string));
+  }
+
+  function tokenOptionsHtml(selected?: string): string {
+    const opts = Object.entries(activeTokens).map(
+      ([tid, t]) => `<option value="${escapeHtml(tid)}" ${tid === selected ? 'selected' : ''}>${escapeHtml(t.name)}</option>`
+    );
+    // Si el token enlazado ya no existe en el mapa activo, se conserva visible para poder desenlazarlo.
+    if (selected && !activeTokens[selected]) {
+      opts.unshift(`<option value="${escapeHtml(selected)}" selected>(token no disponible)</option>`);
+    }
+    return `<option value="">Sin token</option>${opts.join('')}`;
+  }
+
+  function autoLinkTokens(combat: Combat | null) {
+    if (!currentCampaignId || !combat || !checkCanPlay(currentCampaignId)) return;
+    const cid = currentCampaignId;
+    computeAutoLinks(combat, activeTokens).forEach((l) => {
+      void updateCombatant(cid, l.combatantId, { tokenId: l.tokenId });
+    });
+  }
+
+  function watchTokens(cid: string) {
+    unsubscribeMap?.();
+    activeTokens = {};
+    unsubscribeMap = watchActiveMap(cid, (map) => {
+      activeTokens = map?.tokens ?? {};
+      const combat = getCurrentCombat(cid);
+      render(combat);
+      autoLinkTokens(combat);
+    });
+  }
+
   function init() {
     const cid = getActiveCampaignId();
     if (!cid) return;
@@ -520,8 +560,10 @@
         unsubscribe = null;
       }
       currentCampaignId = cid;
+      watchTokens(cid);
       unsubscribe = subscribeCombat(cid, (combat) => {
         render(combat);
+        autoLinkTokens(combat);
       });
     }
 
@@ -701,6 +743,16 @@
                   <span class="px-1.5 py-0.5 rounded bg-[#10141d] border border-[#222f42] text-[#cbd5e1] font-mono whitespace-nowrap shrink-0 inline-flex items-center">
                     CA ${c.ac || 10}
                   </span>
+
+                  <!-- Token enlazado del mapa (T-55) -->
+                  <select
+                    class="dm-token-select max-w-[130px] px-1.5 py-0.5 rounded bg-[#10141d] border border-[#222f42] text-[#cbd5e1] text-[10px] cursor-pointer focus:border-amber-500/40 focus:outline-none"
+                    data-id="${c.id}"
+                    title="Token del mapa enlazado a ${c.name}"
+                    aria-label="Token enlazado"
+                  >
+                    ${tokenOptionsHtml(c.tokenId)}
+                  </select>
 
                   <!-- Chips de condiciones -->
                   <div class="flex items-center gap-1 flex-wrap">
@@ -900,6 +952,17 @@
   function bindRowEvents() {
     if (!currentCampaignId) return;
     const cid = currentCampaignId;
+
+    // Enlazar combatiente con token del mapa (T-55)
+    rootEl?.querySelectorAll('.dm-token-select').forEach((sel) => {
+      sel.addEventListener('change', async (e) => {
+        const target = e.currentTarget as HTMLSelectElement;
+        const id = target.dataset.id;
+        if (!id) return;
+        // '' desenlaza: se escribe null-equivalente eliminando el valor.
+        await updateCombatant(cid, id, { tokenId: target.value || undefined });
+      });
+    });
 
     // Modificar iniciativa
     rootEl?.querySelectorAll('.dm-edit-init-btn').forEach((btn) => {

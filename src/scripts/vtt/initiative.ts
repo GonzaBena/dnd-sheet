@@ -354,4 +354,39 @@ export function areAllPlayersInInitiative(
   return playerCombatants.length > 0;
 }
 
+/** Devuelve el combatiente enlazado a un token del mapa (T-55), o null. */
+export function findCombatantByToken(combat: Combat | null | undefined, tokenId: string | null | undefined): Combatant | null {
+  if (!combat || !tokenId) return null;
+  return combat.combatants.find((c) => c.tokenId === tokenId) ?? null;
+}
+
+/** Devuelve el combatiente del turno actual, o null si no hay combate activo. */
+export function currentTurnCombatant(combat: Combat | null | undefined): Combatant | null {
+  if (!combat || !combat.active) return null;
+  return combat.combatants[combat.turnIndex] ?? null;
+}
+
+/**
+ * Calcula los enlaces automáticos combatiente→token (T-55): para cada jugador sin `tokenId`,
+ * busca un token cuyo `characterId` coincida y que no esté ya enlazado a otro combatiente.
+ * Función pura: devuelve solo los enlaces a escribir.
+ */
+export function computeAutoLinks(
+  combat: Combat | null | undefined,
+  tokens: Record<string, { characterId?: string }> | null | undefined
+): Array<{ combatantId: string; tokenId: string }> {
+  if (!combat || !tokens) return [];
+  const used = new Set(combat.combatants.map((c) => c.tokenId).filter(Boolean) as string[]);
+  const links: Array<{ combatantId: string; tokenId: string }> = [];
+  for (const c of combat.combatants) {
+    if (c.tokenId || !c.isPlayer || !c.characterId) continue;
+    const entry = Object.entries(tokens).find(([tid, t]) => t.characterId === c.characterId && !used.has(tid));
+    if (entry) {
+      used.add(entry[0]);
+      links.push({ combatantId: c.id, tokenId: entry[0] });
+    }
+  }
+  return links;
+}
+
 

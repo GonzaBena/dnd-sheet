@@ -7,6 +7,7 @@
 // DECISION (F2-1): Todo se guarda y calcula en píxeles de la imagen original.
 
 import FogTools from '../dm/FogTools.astro';
+import TokenInfoCard from './TokenInfoCard.astro';
 
 interface Props {
   mode?: 'dm' | 'player';
@@ -230,6 +231,9 @@ const { mode = 'player', class: className = '', id } = Astro.props;
     </div>
   </div>
 
+  <!-- Tarjeta informativa del token (T-55, RF-25) -->
+  <TokenInfoCard />
+
   <!-- Notificación toast flotante de error o aviso (T-34) -->
   <div
     data-map-toast
@@ -269,6 +273,11 @@ const { mode = 'player', class: className = '', id } = Astro.props;
   import { createLivePublisher, subscribeLive, type LivePublisher } from '../../scripts/data/liveService.ts';
   import { campaignStore } from '../../scripts/state/campaignStore.ts';
   import { userStore } from '../../scripts/state/userStore.ts';
+  import { subscribeCombat } from '../../scripts/data/combatService.ts';
+  import { currentTurnCombatant } from '../../scripts/vtt/initiative.ts';
+  import { buildTokenCardData } from '../../scripts/vtt/tokenCard.ts';
+  import { getConditionInfo } from '../../scripts/vtt/conditions.ts';
+  import type { Combat } from '../../scripts/models/combat.ts';
   import type { MapDoc } from '../../scripts/models/map.ts';
 
   async function initMapStages() {
@@ -586,7 +595,98 @@ const { mode = 'player', class: className = '', id } = Astro.props;
 
       controller.addEventListener('token-select', ((e: CustomEvent) => {
         window.dispatchEvent(new CustomEvent('token-selected', { detail: e.detail }));
+        showTokenCard(e.detail?.tid);
       }) as EventListener);
+
+      // --- Combate: pulso de turno (RF-05) y tarjeta del token (RF-25) ---
+      // DECISION (F5-5): cada MapStage usa subscribeCombat, que ya mantiene un único listener de Firestore por campaña.
+      let lastCombat: Combat | null = null;
+      let combatUnsub: (() => void) | null = null;
+      let combatCid: string | null = null;
+      const card = root.querySelector<HTMLElement>('[data-token-card]');
+      let cardTid: string | null = null;
+
+      function hideTokenCard() {
+        cardTid = null;
+        card?.classList.add('hidden');
+      }
+
+      function showTokenCard(tid?: string) {
+        const token = tid && lastReceivedMap?.tokens ? lastReceivedMap.tokens[tid] : null;
+        if (!card || !tid || !token) return hideTokenCard();
+        cardTid = tid;
+        renderTokenCard();
+      }
+
+      function renderTokenCard() {
+        if (!card || !cardTid) return;
+        const token = lastReceivedMap?.tokens?.[cardTid];
+        const anchor = controller.getTokenAnchor(cardTid);
+        if (!token || !anchor) return hideTokenCard();
+
+        const cid = getActiveCampaignId();
+        const viewer = {
+          uid: userStore.getCurrentUser()?.id || null,
+          isDm: mode === 'dm' || (cid ? campaignStore.isCurrentUserDm(cid) : false),
+        };
+        const data = buildTokenCardData(lastCombat, cardTid, token, viewer);
+
+        card.querySelector('[data-token-card-name]')!.textContent = data.name;
+        const hpBox = card.querySelector<HTMLElement>('[data-token-card-hp]');
+        if (hpBox) {
+          hpBox.classList.toggle('hidden', !data.hp);
+          hpBox.classList.toggle('flex', Boolean(data.hp));
+          const txt = hpBox.querySelector('[data-token-card-hp-text]');
+          if (txt && data.hp) txt.textContent = `${data.hp.hp} / ${data.hp.maxHp} PG`;
+        }
+        const conds = card.querySelector<HTMLElement>('[data-token-card-conds]');
+        if (conds) {
+          conds.replaceChildren();
+          data.conditions.forEach((id) => {
+            const info = getConditionInfo(id);
+            const chip = document.createElement('span');
+            chip.className = `inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-bold border ${info.color}`;
+            chip.textContent = info.name;
+            conds.appendChild(chip);
+          });
+        }
+
+        // Se ancla sobre el token; si no entra arriba, se muestra debajo.
+        const above = anchor.y - anchor.r - 8 > 70;
+        card.style.left = `${Math.min(Math.max(anchor.x, 96), root.clientWidth - 96)}px`;
+        card.style.top = `${above ? anchor.y - anchor.r - 8 : anchor.y + anchor.r + 8 + (card.offsetHeight || 60)}px`;
+        card.classList.remove('hidden');
+      }
+
+      function applyTurnHighlight() {
+        const tid = currentTurnCombatant(lastCombat)?.tokenId ?? null;
+        controller.setTurnToken(tid);
+      }
+
+      function bindCombat() {
+        const cid = getActiveCampaignId();
+        if (!cid || cid === combatCid) return;
+        combatUnsub?.();
+        combatCid = cid;
+        lastCombat = null;
+        hideTokenCard();
+        combatUnsub = subscribeCombat(cid, (combat) => {
+          lastCombat = combat;
+          applyTurnHighlight();
+          renderTokenCard();
+        });
+      }
+
+      bindCombat();
+      window.addEventListener('active-campaign-changed', bindCombat);
+      window.addEventListener('campaigns-updated', bindCombat);
+      controller.addEventListener('view-changed', hideTokenCard);
+      document.addEventListener('keydown', (ev) => {
+        if (ev.key === 'Escape') hideTokenCard();
+      });
+      document.addEventListener('pointerdown', (ev) => {
+        if (cardTid && card && !card.contains(ev.target as Node)) hideTokenCard();
+      });
 
       controller.addEventListener('token-locked', ((e: CustomEvent) => {
         const msg = e.detail?.message || 'No se puede mover el token en este momento';
