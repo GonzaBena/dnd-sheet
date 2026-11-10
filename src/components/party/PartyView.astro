@@ -7,6 +7,8 @@ import MapStage from '../map/MapStage.astro';
 import CombatTracker from '../dm/CombatTracker.astro';
 import MapManager from '../dm/MapManager.astro';
 import PresenceTracker from './PresenceTracker.astro';
+import HandoutViewer from './HandoutViewer.astro';
+import HandoutManager from '../dm/HandoutManager.astro';
 ---
 
 <div id="party-view-root" class="w-full max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
@@ -253,6 +255,9 @@ import PresenceTracker from './PresenceTracker.astro';
 
       <!-- [editar mapas] (FULL WIDTH) -->
       <MapManager />
+
+      <!-- [handouts] (RF-41): el DM prepara y envía -->
+      <HandoutManager />
     </div>
 
     <!-- 2. VISTA PASIVA DE JUGADOR (Cuando el usuario conectado es jugador) -->
@@ -274,6 +279,9 @@ import PresenceTracker from './PresenceTracker.astro';
         <InitiativeList />
       </div>
     </div>
+
+    <!-- HANDOUTS RECIBIDOS (RF-41): solo jugadores; abre un modal cuando el DM envía uno -->
+    <HandoutViewer />
 
     <!-- SECCIÓN INFERIOR: GRUPO Y BITÁCORA -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">

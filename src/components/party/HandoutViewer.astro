@@ -1,0 +1,185 @@
+---
+// src/components/party/HandoutViewer.astro
+// Handouts recibidos (RF-41): lista en /partida y modal que se abre solo cuando el DM envía uno nuevo.
+// Solo lo usan los jugadores; el DM gestiona los handouts desde HandoutManager.
+---
+
+<section id="party-handouts-section" class="hidden space-y-3">
+  <div class="flex items-center justify-between gap-2 border-b border-[#222f42] pb-3">
+    <div class="flex items-center gap-2">
+      <span class="material-symbols-outlined text-amber-500 text-[20px]">description</span>
+      <h2 class="font-headline font-bold text-base text-[#f1f5f9]">Handouts</h2>
+    </div>
+    <span id="party-handouts-count" class="text-xs text-[#94a3b8] font-label"></span>
+  </div>
+  <ul id="party-handouts-list" class="grid grid-cols-1 sm:grid-cols-2 gap-2"></ul>
+</section>
+
+<div data-handout-backdrop class="hidden fixed inset-0 z-[60] bg-black/70 backdrop-blur-sm"></div>
+<div
+  data-handout-modal
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="handout-modal-title"
+  class="hidden fixed inset-0 z-[61] flex items-center justify-center p-4 pointer-events-none"
+>
+  <div class="modal-content pointer-events-auto w-full max-w-2xl max-h-[85vh] overflow-y-auto rounded-2xl bg-[#121721] border border-amber-500/40 shadow-2xl p-5 space-y-3">
+    <div class="flex items-start justify-between gap-3">
+      <h3 id="handout-modal-title" data-handout-title class="font-headline font-bold text-lg text-[#f1f5f9]"></h3>
+      <button
+        type="button"
+        data-handout-close
+        aria-label="Cerrar"
+        class="w-8 h-8 rounded-lg bg-[#18202e] border border-[#222f42] text-[#cbd5e1] hover:border-amber-500/50 flex items-center justify-center shrink-0"
+      >
+        <span class="material-symbols-outlined text-[18px]">close</span>
+      </button>
+    </div>
+    <img data-handout-img alt="" referrerpolicy="no-referrer" class="hidden w-full max-h-[60vh] object-contain rounded-xl bg-[#0c1017]" />
+    <p data-handout-body class="whitespace-pre-wrap text-sm leading-relaxed text-[#cbd5e1]"></p>
+  </div>
+</div>
+
+<script>
+  import { campaignStore } from '../../scripts/state/campaignStore';
+  import { userStore } from '../../scripts/state/userStore';
+  import { openModal, closeModal } from '../../scripts/animations/modalAnimations.ts';
+  import { subscribeHandouts } from '../../scripts/data/handoutService.ts';
+  import { pickHandoutToOpen } from '../../scripts/vtt/handouts.ts';
+  import type { Handout } from '../../scripts/models/handout.ts';
+
+  const section = document.getElementById('party-handouts-section');
+  const listEl = document.getElementById('party-handouts-list');
+  const countEl = document.getElementById('party-handouts-count');
+  const modalEl = document.querySelector<HTMLElement>('[data-handout-modal]');
+  const backdropEl = document.querySelector<HTMLElement>('[data-handout-backdrop]');
+  const titleEl = document.querySelector<HTMLElement>('[data-handout-title]');
+  const bodyEl = document.querySelector<HTMLElement>('[data-handout-body]');
+  const imgEl = document.querySelector<HTMLImageElement>('[data-handout-img]');
+  const closeBtn = document.querySelector<HTMLElement>('[data-handout-close]');
+
+  let currentCid: string | null = null;
+  let currentUid = '';
+  let unsubscribe: (() => void) | null = null;
+  /** Último sentAt visto. null = esta persona nunca vio esta campaña (ver pickHandoutToOpen). */
+  let seen: number | null = null;
+  let isOpen = false;
+
+  function getCid(): string | null {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('id') || params.get('campaign') || campaignStore.getActiveCampaignId();
+  }
+
+  const seenKey = () => `dnd_handout_seen_${currentCid}_${currentUid}`;
+
+  function readSeen(): number | null {
+    try {
+      const raw = localStorage.getItem(seenKey());
+      const n = raw == null ? NaN : Number(raw);
+      return Number.isFinite(n) ? n : null;
+    } catch {
+      return null;
+    }
+  }
+
+  function writeSeen(n: number) {
+    try {
+      localStorage.setItem(seenKey(), String(n));
+    } catch {
+      /* sin storage: queda solo en memoria durante esta sesión */
+    }
+  }
+
+  function show(h: Handout) {
+    if (!modalEl || !backdropEl || !titleEl || !bodyEl || !imgEl) return;
+    titleEl.textContent = h.title;
+    // textContent (no innerHTML): el contenido lo escribe el DM pero nunca se interpreta como HTML.
+    bodyEl.textContent = h.body ?? '';
+    bodyEl.classList.toggle('hidden', !h.body);
+    if (h.kind === 'image' && h.imageUrl) {
+      imgEl.src = h.imageUrl;
+      imgEl.alt = h.title;
+      imgEl.classList.remove('hidden');
+    } else {
+      imgEl.removeAttribute('src');
+      imgEl.classList.add('hidden');
+    }
+    isOpen = true;
+    openModal(modalEl, backdropEl);
+    closeBtn?.focus();
+  }
+
+  function hide() {
+    if (!isOpen || !modalEl || !backdropEl) return;
+    isOpen = false;
+    closeModal(modalEl, backdropEl);
+  }
+
+  function renderList(list: Handout[]) {
+    if (!section || !listEl) return;
+    section.classList.toggle('hidden', list.length === 0);
+    if (countEl) countEl.textContent = `${list.length} recibido${list.length === 1 ? '' : 's'}`;
+    listEl.replaceChildren();
+    list.forEach((h) => {
+      const li = document.createElement('li');
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className =
+        'w-full flex items-center gap-2.5 p-3 rounded-xl bg-[#121721] border border-[#222f42] hover:border-amber-500/40 transition-colors text-left';
+      const icon = document.createElement('span');
+      icon.className = 'material-symbols-outlined text-[20px] text-amber-400 shrink-0';
+      icon.textContent = h.kind === 'image' ? 'image' : 'article';
+      const name = document.createElement('span');
+      name.className = 'text-sm font-bold text-[#f1f5f9] truncate';
+      name.textContent = h.title;
+      b.append(icon, name);
+      b.addEventListener('click', () => show(h));
+      li.appendChild(b);
+      listEl.appendChild(li);
+    });
+  }
+
+  function onHandouts(list: Handout[]) {
+    renderList(list);
+    const { open, nextSeen } = pickHandoutToOpen(list, seen);
+    if (nextSeen !== seen) {
+      seen = nextSeen;
+      writeSeen(nextSeen);
+    }
+    if (open) show(open);
+  }
+
+  function init() {
+    const cid = getCid();
+    const uid = userStore.getCurrentUser()?.id || '';
+    if (!cid || !uid) return;
+
+    // El DM no recibe handouts: los gestiona con HandoutManager.
+    if (campaignStore.isCurrentUserDm(cid)) {
+      unsubscribe?.();
+      unsubscribe = null;
+      currentCid = null;
+      section?.classList.add('hidden');
+      return;
+    }
+    if (cid === currentCid && uid === currentUid) return;
+
+    unsubscribe?.();
+    currentCid = cid;
+    currentUid = uid;
+    seen = readSeen();
+    unsubscribe = subscribeHandouts(cid, false, onHandouts);
+  }
+
+  closeBtn?.addEventListener('click', hide);
+  backdropEl?.addEventListener('click', hide);
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') hide();
+  });
+  window.addEventListener('DOMContentLoaded', init);
+  window.addEventListener('campaigns-updated', init);
+  window.addEventListener('active-campaign-changed', init);
+  window.addEventListener('current-user-changed', init);
+  window.addEventListener('cloud-session-changed', init);
+  if (document.readyState !== 'loading') init();
+</script>

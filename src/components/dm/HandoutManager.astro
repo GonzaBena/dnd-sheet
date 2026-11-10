@@ -1,0 +1,257 @@
+---
+// src/components/dm/HandoutManager.astro
+// Handouts del DM (RF-41): prepara borradores y los envía a los jugadores. Solo se monta en vistas del DM.
+---
+
+<section id="dm-handouts-root" class="w-full rounded-2xl bg-[#121721] border border-[#222f42] p-5 lg:p-6 shadow-sm space-y-4">
+  <div class="flex items-center justify-between gap-3 flex-wrap">
+    <div class="flex items-center gap-2">
+      <span class="material-symbols-outlined text-amber-500 text-[22px]">description</span>
+      <h2 class="font-headline font-bold text-lg text-[#f1f5f9]">Handouts</h2>
+      <span class="px-2 py-0.5 rounded-full bg-[#18202e] border border-[#222f42] text-[10px] text-[#94a3b8] font-label">Para los jugadores</span>
+    </div>
+    <p id="dm-handouts-hint" class="text-[11px] text-[#94a3b8]"></p>
+  </div>
+
+  <form id="dm-handouts-form" class="grid grid-cols-1 md:grid-cols-6 gap-2 p-3 rounded-xl bg-[#18202e] border border-[#222f42]">
+    <select
+      id="dm-handouts-kind"
+      aria-label="Tipo de handout"
+      class="md:col-span-1 rounded-lg bg-[#10141d] border border-[#222f42] px-2 py-2 text-xs text-[#f1f5f9] focus:border-amber-500/50 focus:outline-none"
+    >
+      <option value="text">Texto</option>
+      <option value="image">Imagen</option>
+    </select>
+    <input
+      id="dm-handouts-title"
+      type="text"
+      maxlength="120"
+      placeholder="Título (ej. Carta del barón)"
+      class="md:col-span-5 rounded-lg bg-[#10141d] border border-[#222f42] px-3 py-2 text-sm text-[#f1f5f9] focus:border-amber-500/50 focus:outline-none"
+    />
+    <textarea
+      id="dm-handouts-body"
+      maxlength="5000"
+      rows="4"
+      placeholder="Texto del handout…"
+      class="md:col-span-6 rounded-lg bg-[#10141d] border border-[#222f42] px-3 py-2 text-sm text-[#cbd5e1] focus:border-amber-500/50 focus:outline-none resize-y"
+    ></textarea>
+    <input
+      id="dm-handouts-url"
+      type="url"
+      maxlength="2048"
+      placeholder="https://… (URL de la imagen)"
+      class="hidden md:col-span-6 rounded-lg bg-[#10141d] border border-[#222f42] px-3 py-2 text-sm text-[#cbd5e1] focus:border-amber-500/50 focus:outline-none"
+    />
+    <div class="md:col-span-6 flex items-center justify-between gap-2">
+      <p id="dm-handouts-error" class="text-[11px] text-rose-300" role="alert"></p>
+      <button
+        id="dm-handouts-save"
+        type="submit"
+        class="px-3 py-1.5 rounded-lg bg-amber-500/15 border border-amber-500/40 text-amber-300 text-xs font-bold hover:bg-amber-500/25 transition-colors flex items-center gap-1"
+      >
+        <span class="material-symbols-outlined text-[16px]">save</span> Guardar borrador
+      </button>
+    </div>
+  </form>
+
+  <ul id="dm-handouts-list" class="space-y-2"></ul>
+  <p id="dm-handouts-empty" class="text-xs text-[#64748b] text-center py-3">Todavía no hay handouts.</p>
+</section>
+
+<script>
+  import { campaignStore } from '../../scripts/state/campaignStore';
+  import { showConfirm, showAlert } from '../../scripts/ui/notify';
+  import { canPerform, normalizeStatus } from '../../scripts/vtt/sessionStatus.ts';
+  import { subscribeHandouts, createHandout, sendHandout, deleteHandout } from '../../scripts/data/handoutService.ts';
+  import type { Handout, HandoutKind } from '../../scripts/models/handout.ts';
+
+  const root = document.getElementById('dm-handouts-root');
+  const form = document.getElementById('dm-handouts-form') as HTMLFormElement | null;
+  const kindEl = document.getElementById('dm-handouts-kind') as HTMLSelectElement | null;
+  const titleEl = document.getElementById('dm-handouts-title') as HTMLInputElement | null;
+  const bodyEl = document.getElementById('dm-handouts-body') as HTMLTextAreaElement | null;
+  const urlEl = document.getElementById('dm-handouts-url') as HTMLInputElement | null;
+  const errorEl = document.getElementById('dm-handouts-error');
+  const saveBtn = document.getElementById('dm-handouts-save') as HTMLButtonElement | null;
+  const listEl = document.getElementById('dm-handouts-list');
+  const emptyEl = document.getElementById('dm-handouts-empty');
+  const hintEl = document.getElementById('dm-handouts-hint');
+
+  let currentCid: string | null = null;
+  let unsubscribe: (() => void) | null = null;
+  let items: Handout[] = [];
+
+  function getCid(): string | null {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('id') || params.get('campaign') || campaignStore.getActiveCampaignId();
+  }
+
+  function status() {
+    return normalizeStatus(currentCid ? campaignStore.getCampaign(currentCid)?.status : undefined);
+  }
+  const canPrepare = () => canPerform('dmPrepare', 'dm', status());
+  const canSend = () => canPerform('dmPlay', 'dm', status());
+
+  function applyKind() {
+    const isImage = (kindEl?.value as HandoutKind) === 'image';
+    bodyEl?.classList.toggle('hidden', isImage);
+    urlEl?.classList.toggle('hidden', !isImage);
+  }
+
+  function applyLocks() {
+    const prep = canPrepare();
+    [kindEl, titleEl, bodyEl, urlEl, saveBtn].forEach((el) => {
+      if (!el) return;
+      (el as HTMLInputElement).disabled = !prep;
+    });
+    saveBtn?.classList.toggle('opacity-50', !prep);
+    if (hintEl) {
+      hintEl.textContent = !prep
+        ? 'La partida terminó: los handouts quedan en solo lectura.'
+        : !canSend()
+          ? 'En pausa podés preparar borradores; para enviarlos hay que reanudar la sesión.'
+          : '';
+    }
+    render();
+  }
+
+  function fmt(ts: number): string {
+    return new Date(ts).toLocaleString('es', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' });
+  }
+
+  function button(label: string, icon: string, classes: string, onClick: () => void, disabledTitle?: string) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = `px-2.5 py-1 rounded-lg border text-[11px] font-bold flex items-center gap-1 transition-colors ${classes}`;
+    const i = document.createElement('span');
+    i.className = 'material-symbols-outlined text-[14px]';
+    i.textContent = icon;
+    b.append(i, document.createTextNode(label));
+    if (disabledTitle) {
+      b.disabled = true;
+      b.title = disabledTitle;
+      b.classList.add('opacity-50', 'cursor-not-allowed');
+    } else {
+      b.addEventListener('click', onClick);
+    }
+    return b;
+  }
+
+  function render() {
+    if (!listEl || !emptyEl) return;
+    listEl.replaceChildren();
+    emptyEl.classList.toggle('hidden', items.length > 0);
+
+    items.forEach((h) => {
+      const li = document.createElement('li');
+      li.className = 'flex items-center justify-between gap-3 p-3 rounded-xl bg-[#18202e] border border-[#222f42]';
+
+      const info = document.createElement('div');
+      info.className = 'min-w-0 flex items-center gap-2.5';
+      const icon = document.createElement('span');
+      icon.className = 'material-symbols-outlined text-[20px] text-amber-400 shrink-0';
+      icon.textContent = h.kind === 'image' ? 'image' : 'article';
+      const texts = document.createElement('div');
+      texts.className = 'min-w-0';
+      const title = document.createElement('p');
+      title.className = 'text-sm font-bold text-[#f1f5f9] truncate';
+      title.textContent = h.title;
+      const badge = document.createElement('span');
+      const sent = h.sentAt != null;
+      badge.className = `text-[10px] font-bold ${sent ? 'text-emerald-400' : 'text-[#94a3b8]'}`;
+      badge.textContent = sent ? `Enviado ${fmt(h.sentAt as number)}` : 'Borrador';
+      texts.append(title, badge);
+      info.append(icon, texts);
+
+      const actions = document.createElement('div');
+      actions.className = 'flex items-center gap-1.5 shrink-0';
+      const sendDisabled = canSend() ? undefined : 'Solo se puede enviar con la partida en curso';
+      actions.append(
+        button(
+          sent ? 'Reenviar' : 'Enviar',
+          'send',
+          'bg-amber-500/15 border-amber-500/40 text-amber-300 hover:bg-amber-500/25',
+          () => void onSend(h),
+          sendDisabled
+        ),
+        button(
+          'Borrar',
+          'delete',
+          'bg-red-500/10 border-red-500/30 text-red-300 hover:bg-red-500/20',
+          () => void onDelete(h),
+          canPrepare() ? undefined : 'La partida terminó'
+        )
+      );
+
+      li.append(info, actions);
+      listEl.appendChild(li);
+    });
+  }
+
+  async function onSend(h: Handout) {
+    if (!currentCid) return;
+    try {
+      await sendHandout(currentCid, h.id);
+    } catch (err) {
+      console.warn('[HandoutManager] Error al enviar:', err);
+      showAlert(err instanceof Error ? err.message : 'No se pudo enviar el handout.', { kind: 'error' });
+    }
+  }
+
+  async function onDelete(h: Handout) {
+    if (!currentCid) return;
+    const ok = await showConfirm(`¿Borrar "${h.title}"? No se puede deshacer.`, { confirmText: 'Borrar', danger: true });
+    if (!ok) return;
+    try {
+      await deleteHandout(currentCid, h.id);
+    } catch (err) {
+      console.warn('[HandoutManager] Error al borrar:', err);
+      showAlert('No se pudo borrar el handout.', { kind: 'error' });
+    }
+  }
+
+  form?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!currentCid || !canPrepare()) return;
+    if (errorEl) errorEl.textContent = '';
+    try {
+      await createHandout(currentCid, {
+        kind: (kindEl?.value as HandoutKind) || 'text',
+        title: titleEl?.value ?? '',
+        body: bodyEl?.value ?? '',
+        imageUrl: urlEl?.value ?? '',
+      });
+      if (titleEl) titleEl.value = '';
+      if (bodyEl) bodyEl.value = '';
+      if (urlEl) urlEl.value = '';
+    } catch (err) {
+      if (errorEl) errorEl.textContent = err instanceof Error ? err.message : 'No se pudo guardar el borrador.';
+    }
+  });
+  kindEl?.addEventListener('change', applyKind);
+
+  function init() {
+    const cid = getCid();
+    if (!cid) return;
+    if (cid !== currentCid) {
+      unsubscribe?.();
+      currentCid = cid;
+      items = [];
+      unsubscribe = subscribeHandouts(cid, true, (list) => {
+        items = list;
+        render();
+      });
+    }
+    applyLocks();
+  }
+
+  applyKind();
+  window.addEventListener('DOMContentLoaded', init);
+  window.addEventListener('popstate', init);
+  window.addEventListener('campaign-activated', init);
+  window.addEventListener('campaigns-updated', init);
+  window.addEventListener('active-campaign-changed', init);
+  window.addEventListener('session-status-changed', applyLocks);
+  if (root && document.readyState !== 'loading') init();
+</script>

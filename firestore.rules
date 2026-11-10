@@ -217,6 +217,28 @@ service cloud.firestore {
         allow delete: if signedIn() && isDm(campaignId) && canPlay();
       }
 
+      // -------------------------------------------------------------- handouts (RF-41)
+      // DECISION (F5-13): el DM prepara borradores con sentAt == null; los jugadores no los leen hasta que se envían.
+      // Preparar (crear/editar borrador, borrar) requiere canPrepare(); enviar (poner o cambiar sentAt) requiere canPlay().
+      function validHandout(d) {
+        return d.kind in ['image', 'text']
+          && d.title is string && d.title.size() > 0 && d.title.size() <= 120
+          && (!('body' in d) || (d.body is string && d.body.size() <= 5000))
+          && (!('imageUrl' in d) || (d.imageUrl is string && d.imageUrl.size() <= 2048 && d.imageUrl.matches('^https://.*')))
+          && (d.kind != 'image' || 'imageUrl' in d)
+          && 'sentAt' in d && (d.sentAt == null || d.sentAt is number)
+          && d.createdAt is number;
+      }
+      match /handouts/{handoutId} {
+        allow read: if signedIn() && (isDm(campaignId) || (isMember(campaignId) && resource.data.sentAt != null));
+        allow create: if signedIn() && isDm(campaignId) && validHandout(request.resource.data)
+          && (request.resource.data.sentAt == null ? canPrepare() : canPlay());
+        allow update: if signedIn() && isDm(campaignId) && validHandout(request.resource.data)
+          && request.resource.data.createdAt == resource.data.createdAt
+          && (request.resource.data.sentAt == resource.data.sentAt ? canPrepare() : canPlay());
+        allow delete: if signedIn() && isDm(campaignId) && canPrepare();
+      }
+
       // -------------------------------------------------------------- notas privadas del DM
       match /notes/{noteId} {
         // Se leen también con la partida terminada (solo lectura).

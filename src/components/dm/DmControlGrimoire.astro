@@ -7,6 +7,7 @@ import MapManager from './MapManager.astro';
 import TokenEditor from './TokenEditor.astro';
 import DmNotes from './DmNotes.astro';
 import PresenceTracker from '../party/PresenceTracker.astro';
+import HandoutManager from './HandoutManager.astro';
 ---
 
 <div id="dm-control-root" class="space-y-6">
@@ -159,6 +160,9 @@ import PresenceTracker from '../party/PresenceTracker.astro';
 
   <!-- [presencia de la mesa] (RF-42): sin sección propia, marca las cards de aventureros -->
   <PresenceTracker />
+
+  <!-- [handouts para los jugadores] (RF-41) -->
+  <HandoutManager />
 
   <!-- [notas privadas del DM] (RF-40) -->
   <DmNotes />
