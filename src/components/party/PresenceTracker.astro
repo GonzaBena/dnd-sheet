@@ -85,6 +85,8 @@
     }
   }
 
+  // El punto se mide contra el avatar: hay que recolocarlo si cambia el layout.
+  window.addEventListener('resize', applyAll);
   window.addEventListener('pagehide', () => leave?.());
   window.addEventListener('DOMContentLoaded', bind);
   window.addEventListener('campaigns-updated', bind);
