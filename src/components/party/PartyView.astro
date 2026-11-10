@@ -699,6 +699,8 @@ import PresenceTracker from './PresenceTracker.astro';
     renderJournal(camp.id);
   }
 
+  let rosterSignature = '';
+
   function renderRoster(cid: string) {
     if (!charactersList) return;
     const camp = campaignStore.getCampaign(cid);
@@ -715,6 +717,7 @@ import PresenceTracker from './PresenceTracker.astro';
     }
 
     if (chars.length === 0 && membersWithoutChar.length === 0) {
+      rosterSignature = '';
       charactersList.innerHTML = `
         <div class="p-6 rounded-xl bg-[#121721] border border-[#222f42] text-center text-xs text-[#94a3b8]">
           No hay aventureros ni miembros asignados a esta campaña todavía.
@@ -723,7 +726,10 @@ import PresenceTracker from './PresenceTracker.astro';
       return;
     }
 
-    charactersList.innerHTML = '';
+    // DECISION (F5-11): las cards se construyen en un contenedor aparte y solo se reemplaza la lista si el
+    // marcado cambió. renderRoster se dispara por muchos eventos (campaigns-updated, users-updated,
+    // all-characters-updated…) y reconstruir siempre hacía parpadear los avatares y perdía el estado de presencia.
+    const target = document.createElement('div');
 
     // 1. Personajes asignados a la campaña
     chars.forEach(c => {
@@ -765,7 +771,7 @@ import PresenceTracker from './PresenceTracker.astro';
           </div>
         </div>
       `;
-      charactersList.appendChild(card);
+      target.appendChild(card);
     });
 
     // 2. Otros miembros de la mesa (DM o usuarios sin personaje enlazado)
@@ -773,7 +779,7 @@ import PresenceTracker from './PresenceTracker.astro';
       const sectionDivider = document.createElement('div');
       sectionDivider.className = 'pt-2.5 mt-2 border-t border-[#222f42]/60 text-[10px] font-bold text-[#64748b] uppercase tracking-wider px-1';
       sectionDivider.textContent = 'Otros Miembros de la Mesa';
-      charactersList.appendChild(sectionDivider);
+      target.appendChild(sectionDivider);
 
       membersWithoutChar.forEach(mUid => {
         const mUser = userStore.getUser(mUid);
@@ -811,9 +817,15 @@ import PresenceTracker from './PresenceTracker.astro';
             </a>
           ` : ''}
         `;
-        charactersList.appendChild(mCard);
+        target.appendChild(mCard);
       });
     }
+
+    // La firma se calcula sobre el marcado recién generado (sin el borde/punto de presencia, que se aplica después).
+    const signature = target.innerHTML;
+    if (rosterSignature === signature && charactersList.childElementCount > 0) return;
+    rosterSignature = signature;
+    charactersList.replaceChildren(...Array.from(target.childNodes));
   }
 
   function renderJournal(cid: string) {

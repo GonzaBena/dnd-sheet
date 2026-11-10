@@ -296,6 +296,25 @@ const { mode = 'player', class: className = '', id } = Astro.props;
 
     for (const root of rootElements) {
       if ((root as any).__initialized) continue;
+
+      // DECISION (F5-10): un mapa dentro de un contenedor oculto (p. ej. el cockpit del DM en la vista del
+      // jugador) no se inicializa hasta que se vea. Así un jugador no ejecuta el mapa en modo DM
+      // (listeners duplicados, dmOnly y tokenOwners con PERMISSION_DENIED) ni carga dos canvas.
+      if (root.getClientRects().length === 0 && typeof IntersectionObserver !== 'undefined') {
+        if (!(root as any).__visibilityWatcher) {
+          const watcher = new IntersectionObserver((entries) => {
+            if (entries.some((e) => e.isIntersecting)) {
+              watcher.disconnect();
+              (root as any).__visibilityWatcher = null;
+              void initMapStages();
+            }
+          });
+          (root as any).__visibilityWatcher = watcher;
+          watcher.observe(root);
+        }
+        continue;
+      }
+
       (root as any).__initialized = true;
 
       const mode = (root.getAttribute('data-mode') || 'player') as 'dm' | 'player';
