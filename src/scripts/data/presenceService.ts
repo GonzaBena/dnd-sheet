@@ -64,7 +64,9 @@ export function joinPresence(roomId: string, uid: string, name: string): () => v
           await db.onDisconnect(myRef).update({ online: false, lastSeen: db.serverTimestamp() });
           await db.set(myRef, { name: safeName, online: true, lastSeen: db.serverTimestamp() });
         } catch (err) {
-          console.warn('[presenceService] No se pudo registrar la presencia:', err);
+          // Lo más común: PERMISSION_DENIED porque el uid todavía no está en rooms/{roomId}/members
+          // (lo sincroniza el navegador del DM al abrir la app) o las reglas RTDB no están desplegadas.
+          console.warn(`[presenceService] No se pudo registrar la presencia de ${uid} en la sala ${roomId}:`, err);
         }
       });
       cleanup = off;

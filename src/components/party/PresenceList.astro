@@ -119,6 +119,7 @@
   window.addEventListener('DOMContentLoaded', bind);
   window.addEventListener('campaigns-updated', bind);
   window.addEventListener('active-campaign-changed', bind);
+  window.addEventListener('current-user-changed', bind);
   window.addEventListener('user-changed', bind);
   window.addEventListener('cloud-session-changed', bind);
   if (document.readyState !== 'loading') void bind();
