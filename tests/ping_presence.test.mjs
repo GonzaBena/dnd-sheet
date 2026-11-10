@@ -4,6 +4,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { exceedsLongPressMove, pingColor, LONG_PRESS_MS } from '../src/scripts/vtt/ping.ts';
 import { formatLastSeen, normalizePresence } from '../src/scripts/data/presenceService.ts';
+import { presenceVisual } from '../src/scripts/ui/presenceBadge.ts';
 import { allowPing, resetPingLimiter, PING_MIN_INTERVAL_MS } from '../src/scripts/data/pingService.ts';
 
 test('el clic largo se cancela al moverse más de 6 px', () => {
@@ -32,6 +33,18 @@ test('formatLastSeen en minutos, horas y días', () => {
   assert.equal(formatLastSeen(now - 5 * 60_000, now), 'visto hace 5 min');
   assert.equal(formatLastSeen(now - 3 * 3_600_000, now), 'visto hace 3 h');
   assert.equal(formatLastSeen(now - 2 * 86_400_000, now), 'visto hace 2 d');
+});
+
+test('presenceVisual: en línea = borde verde; desconectado = punto gris con "visto hace"; sin dato = nada', () => {
+  const now = 1_000_000_000;
+  const on = presenceVisual({ uid: 'a', name: 'A', online: true, lastSeen: now }, now);
+  assert.equal(on.state, 'online');
+  assert.match(on.borderColor, /52,211,153/);
+  const off = presenceVisual({ uid: 'a', name: 'A', online: false, lastSeen: now - 5 * 60_000 }, now);
+  assert.equal(off.state, 'offline');
+  assert.equal(off.borderColor, '');
+  assert.equal(off.title, 'Desconectado · visto hace 5 min');
+  assert.deepEqual(presenceVisual(undefined, now), { state: 'unknown', borderColor: '', dotColor: '', title: '' });
 });
 
 test('normalizePresence ordena en línea primero, luego por nombre, y descarta basura', () => {

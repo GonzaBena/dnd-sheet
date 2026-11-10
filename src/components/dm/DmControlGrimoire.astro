@@ -6,7 +6,7 @@ import MapStage from '../map/MapStage.astro';
 import MapManager from './MapManager.astro';
 import TokenEditor from './TokenEditor.astro';
 import DmNotes from './DmNotes.astro';
-import PresenceList from '../party/PresenceList.astro';
+import PresenceTracker from '../party/PresenceTracker.astro';
 ---
 
 <div id="dm-control-root" class="space-y-6">
@@ -157,8 +157,8 @@ import PresenceList from '../party/PresenceList.astro';
   <!-- [editar mapas] (FULL WIDTH) -->
   <MapManager />
 
-  <!-- [presencia de la mesa] (RF-42) -->
-  <PresenceList />
+  <!-- [presencia de la mesa] (RF-42): sin sección propia, marca las cards de aventureros -->
+  <PresenceTracker />
 
   <!-- [notas privadas del DM] (RF-40) -->
   <DmNotes />
@@ -350,6 +350,7 @@ import PresenceList from '../party/PresenceList.astro';
           }
 
           card.className = 'p-4 sm:p-5 rounded-2xl bg-[#121721] border border-[#222f42] hover:border-amber-500/50 shadow-[0_4px_20px_rgba(0,0,0,0.5)] transition-all flex flex-col justify-between gap-4 font-label text-xs';
+          if (char.userId) card.dataset.presenceUid = char.userId;
 
           const passivePerception = 10 + (char.stats?.wis?.modifier || 2) + (char.proficiencyBonus || 3);
 

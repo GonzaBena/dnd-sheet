@@ -1,0 +1,95 @@
+---
+// src/components/party/PresenceTracker.astro
+// Sin marcado propio (T-51a, RF-42): une al usuario a la sala y pinta el estado de presencia
+// (borde + punto) en las cards de miembros que llevan `data-presence-uid`.
+---
+
+<script>
+  import { campaignStore } from '../../scripts/state/campaignStore';
+  import { userStore } from '../../scripts/state/userStore';
+  import { ensureRoom } from '../../scripts/data/roomService.ts';
+  import { joinPresence, subscribePresence, type PresenceEntry } from '../../scripts/data/presenceService.ts';
+  import { applyPresence } from '../../scripts/ui/presenceBadge.ts';
+
+  // Contenedores donde se renderizan las cards (se repintan enteros, así que se reaplica al cambiar).
+  const CONTAINER_IDS = ['party-characters-list', 'grimoire-players-grid'];
+
+  let boundRoom: string | null = null;
+  let leave: (() => void) | null = null;
+  let unsub: (() => void) | null = null;
+  let byUid = new Map<string, PresenceEntry>();
+  let binding = false;
+  const observed = new WeakSet<Element>();
+  let refreshTimer: ReturnType<typeof setInterval> | null = null;
+
+  function getCid(): string | null {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('id') || params.get('campaign') || campaignStore.getActiveCampaignId();
+  }
+
+  function applyAll() {
+    CONTAINER_IDS.forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) applyPresence(el, byUid);
+    });
+  }
+
+  function observeContainers() {
+    CONTAINER_IDS.forEach((id) => {
+      const el = document.getElementById(id);
+      if (!el || observed.has(el)) return;
+      observed.add(el);
+      // Solo hijos directos: aplicar la presencia toca el interior de las cards, no dispara el observer.
+      new MutationObserver(() => applyPresence(el, byUid)).observe(el, { childList: true });
+    });
+  }
+
+  function onPresence(list: PresenceEntry[]) {
+    byUid = new Map(list.map((p) => [p.uid, p]));
+    observeContainers();
+    applyAll();
+  }
+
+  async function bind() {
+    observeContainers();
+    if (binding) return;
+    const cid = getCid();
+    if (!cid) return;
+    const camp = campaignStore.getCampaign(cid);
+    const user = userStore.getCurrentUser();
+    if (!camp || !user?.id) return;
+
+    binding = true;
+    try {
+      let roomId = camp.liveRoomId || null;
+      // Solo el DM puede crear la sala; los jugadores esperan a que exista liveRoomId.
+      if (!roomId && camp.dmId === user.id) {
+        try {
+          roomId = await ensureRoom(camp);
+        } catch (err) {
+          console.warn('[PresenceTracker] No se pudo crear la sala:', err);
+        }
+      }
+      if (!roomId || roomId === boundRoom) return;
+
+      leave?.();
+      unsub?.();
+      boundRoom = roomId;
+      byUid = new Map();
+      leave = joinPresence(roomId, user.id, user.name || 'Aventurero');
+      unsub = subscribePresence(roomId, onPresence);
+      // "visto hace X min" cambia con el tiempo aunque no haya eventos nuevos.
+      if (!refreshTimer) refreshTimer = setInterval(applyAll, 60_000);
+    } finally {
+      binding = false;
+    }
+  }
+
+  window.addEventListener('pagehide', () => leave?.());
+  window.addEventListener('DOMContentLoaded', bind);
+  window.addEventListener('campaigns-updated', bind);
+  window.addEventListener('active-campaign-changed', bind);
+  window.addEventListener('current-user-changed', bind);
+  window.addEventListener('cloud-session-changed', bind);
+  if (document.readyState !== 'loading') void bind();
+</script>

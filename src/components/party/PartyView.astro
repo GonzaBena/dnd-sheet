@@ -6,7 +6,7 @@ import InitiativeList from './InitiativeList.astro';
 import MapStage from '../map/MapStage.astro';
 import CombatTracker from '../dm/CombatTracker.astro';
 import MapManager from '../dm/MapManager.astro';
-import PresenceList from './PresenceList.astro';
+import PresenceTracker from './PresenceTracker.astro';
 ---
 
 <div id="party-view-root" class="w-full max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
@@ -226,8 +226,8 @@ import PresenceList from './PresenceList.astro';
     <!-- STATUS BANNER FLOTANTE (PAUSED / ENDED) -->
     <StatusBanner />
 
-    <!-- PRESENCIA (T-51a) -->
-    <PresenceList />
+    <!-- PRESENCIA (T-51a): sin sección propia, marca las cards del roster -->
+    <PresenceTracker />
 
     <!-- 1. VISTA DM TÁCTICA COCKPIT (Cuando el usuario conectado es DM) -->
     <div id="party-dm-cockpit" class="hidden space-y-6">
@@ -734,6 +734,7 @@ import PresenceList from './PresenceList.astro';
 
       const card = document.createElement('div');
       card.className = 'flex items-center justify-between gap-3 p-3.5 rounded-xl bg-[#121721] border border-[#222f42] shadow-xs hover:border-amber-500/40 transition-colors';
+      if (c.userId) card.dataset.presenceUid = c.userId;
       card.innerHTML = `
         <div class="flex items-center gap-3 min-w-0">
           <img
@@ -783,6 +784,7 @@ import PresenceList from './PresenceList.astro';
 
         const mCard = document.createElement('div');
         mCard.className = 'p-3 rounded-xl bg-[#10141d] border border-[#222f42] flex items-center justify-between gap-3 text-xs';
+        mCard.dataset.presenceUid = mUid;
         mCard.innerHTML = `
           <div class="flex items-center gap-2.5 min-w-0">
             <div class="w-8 h-8 rounded-lg ${isThisDm ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30' : 'bg-amber-500/10 text-amber-400 border border-amber-500/30'} flex items-center justify-center shrink-0">
