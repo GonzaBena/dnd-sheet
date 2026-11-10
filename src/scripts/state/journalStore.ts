@@ -112,23 +112,44 @@ class JournalStoreManager {
 
   /**
    * Con un personaje: lo que ve ese jugador (party + sus notas de jugador + sus mensajes al DM).
-   * Sin personaje: todo lo cargado (vista del DM). En modo nube Firestore ya filtra por permisos,
-   * así que acá solo llega lo que el usuario puede leer.
+   * Sin personaje / DM: todo lo que el DM puede ver (party + notas de DM + todos los mensajes to_dm).
    */
-  public getEntries(filterForCharacterId?: string): JournalEntry[] {
-    if (!filterForCharacterId) {
+  public getEntries(
+    filterForCharacterId?: string,
+    currentUserId?: string,
+    isDm = (!filterForCharacterId && !currentUserId)
+  ): JournalEntry[] {
+    if (!filterForCharacterId && isDm) {
       return this.entries;
     }
     return this.entries.filter(e => {
       const visibility = getEntryVisibility(e);
       if (visibility === 'party') return true;
-      if (visibility === 'player' || visibility === 'to_dm') return !e.characterId || e.characterId === filterForCharacterId;
-      return false; // entradas de DM: nunca en la vista de un personaje
+      if (isDm && (visibility === 'dm' || visibility === 'to_dm')) return true;
+      if (visibility === 'to_dm') {
+        if (currentUserId && e.authorUid === currentUserId) return true;
+        if (filterForCharacterId && e.characterId === filterForCharacterId) return true;
+        return isDm;
+      }
+      if (visibility === 'player') {
+        if (currentUserId && e.authorUid) {
+          return e.authorUid === currentUserId;
+        }
+        return !filterForCharacterId || !e.characterId || e.characterId === filterForCharacterId;
+      }
+      return false; // entradas de DM: nunca en la vista de un personaje si no es DM
     });
   }
 
-  public getPublicCampaignEntries(): JournalEntry[] {
-    return this.entries.filter(e => getEntryVisibility(e) === 'party');
+  public getPublicCampaignEntries(campaignId?: string): JournalEntry[] {
+    const activeCid = campaignId || campaignStore.getActiveCampaignId();
+    return this.entries.filter(e => {
+      if (getEntryVisibility(e) !== 'party') return false;
+      if (activeCid) {
+        return e.campaignId === activeCid;
+      }
+      return !e.campaignId;
+    });
   }
 
   // ---- Modo nube ----
@@ -222,19 +243,33 @@ class JournalStoreManager {
     title: string,
     content: string,
     tags: (JournalTag | string)[],
-    diceRoll?: JournalEntry['diceRoll'],
-    options: { visibility?: JournalVisibility; authorName?: string; characterId?: string } = {}
+    diceRollOrOptions?: JournalEntry['diceRoll'] | { bannerText?: string; visibility?: JournalVisibility; authorName?: string; characterId?: string; milestone?: { bannerText?: string } },
+    options: { visibility?: JournalVisibility; authorName?: string; characterId?: string; bannerText?: string; milestone?: { bannerText?: string } } = {}
   ): JournalEntry {
+    let actualDiceRoll: JournalEntry['diceRoll'] | undefined = undefined;
+    let actualOptions = { ...options };
+
+    if (diceRollOrOptions) {
+      if ('formula' in diceRollOrOptions && 'result' in diceRollOrOptions) {
+        actualDiceRoll = diceRollOrOptions as JournalEntry['diceRoll'];
+      } else {
+        actualOptions = { ...actualOptions, ...(diceRollOrOptions as any) };
+      }
+    }
+
+    const milestoneBanner = actualOptions.bannerText || actualOptions.milestone?.bannerText;
+
     return this.addEntry({
       sessionNumber: 15,
       title,
       content,
       tags,
-      diceRoll,
-      isDmOnly: options.visibility === 'dm' || undefined,
-      isPlayerOnly: options.visibility === 'player' || undefined,
-      authorName: options.authorName,
-      characterId: options.characterId
+      diceRoll: actualDiceRoll,
+      milestone: milestoneBanner ? { bannerText: milestoneBanner } : undefined,
+      isDmOnly: actualOptions.visibility === 'dm' || undefined,
+      isPlayerOnly: actualOptions.visibility === 'player' || undefined,
+      authorName: actualOptions.authorName,
+      characterId: actualOptions.characterId
     });
   }
 

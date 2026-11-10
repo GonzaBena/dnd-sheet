@@ -54,7 +54,7 @@
     </div>
 
     <!-- Quick Global Actions (Expandir / Colapsar Todo) -->
-    <div class="grid grid-cols-2 gap-1.5 font-label text-[10px]">
+    <div id="sections-index-global-actions" class="grid grid-cols-2 gap-1.5 font-label text-[10px]">
       <button
         type="button"
         id="btn-index-expand-all"
@@ -137,6 +137,67 @@
   function renderIndexSections() {
     if (!indexList) return;
     indexList.innerHTML = '';
+
+    const globalActions = document.getElementById('sections-index-global-actions');
+    const isPartyView = Boolean(document.getElementById('party-view-root'));
+
+    if (isPartyView) {
+      if (globalActions) globalActions.classList.add('hidden');
+
+      const partySections = [
+        {
+          id: 'party-map',
+          name: 'Mapa Táctico',
+          icon: 'map',
+          target: document.getElementById('party-player-map-stage') || document.getElementById('party-dm-map-stage')
+        },
+        {
+          id: 'party-combat',
+          name: 'Iniciativa y Combate',
+          icon: 'bolt',
+          target: document.getElementById('party-player-tactical-view') || document.getElementById('party-dm-cockpit')
+        },
+        {
+          id: 'party-roster',
+          name: 'Grupo de Aventureros',
+          icon: 'groups',
+          target: document.getElementById('party-characters-list')
+        },
+        {
+          id: 'party-journal',
+          name: 'Crónica de la Partida',
+          icon: 'auto_stories',
+          target: document.getElementById('party-journal-feed')
+        }
+      ];
+
+      partySections.forEach(sec => {
+        if (!sec.target) return;
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'w-full px-2.5 py-2 rounded-xl bg-[#18202e]/80 hover:bg-[#18202e] border border-[#222f42] hover:border-amber-500/50 text-left transition-all flex items-center justify-between group cursor-pointer active:scale-98';
+        btn.innerHTML = `
+          <div class="flex items-center gap-2 min-w-0">
+            <span class="material-symbols-outlined text-[17px] text-amber-500 group-hover:scale-110 transition-transform">${sec.icon}</span>
+            <span class="text-xs font-headline font-bold text-[#f1f5f9] group-hover:text-amber-300 truncate">${sec.name}</span>
+          </div>
+          <span class="material-symbols-outlined text-[15px] text-[#64748b] group-hover:text-amber-400 group-hover:translate-x-0.5 transition-all">arrow_forward</span>
+        `;
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          sec.target?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          sec.target?.classList.add('ring-2', 'ring-amber-400/80', 'transition-all');
+          setTimeout(() => {
+            sec.target?.classList.remove('ring-2', 'ring-amber-400/80');
+          }, 1500);
+          indexPopup?.classList.add('hidden');
+        });
+        indexList.appendChild(btn);
+      });
+      return;
+    }
+
+    if (globalActions) globalActions.classList.remove('hidden');
 
     const char = characterStore.get();
     const order = char.layoutConfig?.sectionOrder || {

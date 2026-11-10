@@ -84,6 +84,42 @@ test('log() acepta visibilidad (antes el flag privado del DM se ignoraba)', () =
   assert.equal(getEntryVisibility(e), 'dm');
 });
 
+test('log() de hitos/hazañas no corrompe diceRoll y asigna milestone.bannerText correctamente', () => {
+  // Caso 1: Pasado en options { bannerText }
+  const e1 = journalStore.log('⭐ Hito 1', 'Completado', ['#Hito'], undefined, { bannerText: '¡Nivel Superado!' });
+  assert.equal(e1.diceRoll, undefined, 'diceRoll no debe definirse');
+  assert.equal(e1.milestone?.bannerText, '¡Nivel Superado!');
+
+  // Caso 2: Pasado legacy en 4to argumento como { bannerText }
+  const e2 = journalStore.log('⭐ Hito 2', 'Completado', ['#Hito'], { bannerText: '¡Victoria!' });
+  assert.equal(e2.diceRoll, undefined, 'diceRoll no debe definirse cuando era bannerText legacy');
+  assert.equal(e2.milestone?.bannerText, '¡Victoria!');
+});
+
+test('visibilidad para jugador con authorUid ve sus notas to_dm y party de otros jugadores', () => {
+  journalStore.resetToDefault();
+  const partyOther = journalStore.addEntry({ sessionNumber: 1, title: 'Party de Bob', content: '', tags: [], characterId: 'bob-char', authorUid: 'uid-bob' });
+  const toDmBob = journalStore.addEntry({ sessionNumber: 1, title: 'Bob al DM', content: '', tags: [], isForDm: true, characterId: 'bob-char', authorUid: 'uid-bob' });
+  const toDmAlice = journalStore.addEntry({ sessionNumber: 1, title: 'Alice al DM', content: '', tags: [], isForDm: true, characterId: 'alice-char', authorUid: 'uid-alice' });
+  const dmSecret = journalStore.addEntry({ sessionNumber: 1, title: 'Secreto del DM', content: '', tags: [], isDmOnly: true, authorName: 'Dungeon Master' });
+
+  // Vista de Alice como jugadora (no DM)
+  const aliceEntries = journalStore.getEntries('alice-char', 'uid-alice', false);
+  const aliceIds = aliceEntries.map(e => e.id);
+  assert.ok(aliceIds.includes(partyOther.id), 'Alice ve la nota pública de Bob');
+  assert.ok(aliceIds.includes(toDmAlice.id), 'Alice ve su propio mensaje al DM');
+  assert.ok(!aliceIds.includes(toDmBob.id), 'Alice NO ve el mensaje privado de Bob al DM');
+  assert.ok(!aliceIds.includes(dmSecret.id), 'Alice NO ve el secreto del DM');
+
+  // Vista del DM
+  const dmEntries = journalStore.getEntries(undefined, 'uid-dm', true);
+  const dmIds = dmEntries.map(e => e.id);
+  assert.ok(dmIds.includes(partyOther.id));
+  assert.ok(dmIds.includes(toDmBob.id), 'El DM ve el mensaje de Bob');
+  assert.ok(dmIds.includes(toDmAlice.id), 'El DM ve el mensaje de Alice');
+  assert.ok(dmIds.includes(dmSecret.id), 'El DM ve su propio secreto');
+});
+
 test('diffDocs: crea, actualiza solo campos cambiados, borra y detecta claves eliminadas', () => {
   const synced = new Map([
     ['a', JSON.stringify({ id: 'a', name: 'A', hp: 10, extra: 1 })],
@@ -164,4 +200,19 @@ test('modo nube: los cambios de los stores se convierten en escrituras mínimas'
 
   campaignStore.detachCloud();
   userStore.exitCloudMode();
+});
+
+test('getPublicCampaignEntries filtra por campaña y visibilidad pública', () => {
+  journalStore.resetToDefault();
+  journalStore.addEntry({ sessionNumber: 1, title: 'Party Camp A', content: '', tags: [], campaignId: 'camp-A' });
+  journalStore.addEntry({ sessionNumber: 1, title: 'Private Camp A', content: '', tags: [], isPlayerOnly: true, campaignId: 'camp-A' });
+  journalStore.addEntry({ sessionNumber: 1, title: 'Party Camp B', content: '', tags: [], campaignId: 'camp-B' });
+
+  const entriesA = journalStore.getPublicCampaignEntries('camp-A');
+  assert.equal(entriesA.length, 1);
+  assert.equal(entriesA[0].title, 'Party Camp A');
+
+  const entriesB = journalStore.getPublicCampaignEntries('camp-B');
+  assert.equal(entriesB.length, 1);
+  assert.equal(entriesB[0].title, 'Party Camp B');
 });

@@ -4,10 +4,13 @@
 // DECISION (F2-3): La lista de mapas la lee solo el DM con getDocs (lectura puntual sin listener).
 // El mapa activo usa un único onSnapshot que se desuscribe al cambiar de mapa.
 
-import type { MapDoc, GridConfig } from '../models/map.ts';
+import type { MapDoc, GridConfig, Token } from '../models/map.ts';
 import { campaignStore } from '../state/campaignStore.ts';
+import { userStore } from '../state/userStore.ts';
 import { normalizeStatus, canPerform } from '../vtt/sessionStatus.ts';
 import { getFirebase, isFirebaseConfigured } from '../firebase/client.ts';
+import { newTokenId } from '../vtt/tokens.ts';
+import { ensureRoom } from './roomService.ts';
 
 const LOCAL_MAPS_KEY_PREFIX = 'dnd_maps_';
 
@@ -253,6 +256,310 @@ export async function setActiveMap(cid: string, mid: string | null): Promise<voi
   }
 
   dispatchEvent('active-map-changed', { cid, mid });
+}
+
+// ---------------------------------------------------------------------------
+// Gestión de Tokens en el Mapa (Fase 3: T-30, T-34)
+// ---------------------------------------------------------------------------
+
+async function getRoomIdForCampaign(cid: string): Promise<string | null> {
+  const campaign = campaignStore.getCampaign(cid);
+  if (!campaign) return null;
+  if (campaign.liveRoomId) return campaign.liveRoomId;
+  try {
+    return await ensureRoom(campaign);
+  } catch (_) {
+    return null;
+  }
+}
+
+/**
+ * Añade un nuevo token al mapa (solo DM).
+ * Registra en Firestore y en RTDB (rooms/{roomId}/tokenOwners/{mid}/{tid}) si tiene dueño.
+ */
+export async function addToken(
+  cid: string,
+  mid: string,
+  token: Token,
+  specifiedId?: string
+): Promise<string> {
+  checkCanPrepare(cid);
+
+  const tid = specifiedId || newTokenId();
+  const now = Date.now();
+
+  const cleanToken: Record<string, any> = {};
+  for (const [k, v] of Object.entries(token)) {
+    if (v !== undefined) {
+      cleanToken[k] = v;
+    }
+  }
+
+  // Actualizar caché local
+  const maps = getLocalMaps(cid);
+  const idx = maps.findIndex((m) => m.id === mid);
+  if (idx !== -1) {
+    if (!maps[idx].tokens) maps[idx].tokens = {};
+    maps[idx].tokens[tid] = cleanToken as Token;
+    maps[idx].updatedAt = now;
+    saveLocalMaps(cid, maps);
+    dispatchEvent('map-updated', { cid, mid, map: maps[idx] });
+  }
+
+  // Firestore
+  if (isFirebaseConfigured()) {
+    try {
+      const { db } = await getFirebase();
+      const fs = await import('firebase/firestore');
+      await fs.updateDoc(fs.doc(db, 'campaigns', cid, 'maps', mid), {
+        [`tokens.${tid}`]: cleanToken,
+        updatedAt: now,
+      });
+    } catch (err) {
+      console.warn('[mapService] Error guardando token en Firestore:', err);
+      throw err;
+    }
+  }
+
+  // RTDB tokenOwners si tiene dueño asignado
+  if (isFirebaseConfigured() && token.ownerUid) {
+    try {
+      const roomId = await getRoomIdForCampaign(cid);
+      if (roomId) {
+        const { rtdb } = await getFirebase();
+        const rtdbSdk = await import('firebase/database');
+        await rtdbSdk.set(
+          rtdbSdk.ref(rtdb, `rooms/${roomId}/tokenOwners/${mid}/${tid}`),
+          token.ownerUid
+        );
+      }
+    } catch (err) {
+      console.warn('[mapService] Error sincronizando tokenOwners en RTDB:', err);
+    }
+  }
+
+  return tid;
+}
+
+/**
+ * Actualiza propiedades de un token existente (solo DM).
+ * Si cambia ownerUid, actualiza o borra en RTDB tokenOwners.
+ */
+export async function updateToken(
+  cid: string,
+  mid: string,
+  tid: string,
+  patch: Partial<Token>
+): Promise<void> {
+  checkCanPrepare(cid);
+
+  const now = Date.now();
+
+  // Actualizar caché local
+  const maps = getLocalMaps(cid);
+  const idx = maps.findIndex((m) => m.id === mid);
+  if (idx !== -1 && maps[idx].tokens && maps[idx].tokens[tid]) {
+    const updated = { ...maps[idx].tokens[tid] };
+    for (const [k, v] of Object.entries(patch)) {
+      if (v === undefined) {
+        delete (updated as any)[k];
+      } else {
+        (updated as any)[k] = v;
+      }
+    }
+    maps[idx].tokens[tid] = updated;
+    maps[idx].updatedAt = now;
+    saveLocalMaps(cid, maps);
+    dispatchEvent('map-updated', { cid, mid, map: maps[idx] });
+  }
+
+  // Firestore con field paths
+  if (isFirebaseConfigured()) {
+    try {
+      const { db } = await getFirebase();
+      const fs = await import('firebase/firestore');
+      const updatePayload: Record<string, any> = { updatedAt: now };
+      for (const [key, val] of Object.entries(patch)) {
+        if (val === undefined) {
+          updatePayload[`tokens.${tid}.${key}`] = fs.deleteField();
+        } else {
+          updatePayload[`tokens.${tid}.${key}`] = val;
+        }
+      }
+      await fs.updateDoc(fs.doc(db, 'campaigns', cid, 'maps', mid), updatePayload);
+    } catch (err) {
+      console.warn('[mapService] Error actualizando token en Firestore:', err);
+      throw err;
+    }
+  }
+
+  // Sincronizar dueño en RTDB si cambió
+  if (isFirebaseConfigured() && patch.ownerUid !== undefined) {
+    try {
+      const roomId = await getRoomIdForCampaign(cid);
+      if (roomId) {
+        const { rtdb } = await getFirebase();
+        const rtdbSdk = await import('firebase/database');
+        const ref = rtdbSdk.ref(rtdb, `rooms/${roomId}/tokenOwners/${mid}/${tid}`);
+        if (patch.ownerUid) {
+          await rtdbSdk.set(ref, patch.ownerUid);
+        } else {
+          await rtdbSdk.remove(ref);
+        }
+      }
+    } catch (err) {
+      console.warn('[mapService] Error actualizando tokenOwners en RTDB:', err);
+    }
+  }
+}
+
+/**
+ * Elimina un token del mapa (solo DM).
+ * Limpia Firestore y los nodos correspondientes en RTDB (tokenOwners y live).
+ */
+export async function removeToken(cid: string, mid: string, tid: string): Promise<void> {
+  checkCanPrepare(cid);
+
+  const now = Date.now();
+
+  // Actualizar caché local
+  const maps = getLocalMaps(cid);
+  const idx = maps.findIndex((m) => m.id === mid);
+  if (idx !== -1 && maps[idx].tokens && maps[idx].tokens[tid]) {
+    delete maps[idx].tokens[tid];
+    maps[idx].updatedAt = now;
+    saveLocalMaps(cid, maps);
+    dispatchEvent('map-updated', { cid, mid, map: maps[idx] });
+  }
+
+  // Firestore deleteField()
+  if (isFirebaseConfigured()) {
+    try {
+      const { db } = await getFirebase();
+      const fs = await import('firebase/firestore');
+      await fs.updateDoc(fs.doc(db, 'campaigns', cid, 'maps', mid), {
+        [`tokens.${tid}`]: fs.deleteField(),
+        updatedAt: now,
+      });
+    } catch (err) {
+      console.warn('[mapService] Error eliminando token en Firestore:', err);
+      throw err;
+    }
+  }
+
+  // RTDB: limpiar tokenOwners y live
+  if (isFirebaseConfigured()) {
+    try {
+      const roomId = await getRoomIdForCampaign(cid);
+      if (roomId) {
+        const { rtdb } = await getFirebase();
+        const rtdbSdk = await import('firebase/database');
+        await Promise.all([
+          rtdbSdk.remove(rtdbSdk.ref(rtdb, `rooms/${roomId}/tokenOwners/${mid}/${tid}`)),
+          rtdbSdk.remove(rtdbSdk.ref(rtdb, `rooms/${roomId}/live/${mid}/${tid}`)),
+        ]);
+      }
+    } catch (err) {
+      console.warn('[mapService] Error limpiando token en RTDB:', err);
+    }
+  }
+}
+
+/**
+ * Reconcilia los dueños de tokens en RTDB con el documento de mapa (solo DM).
+ */
+export async function reconcileTokenOwners(
+  cid: string,
+  mid: string,
+  map: MapDoc
+): Promise<void> {
+  if (!isFirebaseConfigured()) return;
+  try {
+    const roomId = await getRoomIdForCampaign(cid);
+    if (!roomId) return;
+    const { rtdb } = await getFirebase();
+    const rtdbSdk = await import('firebase/database');
+    const owners: Record<string, string> = {};
+    for (const [tid, tok] of Object.entries(map.tokens || {})) {
+      if (tok.ownerUid) {
+        owners[tid] = tok.ownerUid;
+      }
+    }
+    await rtdbSdk.set(rtdbSdk.ref(rtdb, `rooms/${roomId}/tokenOwners/${mid}`), owners);
+  } catch (err) {
+    console.warn('[mapService] Error conciliando tokenOwners en RTDB:', err);
+  }
+}
+
+/**
+ * Confirma el movimiento definitivo de un token en Firestore tras soltarlo.
+ * DECISION (F3-2): El DM también escribe lastMove al mover. Así el bloqueo de paused
+ * de F0B-4 aplica a sus movimientos legítimos.
+ */
+export async function commitTokenMove(
+  cid: string,
+  mid: string,
+  tid: string,
+  x: number,
+  y: number
+): Promise<void> {
+  const campaign = campaignStore.getCampaign(cid);
+  const status = normalizeStatus(campaign?.status);
+  if (status !== 'active') {
+    throw new Error('Solo se pueden mover tokens con la partida iniciada (active).');
+  }
+
+  const now = Date.now();
+  let currentUid = '';
+
+  if (isFirebaseConfigured()) {
+    try {
+      const { auth } = await getFirebase();
+      currentUid = auth?.currentUser?.uid || '';
+    } catch (_) {}
+  }
+  if (!currentUid) {
+    const user = typeof window !== 'undefined' ? userStore.getCurrentUser() : null;
+    currentUid = user?.id || campaignStore.getDmId() || 'local-user';
+  }
+
+  // 1. Actualizar caché local
+  const maps = getLocalMaps(cid);
+  const idx = maps.findIndex((m) => m.id === mid);
+  const previousToken = idx !== -1 && maps[idx].tokens?.[tid] ? { ...maps[idx].tokens[tid] } : null;
+  const previousLastMove = idx !== -1 ? maps[idx].lastMove : undefined;
+
+  if (idx !== -1 && maps[idx].tokens && maps[idx].tokens[tid]) {
+    maps[idx].tokens[tid].x = x;
+    maps[idx].tokens[tid].y = y;
+    maps[idx].lastMove = { tokenId: tid, by: currentUid, at: now };
+    maps[idx].updatedAt = now;
+    saveLocalMaps(cid, maps);
+    dispatchEvent('map-updated', { cid, mid, map: maps[idx] });
+  }
+
+  // 2. Escritura atómica en Firestore con lastMove (F0-1, F3-2)
+  if (isFirebaseConfigured()) {
+    try {
+      const { db, auth } = await getFirebase();
+      const uid = auth?.currentUser?.uid || currentUid;
+      const fs = await import('firebase/firestore');
+      await fs.updateDoc(fs.doc(db, 'campaigns', cid, 'maps', mid), {
+        [`tokens.${tid}.x`]: x,
+        [`tokens.${tid}.y`]: y,
+        lastMove: { tokenId: tid, by: uid, at: now },
+        updatedAt: now,
+      });
+    } catch (err) {
+      if (idx !== -1 && maps[idx].tokens && maps[idx].tokens[tid] && previousToken) {
+        maps[idx].tokens[tid] = previousToken;
+        maps[idx].lastMove = previousLastMove;
+        saveLocalMaps(cid, maps);
+        dispatchEvent('map-updated', { cid, mid, map: maps[idx] });
+      }
+      throw err;
+    }
+  }
 }
 
 // ---------------------------------------------------------------------------

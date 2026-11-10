@@ -1,0 +1,887 @@
+---
+// src/components/dm/TokenEditor.astro
+// Editor y gestor de tokens para el DM (T-30).
+// Permite crear nuevos tokens haciendo clic en el mapa, editarlos, cambiar dueños y eliminarlos.
+---
+
+<div id="dm-token-editor-root" class="rounded-2xl bg-[#10141d]/90 border border-[#222f42] p-4 space-y-3 font-label text-xs shadow-lg backdrop-blur-md">
+  <!-- Cabecera de gestión de tokens -->
+  <div class="flex items-center justify-between gap-2 border-b border-[#222f42]/70 pb-2.5">
+    <div class="flex items-center gap-2">
+      <span class="material-symbols-outlined text-[20px] text-amber-400">token</span>
+      <div>
+        <h3 class="font-headline font-bold text-sm text-[#f1f5f9]">Tokens en el Mapa</h3>
+        <p class="text-[10px] text-[#94a3b8]">Crea, asigna a jugadores y ajusta miniaturas tácticas</p>
+      </div>
+    </div>
+
+    <div class="flex items-center gap-1.5">
+      <button
+        type="button"
+        id="token-editor-quick-enemy-btn"
+        class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 border border-rose-500/40 text-rose-300 font-bold transition-all active:scale-95 cursor-pointer shadow-xs text-xs"
+        title="Desplegar oponente o monstruo directamente en el mapa táctico"
+      >
+        <span class="material-symbols-outlined text-[16px]">swords</span>
+        <span>+ Enemigo</span>
+      </button>
+
+      <button
+        type="button"
+        id="token-editor-new-btn"
+        class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 font-bold transition-all active:scale-95 cursor-pointer shadow-xs text-xs"
+      >
+        <span class="material-symbols-outlined text-[16px]">add_circle</span>
+        <span>Nuevo Token</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Banner de modo colocación activa -->
+  <div
+    id="token-placement-banner"
+    class="hidden p-3 rounded-xl bg-amber-500/15 border border-amber-500/40 text-amber-200 flex items-center justify-between gap-2 flex-wrap animate-pulse"
+  >
+    <div class="flex items-center gap-2">
+      <span class="material-symbols-outlined text-[20px] text-amber-400">touch_app</span>
+      <span class="text-xs font-bold">Haz clic en el mapa táctico para ubicar el nuevo token</span>
+    </div>
+    <div class="flex items-center gap-1.5 ml-auto">
+      <button
+        type="button"
+        id="token-placement-center-btn"
+        class="px-2.5 py-1 rounded-lg bg-amber-500/25 hover:bg-amber-500/40 text-amber-200 font-bold text-[11px] cursor-pointer flex items-center gap-1 transition-colors"
+        title="Ubicar en el centro del mapa"
+      >
+        <span class="material-symbols-outlined text-[14px]">center_focus_strong</span>
+        <span>Colocar al Centro</span>
+      </button>
+      <button
+        type="button"
+        id="token-placement-cancel-btn"
+        class="px-2.5 py-1 rounded-lg bg-[#18202e] hover:bg-[#222f42] text-[#cbd5e1] font-bold text-[11px] cursor-pointer transition-colors"
+      >
+        Cancelar
+      </button>
+    </div>
+  </div>
+
+  <!-- Lista horizontal de tokens en el mapa actual -->
+  <div class="space-y-1">
+    <div class="flex items-center justify-between text-[10px] uppercase font-bold text-[#64748b] tracking-wider px-1">
+      <span>Miniaturas desplegadas</span>
+      <span id="token-list-count" class="text-amber-400/80">0 tokens</span>
+    </div>
+
+    <div
+      id="token-chips-container"
+      class="flex items-center gap-2 overflow-x-auto py-1 px-0.5 scrollbar-thin scrollbar-thumb-[#222f42]"
+    >
+      <div class="p-3 text-center text-[#64748b] text-[11px] w-full">
+        Cargando tokens del mapa...
+      </div>
+    </div>
+  </div>
+
+  <!-- Sección de Aventureros de la Campaña (mostrar personajes de usuarios) -->
+  <div class="space-y-1.5 pt-2 border-t border-[#222f42]/60">
+    <div class="flex items-center justify-between text-[10px] uppercase font-bold text-[#64748b] tracking-wider px-1">
+      <span class="flex items-center gap-1.5">
+        <span class="material-symbols-outlined text-[15px] text-sky-400">groups</span>
+        <span>Aventureros de la mesa</span>
+      </span>
+      <span id="token-adventurers-count" class="text-sky-400/80">0 personajes</span>
+    </div>
+
+    <div
+      id="token-adventurers-container"
+      class="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-[#222f42]"
+    >
+      <div class="p-2 text-center text-[#64748b] text-[11px] col-span-full">
+        Cargando aventureros...
+      </div>
+    </div>
+  </div>
+
+  <!-- Formulario Modal / Panel de Edición de Token -->
+  <div
+    id="token-editor-modal"
+    class="hidden fixed inset-0 z-[100] bg-[#0a0d12]/85 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto"
+  >
+    <div class="w-full max-w-md rounded-2xl bg-[#121721] border border-amber-500/40 shadow-[0_10px_40px_rgba(0,0,0,0.8)] p-5 space-y-4">
+      <div class="flex items-center justify-between border-b border-[#222f42] pb-2.5">
+        <h4 id="token-modal-title" class="font-headline font-bold text-base text-[#f1f5f9]">
+          Configurar Token
+        </h4>
+        <button
+          type="button"
+          id="token-modal-close-btn"
+          class="w-7 h-7 rounded-lg hover:bg-[#18202e] text-[#94a3b8] hover:text-[#f1f5f9] flex items-center justify-center transition-colors cursor-pointer"
+        >
+          <span class="material-symbols-outlined text-[18px]">close</span>
+        </button>
+      </div>
+
+      <form id="token-editor-form" class="space-y-3.5">
+        <input type="hidden" id="token-field-id" value="" />
+        <input type="hidden" id="token-field-x" value="0" />
+        <input type="hidden" id="token-field-y" value="0" />
+
+        <!-- Personaje vinculado (opcional) -->
+        <div class="space-y-1">
+          <label class="block text-[11px] font-bold uppercase text-[#94a3b8] tracking-wider">
+            Vincular a Personaje (Opcional)
+          </label>
+          <select
+            id="token-field-character"
+            class="w-full rounded-xl bg-[#18202e] border border-[#222f42] px-3 py-2 text-xs text-[#f1f5f9] focus:outline-none focus:border-amber-500"
+          >
+            <option value="">(Ninguno / Miniatura genérica)</option>
+          </select>
+        </div>
+
+        <!-- Nombre del Token -->
+        <div class="space-y-1">
+          <label class="block text-[11px] font-bold uppercase text-[#94a3b8] tracking-wider">
+            Nombre del Token *
+          </label>
+          <input
+            type="text"
+            id="token-field-name"
+            required
+            maxlength="80"
+            placeholder="Ej: Elena, Goblin Arquero, etc."
+            class="w-full rounded-xl bg-[#18202e] border border-[#222f42] px-3 py-2 text-xs text-[#f1f5f9] focus:outline-none focus:border-amber-500"
+          />
+        </div>
+
+        <!-- Tamaño en la cuadrícula -->
+        <div class="space-y-1.5">
+          <label class="block text-[11px] font-bold uppercase text-[#94a3b8] tracking-wider">
+            Tamaño en Grilla (Celdas)
+          </label>
+          <div class="grid grid-cols-4 gap-2">
+            <label class="cursor-pointer">
+              <input type="radio" name="token-size" value="1" class="sr-only peer" checked />
+              <div class="px-2 py-2 rounded-xl bg-[#18202e] border border-[#222f42] peer-checked:border-amber-500 peer-checked:bg-amber-500/15 text-center transition-all">
+                <span class="block text-xs font-bold text-[#f1f5f9]">1×1</span>
+                <span class="block text-[9px] text-[#94a3b8]">Mediano</span>
+              </div>
+            </label>
+            <label class="cursor-pointer">
+              <input type="radio" name="token-size" value="2" class="sr-only peer" />
+              <div class="px-2 py-2 rounded-xl bg-[#18202e] border border-[#222f42] peer-checked:border-amber-500 peer-checked:bg-amber-500/15 text-center transition-all">
+                <span class="block text-xs font-bold text-[#f1f5f9]">2×2</span>
+                <span class="block text-[9px] text-[#94a3b8]">Grande</span>
+              </div>
+            </label>
+            <label class="cursor-pointer">
+              <input type="radio" name="token-size" value="3" class="sr-only peer" />
+              <div class="px-2 py-2 rounded-xl bg-[#18202e] border border-[#222f42] peer-checked:border-amber-500 peer-checked:bg-amber-500/15 text-center transition-all">
+                <span class="block text-xs font-bold text-[#f1f5f9]">3×3</span>
+                <span class="block text-[9px] text-[#94a3b8]">Enorme</span>
+              </div>
+            </label>
+            <label class="cursor-pointer">
+              <input type="radio" name="token-size" value="4" class="sr-only peer" />
+              <div class="px-2 py-2 rounded-xl bg-[#18202e] border border-[#222f42] peer-checked:border-amber-500 peer-checked:bg-amber-500/15 text-center transition-all">
+                <span class="block text-xs font-bold text-[#f1f5f9]">4×4</span>
+                <span class="block text-[9px] text-[#94a3b8]">Gargant.</span>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <!-- Apariencia: Color preset o Imagen -->
+        <div class="space-y-2">
+          <label class="block text-[11px] font-bold uppercase text-[#94a3b8] tracking-wider">
+            Color del Borde / Miniatura
+          </label>
+          <div id="token-color-palette" class="flex items-center gap-2 flex-wrap">
+            <!-- Paleta de 8 colores preset -->
+            {['#ef4444', '#f97316', '#eab308', '#22c55e', '#06b6d4', '#3b82f6', '#a855f7', '#ec4899'].map((c) => (
+              <button
+                type="button"
+                data-color-btn
+                data-color={c}
+                style={`background-color: ${c}`}
+                class="w-7 h-7 rounded-full border-2 border-transparent hover:scale-110 active:scale-95 transition-all cursor-pointer shadow-xs focus:outline-none"
+              ></button>
+            ))}
+          </div>
+          <input type="hidden" id="token-field-color" value="#3b82f6" />
+        </div>
+
+        <!-- URL o Ruta de Imagen (opcional) -->
+        <div class="space-y-1">
+          <div class="flex items-center justify-between">
+            <label class="block text-[11px] font-bold uppercase text-[#94a3b8] tracking-wider">
+              Imagen / Avatar (URL o ruta local, opcional)
+            </label>
+            <button
+              type="button"
+              id="token-field-image-clear-btn"
+              class="text-[10px] text-amber-400 hover:text-amber-300 transition-colors cursor-pointer"
+            >
+              Quitar imagen
+            </button>
+          </div>
+          <input
+            type="text"
+            id="token-field-image-url"
+            placeholder="https://... o /characters/ch-1.avif"
+            class="w-full rounded-xl bg-[#18202e] border border-[#222f42] px-3 py-2 text-xs text-[#f1f5f9] focus:outline-none focus:border-amber-500"
+          />
+        </div>
+
+        <!-- Dueño / Control -->
+        <div class="space-y-1">
+          <label class="block text-[11px] font-bold uppercase text-[#94a3b8] tracking-wider">
+            Control de Movimiento (Dueño)
+          </label>
+          <select
+            id="token-field-owner"
+            class="w-full rounded-xl bg-[#18202e] border border-[#222f42] px-3 py-2 text-xs text-[#f1f5f9] focus:outline-none focus:border-amber-500"
+          >
+            <option value="">Solo Dungeon Master</option>
+          </select>
+          <span class="text-[10px] text-[#64748b] block">
+            El jugador asignado podrá mover su token durante la partida iniciada.
+          </span>
+        </div>
+
+        <!-- Acciones del formulario -->
+        <div class="pt-3 border-t border-[#222f42] flex items-center justify-between gap-2">
+          <button
+            type="button"
+            id="token-delete-btn"
+            class="hidden px-3 py-2 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/30 text-rose-300 font-bold text-xs transition-colors cursor-pointer"
+          >
+            Eliminar
+          </button>
+
+          <div class="flex items-center gap-2 ml-auto">
+            <button
+              type="button"
+              id="token-cancel-btn"
+              class="px-3.5 py-2 rounded-xl bg-[#18202e] hover:bg-[#222f42] text-[#cbd5e1] font-bold text-xs transition-colors cursor-pointer"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              id="token-save-btn"
+              class="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-[#0c1017] font-bold text-xs transition-all active:scale-95 shadow-md cursor-pointer"
+            >
+              Guardar
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+  // DECISION (D7): Crear, editar y borrar tokens es preparar: permitido en active y en paused.
+  import { campaignStore } from '../../scripts/state/campaignStore.ts';
+  import { userStore } from '../../scripts/state/userStore.ts';
+  import { addToken, updateToken, removeToken, subscribeMap } from '../../scripts/data/mapService.ts';
+  import { canPerform, normalizeStatus } from '../../scripts/vtt/sessionStatus.ts';
+  import { snapToGrid } from '../../scripts/vtt/geometry.ts';
+  import { showConfirm, showAlert, showForm } from '../../scripts/ui/notify.ts';
+  import { newTokenId } from '../../scripts/vtt/tokens.ts';
+  import type { Token, MapDoc } from '../../scripts/models/map.ts';
+
+  function initTokenEditor() {
+    const root = document.getElementById('dm-token-editor-root');
+    if (!root || (root as any).__initialized) return;
+    (root as any).__initialized = true;
+
+    const newBtn = document.getElementById('token-editor-new-btn') as HTMLButtonElement | null;
+    const quickEnemyBtn = document.getElementById('token-editor-quick-enemy-btn') as HTMLButtonElement | null;
+    const banner = document.getElementById('token-placement-banner');
+    const cancelPlacementBtn = document.getElementById('token-placement-cancel-btn');
+    const centerPlacementBtn = document.getElementById('token-placement-center-btn');
+    const chipsContainer = document.getElementById('token-chips-container');
+    const listCount = document.getElementById('token-list-count');
+    const adventurersContainer = document.getElementById('token-adventurers-container');
+    const adventurersCount = document.getElementById('token-adventurers-count');
+
+    // Modal y formulario
+    const modal = document.getElementById('token-editor-modal');
+    if (modal && modal.parentElement !== document.body) {
+      document.body.appendChild(modal);
+    }
+    const modalTitle = document.getElementById('token-modal-title');
+    const modalCloseBtn = document.getElementById('token-modal-close-btn');
+    const cancelBtn = document.getElementById('token-cancel-btn');
+    const deleteBtn = document.getElementById('token-delete-btn');
+    const form = document.getElementById('token-editor-form') as HTMLFormElement | null;
+
+    const fieldId = document.getElementById('token-field-id') as HTMLInputElement | null;
+    const fieldX = document.getElementById('token-field-x') as HTMLInputElement | null;
+    const fieldY = document.getElementById('token-field-y') as HTMLInputElement | null;
+    const fieldChar = document.getElementById('token-field-character') as HTMLSelectElement | null;
+    const fieldName = document.getElementById('token-field-name') as HTMLInputElement | null;
+    const fieldColor = document.getElementById('token-field-color') as HTMLInputElement | null;
+    const fieldImageUrl = document.getElementById('token-field-image-url') as HTMLInputElement | null;
+    const fieldImageClearBtn = document.getElementById('token-field-image-clear-btn');
+    const fieldOwner = document.getElementById('token-field-owner') as HTMLSelectElement | null;
+    const colorBtns = root.querySelectorAll<HTMLButtonElement>('[data-color-btn]');
+
+    let isPlacementMode = false;
+    let currentMap: MapDoc | null = null;
+    let mapUnsub: (() => void) | null = null;
+
+    function getActiveCampaignId(): string | null {
+      let cid = campaignStore.getActiveCampaignId();
+      if (!cid && typeof window !== 'undefined') {
+        const params = new URLSearchParams(window.location.search);
+        cid = params.get('id') || params.get('campaign');
+      }
+      return cid;
+    }
+
+    function checkCanEdit(): boolean {
+      const cid = getActiveCampaignId();
+      if (!cid) return false;
+      const camp = campaignStore.getCampaign(cid);
+      const status = normalizeStatus(camp?.status);
+      return canPerform('dmPrepare', 'dm', status);
+    }
+
+    // Actualización de paleta de colores
+    function selectColor(hex: string) {
+      if (fieldColor) fieldColor.value = hex;
+      colorBtns.forEach((btn) => {
+        if (btn.getAttribute('data-color') === hex) {
+          btn.classList.add('ring-2', 'ring-white', 'scale-110');
+        } else {
+          btn.classList.remove('ring-2', 'ring-white', 'scale-110');
+        }
+      });
+    }
+
+    colorBtns.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const col = btn.getAttribute('data-color') || '#3b82f6';
+        selectColor(col);
+      });
+    });
+
+    // Rellenar select de miembros de la campaña
+    function populateOwners() {
+      if (!fieldOwner) return;
+      const cid = getActiveCampaignId();
+      fieldOwner.innerHTML = '<option value="">Solo Dungeon Master</option>';
+      if (!cid) return;
+
+      const members = campaignStore.getCampaignMembers(cid);
+      members.forEach((m) => {
+        const opt = document.createElement('option');
+        opt.value = m.id;
+        opt.textContent = `${m.name} (${m.role === 'dm' ? 'DM' : 'Jugador'})`;
+        fieldOwner.appendChild(opt);
+      });
+    }
+
+    // Rellenar select de personajes
+    function populateCharacters() {
+      if (!fieldChar) return;
+      const cid = getActiveCampaignId();
+      fieldChar.innerHTML = '<option value="">(Ninguno / Miniatura genérica)</option>';
+      if (!cid) return;
+
+      const characters = campaignStore.getCharactersForCampaign(cid);
+      characters.forEach((c) => {
+        const opt = document.createElement('option');
+        opt.value = c.id;
+        opt.textContent = `${c.name} (${c.race || ''} ${c.characterClass || ''})`;
+        fieldChar.appendChild(opt);
+      });
+    }
+
+    // Al seleccionar un personaje vinculado, autocompletar campos
+    fieldChar?.addEventListener('change', () => {
+      const charId = fieldChar.value;
+      if (!charId) return;
+      const cid = getActiveCampaignId();
+      if (!cid) return;
+      const characters = campaignStore.getCharactersForCampaign(cid);
+      const char = characters.find((c) => c.id === charId);
+      if (char) {
+        if (fieldName && !fieldName.value) fieldName.value = char.name;
+        if (fieldImageUrl && char.avatarUrl) fieldImageUrl.value = char.avatarUrl;
+        if (fieldOwner && char.userId) fieldOwner.value = char.userId;
+      }
+    });
+
+    // Abrir modal para crear o editar
+    function openModal(token?: Token, tid?: string, initialCoords?: { x: number; y: number }) {
+      if (!checkCanEdit()) {
+        showAlert('No puedes editar tokens con la partida terminada.', { title: 'Partida Terminada' });
+        return;
+      }
+
+      populateOwners();
+      populateCharacters();
+
+      if (form) form.reset();
+
+      if (token && tid) {
+        // Modo edición
+        if (modalTitle) modalTitle.textContent = `Editar Token: ${token.name}`;
+        if (fieldId) fieldId.value = tid;
+        if (fieldX) fieldX.value = String(token.x || 0);
+        if (fieldY) fieldY.value = String(token.y || 0);
+        if (fieldName) fieldName.value = token.name;
+        if (fieldImageUrl) fieldImageUrl.value = token.imageUrl || '';
+        if (fieldOwner) {
+          if (token.ownerUid) {
+            fieldOwner.value = token.ownerUid;
+          } else if (token.characterId) {
+            const char = characters.find((c) => c.id === token.characterId);
+            fieldOwner.value = char?.userId || '';
+          } else {
+            fieldOwner.value = '';
+          }
+        }
+        if (fieldChar) fieldChar.value = token.characterId || '';
+        selectColor(token.color || '#3b82f6');
+
+        // Tamaño
+        const sizeRadio = form?.querySelector<HTMLInputElement>(`input[name="token-size"][value="${token.size || 1}"]`);
+        if (sizeRadio) sizeRadio.checked = true;
+
+        deleteBtn?.classList.remove('hidden');
+      } else {
+        // Modo nuevo
+        if (modalTitle) modalTitle.textContent = 'Nuevo Token';
+        if (fieldId) fieldId.value = '';
+        if (fieldX) fieldX.value = String(initialCoords?.x || 0);
+        if (fieldY) fieldY.value = String(initialCoords?.y || 0);
+        if (fieldName) fieldName.value = '';
+        if (fieldImageUrl) fieldImageUrl.value = '';
+        if (fieldOwner) fieldOwner.value = '';
+        if (fieldChar) fieldChar.value = '';
+        selectColor('#3b82f6');
+
+        const defaultSize = form?.querySelector<HTMLInputElement>('input[name="token-size"][value="1"]');
+        if (defaultSize) defaultSize.checked = true;
+
+        deleteBtn?.classList.add('hidden');
+      }
+
+      modal?.classList.remove('hidden');
+    }
+
+    function closeModal() {
+      if (isPlacementMode) {
+        isPlacementMode = false;
+        banner?.classList.add('hidden');
+        window.dispatchEvent(new CustomEvent('token-placement-mode', { detail: { active: false } }));
+      }
+      modal?.classList.add('hidden');
+      if (form) form.reset();
+    }
+
+    modalCloseBtn?.addEventListener('click', closeModal);
+    cancelBtn?.addEventListener('click', closeModal);
+    fieldImageClearBtn?.addEventListener('click', () => {
+      if (fieldImageUrl) {
+        fieldImageUrl.value = '';
+        fieldImageUrl.focus();
+      }
+    });
+
+    modal?.addEventListener('click', (e) => {
+      if (e.target === modal) {
+        closeModal();
+      }
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && modal && !modal.classList.contains('hidden')) {
+        closeModal();
+      }
+    });
+
+    // Activar modo de colocación en el mapa
+    newBtn?.addEventListener('click', () => {
+      if (!checkCanEdit()) {
+        showAlert('No puedes crear tokens con la partida terminada.', { title: 'Partida Terminada' });
+        return;
+      }
+      isPlacementMode = true;
+      banner?.classList.remove('hidden');
+      window.dispatchEvent(new CustomEvent('token-placement-mode', { detail: { active: true } }));
+    });
+
+    // Desplegar enemigo rápido en el mapa
+    quickEnemyBtn?.addEventListener('click', async () => {
+      const cid = getActiveCampaignId();
+      if (!cid || !currentMap) {
+        showAlert('Debes seleccionar o activar un mapa antes de desplegar un enemigo.', { title: 'Sin Mapa' });
+        return;
+      }
+      if (!checkCanEdit()) {
+        showAlert('No puedes añadir enemigos con la partida terminada.', { title: 'Partida Terminada' });
+        return;
+      }
+
+      const formResult = await showForm([
+        { name: 'name', label: 'Nombre del Oponente / Monstruo', type: 'text', placeholder: 'Ej. Orco Berserker', required: true },
+        { name: 'size', label: 'Tamaño en grilla (1 = Mediano, 2 = Grande, 3 = Enorme)', type: 'number', value: 1, min: 1 },
+        { name: 'qty', label: 'Cantidad', type: 'number', value: 1, min: 1 },
+      ], { title: 'Desplegar Enemigo en el Mapa' });
+
+      if (!formResult || !formResult.name) return;
+
+      const name = String(formResult.name).trim();
+      const size = Math.max(1, Math.min(4, Number(formResult.size) || 1)) as 1 | 2 | 3 | 4;
+      const qty = Math.max(1, Number(formResult.qty) || 1);
+
+      const grid = currentMap.grid || { size: 50, offsetX: 0, offsetY: 0 };
+      const centerX = currentMap.imageWidth ? currentMap.imageWidth / 2 : 400;
+      const centerY = currentMap.imageHeight ? currentMap.imageHeight / 2 : 400;
+      const baseSnapped = snapToGrid({ x: centerX, y: centerY }, grid);
+
+      for (let i = 1; i <= qty; i++) {
+        const tokenName = qty > 1 ? `${name} ${i}` : name;
+        const colOffset = ((i - 1) % 5) * grid.size;
+        const rowOffset = Math.floor((i - 1) / 5) * grid.size;
+        const token: Token = {
+          name: tokenName,
+          size,
+          color: '#ef4444',
+          imageUrl: '/characters/ch-3.avif',
+          ownerUid: null,
+          x: baseSnapped.x + colOffset,
+          y: baseSnapped.y + rowOffset,
+        };
+        await addToken(cid, currentMap.id, token);
+      }
+    });
+
+    cancelPlacementBtn?.addEventListener('click', () => {
+      isPlacementMode = false;
+      banner?.classList.add('hidden');
+      window.dispatchEvent(new CustomEvent('token-placement-mode', { detail: { active: false } }));
+    });
+
+    centerPlacementBtn?.addEventListener('click', () => {
+      isPlacementMode = false;
+      banner?.classList.add('hidden');
+      window.dispatchEvent(new CustomEvent('token-placement-mode', { detail: { active: false } }));
+
+      const centerX = Math.round((currentMap?.imageWidth || 800) / 2);
+      const centerY = Math.round((currentMap?.imageHeight || 600) / 2);
+      const grid = currentMap?.grid || { size: 50, offsetX: 0, offsetY: 0 };
+      const snapped = snapToGrid({ x: centerX, y: centerY }, grid, 1);
+
+      openModal(undefined, undefined, snapped);
+    });
+
+    // Escuchar clics en el mapa para ubicar nuevo token
+    window.addEventListener('map-click', ((e: CustomEvent) => {
+      if (!isPlacementMode) return;
+      isPlacementMode = false;
+      banner?.classList.add('hidden');
+      window.dispatchEvent(new CustomEvent('token-placement-mode', { detail: { active: false } }));
+
+      const { mapX, mapY } = e.detail || {};
+      const grid = currentMap?.grid || { size: 50, offsetX: 0, offsetY: 0 };
+      const snapped = snapToGrid({ x: mapX, y: mapY }, grid, 1);
+
+      openModal(undefined, undefined, snapped);
+    }) as EventListener);
+
+    // Escuchar selección de token desde el canvas Konva
+    window.addEventListener('token-selected', ((e: CustomEvent) => {
+      const { tid, token } = e.detail || {};
+      if (tid && token) {
+        openModal(token, tid);
+      }
+    }) as EventListener);
+
+    // Guardar cambios o crear token
+    form?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const cid = getActiveCampaignId();
+      if (!cid || !currentMap) return;
+
+      const tid = fieldId?.value || '';
+      const name = fieldName?.value.trim() || 'Token';
+      const sizeRadio = form.querySelector<HTMLInputElement>('input[name="token-size"]:checked');
+      const size = Number(sizeRadio?.value || 1) as 1 | 2 | 3 | 4;
+      const color = fieldColor?.value || '#3b82f6';
+      const imageUrl = fieldImageUrl?.value.trim() || undefined;
+      const ownerUid = fieldOwner?.value || null;
+      const characterId = fieldChar?.value || undefined;
+
+      const tokenData: Token = {
+        name,
+        size,
+        color,
+        imageUrl,
+        ownerUid,
+        characterId,
+        x: Number(fieldX?.value || 0),
+        y: Number(fieldY?.value || 0),
+      };
+
+      try {
+        if (tid) {
+          // Actualizar token existente
+          await updateToken(cid, currentMap.id, tid, tokenData);
+        } else {
+          // Crear token nuevo
+          await addToken(cid, currentMap.id, tokenData);
+        }
+        closeModal();
+      } catch (err: any) {
+        console.error('[TokenEditor] Error guardando token:', err);
+        showAlert(`Error guardando token: ${err?.message || 'Error desconocido'}`, { title: 'Error' });
+      }
+    });
+
+    // Eliminar token
+    deleteBtn?.addEventListener('click', async () => {
+      const cid = getActiveCampaignId();
+      const tid = fieldId?.value;
+      if (!cid || !currentMap || !tid) return;
+
+      const confirmed = await showConfirm(
+        '¿Estás seguro de eliminar este token del mapa táctico?',
+        { title: '¿Eliminar Token?', confirmText: 'Eliminar', danger: true }
+      );
+      if (!confirmed) return;
+
+      try {
+        await removeToken(cid, currentMap.id, tid);
+        closeModal();
+      } catch (err: any) {
+        console.error('[TokenEditor] Error eliminando token:', err);
+        showAlert(`Error eliminando token: ${err?.message || 'Error desconocido'}`, { title: 'Error' });
+      }
+    });
+
+    // Renderizar chips de tokens existentes
+    function renderChips(tokens: Record<string, Token>) {
+      if (!chipsContainer || !listCount) return;
+      const entries = Object.entries(tokens || {});
+      listCount.textContent = `${entries.length} token${entries.length === 1 ? '' : 's'}`;
+
+      if (entries.length === 0) {
+        chipsContainer.innerHTML = `
+          <div class="p-2.5 text-center text-[#64748b] text-[11px] w-full">
+            No hay miniaturas desplegadas en este mapa. Toca "+ Nuevo Token" para añadir una.
+          </div>
+        `;
+        return;
+      }
+
+      chipsContainer.innerHTML = '';
+      entries.forEach(([tid, tok]) => {
+        const chip = document.createElement('button');
+        chip.type = 'button';
+        chip.className =
+          'shrink-0 flex items-center gap-2 px-2.5 py-1.5 rounded-xl bg-[#18202e] hover:bg-[#222f42] border border-[#222f42] hover:border-amber-500/50 text-[#cbd5e1] hover:text-[#f1f5f9] transition-all cursor-pointer shadow-xs select-none';
+
+        const avatarHtml = tok.imageUrl
+          ? `<img src="${tok.imageUrl}" class="w-5 h-5 rounded-full object-cover border border-[#222f42]" />`
+          : `<span class="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold text-white border border-[#222f42]" style="background-color: ${tok.color || '#3b82f6'}">${(tok.name || 'T').substring(0, 1)}</span>`;
+
+        chip.innerHTML = `
+          ${avatarHtml}
+          <span class="font-bold text-xs truncate max-w-[100px]">${tok.name}</span>
+          <span class="text-[9px] px-1 py-0.2 rounded bg-[#10141d] text-[#94a3b8] font-mono">${tok.size}×${tok.size}</span>
+        `;
+
+        chip.addEventListener('click', () => {
+          openModal(tok, tid);
+        });
+
+        chipsContainer.appendChild(chip);
+      });
+
+      renderAdventurers();
+    }
+
+    // Renderizar lista de aventureros de la campaña para despliegue rápido
+    function renderAdventurers() {
+      if (!adventurersContainer) return;
+      const cid = getActiveCampaignId();
+      if (!cid) {
+        adventurersContainer.innerHTML = `
+          <div class="p-2 text-center text-[#64748b] text-[11px] col-span-full">
+            Sin campaña activa.
+          </div>
+        `;
+        return;
+      }
+
+      const characters = campaignStore.getCharactersForCampaign(cid);
+      if (adventurersCount) {
+        adventurersCount.textContent = `${characters.length} personaje${characters.length === 1 ? '' : 's'}`;
+      }
+
+      if (characters.length === 0) {
+        adventurersContainer.innerHTML = `
+          <div class="p-2.5 text-center text-[#64748b] text-[11px] col-span-full">
+            No hay personajes de jugadores vinculados a esta campaña.
+          </div>
+        `;
+        return;
+      }
+
+      adventurersContainer.innerHTML = '';
+      const tokens = currentMap?.tokens || {};
+
+      characters.forEach((char) => {
+        const existingTokenEntry = Object.entries(tokens).find(
+          ([_, t]) =>
+            t.characterId === char.id ||
+            (char.userId && t.ownerUid === char.userId) ||
+            t.name.toLowerCase() === char.name.toLowerCase()
+        );
+
+        const card = document.createElement('div');
+        card.className =
+          'flex items-center justify-between gap-2 p-2 rounded-xl bg-[#141a24] border border-[#222f42] hover:border-[#334155] transition-all text-xs font-label';
+
+        const avatar = char.avatarUrl || '/characters/ch-1.avif';
+        const infoHtml = `
+          <div class="flex items-center gap-2 min-w-0">
+            <img src="${avatar}" alt="${char.name}" class="w-7 h-7 rounded-lg object-cover border border-[#222f42] shrink-0" />
+            <div class="min-w-0">
+              <span class="block font-headline font-bold text-[#f1f5f9] truncate max-w-[95px]">${char.name}</span>
+              <span class="block text-[10px] text-[#94a3b8] truncate max-w-[95px]">${char.race || ''} ${char.characterClass || 'Aventurero'}</span>
+            </div>
+          </div>
+        `;
+
+        if (existingTokenEntry) {
+          const [tid] = existingTokenEntry;
+          card.innerHTML = `
+            ${infoHtml}
+            <div class="flex items-center gap-1.5 shrink-0">
+              <span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                En mapa
+              </span>
+              <button
+                type="button"
+                data-action="center"
+                class="px-2 py-1 rounded-lg bg-[#18202e] hover:bg-[#222f42] text-[#cbd5e1] hover:text-amber-300 text-[10px] font-bold transition-colors cursor-pointer"
+                title="Centrar mapa en este token"
+              >
+                Centrar
+              </button>
+            </div>
+          `;
+          card.querySelector('[data-action="center"]')?.addEventListener('click', () => {
+            window.dispatchEvent(new CustomEvent('map-center-token', { detail: { tid } }));
+          });
+        } else {
+          card.innerHTML = `
+            ${infoHtml}
+            <button
+              type="button"
+              data-action="deploy"
+              class="px-2.5 py-1 rounded-lg bg-sky-500/20 hover:bg-sky-500/30 border border-sky-500/40 text-sky-300 hover:text-sky-200 text-[10px] font-bold transition-all active:scale-95 cursor-pointer shrink-0"
+              title="Colocar miniatura de este aventurero en el mapa táctico"
+            >
+              + Desplegar
+            </button>
+          `;
+          card.querySelector('[data-action="deploy"]')?.addEventListener('click', async () => {
+            if (!currentMap) {
+              showAlert('No hay un mapa activo donde desplegar la miniatura.', { title: 'Sin Mapa' });
+              return;
+            }
+            if (!checkCanEdit()) {
+              showAlert('No puedes desplegar tokens con la partida terminada.', { title: 'Partida Terminada' });
+              return;
+            }
+
+            const grid = currentMap.grid || { size: 50, offsetX: 0, offsetY: 0, visible: true };
+            const centerX = currentMap.imageWidth ? currentMap.imageWidth / 2 : 400;
+            const centerY = currentMap.imageHeight ? currentMap.imageHeight / 2 : 400;
+            const snapped = snapToGrid({ x: centerX, y: centerY }, grid);
+
+            const token: Token = {
+              name: char.name,
+              size: 1,
+              color: '#38bdf8',
+              imageUrl: char.avatarUrl || '/characters/ch-1.avif',
+              ownerUid: char.userId || null,
+              characterId: char.id,
+              x: snapped.x,
+              y: snapped.y,
+            };
+
+            try {
+              const tid = newTokenId('tok-pc');
+              await addToken(cid, currentMap.id, token, tid);
+            } catch (err: any) {
+              console.error('[TokenEditor] Error desplegando aventurero:', err);
+              showAlert(err?.message || 'Error al desplegar aventurero.', { title: 'Error' });
+            }
+          });
+        }
+
+        adventurersContainer.appendChild(card);
+      });
+    }
+
+    // Suscribirse al mapa activo para actualizar la lista de tokens
+    function bindMapTokens(cid: string, mid: string) {
+      if (mapUnsub) {
+        mapUnsub();
+        mapUnsub = null;
+      }
+      mapUnsub = subscribeMap(cid, mid, (map) => {
+        currentMap = map;
+        if (map) {
+          renderChips(map.tokens || {});
+        } else {
+          renderChips({});
+        }
+      });
+    }
+
+    function checkActiveMap() {
+      const cid = getActiveCampaignId();
+      if (!cid) return;
+      const camp = campaignStore.getCampaign(cid);
+      const mid = camp?.activeMapId;
+      if (mid) {
+        bindMapTokens(cid, mid);
+      } else {
+        if (mapUnsub) {
+          mapUnsub();
+          mapUnsub = null;
+        }
+        currentMap = null;
+        renderChips({});
+      }
+      renderAdventurers();
+    }
+
+    checkActiveMap();
+
+    window.addEventListener('active-map-changed', () => checkActiveMap());
+    window.addEventListener('campaigns-updated', () => checkActiveMap());
+    window.addEventListener('active-campaign-changed', () => checkActiveMap());
+    window.addEventListener('characters-updated', () => renderAdventurers());
+  }
+
+  if (typeof document !== 'undefined') {
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initTokenEditor);
+    } else {
+      initTokenEditor();
+    }
+  }
+</script>

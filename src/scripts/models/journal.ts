@@ -33,6 +33,9 @@ export interface JournalEntry {
     result: number;
     breakdown?: string;
   };
+  milestone?: {
+    bannerText?: string;
+  };
 }
 
 /** Visibilidad tal como se guarda en Firestore (campo `visibility`). */

@@ -237,7 +237,7 @@ Si se agrega el script, en `package.json`: `"simulate": "node scripts/simulate-p
 - Presencia (Fase 5).
 
 ## 10. Checklist de cierre
-- [ ] T-30 … T-36 marcadas en la spec.
-- [ ] `// DECISION:` para F3-2, F3-4 y F3-5.
-- [ ] Tests de reglas de Firestore y RTDB verdes. Son obligatorios para cerrar esta fase, según la spec.
-- [ ] Build estático OK.
+- [x] T-30 … T-36 marcadas en la spec.
+- [x] `// DECISION:` para F3-2, F3-4 y F3-5.
+- [x] Tests de reglas de Firestore y RTDB verdes. Son obligatorios para cerrar esta fase, según la spec.
+- [x] Build estático OK.

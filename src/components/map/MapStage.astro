@@ -97,6 +97,43 @@ const { mode = 'player', class: className = '', id } = Astro.props;
     )}
   </div>
 
+  <!-- HUD: Personaje del jugador (T-35) -->
+  <div
+    data-player-character-hud
+    class="hidden absolute top-3 right-3 z-20 flex items-center gap-2 p-1.5 pr-2.5 rounded-xl bg-[#10141d]/90 backdrop-blur-md border border-[#222f42] shadow-xl font-label text-xs pointer-events-auto"
+  >
+    <img
+      data-player-hud-avatar
+      src="/characters/ch-1.avif"
+      alt="Avatar"
+      class="w-7 h-7 rounded-lg object-cover border border-[#222f42] shrink-0"
+    />
+    <div class="flex flex-col min-w-0 pr-1">
+      <div class="flex items-center gap-1.5">
+        <span data-player-hud-name class="font-headline font-bold text-[#f1f5f9] truncate max-w-[120px]">
+          Personaje
+        </span>
+        <span
+          data-player-hud-badge
+          class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 shrink-0"
+        >
+          En pausa
+        </span>
+      </div>
+      <span data-player-hud-sub class="text-[10px] text-[#94a3b8] truncate">
+        Token en mapa
+      </span>
+    </div>
+    <button
+      type="button"
+      data-player-hud-center-btn
+      class="p-1 rounded-lg bg-[#18202e] hover:bg-amber-500/20 border border-[#222f42] hover:border-amber-500/40 text-[#cbd5e1] hover:text-amber-300 transition-colors cursor-pointer shrink-0"
+      title="Centrar mapa en mi token"
+    >
+      <span class="material-symbols-outlined text-[16px] block">my_location</span>
+    </button>
+  </div>
+
   <!-- Controles flotantes de navegación (bottom-right) (T-22) -->
   <div class="absolute bottom-3 right-3 z-10 flex items-center gap-1.5 p-1.5 rounded-xl bg-[#10141d]/85 backdrop-blur-md border border-[#222f42] shadow-xl">
     <span
@@ -171,6 +208,15 @@ const { mode = 'player', class: className = '', id } = Astro.props;
       </p>
     </div>
   </div>
+
+  <!-- Notificación toast flotante de error o aviso (T-34) -->
+  <div
+    data-map-toast
+    class="hidden absolute top-4 left-1/2 -translate-x-1/2 z-30 px-3.5 py-1.5 rounded-xl bg-rose-950/90 border border-rose-500/60 text-rose-200 text-xs font-bold shadow-xl backdrop-blur-md flex items-center gap-2"
+  >
+    <span class="material-symbols-outlined text-[16px] text-rose-400">error</span>
+    <span data-map-toast-msg>No se pudo mover el token</span>
+  </div>
 </div>
 
 <script>
@@ -180,8 +226,18 @@ const { mode = 'player', class: className = '', id } = Astro.props;
 
   import anime from 'animejs';
   import { MapStageController } from '../../scripts/vtt/mapStage.ts';
-  import { watchActiveMap, subscribeMap, listMaps, setActiveMap } from '../../scripts/data/mapService.ts';
+  import { normalizeStatus } from '../../scripts/vtt/sessionStatus.ts';
+  import {
+    watchActiveMap,
+    subscribeMap,
+    listMaps,
+    setActiveMap,
+    commitTokenMove,
+    reconcileTokenOwners,
+  } from '../../scripts/data/mapService.ts';
+  import { createLivePublisher, subscribeLive, type LivePublisher } from '../../scripts/data/liveService.ts';
   import { campaignStore } from '../../scripts/state/campaignStore.ts';
+  import { userStore } from '../../scripts/state/userStore.ts';
   import type { MapDoc } from '../../scripts/models/map.ts';
 
   async function initMapStages() {
@@ -201,6 +257,15 @@ const { mode = 'player', class: className = '', id } = Astro.props;
       const fitBtn = root.querySelector<HTMLElement>('[data-fit-btn]');
       const loadingOverlay = root.querySelector<HTMLElement>('[data-loading-overlay]');
       const emptyOverlay = root.querySelector<HTMLElement>('[data-empty-overlay]');
+
+      const playerHud = root.querySelector<HTMLElement>('[data-player-character-hud]');
+      const hudAvatar = root.querySelector<HTMLImageElement>('[data-player-hud-avatar]');
+      const hudName = root.querySelector<HTMLElement>('[data-player-hud-name]');
+      const hudBadge = root.querySelector<HTMLElement>('[data-player-hud-badge]');
+      const hudSub = root.querySelector<HTMLElement>('[data-player-hud-sub]');
+      const hudCenterBtn = root.querySelector<HTMLButtonElement>('[data-player-hud-center-btn]');
+
+      let lastReceivedMap: MapDoc | null = null;
 
       if (!canvasContainer) continue;
 
@@ -357,6 +422,128 @@ const { mode = 'player', class: className = '', id } = Astro.props;
       let currentMapId: string | null = null;
       let activeUnsub: (() => void) | null = null;
       let dmManualMapUnsub: (() => void) | null = null;
+      let liveUnsub: (() => void) | null = null;
+      let currentPublisher: LivePublisher | null = null;
+
+      function showNotice(msg: string) {
+        const toast = root.querySelector<HTMLElement>('[data-map-toast]');
+        const msgEl = root.querySelector<HTMLElement>('[data-map-toast-msg]');
+        if (toast && msgEl) {
+          msgEl.textContent = msg;
+          toast.classList.remove('hidden');
+          setTimeout(() => {
+            toast.classList.add('hidden');
+          }, 3500);
+        }
+      }
+
+      function updateViewerAndStatus() {
+        const uid = userStore.getCurrentUser()?.id || null;
+        const cid = getActiveCampaignId();
+        const camp = cid ? campaignStore.getCampaign(cid) : null;
+        const isDm = mode === 'dm' || (cid ? campaignStore.isCurrentUserDm(cid) : false);
+        controller.setViewer({ uid, isDm });
+        if (camp?.status) {
+          controller.setStatus(camp.status);
+        } else if (!cid) {
+          controller.setStatus('paused');
+        }
+      }
+
+      updateViewerAndStatus();
+
+      window.addEventListener('session-status-changed', ((e: CustomEvent) => {
+        if (e.detail?.status) {
+          controller.setStatus(e.detail.status);
+        }
+      }) as EventListener);
+
+      window.addEventListener('user-changed', updateViewerAndStatus);
+      window.addEventListener('campaigns-updated', updateViewerAndStatus);
+      window.addEventListener('active-campaign-changed', updateViewerAndStatus);
+      window.addEventListener('cloud-session-changed', updateViewerAndStatus);
+
+      // Manejo de arrastre de tokens (T-31, T-32, T-34)
+      controller.addEventListener('token-drag-start', (async (e: CustomEvent) => {
+        const { tid } = e.detail;
+        const cid = getActiveCampaignId();
+        if (!cid || !currentMapId) return;
+        const camp = campaignStore.getCampaign(cid);
+        const roomId = camp?.liveRoomId;
+        const uid = userStore.getCurrentUser()?.id || '';
+        if (!roomId || !uid) return;
+
+        currentPublisher = createLivePublisher(roomId, currentMapId, tid, uid);
+        await currentPublisher.start();
+      }) as EventListener);
+
+      controller.addEventListener('token-drag-move', ((e: CustomEvent) => {
+        const { x, y } = e.detail;
+        if (currentPublisher) {
+          currentPublisher.move(x, y);
+        }
+      }) as EventListener);
+
+      controller.addEventListener('token-drag-end', (async (e: CustomEvent) => {
+        const { tid, x, y } = e.detail;
+        const cid = getActiveCampaignId();
+        if (!cid || !currentMapId) {
+          if (currentPublisher) {
+            await currentPublisher.end();
+            currentPublisher = null;
+          }
+          return;
+        }
+
+        try {
+          // 1. Escritura en Firestore primero (T-34)
+          await commitTokenMove(cid, currentMapId, tid, x, y);
+        } catch (err: any) {
+          console.error('[MapStage] Error guardando movimiento de token:', err);
+          controller.revertTokenMove(tid);
+          showNotice('No se pudo mover el token');
+        } finally {
+          // 2. Borrado del nodo live en RTDB después de Firestore (T-34)
+          if (currentPublisher) {
+            await currentPublisher.end();
+            currentPublisher = null;
+          }
+        }
+      }) as EventListener);
+
+      controller.addEventListener('token-select', ((e: CustomEvent) => {
+        window.dispatchEvent(new CustomEvent('token-selected', { detail: e.detail }));
+      }) as EventListener);
+
+      controller.addEventListener('token-locked', ((e: CustomEvent) => {
+        const msg = e.detail?.message || 'No se puede mover el token en este momento';
+        showNotice(msg);
+      }) as EventListener);
+
+      window.addEventListener('map-center-token', ((e: CustomEvent) => {
+        const tid = e.detail?.tid;
+        if (tid) {
+          controller.centerOnToken(tid);
+        }
+      }) as EventListener);
+
+      controller.addEventListener('map-click', ((e: CustomEvent) => {
+        window.dispatchEvent(new CustomEvent('map-click', { detail: e.detail }));
+      }) as EventListener);
+
+      window.addEventListener('token-placement-mode', ((e: CustomEvent) => {
+        const active = Boolean(e.detail?.active);
+        controller.setPlacementMode(active);
+        if (canvasContainer) {
+          if (active) {
+            canvasContainer.classList.add('cursor-crosshair', 'ring-2', 'ring-amber-500/50');
+            canvasContainer.classList.remove('cursor-grab', 'active:cursor-grabbing');
+          } else {
+            canvasContainer.classList.remove('cursor-crosshair', 'ring-2', 'ring-amber-500/50');
+            canvasContainer.classList.add('cursor-grab', 'active:cursor-grabbing');
+          }
+        }
+      }) as EventListener);
 
       function showLoading(show: boolean) {
         if (!loadingOverlay) return;
@@ -394,13 +581,101 @@ const { mode = 'player', class: className = '', id } = Astro.props;
         }
       }
 
+      function updatePlayerHud(map: MapDoc | null) {
+        if (!playerHud) return;
+        const activeCampId = getActiveCampaignId();
+        if (!activeCampId) {
+          playerHud.classList.add('hidden');
+          return;
+        }
+
+        const user = userStore.getCurrentUser();
+        const currentUid = user?.id || null;
+        if (!user || !currentUid) {
+          playerHud.classList.add('hidden');
+          return;
+        }
+
+        const camp = campaignStore.getCampaign(activeCampId);
+        // Si el usuario es DM, ocultar este HUD de aventurero propio
+        if (camp && (camp.dmId === currentUid || campaignStore.isCurrentUserDm(activeCampId))) {
+          playerHud.classList.add('hidden');
+          return;
+        }
+
+        const characters = campaignStore.getCharactersForCampaign(activeCampId);
+        const myChar = characters.find(
+          (c) => c.playerId === currentUid || (user.email && c.playerEmail === user.email)
+        );
+
+        if (!myChar) {
+          playerHud.classList.add('hidden');
+          return;
+        }
+
+        playerHud.classList.remove('hidden');
+        if (hudAvatar) hudAvatar.src = myChar.avatarUrl || '/characters/ch-1.avif';
+        if (hudName) hudName.textContent = myChar.name;
+
+        const tokens = map?.tokens || {};
+        const myTokenEntry = Object.entries(tokens).find(
+          ([_, t]) =>
+            t.ownerUid === currentUid ||
+            (myChar && t.characterId === myChar.id) ||
+            (myChar && t.name.toLowerCase() === myChar.name.toLowerCase())
+        );
+
+        const status = camp ? normalizeStatus(camp.status) : 'paused';
+
+        if (myTokenEntry) {
+          const [myTid] = myTokenEntry;
+          if (hudSub) hudSub.textContent = 'Token en el mapa';
+          if (hudCenterBtn) {
+            hudCenterBtn.classList.remove('hidden');
+            hudCenterBtn.onclick = () => {
+              controller.centerOnToken(myTid);
+            };
+          }
+
+          if (hudBadge) {
+            if (status === 'active') {
+              hudBadge.textContent = 'Listo para mover';
+              hudBadge.className =
+                'px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shrink-0';
+            } else if (status === 'paused') {
+              hudBadge.textContent = 'En pausa (espera al DM)';
+              hudBadge.className =
+                'px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 shrink-0';
+            } else {
+              hudBadge.textContent = 'Terminada';
+              hudBadge.className =
+                'px-1.5 py-0.5 rounded text-[9px] font-bold bg-slate-500/20 text-slate-300 border border-slate-500/40 shrink-0';
+            }
+          }
+        } else {
+          if (hudSub) hudSub.textContent = 'Sin token desplegado';
+          if (hudCenterBtn) hudCenterBtn.classList.add('hidden');
+          if (hudBadge) {
+            hudBadge.textContent = 'Esperando al DM';
+            hudBadge.className =
+              'px-1.5 py-0.5 rounded text-[9px] font-bold bg-slate-500/20 text-slate-400 border border-slate-500/30 shrink-0';
+          }
+        }
+      }
+
       // Transición animada de cambio de mapa (T-24)
       async function onMapDocReceived(map: MapDoc | null) {
+        lastReceivedMap = map;
         try {
           if (!map) {
+            if (liveUnsub) {
+              liveUnsub();
+              liveUnsub = null;
+            }
             currentMapId = null;
             await controller.setMap(null);
             updateTitle(null);
+            updatePlayerHud(null);
             emptyOverlay?.classList.remove('hidden');
             return;
           }
@@ -408,10 +683,21 @@ const { mode = 'player', class: className = '', id } = Astro.props;
           emptyOverlay?.classList.add('hidden');
           updateTitle(map);
 
-          // Si es el mismo mapa que ya está cargado, solo actualizar grilla sin animar
+          // Si es el mismo mapa que ya está cargado, actualizar grilla y tokens sin reiniciar el stage
           if (currentMapId === map.id) {
             controller.setGrid(map.grid);
+            controller.setTokens(map.tokens || {});
+            updatePlayerHud(map);
+            const cid = getActiveCampaignId();
+            if (mode === 'dm' && cid) {
+              reconcileTokenOwners(cid, map.id, map);
+            }
             return;
+          }
+
+          if (liveUnsub) {
+            liveUnsub();
+            liveUnsub = null;
           }
 
           currentMapId = map.id;
@@ -432,9 +718,26 @@ const { mode = 'player', class: className = '', id } = Astro.props;
           // Cargar mapa en Konva y centrar
           try {
             await controller.setMap(map);
+            updatePlayerHud(map);
             controller.fit();
           } catch (err) {
             console.error('[MapStage] Error cargando mapa:', err);
+          }
+
+          // Suscribirse a live tokens en RTDB (T-32, T-33)
+          const activeCid = getActiveCampaignId();
+          const camp = activeCid ? campaignStore.getCampaign(activeCid) : null;
+          const roomId = camp?.liveRoomId;
+          const uid = userStore.getCurrentUser()?.id || '';
+
+          if (roomId && map.id) {
+            liveUnsub = subscribeLive(roomId, map.id, uid, (tid, pos) => {
+              controller.applyRemoteLiveMove(tid, pos);
+            });
+          }
+
+          if (mode === 'dm' && activeCid) {
+            reconcileTokenOwners(activeCid, map.id, map);
           }
 
           // Animación de entrada (fade + scale in)
@@ -459,6 +762,10 @@ const { mode = 'player', class: className = '', id } = Astro.props;
         if (dmManualMapUnsub) {
           dmManualMapUnsub();
           dmManualMapUnsub = null;
+        }
+        if (liveUnsub) {
+          liveUnsub();
+          liveUnsub = null;
         }
 
         showLoading(true);
@@ -548,10 +855,15 @@ const { mode = 'player', class: className = '', id } = Astro.props;
 
       window.addEventListener('campaigns-updated', () => {
         handleCampaignSwitch(getActiveCampaignId());
+        updatePlayerHud(lastReceivedMap);
       });
       window.addEventListener('active-campaign-changed', ((e: CustomEvent) => {
         handleCampaignSwitch(e.detail?.campaignId || getActiveCampaignId());
+        updatePlayerHud(lastReceivedMap);
       }) as EventListener);
+      window.addEventListener('user-changed', () => {
+        updatePlayerHud(lastReceivedMap);
+      });
       window.addEventListener('maps-updated', () => {
         if (dropdownMenu && !dropdownMenu.classList.contains('hidden')) {
           populateMapDropdown();

@@ -181,9 +181,10 @@
     const currentChar = characterStore.get();
     const currentUser = userStore.getCurrentUser();
     // El DM ve todas las entradas cargadas (incluyendo notas DM y mensajes to_dm)
+    // El jugador ve notas del grupo + sus notas privadas + sus mensajes al DM
     const entries = isDm
-      ? journalStore.getEntries()
-      : journalStore.getEntries(currentChar?.id);
+      ? journalStore.getEntries(undefined, currentUser?.id, true)
+      : journalStore.getEntries(currentChar?.id, currentUser?.id, false);
 
     if (countBadge) {
       countBadge.textContent = `${entries.length} notas`;
@@ -245,13 +246,23 @@
       }).join(' ');
 
       let diceBoxHtml = '';
-      if (entry.diceRoll) {
+      if (entry.diceRoll?.formula && entry.diceRoll?.result !== undefined) {
         diceBoxHtml = `
           <div class="p-2 rounded-lg bg-[#10141d] border border-amber-500/30 flex items-center justify-between text-xs my-1">
             <span class="text-[#94a3b8]">${entry.diceRoll.formula}</span>
             <span class="font-headline font-bold text-amber-400 text-sm">Resultado: ${entry.diceRoll.result}</span>
           </div>
         `;
+      } else {
+        const milestoneBanner = entry.milestone?.bannerText || (entry.diceRoll as any)?.bannerText;
+        if (milestoneBanner) {
+          diceBoxHtml = `
+            <div class="p-2 rounded-lg bg-amber-500/15 border border-amber-500/40 font-headline font-bold text-amber-300 text-xs my-1 flex items-center gap-1.5">
+              <span class="text-amber-400 text-sm">⭐</span>
+              <span>${milestoneBanner}</span>
+            </div>
+          `;
+        }
       }
 
       const canDelete = canUserDeleteEntry(entry, currentUser.id, isDm);
@@ -404,6 +415,9 @@
       foundTags.unshift('#Privado');
     }
 
+    const activeCampId = campaignStore.getActiveCampaignId();
+    const currentUser = userStore.getCurrentUser();
+
     journalStore.addEntry({
       sessionNumber: currentChar?.sessionContext?.sessionNumber || 15,
       title,
@@ -412,7 +426,9 @@
       isPlayerOnly: isPrivate || undefined,
       isForDm: isForDm || undefined,
       characterId: currentChar?.id,
-      authorName: currentChar?.name
+      campaignId: activeCampId || currentChar?.campaignId || undefined,
+      authorUid: currentUser?.id || undefined,
+      authorName: currentChar?.name || currentUser?.name || 'Aventurero'
     });
 
     if (titleInput) titleInput.value = '';

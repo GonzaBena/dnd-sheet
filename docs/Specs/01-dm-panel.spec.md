@@ -354,13 +354,13 @@ Es la parte más usada por un DM y valida el flujo en vivo con la menor compleji
 
 ### Fase 3 — Tokens con sincronización en vivo
 
-- [ ] T-30 Crear, editar y borrar tokens (RF-20).
-- [ ] T-31 Arrastre local con snap a la grilla al soltar (RF-21).
-- [ ] T-32 `liveService.ts`: publicar posición en RTDB con throttle de 50 ms y limpiar con `onDisconnect`.
-- [ ] T-33 Recibir posiciones `live` de otros y animar el token remoto hasta la nueva posición (RF-22).
-- [ ] T-34 Al soltar: escritura única en Firestore y borrado del nodo `live`, en ese orden.
-- [ ] T-35 Permisos en cliente (UX) coherentes con las reglas (RF-23).
-- [ ] T-36 Prueba con dos navegadores y tres jugadores simulados.
+- [x] T-30 Crear, editar y borrar tokens (RF-20).
+- [x] T-31 Arrastre local con snap a la grilla al soltar (RF-21).
+- [x] T-32 `liveService.ts`: publicar posición en RTDB con throttle de 50 ms y limpiar con `onDisconnect`.
+- [x] T-33 Recibir posiciones `live` de otros y animar el token remoto hasta la nueva posición (RF-22).
+- [x] T-34 Al soltar: escritura única en Firestore y borrado del nodo `live`, en ese orden.
+- [x] T-35 Permisos en cliente (UX) coherentes con las reglas (RF-23).
+- [x] T-36 Prueba con dos navegadores y tres jugadores simulados.
 
 ### Fase 4 — Niebla y tokens ocultos
 

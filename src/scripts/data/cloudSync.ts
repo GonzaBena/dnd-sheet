@@ -377,12 +377,14 @@ class CloudSession {
    * tiene que pedir solo lo que el usuario puede leer.
    */
   private syncJournalListeners() {
-    const fs = this.fs!;
-    const db = this.db!;
-    const uid = this.uid!;
+    if (!this.fs || !this.db || !this.uid) return;
+    const fs = this.fs;
+    const db = this.db;
+    const uid = this.uid;
     const cid = campaignStore.getActiveCampaignId();
+    const camp = cid ? campaignStore.getCampaign(cid) : null;
     const isDm = cid ? campaignStore.isCurrentUserDm(cid) : false;
-    const key = cid ? `${cid}:${isDm}` : '';
+    const key = camp ? `${cid}:${isDm}` : '';
     if (key === this.journalKey) return;
 
     this.journalUnsubs.forEach(u => u());
@@ -391,26 +393,32 @@ class CloudSession {
     journalStore.applyRemoteEntries('player', null);
     journalStore.applyRemoteEntries('dm', null);
     journalStore.applyRemoteEntries('to_dm', null);
+
+    if (!camp || !cid) {
+      this.journalKey = '';
+      return;
+    }
     this.journalKey = key;
-    if (!cid || !campaignStore.getCampaign(cid)) return;
 
     const col = fs.collection(db, 'campaigns', cid, 'journal');
     const listen = (scope: string, q: any) => {
       this.journalUnsubs.push(fs.onSnapshot(
         q,
-        (snap: any) => journalStore.applyRemoteEntries(scope, snap.docs.map((d: any) => this.toEntry(d))),
+        (snap: any) => journalStore.applyRemoteEntries(scope, snap.docs.map((d: any) => this.toEntry(d, cid))),
         (err: any) => console.warn(`[CloudSync] journal ${scope}`, err)
       ));
     };
 
-    listen('party', fs.query(col, fs.where('visibility', '==', 'party'), fs.orderBy('timestamp', 'desc'), fs.limit(JOURNAL_LIMIT)));
-    listen('player', fs.query(col, fs.where('visibility', '==', 'player'), fs.where('authorUid', '==', uid), fs.orderBy('timestamp', 'desc'), fs.limit(JOURNAL_LIMIT)));
+    // Consultas sin orderBy a nivel Firestore para no exigir composite indexes en producción.
+    // journalStore ordena cronológicamente en memoria con sort por timestamp.
+    listen('party', fs.query(col, fs.where('visibility', '==', 'party')));
+    listen('player', fs.query(col, fs.where('visibility', '==', 'player'), fs.where('authorUid', '==', uid)));
     if (isDm) {
-      listen('dm', fs.query(col, fs.where('visibility', '==', 'dm'), fs.orderBy('timestamp', 'desc'), fs.limit(JOURNAL_LIMIT)));
-      // El DM recibe los mensajes de todos los jugadores.
-      listen('to_dm', fs.query(col, fs.where('visibility', '==', 'to_dm'), fs.orderBy('timestamp', 'desc'), fs.limit(JOURNAL_LIMIT)));
+      listen('dm', fs.query(col, fs.where('visibility', '==', 'dm')));
+      // El DM recibe los mensajes de todos los jugadores de la campaña.
+      listen('to_dm', fs.query(col, fs.where('visibility', '==', 'to_dm')));
     } else {
-      listen('to_dm', fs.query(col, fs.where('visibility', '==', 'to_dm'), fs.where('authorUid', '==', uid), fs.orderBy('timestamp', 'desc'), fs.limit(JOURNAL_LIMIT)));
+      listen('to_dm', fs.query(col, fs.where('visibility', '==', 'to_dm'), fs.where('authorUid', '==', uid)));
     }
   }
 
@@ -433,8 +441,14 @@ class CloudSession {
   }
 
   private bindStoreEvents() {
-    window.addEventListener('active-campaign-changed', () => this.syncJournalListeners());
-    window.addEventListener('campaigns-updated', () => this.syncJournalListeners());
+    window.addEventListener('active-campaign-changed', () => {
+      this.syncCampaignListeners(campaignStore.getAllCampaigns().map(c => c.id));
+      this.syncJournalListeners();
+    });
+    window.addEventListener('campaigns-updated', () => {
+      this.syncCampaignListeners(campaignStore.getAllCampaigns().map(c => c.id));
+      this.syncJournalListeners();
+    });
 
     // Si la ficha activa cambió en otro dispositivo (o el DM le ajustó los PG), se recarga.
     window.addEventListener('all-characters-updated', () => {
@@ -460,11 +474,11 @@ class CloudSession {
     return { ...data, id: d.id } as CharacterData;
   }
 
-  private toEntry(d: any): JournalEntry {
+  private toEntry(d: any, defaultCampaignId?: string): JournalEntry {
     const data = d.data() as any;
     const visibility: JournalVisibility = data.visibility || 'party';
     const { visibility: _v, ...rest } = data;
-    const campaignId = data.campaignId || (d.ref?.parent?.parent?.id) || undefined;
+    const campaignId = data.campaignId || defaultCampaignId || (d.ref?.parent?.parent?.id) || undefined;
     return withVisibility({ ...rest, campaignId, id: d.id } as JournalEntry, visibility);
   }
 

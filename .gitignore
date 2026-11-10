@@ -22,6 +22,7 @@ Thumbs.db
 npm-debug.log*
 yarn-debug.log*
 pnpm-debug.log*
+.notas.*
 
 # Firebase local
 .firebase/

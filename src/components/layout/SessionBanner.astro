@@ -46,6 +46,17 @@
           <span>Celebrar Hito</span>
         </button>
 
+        <!-- Ver Miembros de la Campaña -->
+        <button
+          type="button"
+          id="banner-roster-btn"
+          class="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-[#18202e] border border-amber-500/30 hover:border-amber-400 text-amber-300 font-bold active:scale-95 transition-all cursor-pointer shadow-xs text-[11px]"
+          title="Ver aventureros y miembros de la campaña"
+        >
+          <span class="material-symbols-outlined text-[15px]">groups</span>
+          <span>Miembros</span>
+        </button>
+
         <!-- Ver Partida (Mesa VTT) -->
         <a
           id="banner-view-party-link"
@@ -173,6 +184,15 @@
     });
   });
 
+  // Ver Miembros de la Campaña
+  document.getElementById('banner-roster-btn')?.addEventListener('click', () => {
+    const char = characterStore.get();
+    const cid = char?.campaignId || campaignStore.getActiveCampaignId();
+    if (cid) {
+      window.dispatchEvent(new CustomEvent('open-campaign-roster', { detail: { campaignId: cid } }));
+    }
+  });
+
   // Short rest in session banner
   document.getElementById('session-banner-short-rest-btn')?.addEventListener('click', async () => {
     const char = characterStore.get();
@@ -226,6 +246,15 @@
         vttBtn.classList.remove('hidden');
       } else {
         vttBtn.classList.add('hidden');
+      }
+    }
+
+    const rosterBtn = document.getElementById('banner-roster-btn');
+    if (rosterBtn) {
+      if (cid) {
+        rosterBtn.classList.remove('hidden');
+      } else {
+        rosterBtn.classList.add('hidden');
       }
     }
 

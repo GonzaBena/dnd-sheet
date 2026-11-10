@@ -5,7 +5,18 @@
 // Al stage se le aplican escala y traslación para el zoom y pan.
 // DECISION (F2-2): La imagen se dibuja directamente en Konva sin toDataURL ni conversiones de exportación.
 
-import type { MapDoc, GridConfig } from '../models/map.ts';
+import type { MapDoc, GridConfig, Token } from '../models/map.ts';
+import type { SessionStatus } from '../models/campaign.ts';
+import { normalizeStatus } from './sessionStatus.ts';
+import {
+  canMoveToken,
+  tokenPixelSize,
+  snapTokenPosition,
+  resolveTokenPosition,
+  type TokenViewer,
+  type LiveTokenPosition,
+} from './tokens.ts';
+import anime from 'animejs';
 import {
   fitToContainer,
   zoomAtPoint,
@@ -54,6 +65,16 @@ export class MapStageController extends EventTarget {
   private resizeObserver: ResizeObserver | null = null;
   private hasInitialFit = false;
 
+  // Estado y sincronización de Tokens (Fase 3: T-31, T-33, T-35)
+  private tokenNodes = new Map<string, any>();
+  private draggingTokenId: string | null = null;
+  private currentViewer: TokenViewer = { uid: null, isDm: false };
+  private currentStatus: SessionStatus = 'active';
+  private imageCache = new Map<string, HTMLImageElement>();
+  private remoteLivePositions = new Map<string, LiveTokenPosition>();
+  private tweenStates = new Map<string, { x: number; y: number }>();
+  private isPlacementMode = false;
+
   // Touch tracking para pinch-zoom
   private p1Prev: Point | null = null;
   private p2Prev: Point | null = null;
@@ -63,6 +84,7 @@ export class MapStageController extends EventTarget {
     this.container = container;
     this.Konva = Konva;
     this.mode = options.mode;
+    this.currentViewer = { uid: null, isDm: options.mode === 'dm' };
 
     // Configuración inicial de Konva
     if (this.Konva.hitOnDragEnabled !== undefined) {
@@ -79,9 +101,12 @@ export class MapStageController extends EventTarget {
       height,
       draggable: true,
     });
+    if (typeof this.stage.dragDistance === 'function') {
+      this.stage.dragDistance(4);
+    }
 
     // 2. Capas en orden estricto (fondo, grilla, tokens, niebla)
-    this.bgLayer = new this.Konva.Layer({ listening: false });
+    this.bgLayer = new this.Konva.Layer({ listening: true });
     this.gridLayer = new this.Konva.Layer({ listening: false });
     this.tokenLayer = new this.Konva.Layer({ listening: true }); // Fase 3
     this.fogLayer = new this.Konva.Layer({ listening: false }); // Fase 4
@@ -96,7 +121,7 @@ export class MapStageController extends EventTarget {
       x: 0,
       y: 0,
       image: null,
-      listening: false,
+      listening: true,
     });
     this.bgLayer.add(this.bgImageNode);
 
@@ -218,38 +243,80 @@ export class MapStageController extends EventTarget {
       this.applyView(nextView);
     });
 
-    // Notificar movimiento de viewport al arrastrar
-    this.stage.on('dragmove', () => {
-      this.emitViewChanged();
-      this.gridLayer.batchDraw();
-    });
-
-    // Clic en mapa para selección o coordenadas
-    this.stage.on('click tap', (e: any) => {
-      const pointer = this.stage.getPointerPosition();
-      if (!pointer) return;
+    const dispatchMapClick = (pointer: Point, target: any) => {
       const currentView: Viewport = {
         scale: this.stage.scaleX(),
         x: this.stage.x(),
         y: this.stage.y(),
       };
       const mapPt = screenToMap(pointer, currentView);
-      this.dispatchEvent(
-        new CustomEvent('map-click', {
-          detail: {
-            mapX: mapPt.x,
-            mapY: mapPt.y,
-            screenX: pointer.x,
-            screenY: pointer.y,
-            target: e.target,
-          },
-        })
-      );
+      const detail = {
+        mapX: mapPt.x,
+        mapY: mapPt.y,
+        screenX: pointer.x,
+        screenY: pointer.y,
+        target,
+      };
+      this.dispatchEvent(new CustomEvent('map-click', { detail }));
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('map-click', { detail }));
+      }
+    };
+
+    let pointerDownPos: Point | null = null;
+    let didDragStage = false;
+
+    this.stage.on('mousedown touchstart', () => {
+      const p = this.stage.getPointerPosition();
+      if (p) pointerDownPos = { ...p };
+      didDragStage = false;
+    });
+
+    this.stage.on('dragstart', () => {
+      if (this.draggingTokenId) {
+        this.stage.stopDrag();
+      }
+    });
+
+    // Notificar movimiento de viewport al arrastrar
+    this.stage.on('dragmove', () => {
+      didDragStage = true;
+      this.emitViewChanged();
+      this.gridLayer.batchDraw();
+    });
+
+    this.stage.on('dragend', () => {
+      setTimeout(() => {
+        didDragStage = false;
+      }, 50);
+    });
+
+    // Clic en mapa para selección o coordenadas
+    this.stage.on('click tap', (e: any) => {
+      if (didDragStage) return;
+      const pointer = this.stage.getPointerPosition();
+      if (!pointer) return;
+      if (pointerDownPos) {
+        const dist = Math.hypot(pointer.x - pointerDownPos.x, pointer.y - pointerDownPos.y);
+        if (dist > 8) return;
+      }
+      dispatchMapClick(pointer, e.target);
     });
 
     // Soporte táctil multi-touch (Pinch Zoom) en contenedor
     const content = this.stage.getContent();
     content.style.touchAction = 'none';
+
+    // Captura garantizada de clics en modo colocación directamente en el elemento DOM
+    content.addEventListener('click', (e: MouseEvent) => {
+      if (!this.isPlacementMode) return;
+      const rect = content.getBoundingClientRect();
+      const pointer = {
+        x: e.clientX - rect.left,
+        y: e.clientY - rect.top,
+      };
+      dispatchMapClick(pointer, e.target);
+    });
 
     content.addEventListener('touchstart', (e: TouchEvent) => {
       if (e.touches.length === 2) {
@@ -332,6 +399,7 @@ export class MapStageController extends EventTarget {
     this.currentGrid = map?.grid ? { ...map.grid } : null;
 
     if (!map) {
+      this.clearTokens();
       this.currentHtmlImage = null;
       this.bgImageNode.image(null);
       this.bgLayer.batchDraw();
@@ -369,6 +437,9 @@ export class MapStageController extends EventTarget {
     this.bgImageNode.width(map.imageWidth);
     this.bgImageNode.height(map.imageHeight);
 
+    // Cargar y sincronizar tokens del mapa (T-31)
+    this.setTokens(map.tokens || {});
+
     if (isDifferentMap || !this.hasInitialFit) {
       this.fit();
       this.hasInitialFit = true;
@@ -381,8 +452,574 @@ export class MapStageController extends EventTarget {
    * Actualiza la configuración de la grilla de manera inmediata (vista previa local).
    */
   public setGrid(grid: GridConfig): void {
+    const sizeChanged = this.currentGrid?.size !== grid.size;
     this.currentGrid = { ...grid };
     this.gridLayer.batchDraw();
+    if (sizeChanged) {
+      this.relayoutTokens();
+    }
+  }
+
+  /**
+   * Activa o desactiva el modo de colocación de token (T-30).
+   * Al estar activo, desactiva el arrastre del mapa y muestra cursor en cruz para clic preciso.
+   */
+  public setPlacementMode(active: boolean): void {
+    this.isPlacementMode = active;
+    if (active) {
+      if (this.stage.isDragging()) {
+        this.stage.stopDrag();
+      }
+      this.stage.draggable(false);
+      this.container.style.cursor = 'crosshair';
+      const content = this.stage.getContent();
+      if (content) content.style.cursor = 'crosshair';
+    } else {
+      this.stage.draggable(true);
+      this.container.style.cursor = 'default';
+      const content = this.stage.getContent();
+      if (content) content.style.cursor = 'default';
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // Gestión de Tokens en Konva (Fase 3: T-31, T-33, T-35)
+  // -------------------------------------------------------------------------
+
+  /**
+   * Actualiza el espectador actual para permisos de arrastre y resaltado visual (D7, RF-23).
+   */
+  public setViewer(viewer: TokenViewer): void {
+    this.currentViewer = { ...viewer };
+    this.updateTokensInteractivity();
+  }
+
+  /**
+   * Actualiza el estado de la sesión y ajusta la interactividad de los tokens (D7, F0B-4).
+   */
+  public setStatus(status: SessionStatus | string): void {
+    const nextStatus = normalizeStatus(status);
+    if (this.currentStatus === nextStatus) return;
+    this.currentStatus = nextStatus;
+
+    // Si se pausa o termina durante un arrastre, cancelar y revertir posición
+    if (nextStatus !== 'active' && this.draggingTokenId) {
+      const tid = this.draggingTokenId;
+      const node = this.tokenNodes.get(tid);
+      if (node && node.isDragging()) {
+        node.stopDrag();
+      }
+      this.draggingTokenId = null;
+      this.stage.container().style.cursor = 'default';
+      this.revertTokenMove(tid);
+    }
+
+    this.updateTokensInteractivity();
+  }
+
+  /**
+   * Sincroniza tokens del mapa aplicando diffing por ID para mantener 60 FPS (criterio 7).
+   */
+  public setTokens(tokens: Record<string, Token>): void {
+    if (this.currentMap) {
+      this.currentMap.tokens = { ...tokens };
+    }
+    const existingIds = new Set(this.tokenNodes.keys());
+
+    for (const [tid, token] of Object.entries(tokens || {})) {
+      existingIds.delete(tid);
+      const existingNode = this.tokenNodes.get(tid);
+
+      if (existingNode) {
+        // Actualizar nodo existente
+        (existingNode as any).__tokenData = { ...token };
+
+        // Si se está arrastrando localmente, no sobreescribir la posición visual hasta terminar
+        if (this.draggingTokenId !== tid) {
+          const livePos = this.remoteLivePositions.get(tid);
+          const effectivePos = resolveTokenPosition(token, livePos);
+          existingNode.position(effectivePos);
+        }
+
+        const grid = this.currentGrid || { size: 50, offsetX: 0, offsetY: 0, visible: true };
+        const d = tokenPixelSize(token, grid);
+        this.buildTokenVisuals(existingNode, token, d);
+
+        const canMove = canMoveToken(token, this.currentViewer, this.currentStatus);
+        existingNode.draggable(canMove);
+      } else {
+        // Crear nuevo nodo de token
+        const newNode = this.createTokenNode(tid, token);
+        this.tokenNodes.set(tid, newNode);
+        this.tokenLayer.add(newNode);
+      }
+    }
+
+    // Eliminar tokens que ya no existen
+    for (const removedId of existingIds) {
+      const node = this.tokenNodes.get(removedId);
+      if (node) {
+        node.destroy();
+        this.tokenNodes.delete(removedId);
+      }
+      this.remoteLivePositions.delete(removedId);
+      const state = this.tweenStates.get(removedId);
+      if (state) {
+        anime.remove(state);
+        this.tweenStates.delete(removedId);
+      }
+    }
+
+    this.tokenLayer.batchDraw();
+  }
+
+  /**
+   * Crea un nodo Konva.Group con eventos de arrastre y snap para un token (T-31).
+   */
+  private createTokenNode(tid: string, token: Token): any {
+    const grid = this.currentGrid || { size: 50, offsetX: 0, offsetY: 0, visible: true };
+    const d = tokenPixelSize(token, grid);
+    const canMove = canMoveToken(token, this.currentViewer, this.currentStatus);
+
+    const group = new this.Konva.Group({
+      id: tid,
+      x: token.x,
+      y: token.y,
+      draggable: canMove,
+      dragDistance: 3,
+      perfectDrawEnabled: false,
+      shadowForStrokeEnabled: false,
+    });
+
+    (group as any).__tokenData = { ...token };
+    this.buildTokenVisuals(group, token, d);
+
+    group.on('mousedown touchstart', (e: any) => {
+      e.cancelBubble = true;
+      const currentToken = (group as any).__tokenData || token;
+      const canMove = canMoveToken(currentToken, this.currentViewer, this.currentStatus);
+      if (!canMove) {
+        if (this.currentStatus === 'paused') {
+          this.dispatchEvent(
+            new CustomEvent('token-locked', {
+              detail: {
+                tid,
+                token: currentToken,
+                reason: 'paused',
+                message: 'La partida está pausada. El DM debe iniciar la sesión para mover tokens.',
+              },
+            })
+          );
+        } else if (this.currentStatus === 'ended') {
+          this.dispatchEvent(
+            new CustomEvent('token-locked', {
+              detail: {
+                tid,
+                token: currentToken,
+                reason: 'ended',
+                message: 'La partida ha finalizado.',
+              },
+            })
+          );
+        } else if (!this.currentViewer.isDm && currentToken.ownerUid !== this.currentViewer.uid) {
+          this.dispatchEvent(
+            new CustomEvent('token-locked', {
+              detail: {
+                tid,
+                token: currentToken,
+                reason: 'not-owner',
+                message: 'Solo el dueño o el DM pueden mover este token.',
+              },
+            })
+          );
+        }
+      }
+    });
+
+    group.on('dragstart', (e: any) => {
+      e.cancelBubble = true;
+      if (this.stage.isDragging()) {
+        this.stage.stopDrag();
+      }
+      this.draggingTokenId = tid;
+      group.moveToTop();
+      this.stage.container().style.cursor = 'grabbing';
+      this.dispatchEvent(new CustomEvent('token-drag-start', { detail: { tid, token } }));
+    });
+
+    group.on('dragmove', (e: any) => {
+      e.cancelBubble = true;
+      this.dispatchEvent(
+        new CustomEvent('token-drag-move', {
+          detail: { tid, x: group.x(), y: group.y() },
+        })
+      );
+      this.tokenLayer.batchDraw();
+    });
+
+    group.on('dragend', (e: any) => {
+      e.cancelBubble = true;
+      this.draggingTokenId = null;
+      const isMovable = canMoveToken(token, this.currentViewer, this.currentStatus);
+      this.stage.container().style.cursor = isMovable ? 'grab' : 'default';
+
+      const bounds = this.currentMap
+        ? { width: this.currentMap.imageWidth, height: this.currentMap.imageHeight }
+        : undefined;
+      const snapped = snapTokenPosition(
+        { x: group.x(), y: group.y() },
+        token,
+        this.currentGrid || { size: 50, offsetX: 0, offsetY: 0 },
+        bounds
+      );
+
+      // Actualizar posición local de inmediato para que ningún evento remoto o de cleanup revierta
+      (group as any).__tokenData = {
+        ...((group as any).__tokenData || token),
+        x: snapped.x,
+        y: snapped.y,
+      };
+      if (this.currentMap?.tokens?.[tid]) {
+        this.currentMap.tokens[tid].x = snapped.x;
+        this.currentMap.tokens[tid].y = snapped.y;
+      }
+
+      group.to({
+        x: snapped.x,
+        y: snapped.y,
+        duration: 0.08,
+        easing: this.Konva.Easings.EaseOut,
+        onFinish: () => {
+          this.tokenLayer.batchDraw();
+        },
+      });
+
+      this.dispatchEvent(
+        new CustomEvent('token-drag-end', {
+          detail: { tid, x: snapped.x, y: snapped.y, token },
+        })
+      );
+    });
+
+    group.on('click tap', (e: any) => {
+      e.cancelBubble = true;
+      this.dispatchEvent(new CustomEvent('token-select', { detail: { tid, token } }));
+    });
+
+    group.on('mouseenter', () => {
+      const currentToken = (group as any).__tokenData || token;
+      if (canMoveToken(currentToken, this.currentViewer, this.currentStatus)) {
+        this.stage.container().style.cursor = 'grab';
+      }
+    });
+
+    group.on('mouseleave', () => {
+      if (!this.draggingTokenId) {
+        this.stage.container().style.cursor = 'default';
+      }
+    });
+
+    return group;
+  }
+
+  /**
+   * Construye los elementos visuales internos de un token (círculo, imagen/iniciales, etiqueta).
+   */
+  private buildTokenVisuals(group: any, token: Token, d: number): void {
+    group.destroyChildren();
+
+    const r = d / 2;
+    const isMyToken = Boolean(this.currentViewer.uid && token.ownerUid === this.currentViewer.uid);
+    const outlineColor = isMyToken ? '#38bdf8' : token.color || '#64748b';
+    const strokeWidth = isMyToken ? 3.5 : 2;
+
+    // 0. Círculo invisible de captura de eventos (hit area de tamaño completo)
+    const hitArea = new this.Konva.Circle({
+      x: r,
+      y: r,
+      radius: r,
+      fill: 'rgba(0,0,0,0.001)',
+      listening: true,
+    });
+    group.add(hitArea);
+
+    // Resaltado exterior extra si es el personaje propio del jugador ("Tú")
+    if (isMyToken) {
+      const halo = new this.Konva.Circle({
+        x: r,
+        y: r,
+        radius: r + 3.5,
+        stroke: '#0284c7',
+        strokeWidth: 2,
+        dash: [6, 3],
+        listening: false,
+      });
+      group.add(halo);
+    }
+
+    // 1. Círculo base de fondo
+    const baseCircle = new this.Konva.Circle({
+      x: r,
+      y: r,
+      radius: Math.max(1, r - strokeWidth / 2),
+      fill: token.color || '#1e293b',
+      stroke: outlineColor,
+      strokeWidth,
+      listening: true,
+      shadowColor: isMyToken ? '#0284c7' : 'rgba(0,0,0,0.5)',
+      shadowBlur: isMyToken ? 8 : 3,
+      shadowOpacity: 0.8,
+    });
+    group.add(baseCircle);
+
+    // 2. Imagen o iniciales
+    if (token.imageUrl) {
+      let cachedImg = this.imageCache.get(token.imageUrl);
+      if (cachedImg) {
+        const clipGroup = new this.Konva.Group({
+          clipFunc: (ctx: any) => {
+            ctx.arc(r, r, Math.max(1, r - strokeWidth / 2), 0, Math.PI * 2, false);
+          },
+          listening: false,
+        });
+        const kImg = new this.Konva.Image({
+          image: cachedImg,
+          x: 0,
+          y: 0,
+          width: d,
+          height: d,
+          listening: false,
+          perfectDrawEnabled: false,
+        });
+        clipGroup.add(kImg);
+        group.add(clipGroup);
+
+        // Anillo de borde sobre la imagen
+        const ring = new this.Konva.Circle({
+          x: r,
+          y: r,
+          radius: Math.max(1, r - strokeWidth / 2),
+          stroke: outlineColor,
+          strokeWidth,
+          listening: false,
+        });
+        group.add(ring);
+      } else {
+        const img = new Image();
+        if (token.imageUrl.startsWith('http://') || token.imageUrl.startsWith('https://')) {
+          img.crossOrigin = 'anonymous';
+        }
+        img.src = token.imageUrl;
+        img.onload = () => {
+          this.imageCache.set(token.imageUrl!, img);
+          if (this.tokenNodes.has(group.id())) {
+            this.buildTokenVisuals(group, token, d);
+            this.tokenLayer.batchDraw();
+          }
+        };
+        img.onerror = () => {
+          console.warn('[MapStage] No se pudo cargar imagen de token:', token.imageUrl);
+        };
+      }
+    } else {
+      const initials = (token.name || 'T').substring(0, 2).toUpperCase();
+      const initText = new this.Konva.Text({
+        x: 0,
+        y: r - Math.max(6, d * 0.16),
+        width: d,
+        text: initials,
+        align: 'center',
+        fontSize: Math.max(11, Math.round(d * 0.32)),
+        fontStyle: 'bold',
+        fill: '#ffffff',
+        listening: false,
+        shadowColor: 'rgba(0,0,0,0.7)',
+        shadowBlur: 3,
+        shadowOffsetY: 1,
+      });
+      group.add(initText);
+    }
+
+    // 3. Etiqueta con el nombre del token
+    const fontSize = Math.max(9, Math.min(13, Math.round(d * 0.2)));
+    const labelGroup = new this.Konva.Group({
+      y: d - Math.round(fontSize * 0.4),
+      listening: true,
+    });
+    const nameText = new this.Konva.Text({
+      text: token.name,
+      fontSize,
+      fontFamily: 'system-ui, -apple-system, sans-serif',
+      fontStyle: 'bold',
+      fill: '#f8fafc',
+      padding: 2,
+      align: 'center',
+      listening: false,
+    });
+    const textW = Math.min(d * 1.6, nameText.width());
+    const bgRect = new this.Konva.Rect({
+      x: (d - textW - 8) / 2,
+      y: 0,
+      width: textW + 8,
+      height: fontSize + 5,
+      fill: 'rgba(15, 23, 42, 0.88)',
+      cornerRadius: 4,
+      stroke: isMyToken ? 'rgba(56, 189, 248, 0.8)' : 'rgba(51, 65, 85, 0.7)',
+      strokeWidth: 1,
+      listening: true,
+    });
+    nameText.x((d - textW) / 2);
+    nameText.y(1.5);
+    nameText.width(textW);
+    labelGroup.add(bgRect);
+    labelGroup.add(nameText);
+    group.add(labelGroup);
+
+    // Si es mi token, agregar una pequeña etiqueta superior "TÚ"
+    if (isMyToken) {
+      const youBadge = new this.Konva.Group({
+        y: -10,
+        listening: false,
+      });
+      const bW = 24;
+      const bRect = new this.Konva.Rect({
+        x: (d - bW) / 2,
+        y: 0,
+        width: bW,
+        height: 12,
+        fill: '#0284c7',
+        cornerRadius: 6,
+      });
+      const badgeText = new this.Konva.Text({
+        text: 'TÚ',
+        fontSize: 9,
+        fontStyle: 'bold',
+        fill: '#ffffff',
+        align: 'center',
+        listening: false,
+      });
+      badgeText.x((d - bW) / 2);
+      badgeText.y(1);
+      badgeText.width(bW);
+      youBadge.add(bRect);
+      youBadge.add(badgeText);
+      group.add(youBadge);
+    }
+  }
+
+  /**
+   * Recalcula la interactividad y resaltado de todos los tokens al cambiar estado o usuario (T-35).
+   */
+  private updateTokensInteractivity(): void {
+    for (const [tid, node] of this.tokenNodes) {
+      const token = (node as any).__tokenData;
+      if (!token) continue;
+      const canMove = canMoveToken(token, this.currentViewer, this.currentStatus);
+      node.draggable(canMove);
+
+      const grid = this.currentGrid || { size: 50, offsetX: 0, offsetY: 0, visible: true };
+      const d = tokenPixelSize(token, grid);
+      this.buildTokenVisuals(node, token, d);
+    }
+    this.tokenLayer.batchDraw();
+  }
+
+  /**
+   * Reajusta tamaño de tokens cuando cambia la escala de la grilla.
+   */
+  private relayoutTokens(): void {
+    const grid = this.currentGrid || { size: 50, offsetX: 0, offsetY: 0, visible: true };
+    for (const [tid, node] of this.tokenNodes) {
+      const token = (node as any).__tokenData;
+      if (!token) continue;
+      const d = tokenPixelSize(token, grid);
+      this.buildTokenVisuals(node, token, d);
+    }
+    this.tokenLayer.batchDraw();
+  }
+
+  /**
+   * Aplica un movimiento recibido por RTDB para un token remoto con animación fluida (T-33).
+   */
+  public applyRemoteLiveMove(tid: string, pos: { x: number; y: number } | null): void {
+    // Si el usuario local está arrastrando este mismo token, ignorar remoto
+    if (this.draggingTokenId === tid) return;
+
+    if (pos === null) {
+      this.remoteLivePositions.delete(tid);
+      // Animación suave hacia la posición fija de Firestore
+      const token = this.currentMap?.tokens?.[tid];
+      if (token) {
+        this.animateTo(tid, token.x, token.y);
+      }
+      return;
+    }
+
+    this.remoteLivePositions.set(tid, {
+      x: pos.x,
+      y: pos.y,
+      receivedAt: Date.now(),
+    });
+
+    this.animateTo(tid, pos.x, pos.y);
+  }
+
+  /**
+   * Anima un token hacia una posición destino en 90ms usando anime.js (T-33).
+   */
+  private animateTo(tid: string, targetX: number, targetY: number): void {
+    const node = this.tokenNodes.get(tid);
+    if (!node) return;
+
+    let state = this.tweenStates.get(tid);
+    if (!state) {
+      state = { x: node.x(), y: node.y() };
+      this.tweenStates.set(tid, state);
+    }
+
+    anime.remove(state);
+    anime({
+      targets: state,
+      x: targetX,
+      y: targetY,
+      duration: 90,
+      easing: 'easeOutQuad',
+      update: () => {
+        node.position(state);
+        this.tokenLayer.batchDraw();
+      },
+    });
+  }
+
+  /**
+   * Revierte un movimiento fallido devolviendo el token a su posición de Firestore.
+   */
+  public revertTokenMove(tid: string): void {
+    const token = this.currentMap?.tokens?.[tid];
+    const node = this.tokenNodes.get(tid);
+    if (!token || !node) return;
+
+    node.to({
+      x: token.x,
+      y: token.y,
+      duration: 0.15,
+      easing: this.Konva.Easings.EaseOut,
+      onFinish: () => {
+        this.tokenLayer.batchDraw();
+      },
+    });
+  }
+
+  /**
+   * Limpia todos los tokens y animaciones activas.
+   */
+  private clearTokens(): void {
+    this.tweenStates.forEach((state) => anime.remove(state));
+    this.tweenStates.clear();
+    this.tokenNodes.forEach((node) => node.destroy());
+    this.tokenNodes.clear();
+    this.remoteLivePositions.clear();
+    this.draggingTokenId = null;
   }
 
   /**
@@ -403,6 +1040,42 @@ export class MapStageController extends EventTarget {
     );
 
     this.applyView(nextView);
+  }
+
+  /**
+   * Centra el viewport en un token específico por su ID.
+   */
+  public centerOnToken(tid: string): boolean {
+    const node = this.tokenNodes.get(tid);
+    if (!node || !this.currentMap) return false;
+    const token = (node as any).__tokenData;
+    const grid = this.currentGrid || { size: 50, offsetX: 0, offsetY: 0, visible: true };
+    const d = tokenPixelSize(token || { size: 1 }, grid);
+    const centerX = node.x() + d / 2;
+    const centerY = node.y() + d / 2;
+
+    const boxW = this.stage.width();
+    const boxH = this.stage.height();
+    const currentScale = this.stage.scaleX() || 1;
+    const targetScale = Math.max(0.6, Math.min(2.0, currentScale));
+
+    const targetX = boxW / 2 - centerX * targetScale;
+    const targetY = boxH / 2 - centerY * targetScale;
+
+    this.applyView({ scale: targetScale, x: targetX, y: targetY });
+    return true;
+  }
+
+  /**
+   * Centra el viewport en coordenadas de mapa dadas.
+   */
+  public centerOn(mapX: number, mapY: number, scale?: number): void {
+    const boxW = this.stage.width();
+    const boxH = this.stage.height();
+    const targetScale = scale ?? (this.stage.scaleX() || 1);
+    const targetX = boxW / 2 - mapX * targetScale;
+    const targetY = boxH / 2 - mapY * targetScale;
+    this.applyView({ scale: targetScale, x: targetX, y: targetY });
   }
 
   /**
@@ -483,6 +1156,7 @@ export class MapStageController extends EventTarget {
       this.resizeObserver.disconnect();
       this.resizeObserver = null;
     }
+    this.clearTokens();
     this.stage.destroy();
   }
 }

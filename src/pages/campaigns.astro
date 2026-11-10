@@ -256,9 +256,25 @@ import CompendiumModal from '../components/modals/CompendiumModal.astro';
 
     updateWorkspaceMode();
 
+    const syncActiveCharacter = () => {
+      const activeCampId = campaignStore.getActiveCampaignId();
+      const currentUser = userStore.getCurrentUser();
+      const isDm = campaignStore.isCurrentUserDm(activeCampId || undefined);
+      if (activeCampId && !isDm) {
+        const myChar = campaignStore.getMyCharacterForCampaign(activeCampId, currentUser.id);
+        if (myChar && characterStore.get().id !== myChar.id) {
+          characterStore.loadCharacter(myChar);
+        }
+      }
+    };
+
     window.addEventListener('current-user-changed', updateWorkspaceMode);
-    window.addEventListener('active-campaign-changed', updateWorkspaceMode);
+    window.addEventListener('active-campaign-changed', () => {
+      updateWorkspaceMode();
+      syncActiveCharacter();
+    });
     window.addEventListener('campaigns-updated', updateWorkspaceMode);
+    window.addEventListener('all-characters-updated', syncActiveCharacter);
 
     // Dynamic Section Organization (Reorder & Collapse)
     const initSectionsOrganizer = () => {

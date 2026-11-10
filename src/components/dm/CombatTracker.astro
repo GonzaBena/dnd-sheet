@@ -261,6 +261,17 @@
             />
           </div>
         </div>
+
+        <!-- Opción de desplegar tokens en el mapa táctico activo -->
+        <label class="flex items-center gap-2 mt-2.5 cursor-pointer select-none">
+          <input
+            type="checkbox"
+            id="dm-init-monster-add-token"
+            checked
+            class="w-4 h-4 rounded bg-[#18202e] border border-[#222f42] text-amber-500 focus:ring-amber-500/20 cursor-pointer shrink-0"
+          />
+          <span class="text-xs text-[#cbd5e1] font-bold">Desplegar token(s) en el mapa táctico activo</span>
+        </label>
       </div>
 
       <!-- Acciones del Modal -->
@@ -453,7 +464,10 @@
   import { campaignStore } from '../../scripts/state/campaignStore.ts';
   import { showConfirm, showForm, showAlert } from '../../scripts/ui/notify.ts';
   import { animateHpBar } from '../../scripts/animations/hpAnimations.ts';
+  import { listMaps, addToken } from '../../scripts/data/mapService.ts';
+  import { snapToGrid } from '../../scripts/vtt/geometry.ts';
   import type { Combat, Combatant } from '../../scripts/models/combat.ts';
+  import type { Token } from '../../scripts/models/map.ts';
 
   let currentCampaignId: string | null = null;
   let unsubscribe: (() => void) | null = null;
@@ -1330,13 +1344,16 @@
     const monsterHpInput = document.getElementById('dm-init-monster-hp') as HTMLInputElement;
     const monsterAcInput = document.getElementById('dm-init-monster-ac') as HTMLInputElement;
     const monsterQtyInput = document.getElementById('dm-init-monster-qty') as HTMLInputElement;
+    const addTokenCheckbox = document.getElementById('dm-init-monster-add-token') as HTMLInputElement | null;
+    const shouldAddTokens = Boolean(addTokenCheckbox?.checked);
 
     const mName = monsterNameInput?.value.trim();
+    let mQty = 1;
     if (mName) {
       const mInit = Number(monsterInitInput?.value) || 10;
       const mHp = Number(monsterHpInput?.value) || 10;
       const mAc = Number(monsterAcInput?.value) || 10;
-      const mQty = Math.max(1, Number(monsterQtyInput?.value) || 1);
+      mQty = Math.max(1, Number(monsterQtyInput?.value) || 1);
 
       for (let i = 1; i <= mQty; i++) {
         combatants.push({
@@ -1362,6 +1379,9 @@
     try {
       await startCombat(currentCampaignId, combatants);
       closeStartModal();
+      if (mName && shouldAddTokens) {
+        await deployEnemyTokensToActiveMap(currentCampaignId, mName, mQty, '/characters/ch-3.avif');
+      }
       // Limpiar campos de monstruo inicial
       if (monsterNameInput) monsterNameInput.value = '';
       if (monsterInitInput) monsterInitInput.value = '';
@@ -1372,6 +1392,50 @@
       await showAlert(err?.message || 'Error al iniciar combate.', { kind: 'error' });
     }
   });
+
+  // Helper para desplegar tokens de enemigos en el mapa activo
+  async function deployEnemyTokensToActiveMap(
+    cid: string,
+    enemyName: string,
+    qty: number,
+    avatarUrl = '/characters/ch-3.avif'
+  ): Promise<void> {
+    const camp = campaignStore.getCampaign(cid);
+    if (!camp || !camp.activeMapId) return;
+
+    try {
+      const maps = await listMaps(cid);
+      const activeMap = maps.find((m) => m.id === camp.activeMapId);
+      if (!activeMap) return;
+
+      const grid = activeMap.grid || { size: 50, offsetX: 0, offsetY: 0, visible: true };
+      const centerX = activeMap.imageWidth ? activeMap.imageWidth / 2 : 400;
+      const centerY = activeMap.imageHeight ? activeMap.imageHeight / 2 : 400;
+      const baseSnapped = snapToGrid({ x: centerX, y: centerY }, grid);
+
+      for (let i = 1; i <= qty; i++) {
+        const name = qty > 1 ? `${enemyName} ${i}` : enemyName;
+        const colOffset = ((i - 1) % 5) * grid.size;
+        const rowOffset = Math.floor((i - 1) / 5) * grid.size;
+        const x = baseSnapped.x + colOffset;
+        const y = baseSnapped.y + rowOffset;
+
+        const token: Token = {
+          name,
+          x,
+          y,
+          size: 1,
+          color: '#ef4444',
+          imageUrl: avatarUrl,
+          ownerUid: null,
+        };
+
+        await addToken(cid, activeMap.id, token);
+      }
+    } catch (err) {
+      console.warn('[CombatTracker] Error desplegando tokens de enemigo:', err);
+    }
+  }
 
   // Siguiente Turno
   nextTurnBtn?.addEventListener('click', async () => {
@@ -1403,6 +1467,7 @@
       { name: 'hp', label: 'Puntos de Golpe (PG Máx)', type: 'number', placeholder: '15', value: 15, required: true },
       { name: 'ac', label: 'Clase de Armadura (CA)', type: 'number', placeholder: '13', value: 13 },
       { name: 'qty', label: 'Cantidad', type: 'number', value: 1, min: 1 },
+      { name: 'addToken', label: 'Desplegar token(s) en el mapa táctico activo', type: 'checkbox', value: true },
     ], { title: 'Agregar Oponente al Combate' });
 
     if (!formResult || !formResult.name) return;
@@ -1412,6 +1477,7 @@
     const mInit = Number(formResult.init) || 10;
     const mHp = Number(formResult.hp) || 10;
     const mAc = Number(formResult.ac) || 10;
+    const shouldAddToken = formResult.addToken === 'true' || formResult.addToken === true;
 
     for (let i = 1; i <= qty; i++) {
       const newCombatant: Combatant = {
@@ -1427,6 +1493,10 @@
         avatarUrl: '/characters/ch-3.avif',
       };
       await addCombatant(currentCampaignId, newCombatant);
+    }
+
+    if (shouldAddToken) {
+      await deployEnemyTokensToActiveMap(currentCampaignId, mName, qty, '/characters/ch-3.avif');
     }
   });
 

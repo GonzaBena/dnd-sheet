@@ -28,8 +28,8 @@ export interface ConfirmOptions {
 export interface FormField {
   name: string;
   label: string;
-  type?: 'text' | 'number' | 'url' | 'email' | 'textarea';
-  value?: string | number;
+  type?: 'text' | 'number' | 'url' | 'email' | 'textarea' | 'checkbox';
+  value?: string | number | boolean;
   placeholder?: string;
   required?: boolean;
   readonly?: boolean;
@@ -187,6 +187,23 @@ function buildDialog(spec: DialogSpec, finish: (value: string) => void) {
   if (spec.fields?.length) {
     const fieldsBox = el('div', 'space-y-3 font-label');
     for (const field of spec.fields) {
+      if (field.type === 'checkbox') {
+        const checkWrap = el('label', 'flex items-center gap-2.5 cursor-pointer select-none py-1.5 px-1 rounded-lg hover:bg-[#18202e] transition-colors');
+        const input = el('input', 'w-4 h-4 rounded bg-[#18202e] border border-[#222f42] text-amber-500 focus:ring-amber-500/20 cursor-pointer shrink-0');
+        if (input instanceof HTMLInputElement) {
+          input.type = 'checkbox';
+          input.name = field.name;
+          input.checked = field.value === true || field.value === 'true' || field.value === 1 || field.value === '1';
+        }
+        checkWrap.appendChild(input);
+        const textSpan = el('span', 'text-xs font-bold text-[#f1f5f9]', field.label);
+        checkWrap.appendChild(textSpan);
+        if (field.hint) checkWrap.appendChild(el('span', 'text-[10px] text-[#64748b] ml-1', `(${field.hint})`));
+        inputs.push(input);
+        fieldsBox.appendChild(checkWrap);
+        continue;
+      }
+
       const wrap = el('label', 'block');
       if (field.label) wrap.appendChild(el('span', 'text-[#94a3b8] block mb-1 text-xs font-bold', field.label));
       const input = field.type === 'textarea'
@@ -257,7 +274,15 @@ function buildDialog(spec: DialogSpec, finish: (value: string) => void) {
     finish(submitButton.value);
   });
 
-  const readValues = () => Object.fromEntries(inputs.map(i => [i.name, i.value]));
+  const readValues = () =>
+    Object.fromEntries(
+      inputs.map((i) => [
+        i.name,
+        i instanceof HTMLInputElement && i.type === 'checkbox'
+          ? (i.checked ? 'true' : '')
+          : i.value,
+      ])
+    );
   let firstFocus: HTMLElement | null;
   if (inputs.length) firstFocus = inputs.find(i => !i.readOnly) || inputs[0];
   else if (spec.choices?.length) firstFocus = body.querySelector<HTMLElement>('button');

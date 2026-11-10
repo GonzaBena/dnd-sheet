@@ -167,33 +167,34 @@ service cloud.firestore {
           && d.imageUrl.matches('^https://.*')
           && d.grid is map && d.grid.size is number && d.grid.size >= 8 && d.grid.size <= 512
           && d.tokens is map && d.tokens.size() <= 200
-          && d.fogRevealed is list && d.fogRevealed.size() <= 500;
+          && (!('fogRevealed' in d) || (d.fogRevealed is list && d.fogRevealed.size() <= 500));
       }
 
       // -------------------------------------------------------------- mapas
       match /maps/{mapId} {
         allow read: if signedIn() && isMember(campaignId);
 
-        // DM: crea, edita y borra todo.
-        allow create: if signedIn() && isDm(campaignId) && canPrepare()
+        // DM o creador: crea, edita y borra todo.
+        allow create: if signedIn() && (isDm(campaignId) || isCreator(campaignId)) && canPrepare()
           && validMap(request.resource.data);
         // DECISION (F0B-4): en paused el DM no puede tocar niebla ni lastMove (se bloquea movimiento en UI).
-        allow update: if signedIn() && isDm(campaignId) && canPrepare()
+        allow update: if signedIn() && (isDm(campaignId) || isCreator(campaignId)) && canPrepare()
           && validMap(request.resource.data)
           && (isActive(campaignId) || !changedKeys().hasAny(['fogRevealed', 'lastMove']));
-        allow delete: if signedIn() && isDm(campaignId) && canPrepare();
+        allow delete: if signedIn() && (isDm(campaignId) || isCreator(campaignId)) && canPrepare();
 
-        // Jugador: solo x/y de un token propio.
-        // DECISION (F0-1): las reglas no pueden extraer "cuál" token cambió de affectedKeys(),
-        // así que el cliente escribe lastMove = { tokenId, by, at } junto con la posición y la
-        // regla valida contra lastMove.tokenId: tiene que ser el único token tocado y ser suyo.
+        // Movimiento de token en vivo:
+        // - Jugador: solo x/y de un token propio.
+        // - DM o Creador: x/y de cualquier token (propios, de jugadores o enemigos/PNJs).
+        // DECISION (F0-1, F3-2): el cliente escribe lastMove = { tokenId, by, at } junto con la posición y la
+        // regla valida contra lastMove.tokenId: tiene que ser el único token tocado.
         allow update: if signedIn() && isMember(campaignId) && canPlay()
           && changedKeys().hasOnly(['tokens', 'lastMove', 'updatedAt'])
           && request.resource.data.lastMove.by == uid()
           && request.resource.data.lastMove.tokenId is string
           && request.resource.data.tokens.diff(resource.data.tokens).affectedKeys()
                .hasOnly([request.resource.data.lastMove.tokenId])
-          && resource.data.tokens[request.resource.data.lastMove.tokenId].ownerUid == uid()
+          && (isDm(campaignId) || isCreator(campaignId) || resource.data.tokens[request.resource.data.lastMove.tokenId].ownerUid == uid())
           && request.resource.data.tokens[request.resource.data.lastMove.tokenId]
                .diff(resource.data.tokens[request.resource.data.lastMove.tokenId]).affectedKeys().hasOnly(['x', 'y'])
           && request.resource.data.tokens[request.resource.data.lastMove.tokenId].x is number

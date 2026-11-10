@@ -129,10 +129,14 @@
       else journalTabBtn.classList.add('hidden');
     }
 
+    const journalFab = document.getElementById('journal-fab-btn');
+    if (journalFab) {
+      if (cfg.showJournal !== false) journalFab.classList.remove('hidden');
+      else journalFab.classList.add('hidden');
+    }
     const fabRoot = document.getElementById('journal-fab-root');
     if (fabRoot) {
-      if (cfg.showJournal !== false) fabRoot.classList.remove('hidden');
-      else fabRoot.classList.add('hidden');
+      fabRoot.classList.remove('hidden');
     }
 
     // Highlight active tab

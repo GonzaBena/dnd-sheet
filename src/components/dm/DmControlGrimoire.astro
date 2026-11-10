@@ -4,6 +4,7 @@ import SessionStatusControls from './SessionStatusControls.astro';
 import CombatTracker from './CombatTracker.astro';
 import MapStage from '../map/MapStage.astro';
 import MapManager from './MapManager.astro';
+import TokenEditor from './TokenEditor.astro';
 ---
 
 <div id="dm-control-root" class="space-y-6">
@@ -140,6 +141,9 @@ import MapManager from './MapManager.astro';
       </div>
       <!-- Visor de mapa en modo DM con selector de mapa y cuadrícula -->
       <MapStage mode="dm" />
+
+      <!-- Gestión y edición de tokens tácticos (Fase 3: T-30) -->
+      <TokenEditor />
     </div>
 
     <!-- COLUMNA DERECHA (5 COLS LG): COMBAT TRACKER -->
@@ -486,7 +490,7 @@ import MapManager from './MapManager.astro';
 
   function renderJournalFeed(campaignId: string) {
     if (!journalFeed) return;
-    const entries = journalStore.getEntries(); // gets all public and private entries for author
+    const entries = journalStore.getEntries(undefined, undefined, true); // gets all entries for DM
     journalFeed.innerHTML = '';
 
     const filtered = entries.filter(e => {
@@ -520,6 +524,26 @@ import MapManager from './MapManager.astro';
         return `<span class="px-2 py-0.5 rounded text-[10px] border ${tagColor}">${t}</span>`;
       }).join(' ');
 
+      let extraHtml = '';
+      if (entry.diceRoll?.formula && entry.diceRoll?.result !== undefined) {
+        extraHtml = `
+          <div class="p-2 rounded bg-[#10141d] border border-amber-500/30 flex items-center justify-between text-xs my-1">
+            <span class="text-[#94a3b8]">${entry.diceRoll.formula}</span>
+            <span class="font-headline font-bold text-amber-400 text-xs">Resultado: ${entry.diceRoll.result}</span>
+          </div>
+        `;
+      } else {
+        const milestoneBanner = entry.milestone?.bannerText || (entry.diceRoll as any)?.bannerText;
+        if (milestoneBanner) {
+          extraHtml = `
+            <div class="p-1.5 rounded bg-amber-500/15 border border-amber-500/30 text-amber-300 font-bold text-xs my-1 flex items-center gap-1.5">
+              <span>⭐</span>
+              <span>${milestoneBanner}</span>
+            </div>
+          `;
+        }
+      }
+
       card.innerHTML = `
         <div class="flex items-center justify-between gap-2">
           <div class="flex items-center gap-1.5 flex-wrap">
@@ -541,6 +565,7 @@ import MapManager from './MapManager.astro';
           </div>
         </div>
         <p class="text-[#cbd5e1] text-xs leading-relaxed whitespace-pre-wrap">${entry.content}</p>
+        ${extraHtml}
         <div class="flex items-center justify-between gap-2 pt-1 border-t border-[#222f42]/60 font-label text-[10px]">
           <span class="text-[#64748b]">Autor: <strong class="text-[#94a3b8]">${entry.authorName || 'Dungeon Master'}</strong></span>
           <div class="flex items-center gap-1">${tagsHtml}</div>
@@ -620,6 +645,7 @@ import MapManager from './MapManager.astro';
       `⭐ Hito Épico: ${title}`,
       desc,
       ['#Hito'],
+      undefined,
       { bannerText: banner }
     );
 

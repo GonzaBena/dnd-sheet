@@ -11,6 +11,7 @@
     "test": "node --test tests/*.test.mjs",
     "test:rules": "firebase emulators:exec --only firestore,database --project demo-dnd-sheet \"node --test --test-concurrency=1 tests/rules/*.test.mjs\"",
     "emulators": "firebase emulators:start --only auth,firestore,database --project demo-dnd-sheet",
+    "simulate": "node scripts/simulate-players.mjs",
     "deploy:rules": "firebase deploy --only firestore:rules,firestore:indexes,database"
   },
   "engines": {

@@ -312,6 +312,7 @@ import MapManager from '../dm/MapManager.astro';
   import { campaignStore } from '../../scripts/state/campaignStore.ts';
   import { journalStore } from '../../scripts/state/journalStore.ts';
   import { characterStore } from '../../scripts/state/characterStore.ts';
+  import { userStore } from '../../scripts/state/userStore.ts';
   import { showAlert, showConfirm, showForm } from '../../scripts/ui/notify.ts';
 
   const root = document.getElementById('party-view-root');
@@ -349,15 +350,31 @@ import MapManager from '../dm/MapManager.astro';
     }
 
     const params = new URLSearchParams(window.location.search);
-    currentCampaignId = params.get('id') || params.get('campaign');
+    currentCampaignId = params.get('id') || params.get('campaign') || campaignStore.getActiveCampaignId();
 
     if (!currentCampaignId) {
-      showNotFound();
+      const allCamps = campaignStore.getAllCampaigns();
+      if (allCamps.length > 0) {
+        currentCampaignId = allCamps[0].id;
+      }
+    }
+
+    if (!currentCampaignId) {
+      if (campaignStore.hasLoadedCampaigns()) {
+        showNotFound();
+      }
       return;
     }
 
     // Activar campaña para que cloudSync monte los listeners
     campaignStore.setActiveCampaign(currentCampaignId);
+
+    // Cargar ficha del jugador si pertenece a la campaña
+    const currentUser = userStore.getCurrentUser();
+    const myChar = campaignStore.getMyCharacterForCampaign(currentCampaignId, currentUser.id);
+    if (myChar && characterStore.get().id !== myChar.id) {
+      characterStore.loadCharacter(myChar);
+    }
 
     // Dados DM en PartyView
     document.querySelectorAll('.party-dm-dice-btn').forEach(btn => {
@@ -449,7 +466,8 @@ import MapManager from '../dm/MapManager.astro';
         `⭐ Hito Épico: ${title}`,
         desc,
         ['#Hito'],
-        { bannerText: banner }
+        undefined,
+        { bannerText: banner, authorName: camp?.dmName || 'Dungeon Master' }
       );
 
       render();
@@ -674,25 +692,39 @@ import MapManager from '../dm/MapManager.astro';
 
   function renderRoster(cid: string) {
     if (!charactersList) return;
+    const camp = campaignStore.getCampaign(cid);
     const chars = campaignStore.getCharactersForCampaign(cid);
+    const memberUids = camp?.memberUserIds || [];
+    const currentUser = userStore.getCurrentUser();
+
+    // Miembros de la campaña sin personaje asignado todavía (ej: DM o jugador recién unido)
+    const membersWithoutChar = memberUids.filter(uid => !chars.some(c => c.userId === uid));
+    const totalMembersCount = chars.length + membersWithoutChar.length;
+
     if (rosterCount) {
-      rosterCount.textContent = `${chars.length} Aventurero${chars.length === 1 ? '' : 's'}`;
+      rosterCount.textContent = `${totalMembersCount} Miembro${totalMembersCount === 1 ? '' : 's'} (${chars.length} Aventurero${chars.length === 1 ? '' : 's'})`;
     }
 
-    if (chars.length === 0) {
+    if (chars.length === 0 && membersWithoutChar.length === 0) {
       charactersList.innerHTML = `
         <div class="p-6 rounded-xl bg-[#121721] border border-[#222f42] text-center text-xs text-[#94a3b8]">
-          No hay aventureros asignados a esta campaña todavía.
+          No hay aventureros ni miembros asignados a esta campaña todavía.
         </div>
       `;
       return;
     }
 
     charactersList.innerHTML = '';
+
+    // 1. Personajes asignados a la campaña
     chars.forEach(c => {
       const hpPercent = Math.max(0, Math.min(100, Math.round(((c.hp?.current || 0) / (c.hp?.max || 1)) * 100)));
+      const isMine = c.userId === currentUser.id;
+      const ownerUser = c.userId ? userStore.getUser(c.userId) : null;
+      const ownerName = c.playerName || ownerUser?.name || 'Jugador';
+
       const card = document.createElement('div');
-      card.className = 'flex items-center justify-between gap-3 p-3.5 rounded-xl bg-[#121721] border border-[#222f42] shadow-xs';
+      card.className = 'flex items-center justify-between gap-3 p-3.5 rounded-xl bg-[#121721] border border-[#222f42] shadow-xs hover:border-amber-500/40 transition-colors';
       card.innerHTML = `
         <div class="flex items-center gap-3 min-w-0">
           <img
@@ -702,9 +734,13 @@ import MapManager from '../dm/MapManager.astro';
             onerror="this.onerror=null;this.src='/characters/ch-1.avif';"
           />
           <div class="min-w-0">
-            <h4 class="font-headline font-bold text-xs text-[#f1f5f9] truncate">${c.name}</h4>
+            <div class="flex items-center gap-1.5 flex-wrap">
+              <h4 class="font-headline font-bold text-xs text-[#f1f5f9] truncate">${c.name}</h4>
+              ${isMine ? '<span class="text-[9px] px-1.5 py-0.2 rounded bg-amber-500/15 text-amber-300 font-bold border border-amber-500/30">Tú</span>' : ''}
+              ${c.inspiration ? '<span class="text-[9px] px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 font-bold border border-amber-500/40">⭐ Inspirado</span>' : ''}
+            </div>
             <p class="text-[11px] text-[#94a3b8] truncate">
-              ${c.race || ''} ${c.className || ''} Nivel ${c.level || 1}
+              ${c.race || ''} ${c.className || ''} Nivel ${c.level || 1} • <span class="text-[#cbd5e1]">${ownerName}</span>
             </p>
           </div>
         </div>
@@ -721,11 +757,57 @@ import MapManager from '../dm/MapManager.astro';
       `;
       charactersList.appendChild(card);
     });
+
+    // 2. Otros miembros de la mesa (DM o usuarios sin personaje enlazado)
+    if (membersWithoutChar.length > 0) {
+      const sectionDivider = document.createElement('div');
+      sectionDivider.className = 'pt-2.5 mt-2 border-t border-[#222f42]/60 text-[10px] font-bold text-[#64748b] uppercase tracking-wider px-1';
+      sectionDivider.textContent = 'Otros Miembros de la Mesa';
+      charactersList.appendChild(sectionDivider);
+
+      membersWithoutChar.forEach(mUid => {
+        const mUser = userStore.getUser(mUid);
+        const isThisMe = mUid === currentUser.id;
+        const isThisCreator = camp && mUid === camp.creatorId;
+        const isThisDm = camp && mUid === camp.dmId;
+        const displayName = mUser?.name || (isThisDm ? (camp?.dmName || 'Dungeon Master') : 'Aventurero');
+
+        const mCard = document.createElement('div');
+        mCard.className = 'p-3 rounded-xl bg-[#10141d] border border-[#222f42] flex items-center justify-between gap-3 text-xs';
+        mCard.innerHTML = `
+          <div class="flex items-center gap-2.5 min-w-0">
+            <div class="w-8 h-8 rounded-lg ${isThisDm ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30' : 'bg-amber-500/10 text-amber-400 border border-amber-500/30'} flex items-center justify-center shrink-0">
+              <span class="material-symbols-outlined text-[16px]">${isThisDm ? 'crown' : 'person'}</span>
+            </div>
+            <div class="min-w-0">
+              <div class="flex items-center gap-1.5 flex-wrap">
+                <span class="font-bold text-[#f1f5f9] truncate">${displayName}</span>
+                ${isThisMe ? '<span class="text-[9px] text-amber-400 font-bold">(Tú)</span>' : ''}
+                ${isThisDm ? '<span class="px-1.5 py-0.2 rounded bg-purple-500/20 text-purple-300 text-[8px] font-bold border border-purple-500/30">👑 DM</span>' : ''}
+                ${isThisCreator && !isThisDm ? '<span class="px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 text-[8px] font-bold border border-amber-500/30">Creador</span>' : ''}
+              </div>
+              <span class="text-[10px] text-[#64748b] block truncate">${isThisDm ? 'Dungeon Master de la partida' : 'Miembro sin personaje asignado'}</span>
+            </div>
+          </div>
+
+          ${isThisMe && !isThisDm ? `
+            <a
+              href="/campaigns?campaign=${encodeURIComponent(cid)}"
+              class="px-2.5 py-1 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-300 text-[11px] font-bold transition-all shrink-0 flex items-center gap-1"
+            >
+              <span class="material-symbols-outlined text-[14px]">add</span>
+              <span>Asignar Ficha</span>
+            </a>
+          ` : ''}
+        `;
+        charactersList.appendChild(mCard);
+      });
+    }
   }
 
   function renderJournal(cid: string) {
     if (!journalFeed) return;
-    const entries = journalStore.getPublicCampaignEntries();
+    const entries = journalStore.getPublicCampaignEntries(cid);
     const isDm = cid ? campaignStore.isCurrentUserDm(cid) : false;
 
     if (entries.length === 0) {
@@ -746,6 +828,26 @@ import MapManager from '../dm/MapManager.astro';
       const badgeStyle = isStatusEvent
         ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
         : 'bg-[#18202e] text-[#94a3b8] border-[#222f42]';
+
+      let extraBoxHtml = '';
+      if (e.diceRoll && e.diceRoll.formula && e.diceRoll.result !== undefined) {
+        extraBoxHtml = `
+          <div class="p-2 rounded-lg bg-[#10141d] border border-amber-500/30 flex items-center justify-between text-xs my-1">
+            <span class="text-[#94a3b8]">${e.diceRoll.formula}</span>
+            <span class="font-headline font-bold text-amber-400 text-sm">Resultado: ${e.diceRoll.result}</span>
+          </div>
+        `;
+      } else {
+        const milestoneBanner = e.milestone?.bannerText || (e.diceRoll as any)?.bannerText;
+        if (milestoneBanner) {
+          extraBoxHtml = `
+            <div class="p-2 rounded-lg bg-amber-500/15 border border-amber-500/40 flex items-center gap-1.5 my-1 text-amber-300 font-headline font-bold text-xs tracking-wider uppercase">
+              <span class="material-symbols-outlined text-[16px] text-amber-400">military_tech</span>
+              <span>${milestoneBanner}</span>
+            </div>
+          `;
+        }
+      }
 
       card.innerHTML = `
         <div class="flex items-center justify-between gap-2 text-xs">
@@ -771,6 +873,7 @@ import MapManager from '../dm/MapManager.astro';
           </div>
         </div>
         <p class="text-xs text-[#cbd5e1] leading-relaxed whitespace-pre-wrap">${e.content}</p>
+        ${extraBoxHtml}
         <div class="flex items-center justify-between gap-2 pt-1 border-t border-[#222f42]/60 text-[10px] text-[#64748b]">
           <span>${e.authorName || 'Mesa'}</span>
           <div class="flex items-center gap-1">
@@ -804,9 +907,27 @@ import MapManager from '../dm/MapManager.astro';
   }
 
   window.addEventListener('campaigns-updated', render);
-  window.addEventListener('all-characters-updated', render);
+  window.addEventListener('all-characters-updated', () => {
+    if (currentCampaignId) {
+      const currentUser = userStore.getCurrentUser();
+      const myChar = campaignStore.getMyCharacterForCampaign(currentCampaignId, currentUser.id);
+      if (myChar && characterStore.get().id !== myChar.id) {
+        characterStore.loadCharacter(myChar);
+      }
+    }
+    render();
+  });
   window.addEventListener('journal-updated', render);
   window.addEventListener('session-status-changed', render);
+  window.addEventListener('users-updated', render);
+  window.addEventListener('current-user-changed', render);
+  window.addEventListener('active-campaign-changed', () => {
+    const nextCid = campaignStore.getActiveCampaignId();
+    if (nextCid) {
+      currentCampaignId = nextCid;
+      render();
+    }
+  });
 
   initPartyView();
 </script>
