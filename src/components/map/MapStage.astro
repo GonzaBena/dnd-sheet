@@ -187,7 +187,7 @@ const { mode = 'player', class: className = '', id } = Astro.props;
 
   <!-- Barra de Herramientas de Niebla del DM (bottom-left) (Fase 4: T-40, T-41) -->
   {mode === 'dm' && (
-    <div class="absolute bottom-3 left-3 z-20 pointer-events-auto">
+    <div class="absolute z-20 pointer-events-auto bottom-14 left-3 right-3 sm:bottom-3 sm:right-auto sm:max-w-[calc(100%-13rem)] overflow-x-auto rounded-2xl [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
       <FogTools />
     </div>
   )}

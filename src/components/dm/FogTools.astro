@@ -6,7 +6,7 @@
 
 <div
   data-fog-tools-root
-  class="flex items-center gap-1 p-1 rounded-2xl bg-[#10141d]/90 backdrop-blur-md border border-[#222f42] shadow-2xl text-xs font-label select-none isolate transition-colors duration-150"
+  class="flex items-center gap-0.5 sm:gap-1 p-1 w-max rounded-2xl bg-[#10141d]/90 backdrop-blur-md border border-[#222f42] shadow-2xl text-xs font-label select-none isolate transition-colors duration-150"
 >
   <!-- Grupo de Herramientas de Puntero, Pincel y Rectángulo -->
   <div class="flex items-center bg-[#18202e]/80 rounded-xl p-0.5 border border-[#222f42]/60 gap-0.5">
@@ -14,7 +14,7 @@
     <button
       type="button"
       data-fog-tool-btn="none"
-      class="w-8 h-8 flex items-center justify-center rounded-lg text-amber-300 bg-amber-500/20 border border-amber-500/40 font-bold transition-colors duration-150 cursor-pointer"
+      class="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center rounded-lg text-amber-300 bg-amber-500/20 border border-amber-500/40 font-bold transition-colors duration-150 cursor-pointer"
       title="Puntero: navegar y mover mapa / tokens"
       aria-label="Puntero"
     >
@@ -25,7 +25,7 @@
     <button
       type="button"
       data-fog-tool-btn="fog-brush-reveal"
-      class="w-8 h-8 flex items-center justify-center rounded-lg text-[#94a3b8] hover:text-[#f1f5f9] hover:bg-[#222f42]/60 border border-transparent transition-colors duration-150 cursor-pointer"
+      class="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center rounded-lg text-[#94a3b8] hover:text-[#f1f5f9] hover:bg-[#222f42]/60 border border-transparent transition-colors duration-150 cursor-pointer"
       title="Pincel: revelar niebla a mano alzada (curvas y círculos)"
       aria-label="Pincel Revelar"
     >
@@ -36,7 +36,7 @@
     <button
       type="button"
       data-fog-tool-btn="fog-brush-cover"
-      class="w-8 h-8 flex items-center justify-center rounded-lg text-[#94a3b8] hover:text-[#f1f5f9] hover:bg-[#222f42]/60 border border-transparent transition-colors duration-150 cursor-pointer"
+      class="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center rounded-lg text-[#94a3b8] hover:text-[#f1f5f9] hover:bg-[#222f42]/60 border border-transparent transition-colors duration-150 cursor-pointer"
       title="Pincel: volver a cubrir niebla a mano alzada"
       aria-label="Pincel Cubrir"
     >
@@ -47,7 +47,7 @@
     <button
       type="button"
       data-fog-tool-btn="fog-reveal"
-      class="w-8 h-8 flex items-center justify-center rounded-lg text-[#94a3b8] hover:text-[#f1f5f9] hover:bg-[#222f42]/60 border border-transparent transition-colors duration-150 cursor-pointer"
+      class="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center rounded-lg text-[#94a3b8] hover:text-[#f1f5f9] hover:bg-[#222f42]/60 border border-transparent transition-colors duration-150 cursor-pointer"
       title="Rectángulo: revelar área rectangular de niebla"
       aria-label="Rectángulo Revelar"
     >
@@ -58,7 +58,7 @@
     <button
       type="button"
       data-fog-tool-btn="fog-cover"
-      class="w-8 h-8 flex items-center justify-center rounded-lg text-[#94a3b8] hover:text-[#f1f5f9] hover:bg-[#222f42]/60 border border-transparent transition-colors duration-150 cursor-pointer"
+      class="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center rounded-lg text-[#94a3b8] hover:text-[#f1f5f9] hover:bg-[#222f42]/60 border border-transparent transition-colors duration-150 cursor-pointer"
       title="Rectángulo: volver a cubrir área rectangular con niebla"
       aria-label="Rectángulo Cubrir"
     >
@@ -70,7 +70,7 @@
   <button
     type="button"
     data-fog-brush-size-btn
-    class="w-8 h-8 flex items-center justify-center rounded-xl bg-[#18202e] hover:bg-[#222f42]/80 border border-[#222f42] hover:border-amber-500/40 text-[#cbd5e1] hover:text-amber-300 transition-colors duration-150 cursor-pointer font-mono font-bold text-[10px]"
+    class="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center rounded-xl bg-[#18202e] hover:bg-[#222f42]/80 border border-[#222f42] hover:border-amber-500/40 text-[#cbd5e1] hover:text-amber-300 transition-colors duration-150 cursor-pointer font-mono font-bold text-[10px]"
     title="Tamaño de pincel: 1x celda (Clic para alternar: 0.5x, 1x, 2x)"
     aria-label="Tamaño de Pincel"
   >
@@ -84,7 +84,7 @@
     <button
       type="button"
       data-fog-reveal-all-btn
-      class="w-8 h-8 flex items-center justify-center rounded-xl bg-[#18202e] hover:bg-cyan-500/15 border border-[#222f42] hover:border-cyan-500/40 text-[#cbd5e1] hover:text-cyan-300 transition-colors duration-150 cursor-pointer"
+      class="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center rounded-xl bg-[#18202e] hover:bg-cyan-500/15 border border-[#222f42] hover:border-cyan-500/40 text-[#cbd5e1] hover:text-cyan-300 transition-colors duration-150 cursor-pointer"
       title="Revelar mapa completo a los jugadores"
       aria-label="Revelar Todo el Mapa"
     >
@@ -94,7 +94,7 @@
     <button
       type="button"
       data-fog-cover-all-btn
-      class="w-8 h-8 flex items-center justify-center rounded-xl bg-[#18202e] hover:bg-rose-500/15 border border-[#222f42] hover:border-rose-500/40 text-[#cbd5e1] hover:text-rose-300 transition-colors duration-150 cursor-pointer"
+      class="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center rounded-xl bg-[#18202e] hover:bg-rose-500/15 border border-[#222f42] hover:border-rose-500/40 text-[#cbd5e1] hover:text-rose-300 transition-colors duration-150 cursor-pointer"
       title="Cubrir mapa completo con niebla oscura"
       aria-label="Cubrir Todo el Mapa"
     >
@@ -108,7 +108,7 @@
   <button
     type="button"
     data-fog-player-view-btn
-    class="w-8 h-8 flex items-center justify-center rounded-xl bg-[#18202e] border border-[#222f42] hover:border-amber-500/40 text-[#cbd5e1] hover:text-amber-300 transition-colors duration-150 cursor-pointer"
+    class="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center rounded-xl bg-[#18202e] border border-[#222f42] hover:border-amber-500/40 text-[#cbd5e1] hover:text-amber-300 transition-colors duration-150 cursor-pointer"
     title="Alternar vista: Semitransparente (DM) o 100% opaca (Jugador)"
     aria-label="Ver como Jugador"
   >
@@ -127,7 +127,7 @@
   <!-- Aviso de advertencia límite niebla (>= 450 formas) -->
   <div
     data-fog-warn-badge
-    class="hidden items-center justify-center w-8 h-8 rounded-lg bg-amber-500/20 border border-amber-500/40 text-amber-300 animate-pulse"
+    class="hidden items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-amber-500/20 border border-amber-500/40 text-amber-300 animate-pulse"
     title="¡Cerca del límite de 500 formas! Conviene 'Cubrir todo' y rehacer"
   >
     <span class="material-symbols-outlined text-[16px]">warning</span>
@@ -136,7 +136,7 @@
   <!-- Aviso de partida en pausa -->
   <div
     data-fog-disabled-notice
-    class="hidden items-center justify-center w-8 h-8 rounded-lg bg-amber-500/15 border border-amber-500/30 text-amber-300"
+    class="hidden items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-amber-500/15 border border-amber-500/30 text-amber-300"
     title="Partida en pausa: inicia la partida para modificar la niebla"
   >
     <span class="material-symbols-outlined text-[16px]">pause_circle</span>
@@ -176,9 +176,9 @@
         toolBtns.forEach((btn) => {
           const btnTool = btn.getAttribute('data-fog-tool-btn');
           if (btnTool === tool) {
-            btn.className = 'w-8 h-8 flex items-center justify-center rounded-lg text-amber-300 bg-amber-500/20 border border-amber-500/40 font-bold transition-colors duration-150 cursor-pointer';
+            btn.className = 'w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center rounded-lg text-amber-300 bg-amber-500/20 border border-amber-500/40 font-bold transition-colors duration-150 cursor-pointer';
           } else {
-            btn.className = 'w-8 h-8 flex items-center justify-center rounded-lg text-[#94a3b8] hover:text-[#f1f5f9] hover:bg-[#222f42]/60 border border-transparent transition-colors duration-150 cursor-pointer';
+            btn.className = 'w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center rounded-lg text-[#94a3b8] hover:text-[#f1f5f9] hover:bg-[#222f42]/60 border border-transparent transition-colors duration-150 cursor-pointer';
           }
         });
       };

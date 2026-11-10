@@ -6,8 +6,8 @@
 
 <div id="dm-token-editor-root" class="rounded-2xl bg-[#10141d]/90 border border-[#222f42] p-4 space-y-3 font-label text-xs shadow-lg backdrop-blur-md">
   <!-- Cabecera de gestión de tokens -->
-  <div class="flex items-center justify-between gap-2 border-b border-[#222f42]/70 pb-2.5">
-    <div class="flex items-center gap-2">
+  <div class="flex flex-wrap items-center justify-between gap-2 border-b border-[#222f42]/70 pb-2.5">
+    <div class="flex items-center gap-2 min-w-0 flex-1 basis-40">
       <span class="material-symbols-outlined text-[20px] text-amber-400">token</span>
       <div>
         <h3 class="font-headline font-bold text-sm text-[#f1f5f9]">Tokens en el Mapa</h3>
@@ -15,11 +15,11 @@
       </div>
     </div>
 
-    <div class="flex items-center gap-1.5">
+    <div class="flex items-center gap-1.5 shrink-0">
       <button
         type="button"
         id="token-editor-quick-enemy-btn"
-        class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 border border-rose-500/40 text-rose-300 font-bold transition-all active:scale-95 cursor-pointer shadow-xs text-xs"
+        class="flex items-center gap-1.5 whitespace-nowrap shrink-0 px-2 sm:px-2.5 py-1.5 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 border border-rose-500/40 text-rose-300 font-bold transition-all active:scale-95 cursor-pointer shadow-xs text-xs"
         title="Desplegar oponente o monstruo directamente en el mapa táctico"
       >
         <span class="material-symbols-outlined text-[16px]">swords</span>
@@ -29,7 +29,7 @@
       <button
         type="button"
         id="token-editor-new-btn"
-        class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 font-bold transition-all active:scale-95 cursor-pointer shadow-xs text-xs"
+        class="flex items-center gap-1.5 whitespace-nowrap shrink-0 px-2 sm:px-3 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 font-bold transition-all active:scale-95 cursor-pointer shadow-xs text-xs"
       >
         <span class="material-symbols-outlined text-[16px]">add_circle</span>
         <span>Nuevo Token</span>
