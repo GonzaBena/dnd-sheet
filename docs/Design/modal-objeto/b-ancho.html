@@ -1,0 +1,392 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>B · Mesa ancha con ficha en vivo</title>
+<link rel="stylesheet" href="_shared.css" />
+<style>
+  .stage { min-height: calc(100vh - 49px); display: grid; place-items: center; padding: 20px 16px; background: var(--obsidian); }
+  .modal { width: 100%; max-width: 1220px; max-height: calc(100vh - 90px); display: flex; flex-direction: column;
+    border-radius: 16px; background: var(--card); border: 1px solid var(--line); box-shadow: 0 24px 70px rgba(0,0,0,.65); overflow: hidden; }
+  .head { display: flex; align-items: center; gap: 12px; padding: 14px 20px; background: var(--sub); border-bottom: 1px solid var(--line); }
+  .head .ico { width: 38px; height: 38px; border-radius: 10px; display: grid; place-items: center; background: var(--amber-soft); color: var(--amber-hi); border: 1px solid var(--amber-line); }
+  .head h2 { margin: 0; font: 600 18px/1.2 var(--serif); }
+  .head p { margin: 2px 0 0; font-size: 12.5px; color: var(--muted); }
+  .head .seg { margin-left: auto; }
+  .head .icon-btn { margin-left: 8px; }
+
+  .layout { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) 330px; }
+  .forms { overflow-y: auto; padding: 18px 20px 22px; display: grid; grid-template-columns: 1fr 1fr; gap: 0 28px; align-content: start; }
+  .col { display: grid; gap: 0; align-content: start; min-width: 0; }
+
+  /* Secciones: abiertas siempre en pantallas anchas; acordeón en pequeñas */
+  .sec { border-top: 1px solid var(--line); padding: 4px 0 18px; }
+  .col .sec:first-child { border-top: 0; }
+  .sec > summary { list-style: none; display: flex; align-items: center; gap: 10px; padding: 12px 0 10px; cursor: default; }
+  .sec > summary::-webkit-details-marker { display: none; }
+  .sec h3 { margin: 0; font: 600 16px/1.2 var(--serif); }
+  .sec .sum { margin-left: auto; font-size: 12.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 55%; display: none; }
+  .sec .chev { display: none; color: var(--muted); transition: transform .2s; }
+  .sec[open] .chev { transform: rotate(180deg); }
+  .sec .in { display: grid; gap: 14px; }
+  .name-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 5px; }
+  .name-row .lbl { margin: 0; }
+  .hide-self { display: none; }
+  .effects-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .textarea.mono { font-family: ui-monospace, Menlo, monospace; font-size: 13px; }
+  .off { opacity: .45; pointer-events: none; filter: saturate(.6); }
+
+  /* Ficha en vivo */
+  .pv { border-left: 1px solid var(--line); background: var(--sunk); display: flex; flex-direction: column; min-height: 0; }
+  .pv-head { display: flex; align-items: center; gap: 8px; padding: 14px 20px 8px; font-weight: 700; font-size: 13px; color: var(--muted); border: 0; background: none; width: 100%; text-align: left; cursor: default; }
+  .pv-head .chev { display: none; margin-left: auto; }
+  .pv-body { padding: 4px 20px 20px; overflow-y: auto; display: grid; gap: 14px; align-content: start; }
+  .sheet { border: 1px solid var(--line); border-radius: 14px; background: var(--card); padding: 16px; display: grid; gap: 12px; }
+  .sheet .top { display: flex; gap: 12px; align-items: center; }
+  .sheet .thumb { width: 52px; height: 52px; flex: none; border-radius: 12px; display: grid; place-items: center; background: var(--sub); border: 1px solid var(--line-2); color: var(--amber-hi); }
+  .sheet h4 { margin: 0; font: 600 20px/1.15 var(--serif); overflow-wrap: anywhere; }
+  .sheet .tags { display: flex; flex-wrap: wrap; gap: 6px; }
+  .stat { display: flex; align-items: baseline; gap: 10px; padding: 12px 14px; border-radius: 12px; background: var(--amber-soft); border: 1px solid var(--amber-line); }
+  .stat .big { font: 600 34px/1 var(--serif); color: var(--amber-hi); }
+  .stat span { font-size: 13px; color: var(--text-2); }
+  dl.rows { margin: 0; display: grid; gap: 0; }
+  dl.rows > div { display: flex; justify-content: space-between; gap: 12px; padding: 7px 0; border-top: 1px solid var(--line); font-size: 13.5px; }
+  dl.rows > div:first-child { border-top: 0; }
+  dl.rows dt { color: var(--muted); } dl.rows dd { margin: 0; font-weight: 700; text-align: right; }
+  .sheet p { margin: 0; font-size: 13.5px; color: var(--text-2); max-width: 46ch; }
+  .fxlist { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; }
+  .fxlist li { display: flex; align-items: center; gap: 8px; font-size: 13.5px; font-weight: 600; }
+  .fxlist .mi { color: var(--amber-hi); }
+  .empty { color: var(--muted); font-size: 13px; }
+
+  .foot { display: flex; align-items: center; gap: 10px; padding: 12px 20px; border-top: 1px solid var(--line); background: var(--sub); }
+  .foot .note { margin-right: auto; font-size: 12.5px; color: var(--muted); }
+
+  /* Intermedio: una columna de formulario + ficha */
+  @media (max-width: 1120px) { .forms { grid-template-columns: 1fr; } .layout { grid-template-columns: minmax(0, 1fr) 300px; } .col + .col .sec:first-child { border-top: 1px solid var(--line); } }
+
+  /* Pequeño: ficha arriba (plegable) y secciones como acordeón con resumen */
+  @media (max-width: 780px) {
+    .stage { padding: 0; place-items: stretch; }
+    .modal { max-width: none; max-height: none; border-radius: 0; border: 0; min-height: calc(100vh - 49px); }
+    .head .seg { display: none; }
+    .head p { display: none; }
+    .layout { display: flex; flex-direction: column; overflow-y: auto; }
+    .pv { order: -1; border-left: 0; border-bottom: 1px solid var(--line); flex: none; }
+    .pv-head { cursor: pointer; padding: 12px 16px; }
+    .pv-head .chev { display: inline-block; transition: transform .2s; }
+    .pv.open .pv-head .chev { transform: rotate(180deg); }
+    .pv-body { display: none; padding: 0 16px 16px; }
+    .pv.open .pv-body { display: grid; }
+    .forms { overflow: visible; padding: 4px 16px 20px; }
+    .sec { padding: 0; }
+    .sec > summary { cursor: pointer; padding: 14px 0; min-height: 48px; }
+    .sec .sum, .sec .chev { display: block; }
+    .sec[open] .sum { display: none; }
+    .sec .in { padding-bottom: 18px; }
+    .grid3 { grid-template-columns: 1fr 1fr; }
+    .foot { position: sticky; bottom: 0; padding: 10px 16px; }
+    .foot .note { display: none; }
+    .foot .btn { flex: 1; }
+  }
+</style>
+</head>
+<body>
+
+<header class="proto-bar">
+  <strong>B · Mesa ancha</strong>
+  <a href="a-pasos.html">A · Pasos</a>
+  <a href="b-ancho.html" aria-current="page">B · Mesa ancha</a>
+  <a href="c-hoja-lateral.html">C · Hoja lateral</a>
+  <span class="spacer"></span>
+  <span>Cambia el ancho de la ventana: 3 columnas → 2 → acordeón.</span>
+</header>
+
+<main class="stage">
+  <form class="modal" role="dialog" aria-labelledby="title" novalidate>
+    <header class="head">
+      <div class="ico"><span class="mi" id="ico">backpack</span></div>
+      <div><h2 id="title">Añadir objeto a la mochila</h2><p id="sub">La ficha de la derecha se arma mientras escribes.</p></div>
+      <div class="seg" id="kind" role="group" aria-label="Formulario">
+        <button type="button" data-k="item" aria-pressed="true">Objeto</button>
+        <button type="button" data-k="weapon" aria-pressed="false">Ataque</button>
+      </div>
+      <button type="button" class="icon-btn" aria-label="Cerrar"><span class="mi sm">close</span></button>
+    </header>
+
+    <div class="layout">
+      <div class="forms" id="forms">
+
+        <!-- ============ OBJETO ============ -->
+        <div class="col" data-form="item">
+          <details class="sec" open data-s="id">
+            <summary><h3>Identidad</h3><span class="sum" id="sum-id"></span><span class="mi chev">expand_more</span></summary>
+            <div class="in">
+              <label class="field"><span class="name-row"><span class="lbl">Nombre</span><button type="button" class="btn srd"><span class="mi sm">menu_book</span>Buscar en el compendio</button></span>
+                <input class="input" id="i-name" value="Cota de malla" autocomplete="off" /></label>
+              <div class="grid2">
+                <label class="field"><span class="lbl">Categoría</span>
+                  <select class="select" id="i-cat"><option value="gear">Equipo de aventura</option><option value="potion">Poción o consumible</option><option value="treasure">Tesoro o joya</option><option value="weapon">Arma o munición</option><option value="armor" selected>Armadura o escudo</option></select></label>
+                <label class="field"><span class="lbl">Cantidad</span><input class="input num" id="i-qty" type="number" value="1" min="1" max="999" /></label>
+              </div>
+              <label class="switch"><input type="checkbox" id="i-attune" /><span class="track"></span><span class="txt"><b>Requiere sintonización</b><small>Solo aplica sus efectos si está equipado y sintonizado.</small></span></label>
+            </div>
+          </details>
+
+          <details class="sec" open data-s="use">
+            <summary><h3>Uso</h3><span class="sum" id="sum-use">Opcional</span><span class="mi chev">expand_more</span></summary>
+            <div class="in">
+              <div class="grid2 wrap-sm">
+                <label class="field"><span class="lbl">Tipo de uso</span><select class="select" id="i-use"><option value="none">Normal (equipo o tesoro)</option><option value="drink">Bebible (poción, elixir)</option><option value="eat">Comestible (raciones, baya)</option><option value="use">Usable (varita, pergamino)</option></select></label>
+                <label class="field"><span class="lbl">Cura (PG)</span><input class="input num" id="i-heal" type="number" min="0" value="0" /></label>
+              </div>
+              <label class="field"><span class="lbl">Cuándo se activa</span><input class="input" id="i-act" placeholder="1 vez por descanso largo, acción adicional…" /></label>
+              <label class="field"><span class="lbl">Descripción breve</span><input class="input" id="i-desc" placeholder="Ilumina 20 pies; no se apaga con agua." /></label>
+              <label class="field"><span class="lbl">Notas<span class="opt">opcional</span></span><textarea class="textarea" id="i-notes" rows="3" placeholder="Resistencia al frío. Al romperse libera una nube de humo de 10 pies."></textarea></label>
+            </div>
+          </details>
+        </div>
+
+        <div class="col" data-form="item">
+          <details class="sec" open data-s="armor" id="sec-armor">
+            <summary><h3>Armadura</h3><span class="sum" id="sum-armor"></span><span class="mi chev">expand_more</span></summary>
+            <div class="in">
+              <div class="grid2">
+                <label class="field"><span class="lbl">Categoría</span><select class="select" id="a-cat"><option value="light">Ligera</option><option value="medium">Media</option><option value="heavy" selected>Pesada</option><option value="shield">Escudo</option></select></label>
+                <label class="field"><span class="lbl" id="a-ac-l">CA base</span><input class="input num" id="a-ac" type="number" min="1" max="30" value="16" /></label>
+              </div>
+              <div class="grid3">
+                <label class="field" id="a-dex-f"><span class="lbl">Tope de DES</span><input class="input num" id="a-dex" type="number" min="0" max="10" value="0" /></label>
+                <label class="field"><span class="lbl">FUE mínima</span><input class="input num" id="a-str" type="number" min="0" max="30" value="13" /></label>
+                <label class="field"><span class="lbl">Bono mágico</span><input class="input num" id="a-bonus" type="number" min="-5" max="10" value="0" /></label>
+              </div>
+              <p class="hint" id="a-dex-h" style="margin-top:-6px">Tope de DES: vacío = sin tope, 0 = no suma DES.</p>
+              <label class="switch"><input type="checkbox" id="a-stealth" checked /><span class="track"></span><span class="txt"><b>Desventaja en Sigilo</b></span></label>
+            </div>
+          </details>
+
+          <details class="sec" open data-s="weapon" id="sec-weapon">
+            <summary><h3>Arma</h3><span class="sum" id="sum-weapon"></span><span class="mi chev">expand_more</span></summary>
+            <div class="in">
+              <div class="grid2">
+                <label class="field"><span class="lbl">Categoría</span><select class="select" id="w-cat"><option value="simple">Simple</option><option value="martial" selected>Marcial</option></select></label>
+                <label class="field"><span class="lbl">Bono mágico</span><input class="input num" id="w-magic" type="number" min="-5" max="10" value="0" /></label>
+              </div>
+              <div class="grid3">
+                <label class="field"><span class="lbl">Dado</span><input class="input" id="w-d" value="1d8" maxlength="7" /></label>
+                <label class="field"><span class="lbl">Tipo de daño</span><input class="input" id="w-t" value="cortante" /></label>
+                <label class="field"><span class="lbl">Versátil</span><input class="input" id="w-v" value="1d10" maxlength="7" /></label>
+              </div>
+              <label class="field"><span class="lbl">Propiedades</span><input class="input" id="w-p" value="versátil" placeholder="sutil, ligera, a dos manos…" /><p class="hint">Sepáralas con comas.</p></label>
+              <div class="grid2"><label class="field"><span class="lbl">Alcance normal (pies)</span><input class="input num" id="w-rn" type="number" placeholder="5" /></label>
+                <label class="field"><span class="lbl">Alcance largo (pies)</span><input class="input num" id="w-rl" type="number" placeholder="—" /></label></div>
+            </div>
+          </details>
+
+          <details class="sec" open data-s="custom">
+            <summary><h3>Entrada propia</h3><span class="sum" id="sum-custom">Desactivada</span><span class="mi chev">expand_more</span></summary>
+            <div class="in">
+              <label class="switch"><input type="checkbox" id="i-custom" /><span class="track"></span><span class="txt"><b>Marcar como propio</b><small>Habilita imagen y efectos, y muestra la insignia “Propio”.</small></span></label>
+              <div class="in off" id="custom-fields">
+                <label class="field"><span class="lbl">Imagen<span class="opt">opcional</span></span><input class="input" placeholder="https://… o data:image/png;base64,…" /></label>
+                <label class="field"><span class="lbl">Efectos<span class="opt">uno por línea</span></span>
+                  <textarea class="textarea mono" id="fx" rows="3" placeholder="ac add 1&#10;save.dex advantage"></textarea>
+                  <span class="effects-chips" id="fx-chips"><button type="button" class="chip" data-fx="ac add 1">+1 a la CA</button><button type="button" class="chip" data-fx="save.dex advantage">Ventaja en salvación de DES</button><button type="button" class="chip" data-fx="speed add 10">+10 pies de velocidad</button></span></label>
+              </div>
+            </div>
+          </details>
+        </div>
+
+        <!-- ============ ATAQUE ============ -->
+        <div class="col hidden" data-form="weapon">
+          <details class="sec" open data-s="atk">
+            <summary><h3>Ataque</h3><span class="sum" id="sum-atk"></span><span class="mi chev">expand_more</span></summary>
+            <div class="in">
+              <label class="field"><span class="name-row"><span class="lbl">Nombre</span><button type="button" class="btn srd"><span class="mi sm">menu_book</span>Buscar arma en el SRD</button></span>
+                <input class="input" id="x-name" value="Espada corta de plata" /></label>
+              <div class="field"><span class="lbl">Tipo de ataque</span><div class="seg full" id="x-kind"><button type="button" aria-pressed="true">Cuerpo a cuerpo</button><button type="button" aria-pressed="false">A distancia</button><button type="button" aria-pressed="false">Mágico</button></div></div>
+              <label class="field"><span class="lbl">Tipo de daño</span><select class="select" id="x-type"><option>Perforante</option><option selected>Cortante</option><option>Contundente</option><option>Fuego</option><option>Frío</option><option>Veneno</option><option>Radiante</option><option>Necrótico</option><option>Fuerza</option><option>Psíquico</option><option>Ácido</option><option>Trueno</option></select></label>
+            </div>
+          </details>
+          <details class="sec" open data-s="tags">
+            <summary><h3>Etiquetas y notas</h3><span class="sum" id="sum-tags"></span><span class="mi chev">expand_more</span></summary>
+            <div class="in">
+              <label class="field"><span class="lbl">Propiedades<span class="opt">separadas por comas</span></span><input class="input" id="x-tags" value="Sutil, Ligera" /></label>
+              <label class="field"><span class="lbl">Notas<span class="opt">opcional</span></span><textarea class="textarea" rows="3" placeholder="1d6 de fuego extra contra no-muertos."></textarea></label>
+            </div>
+          </details>
+        </div>
+        <div class="col hidden" data-form="weapon">
+          <details class="sec" open data-s="mods">
+            <summary><h3>Modificadores</h3><span class="sum" id="sum-mods"></span><span class="mi chev">expand_more</span></summary>
+            <div class="in">
+              <div class="seg full" id="mode"><button type="button" data-m="auto" aria-pressed="true">Automático 5e</button><button type="button" data-m="manual" aria-pressed="false">Manual</button></div>
+              <div class="in" id="m-auto">
+                <div class="grid2">
+                  <label class="field"><span class="lbl">Atributo base</span><select class="select" id="x-abil"><option value="3">Destreza (+3)</option><option value="1">Fuerza (+1)</option><option value="2">Carisma (+2)</option><option value="0">Sabiduría (+0)</option><option value="0">Inteligencia (+0)</option><option value="1">Constitución (+1)</option><option value="0">Sin atributo</option></select></label>
+                  <label class="field"><span class="lbl">Dado base</span><select class="select" id="x-dice"><option>1d4</option><option selected>1d6</option><option>1d8</option><option>1d10</option><option>1d12</option><option>2d6</option></select></label>
+                </div>
+                <div class="grid2"><label class="field"><span class="lbl">Extra al impacto</span><input class="input num" id="x-ba" type="number" value="0" /></label>
+                  <label class="field"><span class="lbl">Extra al daño</span><input class="input num" id="x-bd" type="number" value="0" /></label></div>
+                <label class="switch"><input type="checkbox" id="x-prof" checked /><span class="track"></span><span class="txt"><b>Competente con el arma</b><small>Suma tu bono de competencia (+3).</small></span></label>
+                <label class="switch"><input type="checkbox" id="x-add" checked /><span class="track"></span><span class="txt"><b>Sumar el atributo al daño</b></span></label>
+              </div>
+              <div class="in hidden" id="m-manual">
+                <label class="field"><span class="lbl">Bono al impacto</span><input class="input" id="x-mb" value="+6" /></label>
+                <label class="field"><span class="lbl">Fórmula de daño</span><input class="input" id="x-md" value="1d6 + 3" /></label>
+              </div>
+            </div>
+          </details>
+        </div>
+      </div>
+
+      <!-- ============ FICHA EN VIVO ============ -->
+      <aside class="pv open" id="pv" aria-label="Vista previa">
+        <button type="button" class="pv-head" id="pv-toggle" aria-expanded="true"><span class="mi sm">visibility</span>Así se verá<span class="mi chev">expand_more</span></button>
+        <div class="pv-body" id="pv-body" aria-live="polite"></div>
+      </aside>
+    </div>
+
+    <footer class="foot">
+      <span class="note" id="note">Se guarda en tu mochila.</span>
+      <button type="button" class="btn ghost">Cancelar</button>
+      <button type="button" class="btn primary" id="save"><span class="mi sm">check</span><span id="save-t">Guardar objeto</span></button>
+    </footer>
+  </form>
+</main>
+
+<script>
+(() => {
+  const $ = (s, r = document) => r.querySelector(s);
+  const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const sign = (n) => (n >= 0 ? '+' : '−') + Math.abs(n);
+  const CAT = { gear: ['Equipo de aventura', 'inventory_2'], potion: ['Poción o consumible', 'science'], treasure: ['Tesoro o joya', 'diamond'], weapon: ['Arma o munición', 'swords'], armor: ['Armadura o escudo', 'shield'] };
+  const ACAT = { light: 'Ligera', medium: 'Media', heavy: 'Pesada', shield: 'Escudo' };
+  const FX_LABEL = { 'ac add': (v) => `${sign(+v)} a la CA`, 'speed add': (v) => `${sign(+v)} pies de velocidad` };
+  let kind = 'item', mode = 'auto';
+  const wide = () => matchMedia('(min-width: 781px)').matches;
+
+  // ---------- Secciones: abiertas en ancho, acordeón en pequeño ----------
+  function syncSections() {
+    const w = wide();
+    $$('.sec').forEach((d, i) => { if (w) d.open = true; else if (!d.dataset.touched) d.open = i === 0 && !d.closest('.hidden') && d.closest('.col') === $$('.col:not(.hidden)')[0]; });
+    $('#pv').classList.toggle('open', w || $('#pv').dataset.m === '1');
+  }
+  $$('.sec > summary').forEach((s) => s.addEventListener('click', (e) => {
+    if (wide()) { e.preventDefault(); return; }
+    const d = s.parentElement; d.dataset.touched = '1';
+    if (!d.open) $$('.sec[open]').forEach((o) => { if (o !== d) o.open = false; });
+  }));
+  $('#pv-toggle').addEventListener('click', () => { if (wide()) return; const p = $('#pv'); const o = !p.classList.contains('open'); p.classList.toggle('open', o); p.dataset.m = o ? '1' : ''; $('#pv-toggle').setAttribute('aria-expanded', o); });
+  matchMedia('(min-width: 781px)').addEventListener('change', syncSections);
+
+  // ---------- Objeto ↔ Ataque ----------
+  $$('#kind button').forEach((b) => b.addEventListener('click', () => {
+    kind = b.dataset.k; $$('#kind button').forEach((x) => x.setAttribute('aria-pressed', x === b));
+    $$('.col').forEach((c) => c.classList.toggle('hidden', c.dataset.form !== kind));
+    $('#title').textContent = kind === 'item' ? 'Añadir objeto a la mochila' : 'Añadir ataque';
+    $('#ico').textContent = kind === 'item' ? 'backpack' : 'swords';
+    $('#save-t').textContent = kind === 'item' ? 'Guardar objeto' : 'Guardar ataque';
+    $('#note').textContent = kind === 'item' ? 'Se guarda en tu mochila.' : 'Se guarda en tus acciones de ataque.';
+    $$('.sec').forEach((d) => delete d.dataset.touched); syncSections(); update();
+  }));
+  $$('#mode button').forEach((b) => b.addEventListener('click', () => { mode = b.dataset.m; $$('#mode button').forEach((x) => x.setAttribute('aria-pressed', x === b));
+    $('#m-auto').classList.toggle('hidden', mode !== 'auto'); $('#m-manual').classList.toggle('hidden', mode !== 'manual'); update(); }));
+  $$('#x-kind button').forEach((b) => b.addEventListener('click', () => { $$('#x-kind button').forEach((x) => x.setAttribute('aria-pressed', x === b)); update(); }));
+  $('#fx-chips').addEventListener('click', (e) => { const c = e.target.closest('[data-fx]'); if (!c) return; const t = $('#fx'); t.value = (t.value.trim() ? t.value.trim() + '\n' : '') + c.dataset.fx; t.focus(); update(); });
+
+  // ---------- Ficha en vivo ----------
+  const row = (k, v) => `<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`;
+  function fxList(text) {
+    return text.split('\n').map((l) => l.trim()).filter(Boolean).map((l) => {
+      const [t, op, ...r] = l.split(/\s+/); const v = r.join(' ');
+      const f = FX_LABEL[`${t} ${op}`]; const label = f ? f(v) : `${t} · ${op}${v ? ' ' + v : ''}`;
+      return `<li><span class="mi sm">auto_awesome</span>${esc(label)}</li>`;
+    }).join('');
+  }
+  function armorStat() {
+    const c = $('#a-cat').value, ac = +$('#a-ac').value || 0, bonus = +$('#a-bonus').value || 0, dex = $('#a-dex').value, des = 2;
+    if (c === 'shield') return { big: sign(ac + bonus), txt: 'a tu CA al equiparlo' };
+    const eff = dex === '' ? des : Math.min(des, +dex);
+    return { big: ac + bonus + eff, txt: `de CA con DES ${sign(des)}${dex !== '' && +dex < des ? ` (topado en ${sign(+dex)})` : ''}` };
+  }
+  function update() {
+    // Resúmenes para el acordeón
+    const cat = $('#i-cat').value;
+    $('#sec-armor').classList.toggle('hidden', cat !== 'armor');
+    $('#sec-weapon').classList.toggle('hidden', cat !== 'weapon');
+    $('#a-dex-f').classList.toggle('hidden', $('#a-cat').value === 'shield');
+    $('#a-dex-h').classList.toggle('hidden', $('#a-cat').value === 'shield');
+    $('#a-ac-l').textContent = $('#a-cat').value === 'shield' ? 'Bono de CA' : 'CA base';
+    const custom = $('#i-custom').checked;
+    $('#custom-fields').classList.toggle('off', !custom);
+    $$('#custom-fields input, #custom-fields textarea, #custom-fields button').forEach((el) => (el.disabled = !custom));
+
+    const name = $('#i-name').value.trim() || 'Sin nombre';
+    $('#sum-id').textContent = `${name} · ×${$('#i-qty').value || 1}`;
+    $('#sum-armor').textContent = `${ACAT[$('#a-cat').value]} · ${armorStat().big}`;
+    $('#sum-weapon').textContent = `${$('#w-d').value} ${$('#w-t').value}`;
+    $('#sum-custom').textContent = custom ? 'Activada' : 'Desactivada';
+
+    // Ataque
+    const mod = +$('#x-abil').value, prof = $('#x-prof').checked ? 3 : 0, ba = +$('#x-ba').value || 0, bd = +$('#x-bd').value || 0;
+    const atk = mode === 'auto' ? `${sign(mod + prof + ba)}` : $('#x-mb').value.trim() || '—';
+    const dmgMod = ($('#x-add').checked ? mod : 0) + bd;
+    const dmg = mode === 'auto' ? `${$('#x-dice').value}${dmgMod ? ' ' + sign(dmgMod).replace('−', '− ').replace('+', '+ ') : ''}` : $('#x-md').value.trim() || '—';
+    $('#sum-atk').textContent = `${$('#x-name').value} · ${$('#x-type').value}`;
+    $('#sum-tags').textContent = $('#x-tags').value;
+    $('#sum-mods').textContent = `${atk} · ${dmg}`;
+
+    $('#pv-body').innerHTML = kind === 'item' ? itemSheet(cat, name, custom) : attackSheet(atk, dmg);
+  }
+
+  function itemSheet(cat, name, custom) {
+    const [catName, icon] = CAT[cat]; let stat = '', rows = '';
+    if (cat === 'armor') {
+      const s = armorStat(); stat = `<div class="stat"><span class="big num">${esc(s.big)}</span><span>${esc(s.txt)}</span></div>`;
+      if ($('#a-cat').value !== 'shield') { const d = $('#a-dex').value; rows += row('Tope de DES', d === '' ? 'Sin tope' : +d === 0 ? 'Sin DES' : sign(+d)); }
+      if (+$('#a-str').value > 0) rows += row('FUE mínima', $('#a-str').value);
+      if ($('#a-stealth').checked) rows += row('Sigilo', 'Desventaja');
+    }
+    if (cat === 'weapon') {
+      const m = +$('#w-magic').value || 0;
+      stat = `<div class="stat"><span class="big num">${esc($('#w-d').value || '—')}${m ? ' ' + sign(m) : ''}</span><span>${esc($('#w-t').value)}</span></div>`;
+      if ($('#w-v').value) rows += row('Versátil', $('#w-v').value);
+      if ($('#w-rn').value) rows += row('Alcance', `${$('#w-rn').value}${$('#w-rl').value ? '/' + $('#w-rl').value : ''} pies`);
+      rows += row('Categoría', $('#w-cat').selectedOptions[0].text);
+    }
+    if ($('#i-use').value !== 'none' && +$('#i-heal').value > 0) rows += row('Cura', `${$('#i-heal').value} PG`);
+    if ($('#i-act').value.trim()) rows += row('Se activa', $('#i-act').value.trim());
+    const tags = [`<span class="chip">${esc(catName)}</span>`];
+    if (custom) tags.push('<span class="badge-prop">Propio</span>');
+    if ($('#i-attune').checked) tags.push('<span class="chip amber">Sintonización</span>');
+    if (cat === 'weapon') $('#w-p').value.split(',').map((t) => t.trim()).filter(Boolean).forEach((t) => tags.push(`<span class="chip">${esc(t)}</span>`));
+    const fx = custom ? fxList($('#fx').value) : '';
+    const text = [$('#i-desc').value.trim(), $('#i-notes').value.trim()].filter(Boolean).map((t) => `<p>${esc(t)}</p>`).join('');
+    return `<div class="sheet">
+      <div class="top"><div class="thumb"><span class="mi">${icon}</span></div><h4>${esc(name)}</h4></div>
+      <div class="tags">${tags.join('')}</div>${stat}${rows ? `<dl class="rows">${rows}</dl>` : ''}${text}
+      ${fx ? `<ul class="fxlist">${fx}</ul>` : ''}
+      ${!stat && !rows && !text && !fx ? '<span class="empty">Completa los campos y verás aquí la ficha del objeto.</span>' : ''}
+    </div>`;
+  }
+  function attackSheet(atk, dmg) {
+    const tags = $('#x-tags').value.split(',').map((t) => t.trim()).filter(Boolean).map((t) => `<span class="chip">${esc(t)}</span>`).join('');
+    const kindName = $('#x-kind [aria-pressed="true"]').textContent;
+    return `<div class="sheet">
+      <div class="top"><div class="thumb"><span class="mi">swords</span></div><h4>${esc($('#x-name').value || 'Sin nombre')}</h4></div>
+      <div class="tags"><span class="chip">${esc(kindName)}</span></div>
+      <div class="stat" style="gap:16px"><span class="big num">${esc(atk)}</span><span>al impacto</span></div>
+      <div class="stat"><span class="big num" style="font-size:28px">${esc(dmg)}</span><span>${esc($('#x-type').value.toLowerCase())}</span></div>
+      ${tags ? `<div class="tags">${tags}</div>` : ''}</div>`;
+  }
+
+  document.addEventListener('input', update); document.addEventListener('change', update);
+  $('#save').addEventListener('click', () => { const t = $('#save-t'); t.textContent = 'Guardado'; setTimeout(() => (t.textContent = kind === 'item' ? 'Guardar objeto' : 'Guardar ataque'), 1400); });
+  syncSections(); update();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,141 @@
+---
+// src/components/ui/CustomEntryPages.astro
+// Pasos de datos de armadura, de arma y de imagen/efectos para el modal de objeto (Spec 08, Fase B).
+// Cada bloque es un `[data-page]` que muestra scripts/ui/modalSteps.ts; los lee scripts/ui/customEntry.ts.
+interface Props {
+  prefix: string;
+}
+const { prefix } = Astro.props;
+const inputCls =
+  'w-full p-2.5 rounded-lg bg-[#18202e] border border-[#222f42] text-[#f1f5f9] focus:border-amber-500 focus:outline-none';
+const lblCls = 'text-[#94a3b8] block mb-1 text-[12.5px] font-semibold';
+const hintCls = 'text-xs text-[#94a3b8] mt-1.5';
+---
+
+<section id={`${prefix}-armor-fields`} data-page="armor" class="hidden space-y-4">
+  <div>
+    <h4 class="font-headline font-semibold text-[17px] text-[#f1f5f9]">Datos de la armadura</h4>
+    <p class="text-[13px] text-[#94a3b8]">La CA se calcula con estos valores cuando la equipes.</p>
+  </div>
+  <div class="grid grid-cols-2 gap-3">
+    <div>
+      <label class={lblCls} for={`${prefix}-armor-category`}>Categoría</label>
+      <select id={`${prefix}-armor-category`} class={inputCls}>
+        <option value="light">Ligera</option>
+        <option value="medium">Media</option>
+        <option value="heavy">Pesada</option>
+        <option value="shield">Escudo</option>
+      </select>
+    </div>
+    <div>
+      <label class={lblCls} for={`${prefix}-armor-ac`}>CA base (escudo: bono)</label>
+      <input type="number" id={`${prefix}-armor-ac`} min="1" max="30" step="1" class={inputCls} />
+    </div>
+  </div>
+  <div class="grid grid-cols-3 gap-3 max-[480px]:grid-cols-2">
+    <div data-armor-only>
+      <label class={lblCls} for={`${prefix}-armor-dexcap`}>Tope de DES</label>
+      <input type="number" id={`${prefix}-armor-dexcap`} min="0" max="10" step="1" class={inputCls} />
+    </div>
+    <div>
+      <label class={lblCls} for={`${prefix}-armor-str`}>FUE mínima</label>
+      <input type="number" id={`${prefix}-armor-str`} min="0" max="30" step="1" class={inputCls} />
+    </div>
+    <div>
+      <label class={lblCls} for={`${prefix}-armor-bonus`}>Bono mágico</label>
+      <input type="number" id={`${prefix}-armor-bonus`} min="-5" max="10" step="1" class={inputCls} />
+    </div>
+  </div>
+  <p class={hintCls} data-armor-only>Tope de DES: vacío = sin tope, 0 = no suma DES.</p>
+  <label class="flex items-center gap-2.5 cursor-pointer">
+    <input type="checkbox" id={`${prefix}-armor-stealth`} class="w-4 h-4 rounded accent-amber-500" />
+    <span class="text-[#f1f5f9] font-bold text-[13.5px]">Desventaja en Sigilo</span>
+  </label>
+  <p id={`${prefix}-armor-error`} class="hidden text-[13px] text-rose-400"></p>
+</section>
+
+<section id={`${prefix}-weapon-fields`} data-page="weapon" class="hidden space-y-4">
+  <div>
+    <h4 class="font-headline font-semibold text-[17px] text-[#f1f5f9]">Datos del arma</h4>
+    <p class="text-[13px] text-[#94a3b8]">Se guardan en el objeto. Crear el ataque desde aquí llegará más adelante.</p>
+  </div>
+  <div class="grid grid-cols-2 gap-3">
+    <div>
+      <label class={lblCls} for={`${prefix}-weapon-category`}>Categoría</label>
+      <select id={`${prefix}-weapon-category`} class={inputCls}>
+        <option value="simple">Simple</option>
+        <option value="martial">Marcial</option>
+      </select>
+    </div>
+    <div>
+      <label class={lblCls} for={`${prefix}-weapon-bonus`}>Bono mágico</label>
+      <input type="number" id={`${prefix}-weapon-bonus`} min="-5" max="10" step="1" class={inputCls} />
+    </div>
+  </div>
+  <div class="grid grid-cols-3 gap-3 max-[480px]:grid-cols-2">
+    <div>
+      <label class={lblCls} for={`${prefix}-weapon-dice`}>Dado de daño</label>
+      <input type="text" id={`${prefix}-weapon-dice`} maxlength="7" placeholder="1d8" class={inputCls} />
+    </div>
+    <div>
+      <label class={lblCls} for={`${prefix}-weapon-type`}>Tipo de daño</label>
+      <input type="text" id={`${prefix}-weapon-type`} maxlength="30" placeholder="slashing" class={inputCls} />
+    </div>
+    <div>
+      <label class={lblCls} for={`${prefix}-weapon-versatile`}>Versátil</label>
+      <input type="text" id={`${prefix}-weapon-versatile`} maxlength="7" placeholder="1d10" class={inputCls} />
+    </div>
+  </div>
+  <div>
+    <label class={lblCls} for={`${prefix}-weapon-props`}>Propiedades</label>
+    <input type="text" id={`${prefix}-weapon-props`} maxlength="200" placeholder="finesse, light, two-handed" class={inputCls} />
+    <p class={hintCls}>Sepáralas con comas. “two-handed” ocupa las dos manos.</p>
+  </div>
+  <div class="grid grid-cols-2 gap-3">
+    <div>
+      <label class={lblCls} for={`${prefix}-weapon-range`}>Alcance normal (pies)</label>
+      <input type="number" id={`${prefix}-weapon-range`} min="1" max="1000" step="1" class={inputCls} />
+    </div>
+    <div>
+      <label class={lblCls} for={`${prefix}-weapon-range-long`}>Alcance largo (pies)</label>
+      <input type="number" id={`${prefix}-weapon-range-long`} min="1" max="2000" step="1" class={inputCls} />
+    </div>
+  </div>
+  <p id={`${prefix}-weapon-error`} class="hidden text-[13px] text-rose-400"></p>
+</section>
+
+<section id={`${prefix}-custom-fields`} data-page="custom" data-paged class="hidden space-y-4">
+  <div>
+    <h4 class="font-headline font-semibold text-[17px] text-[#f1f5f9]">Imagen y efectos</h4>
+    <p class="text-[13px] text-[#94a3b8]">Los efectos se aplican solos mientras el objeto esté equipado (y sintonizado, si lo pide).</p>
+  </div>
+  <div>
+    <label class={lblCls} for={`${prefix}-image-input`}>Imagen <span class="font-normal text-[#94a3b8]">(opcional)</span></label>
+    <input type="text" id={`${prefix}-image-input`} placeholder="https://… o data:image/png;base64,…" class={inputCls} />
+  </div>
+  <div>
+    <label class={lblCls} for={`${prefix}-effects-input`}>
+      Efectos <span class="font-normal text-[#94a3b8]">(uno por línea: objetivo operación valor)</span>
+    </label>
+    <textarea
+      id={`${prefix}-effects-input`}
+      rows="4"
+      placeholder={"ac add 1\nsave.dex advantage"}
+      class={`${inputCls} font-mono text-[13px] resize-none`}
+    ></textarea>
+    <div class="flex flex-wrap gap-1.5 mt-2">
+      {[
+        ['ac add 1', '+1 a la CA'],
+        ['save.dex advantage', 'Ventaja en salvación de DES'],
+        ['speed add 10', '+10 pies de velocidad'],
+      ].map(([line, label]) => (
+        <button
+          type="button"
+          data-fx={line}
+          class="px-2.5 py-1 rounded-full text-[12.5px] font-bold bg-[#18202e] border border-[#222f42] text-[#cbd5e1] hover:border-amber-500/50 hover:text-amber-300 cursor-pointer transition-colors"
+        >{label}</button>
+      ))}
+    </div>
+    <p id={`${prefix}-effects-error`} class="hidden mt-1.5 text-[13px] text-rose-400"></p>
+  </div>
+</section>

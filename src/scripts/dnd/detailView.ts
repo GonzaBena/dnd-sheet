@@ -4,6 +4,8 @@
 import type { CatalogEntry } from '../models/catalog.ts';
 import { FEAT_TYPE_LABELS } from '../models/catalog.ts';
 import type { Modifier } from '../models/effect.ts';
+import type { ArmorData, InventoryItem, WeaponData } from '../models/character.ts';
+import { SLOT_LABELS, validSlotsFor } from './equipment.ts';
 
 export type DetailContext = 'inventory' | 'spellbook' | 'compendium' | 'loot';
 export type DetailAction =
@@ -52,6 +54,66 @@ function describeModifier(mod: Modifier): DetailField {
   return { label: mod.target, value: mod.when ? `${value} (${mod.when})` : value };
 }
 
+const ARMOR_CATEGORY_LABEL: Record<ArmorData['category'], string> = {
+  light: 'Ligera', medium: 'Media', heavy: 'Pesada', shield: 'Escudo',
+};
+const WEAPON_CATEGORY_LABEL: Record<WeaponData['category'], string> = { simple: 'Simple', martial: 'Marcial' };
+const signed = (n: number) => (n >= 0 ? `+${n}` : String(n));
+const isNum = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
+
+function armorRows(a: ArmorData | undefined): DetailField[] {
+  const rows: DetailField[] = [];
+  if (!a || typeof a !== 'object') return rows;
+  pushIf(rows, 'Categoría', ARMOR_CATEGORY_LABEL[a.category]);
+  if (isNum(a.baseAc)) {
+    const bonus = isNum(a.bonus) ? a.bonus : 0;
+    // El escudo suma su valor a la CA; el resto de armaduras fija la CA base.
+    rows.push({
+      label: a.category === 'shield' ? 'Bono de CA' : 'CA base',
+      value: a.category === 'shield' ? signed(a.baseAc + bonus) : String(a.baseAc + bonus),
+    });
+  }
+  if (a.category !== 'shield') {
+    if (a.dexCap === 0) rows.push({ label: 'Tope de DES', value: 'Sin DES' });
+    else if (a.dexCap === null) rows.push({ label: 'Tope de DES', value: 'Sin tope' });
+    else if (isNum(a.dexCap)) rows.push({ label: 'Tope de DES', value: `+${a.dexCap}` });
+  }
+  if (isNum(a.strMin) && a.strMin > 0) rows.push({ label: 'FUE mínima', value: String(a.strMin) });
+  if (a.stealthDisadv) rows.push({ label: 'Sigilo', value: 'Desventaja' });
+  return rows;
+}
+
+function weaponRows(w: WeaponData | undefined): DetailField[] {
+  const rows: DetailField[] = [];
+  if (!w || typeof w !== 'object') return rows;
+  pushIf(rows, 'Categoría', WEAPON_CATEGORY_LABEL[w.category]);
+  const bonus = isNum(w.magicBonus) && w.magicBonus !== 0 ? ` ${signed(w.magicBonus)}` : '';
+  if (has(w.damageDice)) {
+    rows.push({ label: 'Daño', value: [`${text(w.damageDice)}${bonus}`, has(w.damageType) ? text(w.damageType) : ''].filter(Boolean).join(' ') });
+  }
+  if (Array.isArray(w.properties) && w.properties.length) rows.push({ label: 'Propiedades', value: w.properties.join(', ') });
+  if (w.range && isNum(w.range.normal)) {
+    rows.push({ label: 'Alcance', value: w.range.long > w.range.normal ? `${w.range.normal}/${w.range.long} pies` : `${w.range.normal} pies` });
+  }
+  pushIf(rows, 'Versátil', w.versatileDice);
+  if (bonus) rows.push({ label: 'Bono mágico', value: signed(w.magicBonus as number) });
+  return rows;
+}
+
+function equipRows(entry: CatalogEntry): DetailField[] {
+  const m = entry.meta ?? {};
+  const rows: DetailField[] = [];
+  if (m.armor || m.weapon) {
+    const slots = validSlotsFor({
+      name: entry.name, category: m.armor ? 'armor' : 'weapon', armor: m.armor, weapon: m.weapon, hands: m.hands,
+    } as InventoryItem);
+    if (slots.length) rows.push({ label: 'Slot sugerido', value: slots.map((s) => SLOT_LABELS[s]).join(' / ') });
+  }
+  const attune = m.requiresAttunement === true || m.attunement === true;
+  if (attune) rows.push({ label: 'Sintonización', value: m.attuned === true ? 'Sintonizado' : 'Requiere sintonización' });
+  return rows;
+}
+
 /** Secciones de detalle (propiedades, efectos, requisitos…); omite las vacías. */
 export function detailSections(entry: CatalogEntry): DetailSection[] {
   const m = entry.meta ?? {};
@@ -76,6 +138,9 @@ export function detailSections(entry: CatalogEntry): DetailSection[] {
     pushIf(rows, 'Curación', m.healAmount);
     pushIf(rows, 'Uso', m.usableType);
     add('Propiedades', rows);
+    add('Armadura', armorRows(m.armor as ArmorData | undefined));
+    add('Arma', weaponRows(m.weapon as WeaponData | undefined));
+    add('Equipo', equipRows(entry));
   } else {
     const rows: DetailField[] = [];
     pushIf(rows, 'Usos', m.uses);

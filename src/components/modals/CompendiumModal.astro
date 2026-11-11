@@ -782,6 +782,10 @@
       const payload = dndApiService.toInventoryPayload(selectedItem);
       characterStore.addInventoryItem(payload as any);
       showToast(`✓ "${selectedItem.nameEs || selectedItem.name}" añadido a tu Mochila`);
+      // FB-4: una armadura del SRD sin CA base válida se guarda como objeto común.
+      if (payload.category === 'armor' && !payload.armor) {
+        showToast('Aviso: este objeto no trae datos de CA en el SRD; se guardó como objeto común.');
+      }
     } else if (activeCategory === 'feats') {
       characterStore.addFeature({
         title: selectedItem.name,

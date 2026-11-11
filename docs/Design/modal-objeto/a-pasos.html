@@ -1,0 +1,372 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>A · Pasos que aparecen según lo que activas</title>
+<link rel="stylesheet" href="_shared.css" />
+<style>
+  .stage { min-height: calc(100vh - 49px); display: grid; place-items: center; padding: 20px 16px;
+    background: radial-gradient(900px 500px at 50% 0%, rgba(245,158,11,.06), transparent 70%), var(--obsidian); }
+
+  .modal { width: 100%; max-width: 580px; height: min(660px, calc(100vh - 90px)); min-height: 520px;
+    display: flex; flex-direction: column; border-radius: 16px; background: var(--card);
+    border: 1px solid var(--line); box-shadow: 0 24px 70px rgba(0,0,0,.65); overflow: hidden; }
+
+  .head { display: flex; align-items: center; gap: 12px; padding: 16px 18px 14px; background: var(--sub); border-bottom: 1px solid var(--line); }
+  .head .ico { width: 38px; height: 38px; border-radius: 10px; display: grid; place-items: center; flex: none;
+    background: var(--amber-soft); color: var(--amber-hi); border: 1px solid var(--amber-line); }
+  .head h2 { margin: 0; font: 600 18px/1.2 var(--serif); }
+  .head p { margin: 2px 0 0; font-size: 12.5px; color: var(--muted); }
+  .head .icon-btn { margin-left: auto; }
+
+  /* Riel de pasos: el único elemento "secuencial" de la interfaz */
+  .rail { padding: 14px 18px 12px; border-bottom: 1px solid var(--line); background: var(--sunk); }
+  .rail ol { list-style: none; margin: 0; padding: 0; display: flex; align-items: flex-start; }
+  .rail li { flex: 1 1 0; min-width: 0; position: relative; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .rail li:not(:last-child)::after { content: ''; position: absolute; top: 13px; left: calc(50% + 17px); right: calc(-50% + 17px);
+    height: 2px; background: var(--line); border-radius: 2px; transition: background .3s; }
+  .rail li.done:not(:last-child)::after { background: var(--amber-line); }
+  .rail button { all: unset; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 6px; width: 100%; }
+  .rail button:focus-visible { outline: 2px solid var(--amber-hi); outline-offset: 3px; border-radius: 8px; }
+  .dot { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; font: 700 13px var(--sans);
+    background: var(--sub); border: 1.5px solid var(--line-2); color: var(--muted); transition: all .2s; }
+  .rail .done .dot { background: var(--amber-soft); border-color: var(--amber-line); color: var(--amber-hi); }
+  .rail .current .dot { background: var(--amber); border-color: var(--amber); color: #1a1204; box-shadow: 0 0 0 4px var(--amber-soft); }
+  .rail .lbl { font-size: 12.5px; font-weight: 700; color: var(--muted); text-align: center; line-height: 1.2; padding: 0 2px; }
+  .rail .current .lbl { color: var(--text); }
+  .rail li.is-new .dot { animation: arrive .9s var(--ease); }
+  @keyframes arrive { 0% { transform: scale(.4); opacity: 0; } 50% { transform: scale(1.25); box-shadow: 0 0 0 8px var(--amber-soft); } 100% { transform: scale(1); } }
+  @media (max-width: 480px) { .rail .lbl:not(.cur) { display: none; } .rail li.current .lbl { display: block; position: absolute; top: 34px; white-space: nowrap; } .rail { padding-bottom: 30px; } }
+
+  .body { flex: 1; overflow-y: auto; padding: 20px 18px; }
+  .page { animation: in-fwd .3s var(--ease); }
+  .page.back { animation-name: in-back; }
+  @keyframes in-fwd { from { opacity: 0; transform: translateX(22px); } }
+  @keyframes in-back { from { opacity: 0; transform: translateX(-22px); } }
+  .page h3 { margin: 0 0 4px; font: 600 17px/1.25 var(--serif); }
+  .page > .lead { margin: 0 0 16px; font-size: 13px; color: var(--muted); max-width: 52ch; }
+  .name-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 5px; }
+  .name-row .lbl { margin: 0; }
+  .sep { height: 1px; background: var(--line); margin: 4px 0; }
+  .effects-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .textarea.mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; }
+
+  .foot { display: flex; align-items: center; gap: 10px; padding: 12px 18px; border-top: 1px solid var(--line); background: var(--sub); }
+  .foot .live { margin-right: auto; display: flex; gap: 8px; align-items: center; min-height: 30px; }
+  .foot .live .chip { font-family: var(--serif); font-variant-numeric: tabular-nums; }
+  .foot .count { margin-right: auto; font-size: 12.5px; color: var(--muted); }
+
+  .ac-preview { display: flex; align-items: baseline; gap: 10px; padding: 12px 14px; border-radius: 12px; background: var(--amber-soft);
+    border: 1px solid var(--amber-line); }
+  .ac-preview .big { font: 600 30px/1 var(--serif); color: var(--amber-hi); }
+  .ac-preview span { color: var(--text-2); font-size: 13px; }
+</style>
+</head>
+<body>
+
+<header class="proto-bar">
+  <strong>A · Pasos</strong>
+  <a href="a-pasos.html" aria-current="page">A · Pasos</a>
+  <a href="b-ancho.html">B · Mesa ancha</a>
+  <a href="c-hoja-lateral.html">C · Hoja lateral</a>
+  <span class="spacer"></span>
+  <span>Probar:</span>
+  <div class="seg" id="kind" role="group" aria-label="Formulario">
+    <button type="button" data-k="item" aria-pressed="true">Objeto</button>
+    <button type="button" data-k="weapon" aria-pressed="false">Ataque</button>
+  </div>
+</header>
+
+<main class="stage">
+  <form class="modal" id="modal" role="dialog" aria-labelledby="title" novalidate>
+    <header class="head">
+      <div class="ico"><span class="mi" id="ico">backpack</span></div>
+      <div>
+        <h2 id="title">Añadir objeto a la mochila</h2>
+        <p id="sub">Los pasos se ajustan a lo que elijas.</p>
+      </div>
+      <button type="button" class="icon-btn" aria-label="Cerrar"><span class="mi sm">close</span></button>
+    </header>
+
+    <nav class="rail" aria-label="Pasos del formulario"><ol id="rail"></ol></nav>
+
+    <div class="body" id="body">
+
+      <!-- ===== OBJETO ===== -->
+      <section class="page" data-form="item" data-page="basic">
+        <h3>¿Qué estás guardando?</h3>
+        <p class="lead">Nombre y tipo. Si es una armadura o un arma, te pediremos sus datos en un paso aparte.</p>
+        <div class="stack">
+          <label class="field">
+            <span class="name-row"><span class="lbl">Nombre</span>
+              <button type="button" class="btn srd"><span class="mi sm">menu_book</span>Buscar en el compendio</button></span>
+            <input class="input" id="i-name" placeholder="Cota de malla, Poción de curación, Reliquia…" autocomplete="off" />
+          </label>
+          <div class="grid2">
+            <label class="field"><span class="lbl">Categoría</span>
+              <select class="select" id="i-cat">
+                <option value="gear">Equipo de aventura</option>
+                <option value="potion">Poción o consumible</option>
+                <option value="treasure">Tesoro o joya</option>
+                <option value="weapon">Arma o munición</option>
+                <option value="armor">Armadura o escudo</option>
+              </select></label>
+            <label class="field"><span class="lbl">Cantidad</span><input class="input num" type="number" value="1" min="1" max="999" /></label>
+          </div>
+          <div class="sep"></div>
+          <label class="switch"><input type="checkbox" id="i-attune" /><span class="track"></span>
+            <span class="txt"><b>Requiere sintonización</b><small>Solo aplica sus efectos si está equipado y sintonizado.</small></span></label>
+          <label class="switch"><input type="checkbox" id="i-custom" /><span class="track"></span>
+            <span class="txt"><b>Entrada propia</b><small>Añade imagen y efectos, y lo marca como “Propio”. Suma un paso.</small></span></label>
+        </div>
+      </section>
+
+      <section class="page" data-form="item" data-page="use">
+        <h3>Cómo se usa</h3>
+        <p class="lead">Todo es opcional. Lo que escribas aparece en la ficha del objeto.</p>
+        <div class="stack">
+          <div class="grid2 wrap-sm">
+            <label class="field"><span class="lbl">Tipo de uso</span>
+              <select class="select"><option>Normal (equipo o tesoro)</option><option>Bebible (poción, elixir)</option><option>Comestible (raciones, baya)</option><option>Usable (varita, pergamino)</option></select></label>
+            <label class="field"><span class="lbl">Cura (PG)</span><input class="input num" type="number" min="0" value="0" /></label>
+          </div>
+          <label class="field"><span class="lbl">Cuándo se activa</span><input class="input" placeholder="1 vez por descanso largo, acción adicional…" /></label>
+          <label class="field"><span class="lbl">Descripción breve</span><input class="input" placeholder="Ilumina 20 pies; no se apaga con agua." /></label>
+          <label class="field"><span class="lbl">Notas y efectos especiales</span><textarea class="textarea" rows="3" placeholder="Resistencia al frío. Al romperse libera una nube de humo de 10 pies."></textarea></label>
+        </div>
+      </section>
+
+      <section class="page" data-form="item" data-page="armor">
+        <h3>Datos de la armadura</h3>
+        <p class="lead">La CA se calcula con estos valores cuando la equipes.</p>
+        <div class="stack">
+          <div class="grid2">
+            <label class="field"><span class="lbl">Categoría</span>
+              <select class="select" id="a-cat"><option value="light">Ligera</option><option value="medium">Media</option><option value="heavy" selected>Pesada</option><option value="shield">Escudo</option></select></label>
+            <label class="field"><span class="lbl" id="a-ac-lbl">CA base</span><input class="input num" id="a-ac" type="number" min="1" max="30" value="16" /></label>
+          </div>
+          <div class="grid3">
+            <label class="field" id="a-dex-f"><span class="lbl">Tope de DES</span><input class="input num" id="a-dex" type="number" min="0" max="10" value="0" /></label>
+            <label class="field"><span class="lbl">FUE mínima</span><input class="input num" type="number" min="0" max="30" value="13" /></label>
+            <label class="field"><span class="lbl">Bono mágico</span><input class="input num" id="a-bonus" type="number" min="-5" max="10" value="0" /></label>
+          </div>
+          <p class="hint" id="a-dex-h">Tope de DES: vacío = sin tope, 0 = no suma DES.</p>
+          <label class="switch"><input type="checkbox" checked /><span class="track"></span><span class="txt"><b>Desventaja en Sigilo</b></span></label>
+          <div class="ac-preview" aria-live="polite"><span class="big num" id="a-total">16</span><span id="a-total-t">de CA con DES +2</span></div>
+        </div>
+      </section>
+
+      <section class="page" data-form="item" data-page="weapon">
+        <h3>Datos del arma</h3>
+        <p class="lead">Se guardan en el objeto. Crear el ataque desde aquí llegará más adelante.</p>
+        <div class="stack">
+          <div class="grid2">
+            <label class="field"><span class="lbl">Categoría</span><select class="select"><option>Simple</option><option selected>Marcial</option></select></label>
+            <label class="field"><span class="lbl">Bono mágico</span><input class="input num" type="number" min="-5" max="10" value="0" /></label>
+          </div>
+          <div class="grid3">
+            <label class="field"><span class="lbl">Dado</span><input class="input" value="1d8" maxlength="7" /></label>
+            <label class="field"><span class="lbl">Tipo de daño</span><input class="input" value="cortante" /></label>
+            <label class="field"><span class="lbl">Versátil</span><input class="input" value="1d10" maxlength="7" /></label>
+          </div>
+          <label class="field"><span class="lbl">Propiedades</span><input class="input" value="versátil" placeholder="sutil, ligera, a dos manos…" />
+            <p class="hint">Sepáralas con comas. “A dos manos” ocupa ambas manos.</p></label>
+          <div class="grid2"><label class="field"><span class="lbl">Alcance normal (pies)</span><input class="input num" type="number" placeholder="5" /></label>
+            <label class="field"><span class="lbl">Alcance largo (pies)</span><input class="input num" type="number" placeholder="—" /></label></div>
+        </div>
+      </section>
+
+      <section class="page" data-form="item" data-page="custom">
+        <h3>Imagen y efectos</h3>
+        <p class="lead">Los efectos se aplican solos mientras el objeto esté equipado (y sintonizado, si lo pide).</p>
+        <div class="stack">
+          <label class="field"><span class="lbl">Imagen<span class="opt">opcional</span></span><input class="input" placeholder="https://… o data:image/png;base64,…" /></label>
+          <label class="field"><span class="lbl">Efectos<span class="opt">uno por línea: objetivo operación valor</span></span>
+            <textarea class="textarea mono" id="fx" rows="4" placeholder="ac add 1&#10;save.dex advantage"></textarea>
+            <span class="effects-chips" id="fx-chips">
+              <button type="button" class="chip" data-fx="ac add 1">+1 a la CA</button>
+              <button type="button" class="chip" data-fx="save.dex advantage">Ventaja en salvación de DES</button>
+              <button type="button" class="chip" data-fx="speed add 10">+10 pies de velocidad</button>
+            </span></label>
+        </div>
+      </section>
+
+      <!-- ===== ATAQUE ===== -->
+      <section class="page" data-form="weapon" data-page="atk">
+        <h3>¿Con qué atacas?</h3>
+        <p class="lead">Nombre y tipo de daño. Los números vienen después.</p>
+        <div class="stack">
+          <label class="field"><span class="name-row"><span class="lbl">Nombre</span>
+            <button type="button" class="btn srd"><span class="mi sm">menu_book</span>Buscar arma en el SRD</button></span>
+            <input class="input" placeholder="Arco largo élfico, Espada corta de plata…" /></label>
+          <div class="field"><span class="lbl">Tipo de ataque</span>
+            <div class="seg full" id="w-kind"><button type="button" aria-pressed="true">Cuerpo a cuerpo</button><button type="button" aria-pressed="false">A distancia</button><button type="button" aria-pressed="false">Mágico</button></div></div>
+          <label class="field"><span class="lbl">Tipo de daño</span>
+            <select class="select"><option>Perforante</option><option selected>Cortante</option><option>Contundente</option><option>Fuego</option><option>Frío</option><option>Veneno</option><option>Radiante</option><option>Necrótico</option><option>Fuerza</option><option>Psíquico</option><option>Ácido</option><option>Trueno</option></select></label>
+          <div class="sep"></div>
+          <div class="field"><span class="lbl">Modificadores</span>
+            <div class="seg full" id="mode"><button type="button" data-m="auto" aria-pressed="true">Automático 5e</button><button type="button" data-m="manual" aria-pressed="false">Manual</button></div>
+            <p class="hint" id="mode-h">Calcula el impacto y el daño con tus atributos. Suma un paso para los bonos.</p></div>
+        </div>
+      </section>
+
+      <section class="page" data-form="weapon" data-page="calc">
+        <h3>Cálculo con tus atributos</h3>
+        <p class="lead">Usamos tu ficha: bono de competencia +3.</p>
+        <div class="stack">
+          <div class="grid2">
+            <label class="field"><span class="lbl">Atributo base</span>
+              <select class="select" id="w-abil"><option value="3">Destreza (+3)</option><option value="1">Fuerza (+1)</option><option value="2">Carisma (+2)</option><option value="0">Sabiduría (+0)</option><option value="0">Inteligencia (+0)</option><option value="1">Constitución (+1)</option><option value="0">Sin atributo</option></select></label>
+            <label class="field"><span class="lbl">Dado base</span>
+              <select class="select" id="w-dice"><option>1d4</option><option>1d6</option><option selected>1d8</option><option>1d10</option><option>1d12</option><option>2d6</option></select></label>
+          </div>
+          <label class="switch"><input type="checkbox" id="w-prof" checked /><span class="track"></span><span class="txt"><b>Competente con el arma</b><small>Suma tu bono de competencia al impacto.</small></span></label>
+          <label class="switch"><input type="checkbox" id="w-adddmg" checked /><span class="track"></span><span class="txt"><b>Sumar el atributo al daño</b></span></label>
+        </div>
+      </section>
+
+      <section class="page" data-form="weapon" data-page="bonus">
+        <h3>Bonos mágicos</h3>
+        <p class="lead">Déjalos en 0 si el arma no es mágica.</p>
+        <div class="stack">
+          <div class="grid2">
+            <label class="field"><span class="lbl">Extra al impacto</span><input class="input num" id="w-ba" type="number" value="0" /></label>
+            <label class="field"><span class="lbl">Extra al daño</span><input class="input num" id="w-bd" type="number" value="0" /></label>
+          </div>
+          <div class="ac-preview" aria-live="polite"><span class="big num" id="w-prev-a">+6</span><span>al impacto, y</span><span class="big num" id="w-prev-d">1d8+3</span><span>de daño</span></div>
+        </div>
+      </section>
+
+      <section class="page" data-form="weapon" data-page="manual">
+        <h3>Fórmulas a mano</h3>
+        <p class="lead">Se guardan tal cual las escribas, sin recalcular con tu ficha.</p>
+        <div class="stack">
+          <label class="field"><span class="lbl">Bono al impacto</span><input class="input" value="+6" /></label>
+          <label class="field"><span class="lbl">Fórmula de daño</span><input class="input" value="1d8 + 3" /></label>
+        </div>
+      </section>
+
+      <section class="page" data-form="weapon" data-page="tags">
+        <h3>Etiquetas y notas</h3>
+        <p class="lead">Aparecen en la tarjeta del ataque.</p>
+        <div class="stack">
+          <label class="field"><span class="lbl">Propiedades<span class="opt">separadas por comas</span></span><input class="input" value="Sutil, Ligera" /></label>
+          <label class="field"><span class="lbl">Notas<span class="opt">opcional</span></span><textarea class="textarea" rows="4" placeholder="1d6 de fuego extra contra no-muertos. Crítico con 19–20."></textarea></label>
+        </div>
+      </section>
+    </div>
+
+    <footer class="foot">
+      <div class="count" id="count"></div>
+      <div class="live hidden" id="live"><span class="chip amber" id="live-a">+6 al impacto</span><span class="chip" id="live-d">1d8 + 3</span></div>
+      <button type="button" class="btn ghost" id="back"><span class="mi sm">arrow_back</span>Atrás</button>
+      <button type="button" class="btn primary" id="next">Siguiente<span class="mi sm">arrow_forward</span></button>
+    </footer>
+  </form>
+</main>
+
+<script>
+(() => {
+  const $ = (s, r = document) => r.querySelector(s);
+  const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+  const LABELS = { basic: 'Lo básico', use: 'Uso', armor: 'Armadura', weapon: 'Arma', custom: 'Imagen y efectos',
+    atk: 'Ataque', calc: 'Cálculo', bonus: 'Bonos', manual: 'Fórmulas', tags: 'Etiquetas' };
+  const st = { kind: 'item', page: 'basic', mode: 'auto', prevIds: [] };
+
+  const pages = () => {
+    if (st.kind === 'item') {
+      const cat = $('#i-cat').value;
+      return ['basic', 'use', cat === 'armor' ? 'armor' : cat === 'weapon' ? 'weapon' : null, $('#i-custom').checked ? 'custom' : null].filter(Boolean);
+    }
+    return st.mode === 'auto' ? ['atk', 'calc', 'bonus', 'tags'] : ['atk', 'manual', 'tags'];
+  };
+
+  function render(dir = 'fwd') {
+    const list = pages();
+    if (!list.includes(st.page)) st.page = list[0];
+    const idx = list.indexOf(st.page);
+    const fresh = list.filter((id) => !st.prevIds.includes(id) && st.prevIds.length);
+    st.prevIds = list;
+
+    $('#rail').innerHTML = list.map((id, i) => `
+      <li class="${i < idx ? 'done' : ''} ${i === idx ? 'current' : ''} ${fresh.includes(id) ? 'is-new' : ''}">
+        <button type="button" data-go="${id}" ${i === idx ? 'aria-current="step"' : ''}>
+          <span class="dot">${i < idx ? '<span class="mi sm" style="font-size:16px">check</span>' : i + 1}</span>
+          <span class="lbl ${i === idx ? 'cur' : ''}">${LABELS[id]}</span>
+        </button></li>`).join('');
+
+    $$('.page').forEach((p) => {
+      const on = p.dataset.form === st.kind && p.dataset.page === st.page;
+      p.classList.toggle('hidden', !on);
+      if (on) { p.classList.toggle('back', dir === 'back'); p.style.animation = 'none'; p.offsetHeight; p.style.animation = ''; }
+    });
+    const last = idx === list.length - 1;
+    $('#back').style.visibility = idx === 0 ? 'hidden' : 'visible';
+    $('#next').innerHTML = last ? `<span class="mi sm">check</span>${st.kind === 'item' ? 'Guardar objeto' : 'Guardar ataque'}`
+                                : 'Siguiente<span class="mi sm">arrow_forward</span>';
+    $('#count').textContent = `Paso ${idx + 1} de ${list.length}`;
+    $('#count').classList.toggle('hidden', st.kind === 'weapon');
+    $('#live').classList.toggle('hidden', st.kind !== 'weapon' || st.mode === 'manual');
+    $('#body').scrollTop = 0;
+    calc();
+  }
+
+  function go(delta) {
+    const list = pages(); const i = list.indexOf(st.page);
+    const n = i + delta; if (n < 0 || n >= list.length) return;
+    st.page = list[n]; render(delta < 0 ? 'back' : 'fwd');
+  }
+  $('#next').addEventListener('click', () => {
+    const l = pages();
+    if (l.indexOf(st.page) !== l.length - 1) return go(1);
+    const old = $('#next').innerHTML; $('#next').textContent = 'Guardado'; setTimeout(() => ($('#next').innerHTML = old), 1400);
+  });
+  $('#back').addEventListener('click', () => go(-1));
+  $('#rail').addEventListener('click', (e) => { const b = e.target.closest('[data-go]'); if (b) { const l = pages(); const to = b.dataset.go; render(l.indexOf(to) < l.indexOf(st.page) ? 'back' : 'fwd', (st.page = to)); } });
+
+  // Objeto ↔ Ataque
+  $$('#kind button').forEach((b) => b.addEventListener('click', () => {
+    st.kind = b.dataset.k; st.page = st.kind === 'item' ? 'basic' : 'atk'; st.prevIds = [];
+    $$('#kind button').forEach((x) => x.setAttribute('aria-pressed', x === b));
+    $('#title').textContent = st.kind === 'item' ? 'Añadir objeto a la mochila' : 'Añadir ataque';
+    $('#sub').textContent = st.kind === 'item' ? 'Los pasos se ajustan a lo que elijas.' : 'Automático o manual: el modo cambia los pasos.';
+    $('#ico').textContent = st.kind === 'item' ? 'backpack' : 'swords';
+    render();
+  }));
+  ['#i-cat', '#i-custom'].forEach((s) => $(s).addEventListener('change', () => render()));
+
+  // Modo de modificadores
+  $$('#mode button').forEach((b) => b.addEventListener('click', () => {
+    st.mode = b.dataset.m; $$('#mode button').forEach((x) => x.setAttribute('aria-pressed', x === b));
+    $('#mode-h').textContent = st.mode === 'auto' ? 'Calcula el impacto y el daño con tus atributos. Suma un paso para los bonos.' : 'Escribes el bono y la fórmula tal cual. Un paso menos.';
+    render();
+  }));
+  $$('#w-kind button').forEach((b) => b.addEventListener('click', () => $$('#w-kind button').forEach((x) => x.setAttribute('aria-pressed', x === b))));
+
+  // Efectos rápidos
+  $('#fx-chips').addEventListener('click', (e) => { const c = e.target.closest('[data-fx]'); if (!c) return;
+    const t = $('#fx'); t.value = (t.value.trim() ? t.value.trim() + '\n' : '') + c.dataset.fx; t.focus(); });
+
+  // Cálculos en vivo
+  const sign = (n) => (n >= 0 ? '+' : '') + n;
+  function calc() {
+    const cat = $('#a-cat').value, ac = +$('#a-ac').value || 0, dex = $('#a-dex').value, bonus = +$('#a-bonus').value || 0;
+    $('#a-dex-f').classList.toggle('hidden', cat === 'shield');
+    $('#a-ac-lbl').textContent = cat === 'shield' ? 'Bono de CA' : 'CA base';
+    const des = 2; const eff = cat === 'shield' ? 0 : dex === '' ? des : Math.min(des, +dex);
+    $('#a-total').textContent = cat === 'shield' ? sign(ac + bonus) : ac + bonus + eff;
+    $('#a-total-t').textContent = cat === 'shield' ? 'a tu CA al equiparlo' : `de CA con DES ${sign(des)}${dex !== '' && +dex < des ? `, topado en ${sign(+dex)}` : ''}`;
+    $('#a-dex-h').classList.toggle('hidden', cat === 'shield');
+    const mod = +$('#w-abil').value, prof = $('#w-prof').checked ? 3 : 0, ba = +$('#w-ba').value || 0, bd = +$('#w-bd').value || 0;
+    const a = sign(mod + prof + ba) + ' al impacto';
+    const d = `${$('#w-dice').value}${sign((($('#w-adddmg').checked ? mod : 0)) + bd).replace('+0', '').replace('-0', '')}`;
+    $('#w-prev-a').textContent = sign(mod + prof + ba); $('#w-prev-d').textContent = d;
+    $('#live-a').textContent = a; $('#live-d').textContent = d.replace(/([+-])/, ' $1 ');
+  }
+  document.addEventListener('input', calc); document.addEventListener('change', calc);
+  render();
+})();
+</script>
+</body>
+</html>

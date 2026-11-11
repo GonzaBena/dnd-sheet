@@ -1,0 +1,290 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>C · Hoja lateral: elige el tipo primero</title>
+<link rel="stylesheet" href="_shared.css" />
+<style>
+  body { overflow: hidden; }
+  /* Mochila de fondo: se queda visible para que sepas dónde caerá el objeto */
+  .bag { height: calc(100vh - 49px); padding: 22px 28px; overflow: hidden; }
+  .bag h1 { margin: 0 0 4px; font: 600 24px var(--serif); }
+  .bag > p { margin: 0 0 18px; color: var(--muted); font-size: 13px; }
+  .bag-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 12px; }
+  .bag-item { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px; display: flex; gap: 12px; align-items: center; }
+  .bag-item .mi { color: var(--amber-hi); }
+  .bag-item b { display: block; font-size: 14px; } .bag-item small { color: var(--muted); font-size: 12.5px; }
+  .bag-item.new { border-color: var(--amber-line); border-style: dashed; background: var(--amber-soft); }
+
+  .scrim { position: fixed; inset: 49px 0 0 0; background: rgba(5, 7, 10, .55); }
+  .drawer { position: fixed; top: 49px; right: 0; bottom: 0; width: 500px; max-width: 100%; display: flex; flex-direction: column;
+    background: var(--card); border-left: 1px solid var(--line-2); box-shadow: -24px 0 60px rgba(0,0,0,.5);
+    animation: slide-in .42s var(--ease); }
+  @keyframes slide-in { from { transform: translateX(40px); opacity: 0; } }
+
+  .grab { display: none; width: 40px; height: 4px; border-radius: 4px; background: var(--line-2); margin: 8px auto 0; }
+  .bar { display: flex; align-items: center; gap: 8px; padding: 14px 18px 0; }
+  .bar .where { font-size: 13px; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+  .bar .spacer { flex: 1; }
+  .scroll { flex: 1; overflow-y: auto; padding: 8px 18px 20px; }
+
+  .name { width: 100%; border: 0; border-bottom: 2px solid var(--line); background: transparent; padding: 8px 0 8px;
+    font: 600 26px/1.2 var(--serif); color: var(--text); transition: border-color .2s; border-radius: 0; }
+  .name::placeholder { color: var(--faint); font-style: italic; font-weight: 400; }
+  .name:focus { outline: none; border-color: var(--amber); }
+  .name:focus-visible { outline: none; }
+
+  .sect-t { margin: 20px 0 8px; font-size: 13px; font-weight: 800; color: var(--text-2); }
+  .types { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .type { position: relative; }
+  .type input { position: absolute; opacity: 0; inset: 0; cursor: pointer; margin: 0; }
+  .type .tile { display: grid; gap: 3px; justify-items: start; padding: 11px 12px; border-radius: 12px; background: var(--sub);
+    border: 1px solid var(--line); transition: border-color .15s, background .15s, transform .15s var(--ease); min-height: 76px; }
+  .type .tile .mi { color: var(--muted); transition: color .15s; }
+  .type .tile b { font-size: 14px; }
+  .type .tile small { font-size: 12px; color: var(--muted); line-height: 1.25; }
+  .type:hover .tile { border-color: var(--line-2); }
+  .type input:checked + .tile { border-color: var(--amber); background: var(--amber-soft); }
+  .type input:checked + .tile .mi { color: var(--amber-hi); }
+  .type input:focus-visible + .tile { outline: 2px solid var(--amber-hi); outline-offset: 2px; }
+
+  .pane { display: grid; gap: 14px; animation: pane-in .26s var(--ease); }
+  @keyframes pane-in { from { opacity: 0; transform: translateY(6px); } }
+
+  /* Contador con − y + */
+  .stepper { display: flex; align-items: stretch; border-radius: 8px; border: 1px solid var(--line); background: var(--sub); overflow: hidden; }
+  .stepper:focus-within { border-color: var(--amber); }
+  .stepper button { width: 38px; border: 0; background: transparent; color: var(--muted); font-size: 18px; font-weight: 700; }
+  .stepper button:hover { background: var(--card); color: var(--amber-hi); }
+  .stepper input { flex: 1; min-width: 0; border: 0; background: transparent; text-align: center; font-weight: 700; padding: 9px 0; -moz-appearance: textfield; }
+  .stepper input::-webkit-outer-spin-button, .stepper input::-webkit-inner-spin-button { -webkit-appearance: none; }
+  .stepper input:focus { outline: none; }
+
+  .result { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 18px; padding: 14px 16px; border-radius: 14px; background: var(--amber-soft); border: 1px solid var(--amber-line); }
+  .result .big { font: 600 34px/1 var(--serif); color: var(--amber-hi); }
+  .result span { font-size: 13px; color: var(--text-2); }
+
+  .more { margin-top: 18px; border-top: 1px solid var(--line); }
+  .more > button { all: unset; box-sizing: border-box; width: 100%; display: flex; align-items: center; gap: 8px; padding: 14px 0; cursor: pointer; font-weight: 800; font-size: 13.5px; color: var(--text-2); }
+  .more > button:focus-visible { outline: 2px solid var(--amber-hi); outline-offset: 2px; border-radius: 6px; }
+  .more > button .mi { transition: transform .2s; margin-left: auto; color: var(--muted); }
+  .more > button[aria-expanded='true'] .mi { transform: rotate(180deg); }
+  .more .in { display: grid; gap: 14px; padding-bottom: 6px; animation: pane-in .26s var(--ease); }
+  .off { opacity: .45; pointer-events: none; }
+  .effects-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .textarea.mono { font-family: ui-monospace, Menlo, monospace; font-size: 13px; }
+  .name-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 5px; }
+
+  .foot { display: flex; align-items: center; gap: 12px; padding: 12px 18px calc(12px + env(safe-area-inset-bottom)); border-top: 1px solid var(--line); background: var(--sub); }
+  .foot .line { flex: 1; min-width: 0; font-size: 13px; color: var(--muted); line-height: 1.3; }
+  .foot .line b { color: var(--text); font-family: var(--serif); font-weight: 600; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  /* Hoja inferior en móvil */
+  @media (max-width: 640px) {
+    .bag { padding: 16px; }
+    .drawer { top: auto; height: 92vh; width: 100%; border-left: 0; border-top: 1px solid var(--line-2); border-radius: 20px 20px 0 0; animation-name: rise; }
+    @keyframes rise { from { transform: translateY(40px); opacity: 0; } }
+    .grab { display: block; }
+    .scrim { inset: 0; }
+    .types { grid-template-columns: repeat(2, 1fr); }
+    .name { font-size: 23px; }
+  }
+</style>
+</head>
+<body>
+
+<header class="proto-bar" style="position:relative;z-index:5">
+  <strong>C · Hoja lateral</strong>
+  <a href="a-pasos.html">A · Pasos</a>
+  <a href="b-ancho.html">B · Mesa ancha</a>
+  <a href="c-hoja-lateral.html" aria-current="page">C · Hoja lateral</a>
+  <span class="spacer"></span>
+  <span>Elige un tipo y prueba “Más opciones”.</span>
+</header>
+
+<section class="bag" aria-hidden="true">
+  <h1>Mochila</h1><p>8 objetos · 42 lb</p>
+  <div class="bag-grid">
+    <div class="bag-item new"><span class="mi">add_circle</span><div><b>Nuevo objeto</b><small>Se añadirá aquí</small></div></div>
+    <div class="bag-item"><span class="mi">science</span><div><b>Poción de curación</b><small>×3 · cura 7 PG</small></div></div>
+    <div class="bag-item"><span class="mi">shield</span><div><b>Escudo</b><small>Equipado · +2 CA</small></div></div>
+    <div class="bag-item"><span class="mi">swords</span><div><b>Espada larga</b><small>1d8 cortante</small></div></div>
+    <div class="bag-item"><span class="mi">inventory_2</span><div><b>Raciones</b><small>×6</small></div></div>
+    <div class="bag-item"><span class="mi">diamond</span><div><b>Rubí pequeño</b><small>Tesoro</small></div></div>
+    <div class="bag-item"><span class="mi">inventory_2</span><div><b>Cuerda de cáñamo</b><small>50 pies</small></div></div>
+    <div class="bag-item"><span class="mi">bolt</span><div><b>Varita de proyectiles</b><small>Sintonizada</small></div></div>
+  </div>
+</section>
+
+<div class="scrim"></div>
+
+<form class="drawer" id="drawer" role="dialog" aria-labelledby="dt" novalidate>
+  <div class="grab"></div>
+  <div class="bar">
+    <span class="where" id="dt"><span class="mi sm">backpack</span>Añadir a la mochila</span>
+    <span class="spacer"></span>
+    <button type="button" class="btn srd"><span class="mi sm">menu_book</span>Compendio</button>
+    <button type="button" class="icon-btn" aria-label="Cerrar"><span class="mi sm">close</span></button>
+  </div>
+
+  <div class="scroll">
+    <label class="sr" for="name">Nombre</label>
+    <input class="name" id="name" placeholder="¿Cómo se llama?" autocomplete="off" value="Cota de malla" />
+
+    <fieldset style="border:0;padding:0;margin:0;min-width:0">
+      <legend class="sect-t" style="padding:0">Tipo</legend>
+      <div class="types" id="types">
+        <label class="type"><input type="radio" name="t" value="gear" /><span class="tile"><span class="mi">inventory_2</span><b>Equipo</b><small>Herramientas, viaje</small></span></label>
+        <label class="type"><input type="radio" name="t" value="potion" /><span class="tile"><span class="mi">science</span><b>Poción</b><small>Se consume</small></span></label>
+        <label class="type"><input type="radio" name="t" value="treasure" /><span class="tile"><span class="mi">diamond</span><b>Tesoro</b><small>Joyas, arte</small></span></label>
+        <label class="type"><input type="radio" name="t" value="armor" checked /><span class="tile"><span class="mi">shield</span><b>Armadura</b><small>O escudo</small></span></label>
+        <label class="type"><input type="radio" name="t" value="weapon" /><span class="tile"><span class="mi">swords</span><b>Arma</b><small>Objeto con daño</small></span></label>
+        <label class="type"><input type="radio" name="t" value="attack" /><span class="tile"><span class="mi">target</span><b>Ataque</b><small>Acción con cálculo</small></span></label>
+      </div>
+    </fieldset>
+
+    <h3 class="sect-t" id="pane-t">Detalles</h3>
+    <div id="panes">
+
+      <div class="pane" data-pane="gear">
+        <div class="grid2 wrap-sm"><label class="field"><span class="lbl">Cantidad</span><div class="stepper" data-step><button type="button" data-d="-1" aria-label="Menos">−</button><input class="num" type="number" value="1" min="1" max="999" /><button type="button" data-d="1" aria-label="Más">+</button></div></label>
+          <label class="field"><span class="lbl">Cuándo se activa<span class="opt">opcional</span></span><input class="input" placeholder="1 vez por descanso largo" /></label></div>
+        <label class="field"><span class="lbl">Descripción breve</span><input class="input" placeholder="Ilumina 20 pies; no se apaga con agua." /></label>
+      </div>
+
+      <div class="pane" data-pane="potion">
+        <div class="field"><span class="lbl">Cómo se usa</span><div class="seg full"><button type="button" aria-pressed="true">Bebible</button><button type="button" aria-pressed="false">Comestible</button><button type="button" aria-pressed="false">Usable</button></div></div>
+        <div class="grid2"><label class="field"><span class="lbl">Cantidad</span><div class="stepper" data-step><button type="button" data-d="-1" aria-label="Menos">−</button><input class="num" type="number" value="1" min="1" max="999" /><button type="button" data-d="1" aria-label="Más">+</button></div></label>
+          <label class="field"><span class="lbl">Cura (PG)</span><div class="stepper" data-step><button type="button" data-d="-1" aria-label="Menos">−</button><input class="num" id="heal" type="number" value="7" min="0" /><button type="button" data-d="1" aria-label="Más">+</button></div></label></div>
+        <label class="field"><span class="lbl">Descripción breve</span><input class="input" placeholder="Brilla en rojo al agitarla." /></label>
+      </div>
+
+      <div class="pane" data-pane="treasure">
+        <label class="field"><span class="lbl">Cantidad</span><div class="stepper" data-step style="max-width:200px"><button type="button" data-d="-1" aria-label="Menos">−</button><input class="num" type="number" value="1" min="1" max="999" /><button type="button" data-d="1" aria-label="Más">+</button></div></label>
+        <label class="field"><span class="lbl">Descripción breve</span><input class="input" placeholder="Rubí del tamaño de una uña, valor 50 po." /></label>
+      </div>
+
+      <div class="pane" data-pane="armor">
+        <div class="field"><span class="lbl">Categoría</span><div class="seg full" id="a-cat"><button type="button" data-v="light" aria-pressed="false">Ligera</button><button type="button" data-v="medium" aria-pressed="false">Media</button><button type="button" data-v="heavy" aria-pressed="true">Pesada</button><button type="button" data-v="shield" aria-pressed="false">Escudo</button></div></div>
+        <div class="grid3">
+          <label class="field"><span class="lbl" id="a-ac-l">CA base</span><div class="stepper" data-step><button type="button" data-d="-1" aria-label="Menos">−</button><input class="num" id="a-ac" type="number" value="16" min="1" max="30" /><button type="button" data-d="1" aria-label="Más">+</button></div></label>
+          <label class="field"><span class="lbl">Bono mágico</span><div class="stepper" data-step><button type="button" data-d="-1" aria-label="Menos">−</button><input class="num" id="a-bonus" type="number" value="0" min="-5" max="10" /><button type="button" data-d="1" aria-label="Más">+</button></div></label>
+          <label class="field"><span class="lbl">FUE mínima</span><div class="stepper" data-step><button type="button" data-d="-1" aria-label="Menos">−</button><input class="num" id="a-str" type="number" value="13" min="0" max="30" /><button type="button" data-d="1" aria-label="Más">+</button></div></label>
+        </div>
+        <div class="grid2 wrap-sm" id="a-dex-w"><label class="field"><span class="lbl">Tope de DES</span><input class="input num" id="a-dex" type="number" min="0" max="10" value="0" /><p class="hint">Vacío = sin tope. 0 = no suma DES.</p></label>
+          <label class="switch" style="align-self:center"><input type="checkbox" id="a-stealth" checked /><span class="track"></span><span class="txt"><b>Desventaja en Sigilo</b></span></label></div>
+        <div class="result" aria-live="polite"><span class="big num" id="a-res">16</span><span id="a-res-t">de CA con DES +2</span></div>
+      </div>
+
+      <div class="pane" data-pane="weapon">
+        <div class="grid2"><div class="field"><span class="lbl">Categoría</span><div class="seg full"><button type="button" aria-pressed="false">Simple</button><button type="button" aria-pressed="true">Marcial</button></div></div>
+          <label class="field"><span class="lbl">Bono mágico</span><div class="stepper" data-step><button type="button" data-d="-1" aria-label="Menos">−</button><input class="num" id="w-magic" type="number" value="0" min="-5" max="10" /><button type="button" data-d="1" aria-label="Más">+</button></div></label></div>
+        <div class="grid3"><label class="field"><span class="lbl">Dado</span><input class="input" id="w-d" value="1d8" maxlength="7" /></label><label class="field"><span class="lbl">Tipo de daño</span><input class="input" id="w-t" value="cortante" /></label><label class="field"><span class="lbl">Versátil</span><input class="input" value="1d10" maxlength="7" /></label></div>
+        <label class="field"><span class="lbl">Propiedades</span><input class="input" id="w-p" value="versátil" placeholder="sutil, ligera, a dos manos…" /></label>
+        <div class="grid2"><label class="field"><span class="lbl">Alcance normal</span><input class="input num" type="number" placeholder="5 pies" /></label><label class="field"><span class="lbl">Alcance largo</span><input class="input num" type="number" placeholder="—" /></label></div>
+      </div>
+
+      <div class="pane" data-pane="attack">
+        <div class="result" aria-live="polite"><span class="big num" id="k-a">+6</span><span>al impacto</span><span class="big num" id="k-d">1d8 + 3</span><span id="k-t">cortante</span></div>
+        <div class="seg full" id="mode"><button type="button" data-m="auto" aria-pressed="true">Automático 5e</button><button type="button" data-m="manual" aria-pressed="false">Manual</button></div>
+        <div class="pane" id="k-auto" style="animation:none">
+          <div class="grid2"><label class="field"><span class="lbl">Atributo</span><select class="select" id="k-abil"><option value="3">Destreza (+3)</option><option value="1">Fuerza (+1)</option><option value="2">Carisma (+2)</option><option value="0">Sin atributo</option></select></label>
+            <label class="field"><span class="lbl">Dado base</span><select class="select" id="k-dice"><option>1d4</option><option>1d6</option><option selected>1d8</option><option>1d10</option><option>1d12</option><option>2d6</option></select></label></div>
+          <div class="grid2"><label class="field"><span class="lbl">Extra al impacto</span><div class="stepper" data-step><button type="button" data-d="-1" aria-label="Menos">−</button><input class="num" id="k-ba" type="number" value="0" /><button type="button" data-d="1" aria-label="Más">+</button></div></label>
+            <label class="field"><span class="lbl">Extra al daño</span><div class="stepper" data-step><button type="button" data-d="-1" aria-label="Menos">−</button><input class="num" id="k-bd" type="number" value="0" /><button type="button" data-d="1" aria-label="Más">+</button></div></label></div>
+          <label class="switch"><input type="checkbox" id="k-prof" checked /><span class="track"></span><span class="txt"><b>Competente con el arma</b><small>Suma tu bono de competencia (+3).</small></span></label>
+          <label class="switch"><input type="checkbox" id="k-add" checked /><span class="track"></span><span class="txt"><b>Sumar el atributo al daño</b></span></label>
+        </div>
+        <div class="pane hidden" id="k-manual" style="animation:none"><label class="field"><span class="lbl">Bono al impacto</span><input class="input" id="k-mb" value="+6" /></label><label class="field"><span class="lbl">Fórmula de daño</span><input class="input" id="k-md" value="1d8 + 3" /></label></div>
+        <label class="field"><span class="lbl">Etiquetas<span class="opt">separadas por comas</span></span><input class="input" value="Sutil, Ligera" /></label>
+      </div>
+    </div>
+
+    <section class="more" id="more">
+      <button type="button" id="more-btn" aria-expanded="false" aria-controls="more-in"><span class="mi sm">tune</span>Más opciones<span class="mi sm">expand_more</span></button>
+      <div class="in hidden" id="more-in">
+        <label class="switch"><input type="checkbox" id="attune" /><span class="track"></span><span class="txt"><b>Requiere sintonización</b><small>Solo aplica sus efectos si está equipado y sintonizado.</small></span></label>
+        <label class="switch"><input type="checkbox" id="custom" /><span class="track"></span><span class="txt"><b>Entrada propia</b><small>Imagen y efectos, con la insignia “Propio”.</small></span></label>
+        <div class="in off" id="custom-f" style="display:grid;gap:14px">
+          <label class="field"><span class="lbl">Imagen<span class="opt">opcional</span></span><input class="input" placeholder="https://…" /></label>
+          <label class="field"><span class="lbl">Efectos<span class="opt">uno por línea</span></span><textarea class="textarea mono" id="fx" rows="3" placeholder="ac add 1&#10;save.dex advantage"></textarea>
+            <span class="effects-chips" id="fx-chips"><button type="button" class="chip" data-fx="ac add 1">+1 a la CA</button><button type="button" class="chip" data-fx="save.dex advantage">Ventaja en salvación de DES</button><button type="button" class="chip" data-fx="speed add 10">+10 pies de velocidad</button></span></label>
+        </div>
+        <label class="field"><span class="lbl">Notas<span class="opt">opcional</span></span><textarea class="textarea" rows="3" placeholder="Resistencia al frío. Al romperse libera una nube de humo."></textarea></label>
+      </div>
+    </section>
+  </div>
+
+  <footer class="foot">
+    <div class="line" aria-live="polite"><b id="sum-t">Cota de malla</b><span id="sum-s">Armadura pesada · CA 16</span></div>
+    <button type="button" class="btn primary" id="save"><span class="mi sm">add</span><span id="save-t">Añadir a la mochila</span></button>
+  </footer>
+</form>
+
+<script>
+(() => {
+  const $ = (s, r = document) => r.querySelector(s);
+  const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+  const sign = (n) => (n >= 0 ? '+' : '−') + Math.abs(n);
+  const ACAT = { light: 'ligera', medium: 'media', heavy: 'pesada', shield: 'escudo' };
+  const TITLES = { gear: 'Detalles del equipo', potion: 'Detalles de la poción', treasure: 'Detalles del tesoro', armor: 'Datos de la armadura', weapon: 'Datos del arma', attack: 'Cálculo del ataque' };
+  let mode = 'auto';
+  const type = () => $('input[name=t]:checked').value;
+
+  function paneFor() {
+    const t = type();
+    $$('.pane[data-pane]').forEach((p) => p.classList.toggle('hidden', p.dataset.pane !== t));
+    const p = $(`.pane[data-pane=${t}]`); p.style.animation = 'none'; p.offsetHeight; p.style.animation = '';
+    $('#pane-t').textContent = TITLES[t];
+    $('#save-t').textContent = t === 'attack' ? 'Añadir a mis ataques' : 'Añadir a la mochila';
+    $('#dt').lastChild.textContent = t === 'attack' ? 'Añadir ataque' : 'Añadir a la mochila';
+    $('#dt .mi').textContent = t === 'attack' ? 'swords' : 'backpack';
+    update();
+  }
+  $('#types').addEventListener('change', paneFor);
+
+  // Segmentados (cada grupo es independiente)
+  document.addEventListener('click', (e) => {
+    const b = e.target.closest('.seg button'); if (b) { $$('button', b.parentElement).forEach((x) => x.setAttribute('aria-pressed', x === b)); if (b.dataset.m) { mode = b.dataset.m; $('#k-auto').classList.toggle('hidden', mode !== 'auto'); $('#k-manual').classList.toggle('hidden', mode !== 'manual'); } update(); }
+    const s = e.target.closest('[data-d]'); if (s) { const i = $('input', s.parentElement); const v = (+i.value || 0) + +s.dataset.d; const lo = i.min !== '' ? +i.min : -Infinity, hi = i.max !== '' ? +i.max : Infinity; i.value = Math.min(hi, Math.max(lo, v)); update(); }
+    const c = e.target.closest('[data-fx]'); if (c) { const t = $('#fx'); t.value = (t.value.trim() ? t.value.trim() + '\n' : '') + c.dataset.fx; t.focus(); update(); }
+  });
+
+  $('#more-btn').addEventListener('click', () => { const o = $('#more-btn').getAttribute('aria-expanded') !== 'true'; $('#more-btn').setAttribute('aria-expanded', o); $('#more-in').classList.toggle('hidden', !o); if (o) $('#more-in').scrollIntoView({ behavior: 'smooth', block: 'nearest' }); });
+  $('#custom').addEventListener('change', () => { const on = $('#custom').checked; $('#custom-f').classList.toggle('off', !on); $$('#custom-f input, #custom-f textarea, #custom-f button').forEach((el) => (el.disabled = !on)); });
+  $$('#custom-f input, #custom-f textarea, #custom-f button').forEach((el) => (el.disabled = true));
+
+  function update() {
+    const t = type(), name = $('#name').value.trim() || 'Sin nombre';
+    $('#sum-t').textContent = name;
+    let s = '';
+    if (t === 'armor') {
+      const c = $('#a-cat [aria-pressed=true]').dataset.v, ac = +$('#a-ac').value || 0, b = +$('#a-bonus').value || 0, dex = $('#a-dex').value, des = 2;
+      const sh = c === 'shield';
+      $('#a-dex-w').querySelector('label.field').classList.toggle('hidden', sh); $('#a-ac-l').textContent = sh ? 'Bono de CA' : 'CA base';
+      const eff = sh ? 0 : dex === '' ? des : Math.min(des, +dex);
+      $('#a-res').textContent = sh ? sign(ac + b) : ac + b + eff;
+      $('#a-res-t').textContent = sh ? 'a tu CA al equiparlo' : `de CA con DES ${sign(des)}${dex !== '' && +dex < des ? ` (topado en ${sign(+dex)})` : ''}`;
+      s = `Armadura ${ACAT[c]} · ${sh ? sign(ac + b) + ' CA' : 'CA ' + (ac + b + eff)}${$('#a-stealth').checked && !sh ? ' · Sigilo con desventaja' : ''}`;
+    } else if (t === 'weapon') {
+      const m = +$('#w-magic').value || 0; s = `Arma · ${$('#w-d').value} ${$('#w-t').value}${m ? ' ' + sign(m) : ''}`;
+    } else if (t === 'attack') {
+      const mod = +$('#k-abil').value, prof = $('#k-prof').checked ? 3 : 0, ba = +$('#k-ba').value || 0, bd = +$('#k-bd').value || 0;
+      const dm = ($('#k-add').checked ? mod : 0) + bd;
+      const a = mode === 'auto' ? sign(mod + prof + ba) : $('#k-mb').value || '—';
+      const d = mode === 'auto' ? `${$('#k-dice').value}${dm ? ' ' + (dm > 0 ? '+ ' : '− ') + Math.abs(dm) : ''}` : $('#k-md').value || '—';
+      $('#k-a').textContent = a; $('#k-d').textContent = d; s = `Ataque · ${a} · ${d}`;
+    } else if (t === 'potion') s = `Poción · cura ${$('#heal').value} PG`;
+    else s = t === 'gear' ? 'Equipo de aventura' : 'Tesoro';
+    if ($('#attune').checked) s += ' · Sintonización';
+    if ($('#custom').checked) s += ' · Propio';
+    $('#sum-s').textContent = s;
+  }
+  document.addEventListener('input', update); document.addEventListener('change', update);
+  $('#save').addEventListener('click', () => { const t = $('#save-t'), old = t.textContent; t.textContent = 'Añadido'; setTimeout(() => (t.textContent = old), 1400); });
+  paneFor();
+})();
+</script>
+</body>
+</html>

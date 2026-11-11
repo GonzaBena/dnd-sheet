@@ -1,0 +1,17 @@
+---
+// src/components/ui/CustomEntryToggle.astro
+// Interruptor "Entrada propia" para los modales por pasos. Activarlo suma el paso "Imagen y efectos"
+// (`CustomEntryPages.astro`). Lo conecta scripts/ui/customEntry.ts.
+interface Props {
+  prefix: string;
+}
+const { prefix } = Astro.props;
+---
+
+<label class="flex items-start gap-3 cursor-pointer">
+  <input type="checkbox" id={`${prefix}-custom-toggle`} class="mt-0.5 w-4 h-4 rounded bg-[#10141d] border-[#222f42] accent-amber-500" />
+  <span class="grid gap-0.5">
+    <span class="text-[#f1f5f9] font-bold text-[13.5px]">Entrada propia</span>
+    <span class="text-xs text-[#94a3b8]">Añade imagen y efectos, y la marca como “Propio”. Suma un paso.</span>
+  </span>
+</label>

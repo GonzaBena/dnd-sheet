@@ -1,243 +1,234 @@
 ---
 // src/components/modals/AddWeaponModal.astro
+// Alta y edición de ataques por pasos. El modo de modificadores cambia los pasos:
+// automático = Ataque → Cálculo → Bonos → Etiquetas; manual = Ataque → Fórmulas → Etiquetas.
+import StepRail from '../ui/StepRail.astro';
+
+const inputCls =
+  'w-full p-2.5 rounded-lg bg-[#18202e] border border-[#222f42] text-[#f1f5f9] focus:border-amber-500 focus:outline-none';
+const lblCls = 'text-[#94a3b8] block mb-1 text-[12.5px] font-semibold';
 ---
 
 <div id="add-weapon-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
-  <div class="modal-content w-full max-w-lg rounded-2xl bg-[#121721] border border-[#222f42] shadow-[0_20px_60px_rgba(0,0,0,0.9)] overflow-hidden flex flex-col max-h-[90vh]">
+  <div class="modal-content w-full max-w-xl rounded-2xl bg-[#121721] border border-[#222f42] shadow-[0_20px_60px_rgba(0,0,0,0.9)] overflow-hidden flex flex-col h-[min(680px,92vh)]">
     <!-- Header -->
     <div class="p-4 bg-[#18202e] border-b border-[#222f42] flex items-center justify-between shrink-0">
-      <div class="flex items-center gap-2">
-        <div class="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center border border-amber-500/30">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center border border-amber-500/30">
           <span class="material-symbols-outlined text-[20px]" id="weapon-modal-icon">swords</span>
         </div>
         <div>
-          <h3 class="font-headline font-bold text-base text-[#f1f5f9]" id="weapon-modal-title">Añadir Arma o Ataque</h3>
-          <span class="text-[10px] text-[#94a3b8]" id="weapon-modal-subtitle">Configura armas equipadas y modificadores dinámicos</span>
+          <h3 class="font-headline font-semibold text-lg leading-tight text-[#f1f5f9]" id="weapon-modal-title">Añadir arma o ataque</h3>
+          <span class="text-[12.5px] text-[#94a3b8]" id="weapon-modal-subtitle">Automático o manual: el modo cambia los pasos.</span>
         </div>
       </div>
-      <button id="add-weapon-close-btn" class="w-7 h-7 rounded-lg bg-[#10141d] border border-[#222f42] hover:border-rose-500/50 text-[#94a3b8] hover:text-rose-400 flex items-center justify-center text-xs transition-colors cursor-pointer">
-        <span class="material-symbols-outlined text-[16px]">close</span>
+      <button id="add-weapon-close-btn" type="button" aria-label="Cerrar" class="w-8 h-8 rounded-lg bg-[#10141d] border border-[#222f42] hover:border-rose-500/50 text-[#94a3b8] hover:text-rose-400 flex items-center justify-center transition-colors cursor-pointer">
+        <span class="material-symbols-outlined text-[18px]">close</span>
       </button>
     </div>
 
-    <!-- Body -->
-    <form id="add-weapon-form" class="p-5 space-y-3.5 text-xs font-label overflow-y-auto flex-1">
+    <form id="add-weapon-form" novalidate class="flex flex-col flex-1 min-h-0 font-label">
       <input type="hidden" id="weapon-edit-id" value="" />
+      <StepRail />
 
-      <div>
-        <div class="flex items-center justify-between mb-1">
-          <label class="text-[#94a3b8]">Nombre del Arma / Acción</label>
-          <button
-            type="button"
-            id="weapon-open-compendium-btn"
-            class="text-[10px] text-amber-400 hover:text-amber-300 font-bold flex items-center gap-1 bg-amber-500/10 hover:bg-amber-500/20 px-2 py-0.5 rounded-lg border border-amber-500/30 transition-all cursor-pointer"
-            title="Buscar en la base de datos oficial del SRD (2024 o 2014)"
-          >
-            <span class="material-symbols-outlined text-[13px]">menu_book</span>
-            <span>Buscar Arma en SRD</span>
-          </button>
-        </div>
-        <input
-          type="text"
-          id="weapon-name-input"
-          required
-          placeholder="ej: Arco Largo Élfico, Espada Corta de Plata..."
-          class="w-full p-2.5 rounded-lg bg-[#18202e] border border-[#222f42] text-[#f1f5f9] focus:border-amber-500 focus:outline-none"
-        />
-      </div>
-
-      <div class="grid grid-cols-2 gap-3">
-        <div>
-          <label class="text-[#94a3b8] block mb-1">Tipo de Ataque</label>
-          <select id="weapon-type-select" class="w-full p-2.5 rounded-lg bg-[#18202e] border border-[#222f42] text-[#f1f5f9] focus:border-amber-500 focus:outline-none">
-            <option value="Cuerpo a cuerpo">Cuerpo a cuerpo</option>
-            <option value="A distancia">A distancia</option>
-            <option value="Mágico">Ataque Mágico</option>
-          </select>
-        </div>
-
-        <div>
-          <label class="text-[#94a3b8] block mb-1">Tipo de Daño</label>
-          <select id="weapon-damage-type-select" class="w-full p-2.5 rounded-lg bg-[#18202e] border border-[#222f42] text-[#f1f5f9] focus:border-amber-500 focus:outline-none">
-            <option value="Perforante">Perforante</option>
-            <option value="Cortante">Cortante</option>
-            <option value="Contundente">Contundente</option>
-            <option value="Fuego">Fuego</option>
-            <option value="Frío">Frío</option>
-            <option value="Veneno">Veneno</option>
-            <option value="Radiante">Radiante</option>
-            <option value="Necrótico">Necrótico</option>
-            <option value="Fuerza">Fuerza</option>
-            <option value="Psíquico">Psíquico</option>
-            <option value="Ácido">Ácido</option>
-            <option value="Trueno">Trueno</option>
-          </select>
-        </div>
-      </div>
-
-      <!-- Mode Selector: Auto vs Manual -->
-      <div class="p-3 rounded-xl bg-[#10141d] border border-[#222f42] space-y-3">
-        <div class="flex items-center justify-between">
-          <span class="font-bold text-[#cbd5e1] text-[11px] flex items-center gap-1.5">
-            <span class="material-symbols-outlined text-amber-500 text-[16px]">tune</span>
-            <span>Modo de Modificadores</span>
-          </span>
-          <div class="flex items-center gap-1 bg-[#18202e] p-0.5 rounded-lg border border-[#222f42]">
-            <button
-              type="button"
-              id="mode-auto-btn"
-              class="px-2.5 py-1 rounded text-[10px] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/40 cursor-pointer transition-all"
-            >
-              Automático D&D 5e
-            </button>
-            <button
-              type="button"
-              id="mode-manual-btn"
-              class="px-2.5 py-1 rounded text-[10px] font-bold text-[#64748b] hover:text-[#94a3b8] cursor-pointer transition-all"
-            >
-              Manual
-            </button>
+      <div data-step-body class="flex-1 overflow-y-auto p-5 text-sm">
+        <!-- Paso: ataque -->
+        <section data-page="atk" class="space-y-4">
+          <div>
+            <h4 class="font-headline font-semibold text-[17px] text-[#f1f5f9]">¿Con qué atacas?</h4>
+            <p class="text-[13px] text-[#94a3b8]">Nombre, tipo de ataque y de daño. Los números vienen después.</p>
           </div>
-        </div>
+          <div>
+            <div class="flex items-center justify-between gap-2 mb-1">
+              <label class={`${lblCls} !mb-0`} for="weapon-name-input">Nombre</label>
+              <button
+                type="button"
+                id="weapon-open-compendium-btn"
+                class="text-[12.5px] text-amber-400 hover:text-amber-300 font-bold flex items-center gap-1.5 bg-amber-500/10 hover:bg-amber-500/20 px-2.5 py-1 rounded-lg border border-amber-500/30 transition-all cursor-pointer"
+                title="Buscar en la base de datos oficial del SRD (2024 o 2014)"
+              >
+                <span class="material-symbols-outlined text-[16px]">menu_book</span>
+                <span>Buscar arma en el SRD</span>
+              </button>
+            </div>
+            <input type="text" id="weapon-name-input" autocomplete="off" placeholder="Arco largo élfico, Espada corta de plata…" class={inputCls} />
+          </div>
 
-        <!-- Automatic Mode Section -->
-        <div id="weapon-auto-section" class="space-y-3">
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div class="grid grid-cols-2 gap-3 max-[420px]:grid-cols-1">
             <div>
-              <label class="text-[#94a3b8] block mb-1">Atributo Base</label>
-              <select id="weapon-ability-select" class="w-full p-2 rounded-lg bg-[#18202e] border border-[#222f42] text-[#f1f5f9] focus:border-amber-500 focus:outline-none">
-                <option value="dex">Destreza (DEX)</option>
-                <option value="str">Fuerza (STR)</option>
-                <option value="wis">Sabiduría (WIS)</option>
+              <label class={lblCls} for="weapon-type-select">Tipo de ataque</label>
+              <select id="weapon-type-select" class={inputCls}>
+                <option value="Cuerpo a cuerpo">Cuerpo a cuerpo</option>
+                <option value="A distancia">A distancia</option>
+                <option value="Mágico">Ataque mágico</option>
+              </select>
+            </div>
+            <div>
+              <label class={lblCls} for="weapon-damage-type-select">Tipo de daño</label>
+              <select id="weapon-damage-type-select" class={inputCls}>
+                <option value="Perforante">Perforante</option>
+                <option value="Cortante">Cortante</option>
+                <option value="Contundente">Contundente</option>
+                <option value="Fuego">Fuego</option>
+                <option value="Frío">Frío</option>
+                <option value="Veneno">Veneno</option>
+                <option value="Radiante">Radiante</option>
+                <option value="Necrótico">Necrótico</option>
+                <option value="Fuerza">Fuerza</option>
+                <option value="Psíquico">Psíquico</option>
+                <option value="Ácido">Ácido</option>
+                <option value="Trueno">Trueno</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="border-t border-[#222f42] pt-4">
+            <span class={lblCls}>Modificadores</span>
+            <div class="flex gap-1 p-1 rounded-xl bg-[#10141d] border border-[#222f42]" role="group" aria-label="Modo de modificadores">
+              <button
+                type="button"
+                id="mode-auto-btn"
+                class="flex-1 px-3 py-1.5 rounded-lg text-[13px] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/40 cursor-pointer transition-all"
+              >
+                Automático 5e
+              </button>
+              <button
+                type="button"
+                id="mode-manual-btn"
+                class="flex-1 px-3 py-1.5 rounded-lg text-[13px] font-bold text-[#94a3b8] hover:text-[#f1f5f9] border border-transparent cursor-pointer transition-all"
+              >
+                Manual
+              </button>
+            </div>
+            <p id="weapon-mode-hint" class="text-xs text-[#94a3b8] mt-2">Calcula el impacto y el daño con tus atributos. Suma un paso para los bonos.</p>
+          </div>
+        </section>
+
+        <!-- Paso: cálculo (modo automático) -->
+        <section data-page="calc" class="hidden space-y-4">
+          <div>
+            <h4 class="font-headline font-semibold text-[17px] text-[#f1f5f9]">Cálculo con tus atributos</h4>
+            <p class="text-[13px] text-[#94a3b8]">Usamos los valores de tu ficha.</p>
+          </div>
+          <div class="grid grid-cols-2 gap-3 max-[420px]:grid-cols-1">
+            <div>
+              <label class={lblCls} for="weapon-ability-select">Atributo base</label>
+              <select id="weapon-ability-select" class={inputCls}>
+                <option value="dex">Destreza (DES)</option>
+                <option value="str">Fuerza (FUE)</option>
+                <option value="wis">Sabiduría (SAB)</option>
                 <option value="int">Inteligencia (INT)</option>
-                <option value="cha">Carisma (CHA)</option>
+                <option value="cha">Carisma (CAR)</option>
                 <option value="con">Constitución (CON)</option>
-                <option value="none">Sin Atributo (+0)</option>
+                <option value="none">Sin atributo (+0)</option>
               </select>
             </div>
-
             <div>
-              <label class="text-[#94a3b8] block mb-1">Dado Base de Daño</label>
-              <select id="weapon-damage-dice-select" class="w-full p-2 rounded-lg bg-[#18202e] border border-[#222f42] text-[#f1f5f9] focus:border-amber-500 focus:outline-none">
-                <option value="1d4">1d4 (Daga, Garrote)</option>
-                <option value="1d6">1d6 (Espada corta, Arco corto)</option>
-                <option value="1d8" selected>1d8 (Arco largo, Estoque)</option>
-                <option value="1d10">1d10 (Ballesta pesada, Alabarda)</option>
-                <option value="1d12">1d12 (Gran hacha)</option>
-                <option value="2d6">2d6 (Espadón, Mandoble)</option>
+              <label class={lblCls} for="weapon-damage-dice-select">Dado base de daño</label>
+              <select id="weapon-damage-dice-select" class={inputCls}>
+                <option value="1d4">1d4 (daga, garrote)</option>
+                <option value="1d6">1d6 (espada corta, arco corto)</option>
+                <option value="1d8" selected>1d8 (arco largo, estoque)</option>
+                <option value="1d10">1d10 (ballesta pesada, alabarda)</option>
+                <option value="1d12">1d12 (gran hacha)</option>
+                <option value="2d6">2d6 (espadón, mandoble)</option>
               </select>
             </div>
           </div>
-
-          <div class="grid grid-cols-2 gap-3">
-            <div>
-              <label class="text-[#94a3b8] block mb-1">Bono Mágico / Extra Impacto</label>
-              <input
-                type="number"
-                id="weapon-atk-bonus-mod"
-                value="0"
-                placeholder="ej: +1"
-                class="w-full p-2 rounded-lg bg-[#18202e] border border-[#222f42] text-[#f1f5f9] focus:border-amber-500 focus:outline-none"
-              />
-            </div>
-            <div>
-              <label class="text-[#94a3b8] block mb-1">Bono Mágico / Extra Daño</label>
-              <input
-                type="number"
-                id="weapon-dmg-bonus-mod"
-                value="0"
-                placeholder="ej: +1"
-                class="w-full p-2 rounded-lg bg-[#18202e] border border-[#222f42] text-[#f1f5f9] focus:border-amber-500 focus:outline-none"
-              />
-            </div>
-          </div>
-
-          <div class="flex flex-wrap items-center gap-4 pt-1">
-            <label class="flex items-center gap-2 cursor-pointer select-none">
-              <input type="checkbox" id="weapon-proficient-check" checked class="w-4 h-4 rounded border-[#222f42] text-amber-500 focus:ring-amber-500/20 bg-[#18202e]" />
-              <span class="text-[#cbd5e1] text-[11px]">Competente con el arma (añade bono de competencia)</span>
-            </label>
-            <label class="flex items-center gap-2 cursor-pointer select-none">
-              <input type="checkbox" id="weapon-add-ability-dmg-check" checked class="w-4 h-4 rounded border-[#222f42] text-amber-500 focus:ring-amber-500/20 bg-[#18202e]" />
-              <span class="text-[#cbd5e1] text-[11px]">Sumar atributo al daño</span>
-            </label>
-          </div>
-
-          <!-- Live Preview Box -->
-          <div class="p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/30 flex items-center justify-between text-xs">
-            <span class="text-amber-400 font-bold flex items-center gap-1.5">
-              <span class="material-symbols-outlined text-[15px]">calculate</span>
-              <span>Cálculo dinámico:</span>
+          <label class="flex items-start gap-3 cursor-pointer">
+            <input type="checkbox" id="weapon-proficient-check" checked class="mt-0.5 w-4 h-4 rounded accent-amber-500" />
+            <span class="grid gap-0.5">
+              <span class="text-[#f1f5f9] font-bold text-[13.5px]">Competente con el arma</span>
+              <span class="text-xs text-[#94a3b8]">Suma tu bono de competencia al impacto.</span>
             </span>
-            <div class="flex items-center gap-2 font-headline font-bold">
-              <span id="preview-atk" class="text-[#f1f5f9] bg-[#18202e] px-2 py-0.5 rounded border border-[#222f42]">+6 al Impacto</span>
-              <span id="preview-dmg" class="text-amber-300 bg-[#18202e] px-2 py-0.5 rounded border border-[#222f42]">1d8 + 3</span>
+          </label>
+          <label class="flex items-start gap-3 cursor-pointer">
+            <input type="checkbox" id="weapon-add-ability-dmg-check" checked class="mt-0.5 w-4 h-4 rounded accent-amber-500" />
+            <span class="text-[#f1f5f9] font-bold text-[13.5px]">Sumar el atributo al daño</span>
+          </label>
+          <div class="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 flex flex-wrap items-baseline gap-x-3 gap-y-1" aria-live="polite">
+            <span class="font-headline font-semibold text-3xl text-amber-300 tabular-nums" data-preview-atk>+6</span>
+            <span class="text-[13px] text-[#cbd5e1]">al impacto, y</span>
+            <span class="font-headline font-semibold text-3xl text-amber-300 tabular-nums" data-preview-dmg>1d8 + 3</span>
+            <span class="text-[13px] text-[#cbd5e1]">de daño</span>
+          </div>
+        </section>
+
+        <!-- Paso: bonos (modo automático) -->
+        <section data-page="bonus" class="hidden space-y-4">
+          <div>
+            <h4 class="font-headline font-semibold text-[17px] text-[#f1f5f9]">Bonos mágicos</h4>
+            <p class="text-[13px] text-[#94a3b8]">Déjalos en 0 si el arma no es mágica.</p>
+          </div>
+          <div class="grid grid-cols-2 gap-3 max-[420px]:grid-cols-1">
+            <div>
+              <label class={lblCls} for="weapon-atk-bonus-mod">Extra al impacto</label>
+              <input type="number" id="weapon-atk-bonus-mod" value="0" placeholder="+1" class={inputCls} />
+            </div>
+            <div>
+              <label class={lblCls} for="weapon-dmg-bonus-mod">Extra al daño</label>
+              <input type="number" id="weapon-dmg-bonus-mod" value="0" placeholder="+1" class={inputCls} />
             </div>
           </div>
-        </div>
-
-        <!-- Manual Mode Section (Hidden by default) -->
-        <div id="weapon-manual-section" class="space-y-3 hidden">
-          <div class="grid grid-cols-2 gap-3">
-            <div>
-              <label class="text-[#94a3b8] block mb-1">Bono al Impacto Manual</label>
-              <input
-                type="text"
-                id="weapon-bonus-input"
-                value="+6 al Impacto"
-                placeholder="ej: +6 al Impacto"
-                class="w-full p-2 rounded-lg bg-[#18202e] border border-[#222f42] text-[#f1f5f9] focus:border-amber-500 focus:outline-none"
-              />
-            </div>
-            <div>
-              <label class="text-[#94a3b8] block mb-1">Fórmula de Daño Manual</label>
-              <input
-                type="text"
-                id="weapon-damage-input"
-                value="1d8 + 3"
-                placeholder="ej: 1d8 + 3, 2d6 + 4"
-                class="w-full p-2 rounded-lg bg-[#18202e] border border-[#222f42] text-[#f1f5f9] focus:border-amber-500 focus:outline-none"
-              />
-            </div>
+          <div class="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 flex flex-wrap items-baseline gap-x-3 gap-y-1" aria-live="polite">
+            <span class="font-headline font-semibold text-3xl text-amber-300 tabular-nums" data-preview-atk>+6</span>
+            <span class="text-[13px] text-[#cbd5e1]">al impacto, y</span>
+            <span class="font-headline font-semibold text-3xl text-amber-300 tabular-nums" data-preview-dmg>1d8 + 3</span>
+            <span class="text-[13px] text-[#cbd5e1]">de daño</span>
           </div>
-        </div>
-      </div>
+        </section>
 
-      <div>
-        <label class="text-[#94a3b8] block mb-1">Propiedades / Etiquetas (separadas por coma)</label>
-        <input
-          type="text"
-          id="weapon-tags-input"
-          value="Sutil, Ligera"
-          placeholder="ej: Sutil, Ligera, Plata, Rango 150/600"
-          class="w-full p-2.5 rounded-lg bg-[#18202e] border border-[#222f42] text-[#f1f5f9] focus:border-amber-500 focus:outline-none"
-        />
-      </div>
+        <!-- Paso: fórmulas a mano (modo manual) -->
+        <section data-page="manual" class="hidden space-y-4">
+          <div>
+            <h4 class="font-headline font-semibold text-[17px] text-[#f1f5f9]">Fórmulas a mano</h4>
+            <p class="text-[13px] text-[#94a3b8]">Se guardan tal cual las escribas, sin recalcular con tu ficha.</p>
+          </div>
+          <div>
+            <label class={lblCls} for="weapon-bonus-input">Bono al impacto</label>
+            <input type="text" id="weapon-bonus-input" value="+6 al Impacto" placeholder="+6 al Impacto" class={inputCls} />
+          </div>
+          <div>
+            <label class={lblCls} for="weapon-damage-input">Fórmula de daño</label>
+            <input type="text" id="weapon-damage-input" value="1d8 + 3" placeholder="1d8 + 3, 2d6 + 4" class={inputCls} />
+          </div>
+        </section>
 
-      <!-- Notes / Special Effects / Activation Conditions -->
-      <div>
-        <label class="text-[#94a3b8] block mb-1 flex items-center justify-between">
-          <span class="flex items-center gap-1">
-            <span class="material-symbols-outlined text-amber-500 text-[14px]">auto_awesome</span>
-            <span>Notas, Efectos Especiales o Condiciones de Activación</span>
-          </span>
-          <span class="text-[10px] text-[#64748b]">Opcional</span>
-        </label>
-        <textarea
-          id="weapon-notes-input"
-          rows="2"
-          placeholder="ej: Daño adicional de 1d6 de fuego contra no-muertos. Crítico con 19-20..."
-          class="w-full p-2.5 rounded-lg bg-[#18202e] border border-[#222f42] text-[#f1f5f9] focus:border-amber-500 focus:outline-none resize-none"
-        ></textarea>
+        <!-- Paso: etiquetas y notas -->
+        <section data-page="tags" class="hidden space-y-4">
+          <div>
+            <h4 class="font-headline font-semibold text-[17px] text-[#f1f5f9]">Etiquetas y notas</h4>
+            <p class="text-[13px] text-[#94a3b8]">Aparecen en la tarjeta del ataque.</p>
+          </div>
+          <div>
+            <label class={lblCls} for="weapon-tags-input">Propiedades <span class="font-normal">(separadas por comas)</span></label>
+            <input type="text" id="weapon-tags-input" value="Sutil, Ligera" placeholder="Sutil, Ligera, Plata, Rango 150/600" class={inputCls} />
+          </div>
+          <div>
+            <label class={lblCls} for="weapon-notes-input">Notas <span class="font-normal">(opcional)</span></label>
+            <textarea
+              id="weapon-notes-input"
+              rows="4"
+              placeholder="1d6 de fuego extra contra no-muertos. Crítico con 19–20."
+              class={`${inputCls} resize-none`}
+            ></textarea>
+          </div>
+        </section>
+
+        <p data-step-error role="alert" class="hidden mt-4 text-[13px] text-rose-400"></p>
       </div>
 
       <!-- Footer -->
-      <div class="pt-3 border-t border-[#222f42] flex items-center justify-end gap-2.5 shrink-0">
-        <button type="button" id="add-weapon-cancel-btn" class="px-4 py-2 rounded-xl bg-[#121721] border border-[#222f42] text-[#94a3b8] hover:text-[#f1f5f9] cursor-pointer">
+      <div class="px-5 py-3 border-t border-[#222f42] bg-[#18202e] flex items-center gap-2.5 shrink-0">
+        <span data-step-count class="mr-auto text-[12.5px] text-[#94a3b8]"></span>
+        <button type="button" id="add-weapon-cancel-btn" data-step-cancel class="px-4 py-2 rounded-xl text-[#94a3b8] hover:text-[#f1f5f9] hover:bg-[#121721] font-bold cursor-pointer transition-colors">
           Cancelar
         </button>
-        <button type="submit" id="weapon-submit-btn" class="px-5 py-2 rounded-xl bg-gradient-to-r from-amber-600 to-amber-500 text-[#0a0d12] font-bold shadow-[0_0_12px_rgba(245,158,11,0.3)] hover:brightness-110 active:scale-95 transition-all cursor-pointer">
-          Guardar Arma
+        <button type="button" data-step-back class="hidden px-4 py-2 rounded-xl text-[#94a3b8] hover:text-[#f1f5f9] hover:bg-[#121721] font-bold cursor-pointer transition-colors">
+          Atrás
+        </button>
+        <button type="button" id="weapon-submit-btn" data-step-next class="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-[#1a1204] font-extrabold active:scale-95 transition-all cursor-pointer">
+          Siguiente
         </button>
       </div>
     </form>
@@ -247,6 +238,7 @@
 <script>
   import { characterStore } from '../../scripts/state/characterStore';
   import { closeModal, openModal } from '../../scripts/animations/modalAnimations';
+  import { initSteps } from '../../scripts/ui/modalSteps';
 
   const modal = document.getElementById('add-weapon-modal');
   const backdrop = document.getElementById('modal-backdrop');
@@ -255,7 +247,6 @@
   const cancelBtn = document.getElementById('add-weapon-cancel-btn');
   const modalTitle = document.getElementById('weapon-modal-title');
   const modalSubtitle = document.getElementById('weapon-modal-subtitle');
-  const submitBtn = document.getElementById('weapon-submit-btn');
 
   const editIdInp = document.getElementById('weapon-edit-id') as HTMLInputElement;
   const nameInp = document.getElementById('weapon-name-input') as HTMLInputElement;
@@ -267,8 +258,7 @@
   // Mode toggles
   const modeAutoBtn = document.getElementById('mode-auto-btn');
   const modeManualBtn = document.getElementById('mode-manual-btn');
-  const autoSection = document.getElementById('weapon-auto-section');
-  const manualSection = document.getElementById('weapon-manual-section');
+  const modeHint = document.getElementById('weapon-mode-hint');
 
   // Auto calculation inputs
   const abilitySel = document.getElementById('weapon-ability-select') as HTMLSelectElement;
@@ -282,30 +272,40 @@
   const bonusInp = document.getElementById('weapon-bonus-input') as HTMLInputElement;
   const dmgInp = document.getElementById('weapon-damage-input') as HTMLInputElement;
 
-  // Preview elements
-  const previewAtk = document.getElementById('preview-atk');
-  const previewDmg = document.getElementById('preview-dmg');
-
   let isAutoMode = true;
+  let finalLabel = 'Añadir arma';
+
+  // Los pasos dependen del modo: el manual no necesita cálculo ni bonos aparte.
+  const steps = initSteps({
+    form,
+    labels: { atk: 'Ataque', calc: 'Cálculo', bonus: 'Bonos', manual: 'Fórmulas', tags: 'Etiquetas' },
+    pages: () => (isAutoMode ? ['atk', 'calc', 'bonus', 'tags'] : ['atk', 'manual', 'tags']),
+    finalLabel: () => finalLabel,
+    validate: (id) =>
+      id === 'atk' && !nameInp.value.trim()
+        ? { message: 'Escribe un nombre para continuar.', focus: nameInp }
+        : null,
+  });
+
+  const ON = ['bg-amber-500/20', 'text-amber-400', 'border-amber-500/40'];
+  const OFF = ['text-[#94a3b8]', 'border-transparent'];
 
   function setMode(auto: boolean) {
     isAutoMode = auto;
-    if (auto) {
-      modeAutoBtn?.classList.add('bg-amber-500/20', 'text-amber-400', 'border-amber-500/40');
-      modeAutoBtn?.classList.remove('text-[#64748b]');
-      modeManualBtn?.classList.remove('bg-amber-500/20', 'text-amber-400', 'border-amber-500/40');
-      modeManualBtn?.classList.add('text-[#64748b]');
-      autoSection?.classList.remove('hidden');
-      manualSection?.classList.add('hidden');
-      updatePreview();
-    } else {
-      modeManualBtn?.classList.add('bg-amber-500/20', 'text-amber-400', 'border-amber-500/40');
-      modeManualBtn?.classList.remove('text-[#64748b]');
-      modeAutoBtn?.classList.remove('bg-amber-500/20', 'text-amber-400', 'border-amber-500/40');
-      modeAutoBtn?.classList.add('text-[#64748b]');
-      manualSection?.classList.remove('hidden');
-      autoSection?.classList.add('hidden');
+    const [on, off] = auto ? [modeAutoBtn, modeManualBtn] : [modeManualBtn, modeAutoBtn];
+    on?.classList.add(...ON);
+    on?.classList.remove(...OFF);
+    off?.classList.remove(...ON);
+    off?.classList.add(...OFF);
+    modeAutoBtn?.setAttribute('aria-pressed', String(auto));
+    modeManualBtn?.setAttribute('aria-pressed', String(!auto));
+    if (modeHint) {
+      modeHint.textContent = auto
+        ? 'Calcula el impacto y el daño con tus atributos. Suma un paso para los bonos.'
+        : 'Escribes el bono y la fórmula tal cual. Un paso menos.';
     }
+    if (auto) updatePreview();
+    steps.refresh();
   }
 
   modeAutoBtn?.addEventListener('click', () => setMode(true));
@@ -328,8 +328,8 @@
     if (totalDmgMod > 0) dmgStr += ` + ${totalDmgMod}`;
     else if (totalDmgMod < 0) dmgStr += ` - ${Math.abs(totalDmgMod)}`;
 
-    if (previewAtk) previewAtk.textContent = `${totalAtk >= 0 ? '+' : ''}${totalAtk} al Impacto`;
-    if (previewDmg) previewDmg.textContent = dmgStr;
+    form.querySelectorAll('[data-preview-atk]').forEach((el) => (el.textContent = `${totalAtk >= 0 ? '+' : ''}${totalAtk}`));
+    form.querySelectorAll('[data-preview-dmg]').forEach((el) => (el.textContent = dmgStr));
 
     // Keep manual inputs synced as well
     if (bonusInp) bonusInp.value = `${totalAtk >= 0 ? '+' : ''}${totalAtk} al Impacto`;
@@ -357,9 +357,9 @@
     bonusInp.value = '+6 al Impacto';
     dmgInp.value = '1d8 + 3';
     setMode(true);
-    if (modalTitle) modalTitle.textContent = 'Añadir Arma o Ataque';
-    if (modalSubtitle) modalSubtitle.textContent = 'Configura armas equipadas y modificadores dinámicos';
-    if (submitBtn) submitBtn.textContent = 'Añadir Arma';
+    if (modalTitle) modalTitle.textContent = 'Añadir arma o ataque';
+    if (modalSubtitle) modalSubtitle.textContent = 'Automático o manual: el modo cambia los pasos.';
+    finalLabel = 'Añadir arma';
   }
 
   function loadWeaponForEdit(action: any) {
@@ -385,9 +385,9 @@
       dmgInp.value = action.damage || '1d6';
     }
 
-    if (modalTitle) modalTitle.textContent = 'Editar Arma o Ataque';
+    if (modalTitle) modalTitle.textContent = 'Editar arma o ataque';
     if (modalSubtitle) modalSubtitle.textContent = `Ajustando propiedades de "${action.name}"`;
-    if (submitBtn) submitBtn.textContent = 'Guardar Cambios';
+    finalLabel = 'Guardar cambios';
   }
 
   // Open modal handlers
@@ -396,10 +396,11 @@
     if (e.detail?.prefill) {
       loadWeaponForEdit(e.detail.prefill);
       editIdInp.value = '';
-      if (modalTitle) modalTitle.textContent = 'Añadir Arma desde Compendio';
+      if (modalTitle) modalTitle.textContent = 'Añadir arma desde el compendio';
       if (modalSubtitle) modalSubtitle.textContent = 'Revisa y ajusta los datos antes de guardarla en tus acciones';
-      if (submitBtn) submitBtn.textContent = 'Añadir Arma';
+      finalLabel = 'Añadir arma';
     }
+    steps.reset();
     if (modal && backdrop) openModal(modal, backdrop);
   }) as EventListener);
 
@@ -415,6 +416,7 @@
     const act = e.detail?.action;
     if (act) {
       loadWeaponForEdit(act);
+      steps.reset();
       if (modal && backdrop) openModal(modal, backdrop);
     }
   }) as EventListener);
@@ -429,7 +431,11 @@
   form?.addEventListener('submit', (e) => {
     e.preventDefault();
     const name = nameInp.value.trim();
-    if (!name) return;
+    if (!name) {
+      steps.goTo('atk');
+      steps.problem({ message: 'Escribe un nombre para continuar.', focus: nameInp });
+      return;
+    }
 
     const rawTags = tagsInp.value.split(',').map(t => t.trim()).filter(Boolean);
     const editId = editIdInp.value.trim();

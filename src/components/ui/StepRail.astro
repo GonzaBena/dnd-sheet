@@ -1,0 +1,55 @@
+---
+// src/components/ui/StepRail.astro
+// Riel de pasos de los modales de objeto y de arma. Lo llena scripts/ui/modalSteps.ts.
+---
+
+<nav class="step-rail" aria-label="Pasos del formulario">
+  <ol data-step-rail></ol>
+</nav>
+
+<style is:global>
+  .step-rail { padding: 14px 18px 12px; border-bottom: 1px solid #222f42; background: #10141d; flex-shrink: 0; }
+  .step-rail ol { list-style: none; margin: 0; padding: 0; display: flex; align-items: flex-start; }
+  .step-rail li { flex: 1 1 0; min-width: 0; position: relative; display: flex; flex-direction: column; align-items: center; }
+  .step-rail li:not(:last-child)::after {
+    content: ''; position: absolute; top: 13px; left: calc(50% + 17px); right: calc(-50% + 17px);
+    height: 2px; border-radius: 2px; background: #222f42; transition: background 0.3s;
+  }
+  .step-rail li.is-done:not(:last-child)::after { background: rgba(245, 158, 11, 0.42); }
+  .step-rail button {
+    all: unset; box-sizing: border-box; cursor: pointer; width: 100%;
+    display: flex; flex-direction: column; align-items: center; gap: 6px;
+  }
+  .step-rail button:focus-visible { outline: 2px solid #fbbf24; outline-offset: 3px; border-radius: 8px; }
+  .step-dot {
+    width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center;
+    font-size: 13px; font-weight: 700; background: #18202e; border: 1.5px solid #2f405c; color: #94a3b8;
+    transition: background 0.2s, border-color 0.2s, color 0.2s;
+  }
+  .step-dot .material-symbols-outlined { font-size: 16px; }
+  .is-done .step-dot { background: rgba(245, 158, 11, 0.13); border-color: rgba(245, 158, 11, 0.42); color: #fbbf24; }
+  .is-current .step-dot { background: #f59e0b; border-color: #f59e0b; color: #1a1204; box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.13); }
+  .step-label { font-size: 12.5px; font-weight: 700; line-height: 1.2; text-align: center; color: #94a3b8; padding: 0 2px; }
+  .is-current .step-label { color: #f1f5f9; }
+  .step-rail li.is-new .step-dot { animation: step-arrive 0.9s cubic-bezier(0.22, 0.8, 0.28, 1); }
+  @keyframes step-arrive {
+    0% { transform: scale(0.4); opacity: 0; }
+    50% { transform: scale(1.25); box-shadow: 0 0 0 8px rgba(245, 158, 11, 0.13); }
+    100% { transform: scale(1); }
+  }
+
+  /* En pantallas estrechas solo se escribe el nombre del paso actual */
+  @media (max-width: 480px) {
+    .step-rail { padding-bottom: 32px; }
+    .step-rail .step-label { display: none; }
+    .step-rail li.is-current .step-label { display: block; position: absolute; top: 34px; white-space: nowrap; }
+  }
+
+  .step-fwd { animation: step-in-fwd 0.3s cubic-bezier(0.22, 0.8, 0.28, 1); }
+  .step-back { animation: step-in-back 0.3s cubic-bezier(0.22, 0.8, 0.28, 1); }
+  @keyframes step-in-fwd { from { opacity: 0; transform: translateX(22px); } }
+  @keyframes step-in-back { from { opacity: 0; transform: translateX(-22px); } }
+  @media (prefers-reduced-motion: reduce) {
+    .step-fwd, .step-back, .step-rail li.is-new .step-dot { animation: none; }
+  }
+</style>

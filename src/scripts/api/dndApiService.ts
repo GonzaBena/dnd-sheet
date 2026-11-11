@@ -14,7 +14,8 @@ import {
   matchesQuery,
   normalizeText,
 } from '../dnd/dndTranslations.ts';
-import type { SpellItem, InventoryItem, AttackAction } from '../models/character.ts';
+import type { SpellItem, InventoryItem, AttackAction, ArmorData, WeaponData } from '../models/character.ts';
+import { armorFromSrd, weaponFromSrd } from '../dnd/catalog.ts';
 
 export interface UnifiedSpell {
   index: string;
@@ -61,6 +62,10 @@ export interface UnifiedEquipment {
   armorClass?: string;
   stealthDisadvantage?: boolean;
   strPrerequisite?: number;
+  /** Datos estructurados (Spec 08, Fase B). Se copian al InventoryItem al agregar. */
+  armor?: ArmorData;
+  weapon?: WeaponData;
+  hands?: 1 | 2;
   description: string;
   usableType: 'none' | 'potion' | 'drinkable' | 'edible' | 'usable';
   healAmount?: number;
@@ -303,9 +308,16 @@ class DndApiService {
 
     const desc = this.extractDescription(raw.description || raw.desc);
 
+    // Spec 08, Fase B: datos estructurados de armadura/arma (FB-2/FB-3).
+    const armorData = armorFromSrd(raw);
+    const weaponData = armorData ? undefined : weaponFromSrd(raw);
+
     return {
       index: raw.index || raw.name?.toLowerCase().replace(/[^a-z0-9]/g, '-'),
       name: raw.name || '',
+      armor: armorData,
+      weapon: weaponData?.weapon,
+      hands: weaponData?.hands,
       nameEs: getEquipmentSpanishName(raw.index, raw.name),
       category: cat,
       equipmentType: raw.equipment_category?.name || raw.weapon_category || undefined,
@@ -500,17 +512,26 @@ class DndApiService {
         name: unified.name,
         quantity: 1,
         category: 'gear',
+        ...(unified.attunement ? { requiresAttunement: true } : {}),
         usableType: 'usable',
         notes: `[${unified.rarityEs}] ${unified.description.slice(0, 300)}`
       };
     }
 
+    // FB-1/FB-4: se copia (sin compartir referencias). Una armadura sin `armor` válido queda como objeto común.
+    const armor = unified.armor ? { ...unified.armor } : undefined;
+    const weapon = unified.weapon
+      ? { ...unified.weapon, properties: [...unified.weapon.properties], range: unified.weapon.range ? { ...unified.weapon.range } : undefined }
+      : undefined;
+    if (weapon && !weapon.range) delete weapon.range;
     return {
       source: 'srd',
       custom: false,
       name: unified.nameEs !== unified.name ? `${unified.nameEs} (${unified.name})` : unified.name,
       quantity: 1,
       category: unified.category,
+      ...(armor ? { armor } : {}),
+      ...(weapon ? { weapon, hands: unified.hands ?? 1 } : {}),
       weight: unified.weight ? `${unified.weight} lb` : undefined,
       weightLb: unified.weight,
       usableType: unified.usableType,

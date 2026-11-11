@@ -220,10 +220,10 @@ IDs a partir de T-252 (la Spec 07 llega hasta T-251). Se ejecuta una fase a la v
 - [x] T-255 UI de equipo en la mochila y `EditAttunedModal` con contador `n/3` (RF-260, RF-262, RF-264)
 
 **Fase B — Armaduras y armas en el catálogo** (depende de la Fase A)
-- [ ] T-256 `srdToEntry` y alta de armaduras con `ArmorData`, y escudos (RF-265, RF-266)
-- [ ] T-257 `srdToEntry` y alta de armas con `WeaponData` (RF-279)
-- [ ] T-258 Campos de armadura y arma en `CustomEntryFields` (RF-265, RF-279)
-- [ ] T-259 Modal de objeto con datos de armadura, arma y slot (RF-281)
+- [x] T-256 `srdToEntry` y alta de armaduras con `ArmorData`, y escudos (RF-265, RF-266)
+- [x] T-257 `srdToEntry` y alta de armas con `WeaponData` (RF-279)
+- [x] T-258 Campos de armadura y arma en `CustomEntryFields` (RF-265, RF-279)
+- [x] T-259 Modal de objeto con datos de armadura, arma y slot (RF-281)
 
 **Fase C — Competencias y compatibilidad** (depende de la Fase B)
 - [ ] T-260 Campo `proficiencies` y UI de casillas para cargarlas a mano (RF-269)

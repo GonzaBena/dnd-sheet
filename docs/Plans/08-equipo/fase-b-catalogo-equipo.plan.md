@@ -119,7 +119,7 @@ Prueba manual:
 
 ## 10. Checklist de cierre
 
-- [ ] T-256 … T-259 marcadas en la spec.
-- [ ] `// DECISION:` en FB-2, FB-3 y FB-4 (mapeos y datos ausentes).
-- [ ] Los datos copiados al inventario no dependen del catálogo cargado.
-- [ ] `pnpm test` y `pnpm build` en verde.
+- [x] T-256 … T-259 marcadas en la spec.
+- [x] `// DECISION:` en FB-2, FB-3 y FB-4 (mapeos y datos ausentes).
+- [x] Los datos copiados al inventario no dependen del catálogo cargado.
+- [x] `pnpm test` y `pnpm build` en verde.
