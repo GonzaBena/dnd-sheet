@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert';
 import {
-  MAX_ATTUNED, validSlotsFor, equipAcross, unequipAction, setActionHands, validSlotsForAction, equipItem, unequipItem, attuneItem, unattuneItem, equippedItems, migrateAttuned,
+  MAX_ATTUNED, validSlotsFor, equipAcross, unequipAction, setActionHands, validSlotsForAction, equipItem, unequipItem, attuneItem, unattuneItem, equippedItems, migrateAttuned, wornSlotsFor, belongsToDefense,
 } from '../src/scripts/dnd/equipment.ts';
 
 const gear = (id, extra = {}) => ({ id, name: id, quantity: 1, category: 'gear', ...extra });
@@ -210,4 +210,41 @@ test('cambiar manos desequipa el arma; unequipAction limpia el slot', () => {
   const un = unequipAction(r.actions, 'a');
   assert.strictEqual(un[0].equipped, false);
   assert.strictEqual('slot' in un[0], false);
+});
+
+test('wornSlotsFor: un objeto genérico no se ofrece en ningún slot de prenda', () => {
+  assert.deepStrictEqual(wornSlotsFor(gear('flecha', { name: 'Flecha' })), []);
+  assert.deepStrictEqual(wornSlotsFor(gear('cuerda', { name: 'Cuerda de seda' })), []);
+  assert.deepStrictEqual(wornSlotsFor(gear('poc', { category: 'potion', name: 'Poción de anillo' })), []);
+  assert.deepStrictEqual(wornSlotsFor(sword1h('espada')), []);
+});
+
+test('wornSlotsFor: se infiere el slot por el nombre', () => {
+  const w = (name) => wornSlotsFor(gear('x', { name }));
+  assert.deepStrictEqual(w('Casco de hierro'), ['head']);
+  assert.deepStrictEqual(w('Amuleto de salud'), ['neck']);
+  assert.deepStrictEqual(w('Anillo de protección'), ['ring1', 'ring2']);
+  assert.deepStrictEqual(w('Capa del Murciélago'), ['cloak']);
+  assert.deepStrictEqual(w('Guantes de ogro'), ['gloves']);
+  assert.deepStrictEqual(w('Botas élficas'), ['boots']);
+  assert.deepStrictEqual(w('Medallón de Pensamientos'), ['neck']);
+  assert.deepStrictEqual(w('Capacete'), []);
+});
+
+test('belongsToDefense: defensa fuera de la mochila, anillos y amuletos dentro', () => {
+  const d = (name, extra = {}) => belongsToDefense(gear('x', { name, ...extra }));
+  assert.strictEqual(d('Armadura de cuero'), true);
+  assert.strictEqual(d('Casco de hierro'), true);
+  assert.strictEqual(d('Botas élficas'), true);
+  assert.strictEqual(belongsToDefense(shield('esc')), true);
+  assert.strictEqual(d('Anillo de protección'), false);
+  assert.strictEqual(d('Amuleto de salud'), false);
+  assert.strictEqual(d('Cuerda de seda'), false);
+  assert.strictEqual(d('Anillo de protección', { equipped: true, slot: 'ring1' }), true);
+});
+
+test('wornSlotsFor: armadura y escudo van a cuerpo y escudo', () => {
+  assert.deepStrictEqual(wornSlotsFor(gear('cota', { category: 'armor', armor: { category: 'heavy', baseAc: 16 } })), ['body']);
+  assert.deepStrictEqual(wornSlotsFor(shield('esc')), ['shield']);
+  assert.deepStrictEqual(wornSlotsFor(gear('v', { category: 'armor', name: 'Armadura de cuero con capucha', armor: { category: 'light', baseAc: 11 } })), ['body']);
 });

@@ -13,15 +13,6 @@
     <div class="flex items-center gap-2">
       <button
         type="button"
-        id="open-compendium-weapons-btn"
-        class="text-[10px] text-amber-400 hover:text-amber-300 font-bold bg-amber-500/10 hover:bg-amber-500/20 px-2.5 py-1 rounded-lg border border-amber-500/30 flex items-center gap-1 cursor-pointer transition-colors"
-        title="Buscar armas en el Compendio SRD"
-      >
-        <span class="material-symbols-outlined text-[13px]">menu_book</span>
-        <span>Compendio</span>
-      </button>
-      <button
-        type="button"
         id="open-add-weapon-btn"
         class="text-[10px] text-amber-400 hover:text-amber-300 font-bold bg-amber-500/10 hover:bg-amber-500/20 px-2.5 py-1 rounded-lg border border-amber-500/30 flex items-center gap-1 cursor-pointer transition-colors"
         title="Añadir nueva arma o ataque"
@@ -47,7 +38,7 @@
   <!-- Slot para barra de turno activo (TurnNotifier) -->
   <div data-turn-bar-slot class="hidden mb-3"></div>
 
-  <div class="section-body grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 items-start" id="weapon-actions-container">
+  <div class="section-body grid grid-cols-1 gap-3 items-start" id="weapon-actions-container">
     <!-- Populated by JavaScript -->
   </div>
 </div>
@@ -67,11 +58,8 @@
     window.dispatchEvent(new CustomEvent('open-add-weapon-modal'));
   });
 
-  document.getElementById('open-compendium-weapons-btn')?.addEventListener('click', () => {
-    window.dispatchEvent(new CustomEvent('open-compendium-modal', {
-      detail: { scope: 'weapons', category: 'weapons', targetModal: 'add-weapon' }
-    }));
-  });
+
+  const expandedWeapons = new Set<string>();
 
   function renderWeapons(char: any) {
     if (!container) return;
@@ -91,7 +79,7 @@
       wrapper.appendChild(swipeBg);
 
       const card = document.createElement('div');
-      card.className = 'relative p-3.5 rounded-xl bg-[#18202e] border border-transparent hover:border-amber-500/40 transition-colors flex flex-col gap-2.5 group cursor-grab active:cursor-grabbing';
+      card.className = 'relative p-2.5 rounded-xl bg-[#18202e] border border-transparent hover:border-amber-500/40 transition-colors flex flex-col gap-1.5 group cursor-grab active:cursor-grabbing';
       
       const tagsHtml = (act.tags || []).map((t: string) => `<span class="px-2 py-0.5 rounded-full bg-[#10141d] border border-[#222f42] text-[10px] text-[#94a3b8] font-medium">${t}</span>`).join('');
 
@@ -101,9 +89,10 @@
             <div class="truncate">
               <div class="flex items-center gap-2">
                 <span class="font-headline font-bold text-[#f1f5f9] text-sm">${act.name}</span>
-                <span class="text-[10px] text-amber-400 font-semibold px-1.5 py-0.2 rounded bg-amber-500/10 border border-amber-500/20">${act.type}</span>
+                ${act.equipped ? `<span class="material-symbols-outlined text-[13px] text-emerald-400" title="Equipada">check_circle</span>` : ''}
                 ${act.isAuto !== false && act.ability && act.ability !== 'none' ? `<span class="text-[9px] text-[#38bdf8] bg-sky-500/10 border border-sky-500/30 px-1.5 py-0.2 rounded font-mono font-bold uppercase" title="Modificador vinculado a ${act.ability.toUpperCase()}">${act.ability.toUpperCase()}</span>` : ''}
               </div>
+              ${act.type ? `<span class="block text-[10px] text-amber-400 font-semibold uppercase tracking-wide leading-tight">${act.type}</span>` : ''}
               <span class="text-xs text-[#94a3b8] font-label">Daño: <strong class="text-amber-300">${act.damage}</strong> (${act.damageType})</span>
             </div>
           </div>
@@ -123,18 +112,20 @@
             <button class="delete-weapon-btn w-6 h-6 rounded hover:bg-rose-950/40 text-[#94a3b8] hover:text-rose-400 flex sm:hidden sm:group-hover:flex items-center justify-center transition-colors cursor-pointer" title="Eliminar arma">
               <span class="material-symbols-outlined text-[14px]">close</span>
             </button>
+            <button class="expand-weapon-btn w-6 h-6 rounded hover:bg-[#10141d] text-[#64748b] hover:text-[#cbd5e1] flex items-center justify-center cursor-pointer" title="Notas, etiquetas y equipar" aria-label="Mostrar u ocultar detalles">
+              <span class="material-symbols-outlined text-[16px] transition-transform ${expandedWeapons.has(act.id) ? 'rotate-180' : ''}">expand_more</span>
+            </button>
           </div>
         </div>
 
-        ${act.notes ? `
-          <div class="px-2.5 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-[11px] text-[#cbd5e1] flex items-start gap-1.5">
-            <span class="material-symbols-outlined text-[14px] text-amber-400 shrink-0 mt-0.5">auto_awesome</span>
-            <span class="leading-relaxed"><strong class="text-amber-400/90 font-semibold">Efecto / Condición:</strong> ${act.notes}</span>
-          </div>
-        ` : ''}
-
-        <div class="flex flex-wrap gap-1.5 pt-1 border-t border-[#222f42]/60">
-          ${tagsHtml}
+        <div class="weapon-extra ${expandedWeapons.has(act.id) ? 'flex' : 'hidden'} flex-col gap-2 pt-2 border-t border-[#222f42]/60">
+          ${act.notes ? `
+            <div class="px-2.5 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-[11px] text-[#cbd5e1] flex items-start gap-1.5">
+              <span class="material-symbols-outlined text-[14px] text-amber-400 shrink-0 mt-0.5">auto_awesome</span>
+              <span class="leading-relaxed"><strong class="text-amber-400/90 font-semibold">Efecto / Condición:</strong> ${act.notes}</span>
+            </div>
+          ` : ''}
+          ${tagsHtml ? `<div class="flex flex-wrap gap-1.5">${tagsHtml}</div>` : ''}
         </div>
       `;
 
@@ -191,7 +182,20 @@
         });
         equipRow.append(slotSel, eqBtn);
       }
-      card.lastElementChild?.before(equipRow);
+      card.querySelector('.weapon-extra')?.prepend(equipRow);
+
+      // Panel desplegable: notas, tags y equipar quedan ocultos hasta que se pida (el estado sobrevive al render).
+      const expandBtn = card.querySelector('.expand-weapon-btn');
+      expandBtn?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const panel = card.querySelector('.weapon-extra');
+        if (!panel) return;
+        const open = panel.classList.contains('hidden');
+        panel.classList.toggle('hidden', !open);
+        panel.classList.toggle('flex', open);
+        expandBtn.querySelector('.material-symbols-outlined')?.classList.toggle('rotate-180', open);
+        if (open) expandedWeapons.add(act.id); else expandedWeapons.delete(act.id);
+      });
 
       // Helper function to trigger delete modal
       const triggerWeaponDelete = () => {

@@ -192,6 +192,7 @@
     setVis(secWildShape, cfg.showWildShape && (showAll || tab === 'wildshape'));
     setVis(secCurrency, true); // Monedas vive ahora en VitalsGrid arriba del todo
     setVis(secBackpack, (showAll && cfg.showInventory) || tab === 'inventory');
+    setVis(document.getElementById('section-armor'), (showAll && cfg.showInventory) || tab === 'inventory');
     setVis(secSpells, cfg.showSpells && (showAll || tab === 'spells'));
     setVis(secJournal, (showAll && cfg.showJournal) || tab === 'journal');
 

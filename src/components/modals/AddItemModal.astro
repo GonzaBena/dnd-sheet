@@ -244,6 +244,10 @@ const lblCls = 'text-[#94a3b8] block mb-1 text-[12.5px] font-semibold';
       if (modalTitle) modalTitle.textContent = 'Añadir objeto desde el compendio';
       if (modalSubtitle) modalSubtitle.textContent = 'Revisa y ajusta los datos antes de guardarlo en tu mochila';
       finalLabel = 'Añadir objeto';
+    } else if (e.detail?.category) {
+      // Atajo de "Añadir defensa": abre con la categoría ya elegida.
+      catSel.value = e.detail.category;
+      customEntry.setCategory(catSel.value);
     }
     steps.reset();
     if (modal && backdrop) openModal(modal, backdrop);

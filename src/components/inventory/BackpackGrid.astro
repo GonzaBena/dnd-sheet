@@ -13,15 +13,6 @@
     <div class="flex items-center gap-2">
       <button
         type="button"
-        id="open-compendium-inventory-btn"
-        class="text-[10px] text-amber-400 hover:text-amber-300 font-bold bg-amber-500/10 hover:bg-amber-500/20 px-2.5 py-1 rounded-lg border border-amber-500/30 flex items-center gap-1 cursor-pointer transition-colors"
-        title="Buscar objetos y pociones en el Compendio SRD"
-      >
-        <span class="material-symbols-outlined text-[13px]">menu_book</span>
-        <span>Compendio</span>
-      </button>
-      <button
-        type="button"
         id="open-add-item-btn"
         class="text-[10px] text-amber-400 hover:text-amber-300 font-bold bg-amber-500/10 hover:bg-amber-500/20 px-2.5 py-1 rounded-lg border border-amber-500/30 flex items-center gap-1 cursor-pointer transition-colors"
         title="Añadir nuevo objeto al inventario"
@@ -68,7 +59,7 @@
 
 <script>
   import { showAlert } from '../../scripts/ui/notify';
-  import { SLOT_LABELS, validSlotsFor } from '../../scripts/dnd/equipment';
+  import { SLOT_LABELS, validSlotsFor, belongsToDefense } from '../../scripts/dnd/equipment';
   import type { EquipSlot } from '../../scripts/models/character';
   import { characterStore } from '../../scripts/state/characterStore';
   import { escapeHtml, toCatalogEntry } from '../../scripts/dnd/catalog';
@@ -87,11 +78,6 @@
     window.dispatchEvent(new CustomEvent('open-add-item-modal'));
   });
 
-  document.getElementById('open-compendium-inventory-btn')?.addEventListener('click', () => {
-    window.dispatchEvent(new CustomEvent('open-compendium-modal', {
-      detail: { scope: 'inventory', category: 'equipment', targetModal: 'add-item' }
-    }));
-  });
 
   function renderQuickSlot(char: any) {
     if (!quickSlotContainer) return;
@@ -219,7 +205,10 @@
     if (!gearContainer) return;
     gearContainer.innerHTML = '';
 
-    const items = char.inventory || [];
+    // Armaduras y escudos (puestos o no) se ven en la sección "Armaduras y Defensa".
+    const items = (char.inventory || []).filter((i: any) => !belongsToDefense(i));
+    const countEl = document.getElementById('backpack-item-count');
+    if (countEl) countEl.textContent = `${items.length} ${items.length === 1 ? 'objeto' : 'objetos'}`;
     if (items.length === 0) {
       gearContainer.innerHTML = `
         <div class="w-full py-6 text-center text-xs text-[#64748b]">
@@ -228,9 +217,6 @@
       `;
       return;
     }
-
-    const countEl = document.getElementById('backpack-item-count');
-    if (countEl) countEl.textContent = `${items.length} ${items.length === 1 ? 'objeto' : 'objetos'}`;
 
     items.forEach((item: any) => {
       const isPinned = char.quickSlotItemId === item.id;

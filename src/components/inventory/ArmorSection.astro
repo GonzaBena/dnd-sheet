@@ -1,0 +1,254 @@
+---
+// src/components/inventory/ArmorSection.astro
+// Spec 08, Fase F: equipo puesto en un grid de slots, separado de la mochila.
+---
+
+<div class="rounded-xl bg-[#121721] border border-[#222f42] p-5 shadow-sm" id="armor-section">
+  <div class="flex items-center justify-between mb-4 select-none">
+    <h3 class="text-sm font-headline font-bold text-[#f1f5f9] uppercase tracking-wider flex items-center gap-1.5">
+      <span class="material-symbols-outlined text-amber-500 text-[18px]">shield</span>
+      <span>Armaduras y Equipo Puesto</span>
+    </h3>
+    <div class="flex items-center gap-2">
+      <span id="armor-section-count" class="text-[10px] text-[#64748b] font-label">0 equipados</span>
+      <button
+        type="button"
+        id="open-add-armor-btn"
+        class="text-[10px] text-amber-400 hover:text-amber-300 font-bold bg-amber-500/10 hover:bg-amber-500/20 px-2.5 py-1 rounded-lg border border-amber-500/30 flex items-center gap-1 cursor-pointer transition-colors"
+        title="Añadir una armadura, escudo u objeto de defensa"
+      >
+        <span class="material-symbols-outlined text-[13px]">add</span>
+        <span>Añadir Defensa</span>
+      </button>
+      <button
+        type="button"
+        class="section-collapse-btn w-6 h-6 rounded-md bg-[#18202e] border border-[#222f42] hover:border-amber-500/40 text-[#94a3b8] hover:text-[#f1f5f9] flex items-center justify-center transition-colors cursor-pointer"
+        title="Colapsar / Expandir sección"
+        aria-label="Colapsar o expandir"
+      >
+        <span class="material-symbols-outlined section-collapse-icon text-[18px]">expand_less</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="section-collapsed-summary hidden text-[11px] text-[#94a3b8] font-label py-1">
+    Armadura, escudo y objetos puestos
+  </div>
+
+  <div class="section-body space-y-3">
+    <div class="grid grid-cols-3 gap-2 text-xs font-label" id="armor-slots-grid">
+      <!-- Populated by JavaScript -->
+    </div>
+
+    <!-- Selector del slot abierto -->
+    <div id="armor-picker" class="hidden rounded-lg bg-[#10141d] border border-amber-500/30 p-3 space-y-2">
+      <div class="flex items-center justify-between">
+        <span id="armor-picker-title" class="text-[11px] font-bold text-amber-300 uppercase tracking-wider"></span>
+        <button type="button" id="armor-picker-close" class="text-[#64748b] hover:text-[#f1f5f9] cursor-pointer" aria-label="Cerrar selector">
+          <span class="material-symbols-outlined text-[16px]">close</span>
+        </button>
+      </div>
+      <div id="armor-picker-list" class="grid grid-cols-1 sm:grid-cols-2 gap-1.5"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  import { showAlert } from '../../scripts/ui/notify';
+  import { SLOT_LABELS, wornSlotsFor } from '../../scripts/dnd/equipment';
+  import type { EquipSlot } from '../../scripts/models/character';
+  import { characterStore } from '../../scripts/state/characterStore';
+  import { toCatalogEntry } from '../../scripts/dnd/catalog';
+
+  // Slots que se ven aquí, en una cuadrícula de 3x3 ordenada como un cuerpo (cabeza arriba, botas abajo);
+  // las manos siguen en "Armas y Acciones de Ataque".
+  const ARMOR_SLOTS: EquipSlot[] = [
+    'head', 'neck', 'cloak',
+    'gloves', 'body', 'shield',
+    'ring1', 'boots', 'ring2',
+  ];
+  const SLOT_ICONS: Record<string, string> = {
+    head: 'face', neck: 'diamond', body: 'checkroom', cloak: 'styler', gloves: 'back_hand',
+    ring1: 'circle', ring2: 'circle', boots: 'steps', shield: 'shield',
+  };
+
+  const grid = document.getElementById('armor-slots-grid');
+  const picker = document.getElementById('armor-picker');
+  const pickerTitle = document.getElementById('armor-picker-title');
+  const pickerList = document.getElementById('armor-picker-list');
+  const countEl = document.getElementById('armor-section-count');
+
+  let openSlot: EquipSlot | null = null;
+
+  function el(tag: string, cls: string, text?: string) {
+    const e = document.createElement(tag);
+    e.className = cls;
+    if (text !== undefined) e.textContent = text;
+    return e;
+  }
+  function icon(name: string, cls: string) {
+    return el('span', `material-symbols-outlined ${cls}`, name);
+  }
+  function chip(text: string, cls: string) {
+    return el('span', `px-1.5 py-0.5 rounded text-[9px] font-bold border shrink-0 ${cls}`, text);
+  }
+
+  function acLabel(item: any): string {
+    const a = item.armor;
+    if (!a) return '';
+    if (a.category === 'shield') return `+${(a.baseAc ?? 2) + (a.bonus ?? 0)} CA`;
+    return `CA ${(a.baseAc ?? 0) + (a.bonus ?? 0)}`;
+  }
+
+  function equipInto(itemId: string, slot: EquipSlot) {
+    const res = characterStore.equipItem(itemId, slot);
+    if (res.error) showAlert(res.error, { kind: 'warning' });
+    else if (res.unequipped.length > 0) {
+      showAlert(`Se quitó ${res.unequipped.map((u) => u.name).join(', ')}.`, { kind: 'warning' });
+    }
+    openSlot = null;
+  }
+
+  function renderSlot(slot: EquipSlot, item: any | undefined) {
+    const cell = el(
+      'div',
+      `rounded-lg border p-2.5 min-h-[84px] flex flex-col gap-1.5 transition-colors ${
+        item ? 'bg-[#18202e] border-emerald-500/30' : 'bg-[#10141d] border-dashed border-[#222f42] hover:border-amber-500/40'
+      } ${openSlot === slot ? 'ring-1 ring-amber-500/60' : ''}`,
+    );
+    cell.dataset.slot = slot;
+
+    const head = el('div', 'flex items-center justify-between gap-1');
+    head.appendChild(el('span', 'text-[9px] uppercase tracking-wider text-[#64748b] font-bold', SLOT_LABELS[slot]));
+    head.appendChild(icon(SLOT_ICONS[slot] ?? 'inventory_2', 'text-[14px] text-[#64748b]'));
+    cell.appendChild(head);
+
+    if (!item) {
+      const add = el('button', 'flex-1 flex items-center justify-center gap-1 text-[#64748b] hover:text-amber-300 cursor-pointer');
+      (add as HTMLButtonElement).type = 'button';
+      add.title = `Equipar en ${SLOT_LABELS[slot]}`;
+      add.append(icon('add', 'text-[16px]'), el('span', 'text-[10px]', 'Vacío'));
+      add.addEventListener('click', () => {
+        if (openSlot !== slot && candidatesFor(characterStore.get(), slot).length === 0) {
+          showAlert(`No tienes objetos compatibles con ${SLOT_LABELS[slot]}.`, { kind: 'info' });
+          return;
+        }
+        openSlot = openSlot === slot ? null : slot;
+        render(characterStore.get());
+      });
+      cell.appendChild(add);
+      return cell;
+    }
+
+    // Ver la ficha del objeto: botón de info en la cabecera de la celda.
+    const info = el('button', 'text-[#64748b] hover:text-amber-300 cursor-pointer flex');
+    (info as HTMLButtonElement).type = 'button';
+    info.title = 'Ver detalles';
+    info.appendChild(icon('info', 'text-[14px]'));
+    info.addEventListener('click', () => {
+      window.dispatchEvent(new CustomEvent('open-item-detail', { detail: { entry: toCatalogEntry('item', item), context: 'inventory' } }));
+    });
+    head.lastElementChild?.replaceWith(info);
+
+    // Tocar el nombre abre el selector del slot, donde se puede cambiar la pieza o dejarlo vacío.
+    const name = el('button', 'text-left text-[#f1f5f9] font-medium text-xs leading-tight line-clamp-2 cursor-pointer hover:text-amber-300', item.name);
+    (name as HTMLButtonElement).type = 'button';
+    name.title = 'Cambiar o dejar vacío';
+    name.addEventListener('click', () => {
+      openSlot = openSlot === slot ? null : slot;
+      render(characterStore.get());
+    });
+    cell.appendChild(name);
+
+    const meta = el('div', 'flex items-center gap-1 flex-wrap');
+    const ac = acLabel(item);
+    if (ac) meta.appendChild(chip(ac, 'bg-sky-500/10 text-sky-300 border-sky-500/30'));
+    if (item.attuned) meta.appendChild(chip('Sintonizado', 'bg-violet-500/10 text-violet-300 border-violet-500/30'));
+    else if (item.requiresAttunement) meta.appendChild(chip('Sin sintonizar', 'bg-rose-500/10 text-rose-300 border-rose-500/30'));
+    cell.appendChild(meta);
+
+    const actions = el('div', 'flex items-center gap-1 mt-auto flex-wrap');
+    if (item.requiresAttunement || item.attuned) {
+      const at = el('button', 'px-1.5 py-0.5 rounded bg-violet-500/15 text-violet-300 hover:bg-violet-500/30 border border-violet-500/30 text-[9px] font-bold cursor-pointer', item.attuned ? 'Quitar sintonía' : 'Sintonizar');
+      (at as HTMLButtonElement).type = 'button';
+      at.addEventListener('click', () => {
+        if (item.attuned) { characterStore.unattuneItem(item.id); return; }
+        const res = characterStore.attuneItem(item.id);
+        if (res.error) showAlert(res.error, { kind: 'warning' });
+      });
+      actions.appendChild(at);
+    }
+    if (actions.childElementCount > 0) cell.appendChild(actions);
+    return cell;
+  }
+
+  // Todos los objetos compatibles con el slot (incluidos los que están puestos en otro slot, que se mueven).
+  // La compatibilidad sale de `wornSlotsFor` (tipo y nombre del objeto). Si no hay ninguno, no se abre el selector.
+  function candidatesFor(char: any, slot: EquipSlot): any[] {
+    return (char.inventory || []).filter((i: any) => i.slot !== slot && wornSlotsFor(i).includes(slot));
+  }
+
+  function renderPicker(char: any) {
+    if (!picker || !pickerList || !pickerTitle) return;
+    if (!openSlot) { picker.classList.add('hidden'); return; }
+    const slot = openSlot;
+    const candidates = candidatesFor(char, slot);
+    const current = (char.inventory || []).find((i: any) => i.equipped && i.slot === slot);
+    // Con la pieza puesta siempre hay opción "Vacío"; con el slot vacío y sin compatibles no se abre.
+    if (candidates.length === 0 && !current) { openSlot = null; picker.classList.add('hidden'); return; }
+    pickerTitle.textContent = `Equipar en: ${SLOT_LABELS[slot]}`;
+    pickerList.replaceChildren();
+    if (current) {
+      const empty = el('button', 'flex items-center gap-2 text-left px-2.5 py-1.5 rounded-lg bg-[#10141d] border border-dashed border-[#222f42] hover:border-amber-500/40 cursor-pointer');
+      (empty as HTMLButtonElement).type = 'button';
+      empty.appendChild(icon('block', 'text-[16px] text-[#64748b] shrink-0'));
+      empty.appendChild(el('span', 'text-xs text-[#94a3b8] italic flex-1', 'Vacío (quitar lo equipado)'));
+      empty.addEventListener('click', () => {
+        characterStore.unequipItem(current.id);
+        openSlot = null;
+        render(characterStore.get());
+      });
+      pickerList.appendChild(empty);
+    }
+    candidates.forEach((item: any) => {
+      const b = el('button', 'flex items-center gap-2 text-left px-2.5 py-1.5 rounded-lg bg-[#18202e] border border-[#222f42] hover:border-amber-500/40 cursor-pointer');
+      (b as HTMLButtonElement).type = 'button';
+      b.appendChild(icon(item.icon || 'inventory_2', 'text-[16px] text-amber-500 shrink-0'));
+      b.appendChild(el('span', 'text-xs text-[#f1f5f9] truncate flex-1', item.name));
+      const ac = acLabel(item);
+      if (ac) b.appendChild(chip(ac, 'bg-sky-500/10 text-sky-300 border-sky-500/30'));
+      if (item.equipped && item.slot) b.appendChild(chip(`En ${SLOT_LABELS[item.slot as EquipSlot] ?? item.slot}`, 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30'));
+      b.addEventListener('click', () => { equipInto(item.id, slot); render(characterStore.get()); });
+      pickerList.appendChild(b);
+    });
+    picker.classList.remove('hidden');
+  }
+
+  function render(char: any) {
+    if (!grid) return;
+    const inv = char.inventory || [];
+    grid.replaceChildren();
+    let equipped = 0;
+    ARMOR_SLOTS.forEach((slot) => {
+      const item = inv.find((i: any) => i.equipped && i.slot === slot);
+      if (item) equipped++;
+      grid.appendChild(renderSlot(slot, item));
+    });
+    if (countEl) countEl.textContent = `${equipped} ${equipped === 1 ? 'equipado' : 'equipados'}`;
+    renderPicker(char);
+  }
+
+  document.getElementById('open-add-armor-btn')?.addEventListener('click', () => {
+    window.dispatchEvent(new CustomEvent('open-add-item-modal', { detail: { category: 'armor' } }));
+  });
+
+  document.getElementById('armor-picker-close')?.addEventListener('click', () => {
+    openSlot = null;
+    render(characterStore.get());
+  });
+
+  render(characterStore.get());
+  window.addEventListener('character-updated', ((e: CustomEvent) => {
+    render(e.detail.character);
+  }) as EventListener);
+</script>

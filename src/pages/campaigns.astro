@@ -16,6 +16,7 @@ import FeaturesFeats from '../components/character/FeaturesFeats.astro';
 import WildShapePanel from '../components/character/WildShapePanel.astro';
 import WeaponActionCard from '../components/combat/WeaponActionCard.astro';
 import BackpackGrid from '../components/inventory/BackpackGrid.astro';
+import ArmorSection from '../components/inventory/ArmorSection.astro';
 import SpellcastingPanel from '../components/combat/SpellcastingPanel.astro';
 import QuickJournalFab from '../components/journal/QuickJournalFab.astro';
 import JournalModal from '../components/journal/JournalModal.astro';
@@ -122,8 +123,13 @@ import TurnNotifier from '../components/party/TurnNotifier.astro';
 
           <!-- BLOQUE 2: ARMAS A ANCHO COMPLETO (FILA CORTA EN GRILLA) + MOCHILA A ANCHO COMPLETO (EN 2 COLUMNAS AMPLIAS) -->
           <div class="space-y-6 w-full" id="sheet-block-2">
-            <div id="section-weapons" data-section-id="weapons" class="transition-all duration-200 w-full">
-              <WeaponActionCard />
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start" id="combat-row">
+              <div id="section-weapons" data-section-id="weapons" class="transition-all duration-200 w-full">
+                <WeaponActionCard />
+              </div>
+              <div id="section-armor" class="transition-all duration-200 w-full">
+                <ArmorSection />
+              </div>
             </div>
             <div id="section-backpack" data-section-id="backpack" class="transition-all duration-200 w-full">
               <BackpackGrid />
