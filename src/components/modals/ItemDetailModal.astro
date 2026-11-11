@@ -1,0 +1,12 @@
+---
+// src/components/modals/ItemDetailModal.astro
+// Ficha de objeto (y de dote). Se abre con `open-item-detail` (Spec 07, Fase D, T-245).
+import DetailModalShell from './DetailModalShell.astro';
+---
+
+<DetailModalShell prefix="item" />
+
+<script>
+  import { initDetailModals } from '../../scripts/ui/detailModals';
+  initDetailModals();
+</script>

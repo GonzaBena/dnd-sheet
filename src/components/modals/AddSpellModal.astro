@@ -1,5 +1,6 @@
 ---
 // src/components/modals/AddSpellModal.astro
+import CustomEntryFields from '../ui/CustomEntryFields.astro';
 ---
 
 <div id="add-spell-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -246,6 +247,8 @@
         ></textarea>
       </div>
 
+      <CustomEntryFields prefix="spell" />
+
       <!-- Footer -->
       <div class="pt-3 border-t border-[#222f42] flex items-center justify-end gap-2.5 shrink-0">
         <button type="button" id="add-spell-cancel-btn" class="px-4 py-2 rounded-xl bg-[#121721] border border-[#222f42] text-[#94a3b8] hover:text-[#f1f5f9] cursor-pointer">
@@ -262,6 +265,10 @@
 <script>
   import { characterStore } from '../../scripts/state/characterStore';
   import { closeModal, openModal } from '../../scripts/animations/modalAnimations';
+  import { initCustomEntry } from '../../scripts/ui/customEntry';
+  import { showAlert } from '../../scripts/ui/notify';
+
+  const customEntry = initCustomEntry('spell');
 
   const modal = document.getElementById('add-spell-modal');
   const backdrop = document.getElementById('modal-backdrop');
@@ -362,6 +369,7 @@
     dmgBonusModInp.value = '0';
     activationInp.value = '';
     notesInp.value = '';
+    customEntry.reset('new');
     updateSaveVisibility();
     updatePreview();
 
@@ -402,6 +410,7 @@
     resetForm();
     if (e.detail?.prefill) {
       loadSpellForEdit(e.detail.prefill);
+      customEntry.reset('srd');
       editIdInp.value = ''; // Ensure it creates a new spell, not editing an existing one
       if (modalTitle) modalTitle.textContent = 'Añadir Conjuro desde Compendio';
       if (modalSubtitle) modalSubtitle.textContent = 'Revisa y ajusta los datos antes de guardarlo en tu grimorio';
@@ -422,6 +431,7 @@
     const sp = e.detail?.spell;
     if (sp) {
       loadSpellForEdit(sp);
+      customEntry.reset('edit', sp);
       if (modal && backdrop) openModal(modal, backdrop);
     }
   }) as EventListener);
@@ -442,7 +452,11 @@
     const baseDice = dmgDiceInp.value.trim();
     const dmgFlat = parseInt(dmgBonusModInp.value || '0') || 0;
 
+    const custom = customEntry.read();
+    if (!custom.ok) return; // el error ya se muestra en el formulario
+
     const payload = {
+      ...custom.patch,
       name,
       level: parseInt(lvlSel.value || '1') || 0,
       school: schSel.value,
@@ -469,5 +483,8 @@
 
     form.reset();
     if (modal && backdrop) closeModal(modal, backdrop);
+    if (custom.imageRejected) {
+      showAlert('La imagen se descartó: solo se admiten URLs https:// o data:image/ cortas. El conjuro se guardó sin imagen.', { kind: 'warning', title: 'Imagen no válida' });
+    }
   });
 </script>

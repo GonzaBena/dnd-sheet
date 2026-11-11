@@ -308,6 +308,7 @@ import HandoutManager from './HandoutManager.astro';
 <script>
   import { showAlert, showConfirm, showForm } from '../../scripts/ui/notify';
   import { campaignStore } from '../../scripts/state/campaignStore';
+  import { broadcastGroupRest } from '../../scripts/state/groupRestSync';
   import { characterStore } from '../../scripts/state/characterStore';
   import { journalStore, getEntryVisibility } from '../../scripts/state/journalStore';
   import { userStore } from '../../scripts/state/userStore';
@@ -713,6 +714,7 @@ import HandoutManager from './HandoutManager.astro';
         'El Dungeon Master decretó un descanso corto para todos los aventureros (+8 PG recuperados).',
         ['#Descanso']
       );
+      broadcastGroupRest(activeCampId, 'short');
       renderGrimoire();
       showAlert('¡Descanso corto aplicado a todos los aventureros!', { kind: 'success', title: 'Descanso corto' });
     }
@@ -736,6 +738,7 @@ import HandoutManager from './HandoutManager.astro';
         'El Dungeon Master concedió un descanso largo completo. Todos los aventureros han restablecido sus Puntos de Golpe al máximo.',
         ['#Descanso']
       );
+      broadcastGroupRest(activeCampId, 'long');
       renderGrimoire();
       showAlert('¡Descanso largo completado! Todos los aventureros tienen la salud restaurada.', { kind: 'success', title: 'Descanso largo' });
     }

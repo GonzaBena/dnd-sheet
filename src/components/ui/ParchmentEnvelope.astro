@@ -312,6 +312,9 @@
 
 <script>
   import anime from 'animejs';
+  import { toCatalogEntry } from '../../scripts/dnd/catalog';
+  import { characterStore } from '../../scripts/state/characterStore';
+  import { showAlert } from '../../scripts/ui/notify';
 
   export type ItemRarity = 'common' | 'uncommon' | 'rare' | 'very-rare' | 'legendary';
 
@@ -580,6 +583,17 @@
 
       card.appendChild(iconBox);
       card.appendChild(infoDiv);
+
+      // Fase D: tocar la tarjeta abre la ficha del objeto con contexto 'loot'.
+      card.classList.add('cursor-pointer');
+      card.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const entry = toCatalogEntry('item', {
+          name: item.name, description: item.description, quantity: item.quantity ?? 1, source: 'srd',
+        } as any);
+        entry.meta.rarity = style.badgeLabel;
+        window.dispatchEvent(new CustomEvent('open-item-detail', { detail: { entry, context: 'loot' } }));
+      });
       itemsCardsContainer.appendChild(card);
     });
   }
@@ -879,6 +893,19 @@
       flipToView('letter');
     });
   }
+
+  // DECISION: "Agregar" desde la ficha de botín suma solo ese objeto a la mochila; "Reclamar" sigue cerrando el sobre.
+  window.addEventListener('item-action', ((e: CustomEvent) => {
+    const { context, action, entry } = e.detail || {};
+    if (context !== 'loot' || action !== 'add' || !entry) return;
+    characterStore.addInventoryItem({
+      name: entry.name,
+      description: entry.description,
+      quantity: typeof entry.meta?.quantity === 'number' ? entry.meta.quantity : 1,
+      category: 'gear',
+    } as any);
+    showAlert(`"${entry.name}" añadido a tu mochila.`, { kind: 'success' });
+  }) as EventListener);
 
   if (btnClaimItems) {
     btnClaimItems.addEventListener('click', (e) => {

@@ -41,6 +41,10 @@
 
 <script>
   import { characterStore } from '../../scripts/state/characterStore';
+  import { escapeHtml, toCatalogEntry } from '../../scripts/dnd/catalog';
+  import { applyFromEntry } from '../../scripts/ui/applyEffectFlow';
+  import { customBadgeHtml } from '../../scripts/ui/customBadge';
+  import { FEAT_TYPE_LABELS } from '../../scripts/models/catalog';
 
   const container = document.getElementById('features-list-container');
   const configBtn = document.getElementById('open-features-config-btn');
@@ -74,8 +78,10 @@
         <div class="flex items-start justify-between gap-2">
           <div class="flex-1 min-w-0">
             <div class="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
-              <span class="font-headline font-bold text-sm ${isEnabled ? 'text-amber-300' : 'text-[#94a3b8] line-through'} break-words">${feat.title}</span>
-              ${feat.uses ? `<span class="self-start sm:self-auto px-1.5 py-0.5 rounded bg-[#10141d] text-[10px] text-[#94a3b8] border border-[#222f42] font-mono shrink-0">${feat.uses}</span>` : ''}
+              <span class="font-headline font-bold text-sm ${isEnabled ? 'text-amber-300' : 'text-[#94a3b8] line-through'} break-words">${escapeHtml(feat.title)}</span>
+              ${customBadgeHtml(feat)}
+              ${feat.featType && (FEAT_TYPE_LABELS as any)[feat.featType] ? `<span class="self-start sm:self-auto px-1.5 py-0.5 rounded bg-amber-500/10 text-[10px] text-amber-300 border border-amber-500/20 font-bold shrink-0">${FEAT_TYPE_LABELS[feat.featType as keyof typeof FEAT_TYPE_LABELS]}</span>` : ''}
+              ${feat.uses ? `<span class="self-start sm:self-auto px-1.5 py-0.5 rounded bg-[#10141d] text-[10px] text-[#94a3b8] border border-[#222f42] font-mono shrink-0">${escapeHtml(feat.uses)}</span>` : ''}
             </div>
           </div>
 
@@ -93,12 +99,24 @@
           </button>
         </div>
 
-        <p class="text-[#cbd5e1] text-[11px] leading-relaxed mt-1.5 ${isEnabled ? '' : 'text-[#64748b]'}">${feat.description}</p>
+        <p class="text-[#cbd5e1] text-[11px] leading-relaxed mt-1.5 ${isEnabled ? '' : 'text-[#64748b]'}">${escapeHtml(feat.description)}</p>
       `;
 
       card.querySelector('.toggle-feat-btn')?.addEventListener('click', () => {
         characterStore.toggleFeature(featId);
       });
+
+      // FE-5/FE-7: las dotes activas con efectos se activan desde aquí.
+      if (isEnabled && feat.featType === 'active' && feat.effects?.length) {
+        const activate = document.createElement('button');
+        activate.type = 'button';
+        activate.className = 'px-2 py-1 rounded text-[10px] font-bold border bg-amber-500/10 text-amber-300 border-amber-500/30 hover:bg-amber-500/20 cursor-pointer';
+        activate.textContent = 'Activar';
+        activate.addEventListener('click', () => {
+          applyFromEntry(toCatalogEntry('feat', { ...feat, id: featId }));
+        });
+        card.appendChild(activate);
+      }
 
       container.appendChild(card);
     });

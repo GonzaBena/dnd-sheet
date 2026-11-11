@@ -41,4 +41,20 @@ const stealth = updated.skills.find(s => s.id === 'stealth');
 assert.strictEqual(stealth?.value, 12);
 console.log('✓ Character recalculation with expertise test passed.');
 
+// Regresión Spec 07 Fase A: personaje antiguo (level1/level2, sin resources) migra sin lanzar y es estable.
+{
+  const old = JSON.parse(JSON.stringify(defaultCharacter));
+  delete old.resources;
+  old.spellcasting.slots = { level1: { total: 4, used: 3 }, level2: { total: 2, used: 1 } };
+  old.wildShape = { usesTotal: 2, usesRemaining: 1, activeForm: null };
+  const once = JSON.stringify(recalculateCharacter(old));
+  const twice = JSON.stringify(recalculateCharacter(JSON.parse(once)));
+  assert.strictEqual(once, twice);
+  const migrated = JSON.parse(once);
+  assert.deepStrictEqual(migrated.spellcasting.slots[1], { total: 4, used: 3 });
+  assert.ok(!('level1' in migrated.spellcasting.slots));
+  assert.strictEqual(migrated.resources.find((r) => r.id === 'wildShape').used, 1);
+  console.log('✓ Legacy character migrates to resources and slots 1-9 idempotently.');
+}
+
 console.log('All automated calculation tests passed successfully!');

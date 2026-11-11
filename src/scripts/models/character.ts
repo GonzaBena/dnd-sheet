@@ -1,3 +1,7 @@
+import type { Resource, SlotState } from './resource.ts';
+import type { ActiveEffect, Modifier } from './effect.ts';
+import type { FeatType } from './catalog.ts';
+
 export interface StatBlock {
   score: number;
   modifier: number;
@@ -53,6 +57,11 @@ export interface SpellItem {
   damageFormula?: string;
   activationCondition?: string;
   notes?: string;
+  // Catálogo (Spec 07, Fase C)
+  source?: 'srd' | 'custom';
+  custom?: boolean;
+  imageUrl?: string;
+  effects?: Modifier[];
 }
 
 export interface InventoryItem {
@@ -68,6 +77,11 @@ export interface InventoryItem {
   healAmount?: number;
   activationCondition?: string;
   notes?: string;
+  // Catálogo (Spec 07, Fase C)
+  source?: 'srd' | 'custom';
+  custom?: boolean;
+  imageUrl?: string;
+  effects?: Modifier[];
 }
 
 export interface WildShapeForm {
@@ -167,12 +181,14 @@ export interface CharacterData {
     ability: 'str' | 'dex' | 'con' | 'int' | 'wis' | 'cha';
     saveDc: number;
     attackBonus: number;
-    slots: {
-      level1: { total: number; used: number };
-      level2: { total: number; used: number };
-    };
+    slots: Record<number, SlotState>; // claves 1–9
     spells: SpellItem[];
   };
+
+  resources: Resource[];
+
+  activeEffects: ActiveEffect[];
+  effectsLastRound?: { campaignId: string; round: number };
 
   wildShape?: {
     usesTotal: number;
@@ -190,6 +206,10 @@ export interface CharacterData {
     description: string;
     uses?: string;
     enabled?: boolean;
+    featType?: FeatType;
+    resourceId?: string;
+    effects?: Modifier[];
+    custom?: boolean;
   }[];
   
   sessionContext: {

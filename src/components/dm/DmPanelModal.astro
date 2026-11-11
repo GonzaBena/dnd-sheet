@@ -123,6 +123,7 @@ import SessionStatusControls from './SessionStatusControls.astro';
 <script>
   import { showAlert, showConfirm, showForm } from '../../scripts/ui/notify';
   import { campaignStore } from '../../scripts/state/campaignStore';
+  import { broadcastGroupRest } from '../../scripts/state/groupRestSync';
   import { characterStore } from '../../scripts/state/characterStore';
   import { journalStore } from '../../scripts/state/journalStore';
   import { userStore } from '../../scripts/state/userStore';
@@ -377,6 +378,7 @@ import SessionStatusControls from './SessionStatusControls.astro';
         'El Dungeon Master decretó un descanso corto para todos los aventureros (+8 PG recuperados).',
         ['#Descanso']
       );
+      broadcastGroupRest(activeDmCampaignId, 'short');
       renderDmPanel(activeDmCampaignId);
       showAlert('¡Descanso de grupo completado!', { kind: 'success' });
     }

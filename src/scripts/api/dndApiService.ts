@@ -474,6 +474,8 @@ class DndApiService {
 
   public toSpellPayload(unified: UnifiedSpell): Partial<SpellItem> {
     return {
+      source: 'srd',
+      custom: false,
       name: unified.nameEs !== unified.name ? `${unified.nameEs} (${unified.name})` : unified.name,
       level: unified.level,
       school: unified.schoolEs,
@@ -493,6 +495,8 @@ class DndApiService {
   public toInventoryPayload(unified: UnifiedEquipment | UnifiedMagicItem): Partial<InventoryItem> {
     if ('rarity' in unified) {
       return {
+        source: 'srd',
+        custom: false,
         name: unified.name,
         quantity: 1,
         category: 'gear',
@@ -502,6 +506,8 @@ class DndApiService {
     }
 
     return {
+      source: 'srd',
+      custom: false,
       name: unified.nameEs !== unified.name ? `${unified.nameEs} (${unified.name})` : unified.name,
       quantity: 1,
       category: unified.category,

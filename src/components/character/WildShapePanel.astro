@@ -267,12 +267,7 @@
 
   // Restore uses
   document.getElementById('ws-restore-uses-btn')?.addEventListener('click', () => {
-    const char = characterStore.get();
-    if (char.wildShape) {
-      char.wildShape.usesRemaining = char.wildShape.usesTotal;
-      localStorage.setItem('dnd_active_character_v1', JSON.stringify(char));
-      window.dispatchEvent(new CustomEvent('character-updated', { detail: { character: char } }));
-    }
+    characterStore.restoreWildShapeUses();
   });
 
   // Initial render

@@ -2,6 +2,10 @@ import type { CharacterData, SectionOrderConfig } from '../models/character.ts';
 import { defaultCharacter } from '../data/defaultCharacter.ts';
 import { getRandomCharacterAvatar, isBrokenAvatarUrl } from '../data/characterAvatars.ts';
 import { recalculateCharacter, calculateLevelUpHpGain } from '../dnd/calculations.ts';
+import { spend, recover, resetOn, remaining } from '../dnd/resources.ts';
+import type { Resource } from '../models/resource.ts';
+import type { ActiveEffect } from '../models/effect.ts';
+import { addEffect, removeEffect, tickRounds, expireOnRest, roundDelta, type AddResult } from '../dnd/effects.ts';
 import { journalStore } from './journalStore.ts';
 import { campaignStore } from './campaignStore.ts';
 import { userStore } from './userStore.ts';
@@ -463,9 +467,8 @@ class CharacterStoreManager {
     );
   }
 
-  public useSpellSlot(level: 1 | 2) {
-    const key = `level${level}` as const;
-    const slot = this.character.spellcasting.slots[key];
+  public useSpellSlot(level: number) {
+    const slot = this.character.spellcasting.slots[level];
     if (slot && slot.used < slot.total) {
       slot.used++;
       this.saveAndNotify();
@@ -477,9 +480,8 @@ class CharacterStoreManager {
     }
   }
 
-  public restoreSpellSlot(level: 1 | 2) {
-    const key = `level${level}` as const;
-    const slot = this.character.spellcasting.slots[key];
+  public restoreSpellSlot(level: number) {
+    const slot = this.character.spellcasting.slots[level];
     if (slot && slot.used > 0) {
       slot.used--;
       this.saveAndNotify();
@@ -489,6 +491,164 @@ class CharacterStoreManager {
         ['#Magia']
       );
     }
+  }
+
+  // ---- Registro de recursos (Spec 07, Fase A) ----
+
+  /**
+   * DECISION: se mantiene la fuente vieja (wildShape / features[].uses) hasta que la UI migre.
+   * Cada cambio en un recurso migrado se refleja hacia atrás en su fuente legacy.
+   */
+  private syncLegacyFromResource(r: Resource) {
+    if (r.id === 'wildShape' && this.character.wildShape) {
+      this.character.wildShape.usesTotal = r.max;
+      this.character.wildShape.usesRemaining = remaining(r);
+    } else if (r.id.startsWith('feature:')) {
+      const fid = r.id.slice('feature:'.length);
+      const f = this.character.features.find((x) => x.id === fid);
+      if (f) f.uses = `${remaining(r)}/${r.max}`;
+    }
+  }
+
+  /** Refleja wildShape (fuente vieja) en el recurso `wildShape`. */
+  private syncWildShapeResource() {
+    const ws = this.character.wildShape;
+    const r = this.character.resources?.find((x) => x.id === 'wildShape');
+    if (!ws || !r) return;
+    r.max = ws.usesTotal;
+    r.used = Math.max(0, ws.usesTotal - ws.usesRemaining);
+  }
+
+  public addResource(partial: Partial<Resource> & { name: string; max: number }) {
+    const resource: Resource = {
+      id: partial.id ?? `res-${Date.now()}-${this.character.resources.length}`,
+      name: partial.name,
+      max: partial.max,
+      used: partial.used ?? 0,
+      rechargeOn: partial.rechargeOn ?? 'manual',
+      source: partial.source ?? 'custom',
+      ...(partial.values ? { values: partial.values } : {}),
+    };
+    this.character.resources.push(resource);
+    this.saveAndNotify();
+    return resource;
+  }
+
+  public updateResource(id: string, patch: Partial<Omit<Resource, 'id'>>) {
+    const idx = this.character.resources.findIndex((r) => r.id === id);
+    if (idx < 0) return;
+    const next = { ...this.character.resources[idx], ...patch };
+    next.used = Math.min(next.max, Math.max(0, next.used));
+    this.character.resources[idx] = next;
+    this.syncLegacyFromResource(next);
+    this.saveAndNotify();
+  }
+
+  public removeResource(id: string) {
+    this.character.resources = this.character.resources.filter((r) => r.id !== id);
+    this.saveAndNotify();
+  }
+
+  public spendResource(id: string, n: number = 1) {
+    const idx = this.character.resources.findIndex((r) => r.id === id);
+    if (idx < 0) return;
+    const next = spend(this.character.resources[idx], n);
+    this.character.resources[idx] = next;
+    this.syncLegacyFromResource(next);
+    this.saveAndNotify();
+  }
+
+  public recoverResource(id: string, n: number = 1) {
+    const idx = this.character.resources.findIndex((r) => r.id === id);
+    if (idx < 0) return;
+    const next = recover(this.character.resources[idx], n);
+    this.character.resources[idx] = next;
+    this.syncLegacyFromResource(next);
+    this.saveAndNotify();
+  }
+
+  public setResourceValues(id: string, values: number[]) {
+    const r = this.character.resources.find((x) => x.id === id);
+    if (!r) return;
+    r.values = values.slice(0, r.max);
+    this.saveAndNotify();
+  }
+
+  // ---- Efectos activos (Spec 07, Fase B) ----
+
+  private emitEffectsExpired(expired: ActiveEffect[]) {
+    if (expired.length && typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('effects-expired', { detail: { expired } }));
+    }
+  }
+
+  /** Aplica un efecto. Devuelve `replaced` si había otro de concentración (no lo quita, FB-6). */
+  public applyEffect(effect: ActiveEffect): AddResult {
+    const result = addEffect(this.character.activeEffects, effect);
+    this.character.activeEffects = result.effects;
+    this.saveAndNotify();
+    return result;
+  }
+
+  public endEffect(id: string) {
+    this.character.activeEffects = removeEffect(this.character.activeEffects, id);
+    this.saveAndNotify();
+  }
+
+  public clearEffects() {
+    this.character.activeEffects = [];
+    this.saveAndNotify();
+  }
+
+  /** Descuenta rondas y devuelve los efectos expirados. */
+  public tickEffects(rounds: number): ActiveEffect[] {
+    const { effects, expired } = tickRounds(this.character.activeEffects, rounds);
+    this.character.activeEffects = effects;
+    this.saveAndNotify();
+    this.emitEffectsExpired(expired);
+    return expired;
+  }
+
+  /**
+   * FB-2: sincroniza con la ronda del combate en una sola escritura (tick + marca).
+   * Solo descuenta si es la misma campaña y la ronda avanzó (ver `roundDelta`).
+   */
+  public syncEffectsRound(campaignId: string, round: number): ActiveEffect[] {
+    const last = this.character.effectsLastRound;
+    const delta = roundDelta(last, { campaignId, round });
+    const markChanged = !last || last.campaignId !== campaignId || last.round !== round;
+    if (delta <= 0 && !markChanged) return [];
+    let expired: ActiveEffect[] = [];
+    if (delta > 0) {
+      const ticked = tickRounds(this.character.activeEffects, delta);
+      this.character.activeEffects = ticked.effects;
+      expired = ticked.expired;
+    }
+    this.character.effectsLastRound = { campaignId, round };
+    this.saveAndNotify();
+    this.emitEffectsExpired(expired);
+    return expired;
+  }
+
+  private expireEffectsOnRest(rest: 'short' | 'long'): ActiveEffect[] {
+    const { effects, expired } = expireOnRest(this.character.activeEffects, rest);
+    this.character.activeEffects = effects;
+    return expired;
+  }
+
+  /** Reinicia recursos según el descanso y devuelve los nombres de los que se recuperaron. */
+  private applyRestToResources(rest: 'short' | 'long'): string[] {
+    const before = this.character.resources;
+    const after = resetOn(before, rest);
+    const recovered: string[] = [];
+    after.forEach((r, i) => {
+      if (before[i].used > 0 || (before[i].values?.length ?? 0) > 0) {
+        if (r !== before[i]) recovered.push(r.name);
+      }
+      this.syncLegacyFromResource(r);
+    });
+    this.character.resources = after;
+    return recovered;
   }
 
   public setQuickSlotItem(itemId: string | null) {
@@ -618,19 +778,43 @@ class CharacterStoreManager {
       healed = Math.max(1, spend * Math.max(1, avgRoll + conMod));
       this.modifyHp(healed, true); // Silent to avoid double log
     }
-    // Restore Wild Shape uses for Druids on short rest (Official D&D 5e rule!)
-    if (this.character.wildShape) {
+    // Recursos con reinicio en descanso corto (incluye Forma Salvaje, migrada al registro).
+    // Si wildShape aún no está en el registro, se restaura directo (fuente vieja).
+    if (this.character.wildShape && !this.character.resources.some((r) => r.id === 'wildShape')) {
       this.character.wildShape.usesRemaining = this.character.wildShape.usesTotal;
     }
+    const recoveredShort = this.applyRestToResources('short');
+    const expiredShort = this.expireEffectsOnRest('short');
     this.saveAndNotify();
+    this.emitEffectsExpired(expiredShort);
 
     journalStore.log(
       'Descanso Corto completado',
-      `Descanso de 1 hora completado. Gastado ${spend} Dado de Golpe (${this.character.hitDice.die}). Recuperados +${healed} PG (Salud actual: ${this.character.hp.current}/${this.character.hp.max}). Dados restantes: ${this.character.hitDice.remaining}/${this.character.hitDice.total}. Usos de Forma Salvaje restaurados al máximo.`,
+      `Descanso de 1 hora completado. Gastado ${spend} Dado de Golpe (${this.character.hitDice.die}). Recuperados +${healed} PG (Salud actual: ${this.character.hp.current}/${this.character.hp.max}). Dados restantes: ${this.character.hitDice.remaining}/${this.character.hitDice.total}. Usos de Forma Salvaje restaurados al máximo.${recoveredShort.length ? ` Recursos recuperados: ${recoveredShort.join(', ')}.` : ''}${expiredShort.length ? ` Efectos terminados: ${expiredShort.map((e) => e.name).join(', ')}.` : ''}`,
       ['#Descanso']
     );
 
     return { healed, remainingDice: this.character.hitDice.remaining };
+  }
+
+  /**
+   * Descanso de grupo ordenado por el DM. Los PG ya los escribió el DM, así que el corto solo
+   * reinicia recursos y quita efectos; el largo es el descanso completo.
+   */
+  public applyGroupRest(rest: 'short' | 'long') {
+    if (rest === 'long') {
+      this.longRest();
+      return;
+    }
+    const recovered = this.applyRestToResources('short');
+    const expired = this.expireEffectsOnRest('short');
+    this.saveAndNotify();
+    this.emitEffectsExpired(expired);
+    journalStore.log(
+      'Descanso Corto de Grupo',
+      `El Dungeon Master decretó un descanso corto.${recovered.length ? ` Recursos recuperados: ${recovered.join(', ')}.` : ''}${expired.length ? ` Efectos terminados: ${expired.map((e) => e.name).join(', ')}.` : ''}`,
+      ['#Descanso']
+    );
   }
 
   public longRest() {
@@ -641,19 +825,23 @@ class CharacterStoreManager {
     this.character.hitDice.remaining = Math.min(this.character.hitDice.total, this.character.hitDice.remaining + restoreDice);
     // Restore all spell slots
     if (this.character.spellcasting?.slots) {
-      this.character.spellcasting.slots.level1.used = 0;
-      this.character.spellcasting.slots.level2.used = 0;
+      for (const n of Object.keys(this.character.spellcasting.slots)) {
+        this.character.spellcasting.slots[Number(n)].used = 0;
+      }
     }
     // Restore Wild Shape uses
     if (this.character.wildShape) {
       this.character.wildShape.usesRemaining = this.character.wildShape.usesTotal;
       this.character.wildShape.activeForm = null;
     }
+    const recoveredLong = this.applyRestToResources('long');
+    const expiredLong = this.expireEffectsOnRest('long');
     this.saveAndNotify();
+    this.emitEffectsExpired(expiredLong);
 
     journalStore.log(
       'Descanso Largo completado',
-      `Descanso de 8 horas completado. Salud restaurada al 100% (${this.character.hp.max}/${this.character.hp.max} PG). Recuperados +${restoreDice} Dados de Golpe (${this.character.hitDice.remaining}/${this.character.hitDice.total}). Todos los espacios de conjuro y formas salvajes restablecidos.`,
+      `Descanso de 8 horas completado. Salud restaurada al 100% (${this.character.hp.max}/${this.character.hp.max} PG). Recuperados +${restoreDice} Dados de Golpe (${this.character.hitDice.remaining}/${this.character.hitDice.total}). Todos los espacios de conjuro y formas salvajes restablecidos.${recoveredLong.length ? ` Recursos recuperados: ${recoveredLong.join(', ')}.` : ''}${expiredLong.length ? ` Efectos terminados: ${expiredLong.map((e) => e.name).join(', ')}.` : ''}`,
       ['#Descanso']
     );
   }
@@ -819,6 +1007,7 @@ class CharacterStoreManager {
       this.character.wildShape.usesRemaining--;
     }
     this.character.wildShape.activeForm = form;
+    this.syncWildShapeResource();
     this.saveAndNotify();
 
     if (form) {
@@ -834,6 +1023,13 @@ class CharacterStoreManager {
         ['#Combate']
       );
     }
+  }
+
+  public restoreWildShapeUses() {
+    if (!this.character.wildShape) return;
+    this.character.wildShape.usesRemaining = this.character.wildShape.usesTotal;
+    this.syncWildShapeResource();
+    this.saveAndNotify();
   }
 
   public modifyWildShapeHp(delta: number): number {

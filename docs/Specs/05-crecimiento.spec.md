@@ -4,7 +4,7 @@ Nov 9, 2026 · @Gonzalo Benavente
 
 > **Borrador.** Define objetivo, requisitos y fases a grandes rasgos. Se completa cuando llegue su etapa. Es independiente de las Specs 03 y 04: se puede adelantar si aparece un grupo nuevo para probar.
 
-Etapa 4 del [roadmap](../ROADMAP.md). Ideas I-03, I-41 e I-40 de [`IDEAS.md`](../IDEAS.md).
+Etapa 4 del [roadmap](../ROADMAP-vtt.md). Ideas I-03, I-41 e I-40 de [`IDEAS.md`](../IDEAS.md).
 
 ## Objetivo y alcance
 

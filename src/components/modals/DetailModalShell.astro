@@ -1,0 +1,65 @@
+---
+// src/components/modals/DetailModalShell.astro
+// Estructura común de las fichas de objeto y hechizo (Spec 07, Fase D, FD-5/FD-6).
+// Estilo de pergamino sin la animación del sobre: se abre al instante.
+// El contenido lo rellena src/scripts/ui/detailModals.ts con textContent (FD-7).
+interface Props {
+  prefix: 'item' | 'spell';
+}
+const { prefix } = Astro.props;
+const id = `${prefix}-detail`;
+---
+
+<div
+  id={`${id}-modal`}
+  class="hidden fixed inset-0 z-[80] flex items-center justify-center p-3 sm:p-4 bg-black/65"
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby={`${id}-title`}
+>
+  <div
+    class="detail-modal-content w-full max-w-lg max-h-[88vh] rounded-xl border border-[#8c673b]/60 shadow-[0_20px_60px_rgba(0,0,0,0.9)] overflow-hidden flex flex-col font-serif text-[#2c1a0c]"
+    style="background:linear-gradient(180deg,#f7ecd5 0%,#efe0bf 30%,#e8d5ae 70%,#d8be92 100%)"
+  >
+    <!-- Cabecera: imagen a la izquierda, título y datos a su derecha (también en móvil) -->
+    <div class="flex items-start gap-3 p-3 sm:p-4 border-b border-[#8c673b]/40 shrink-0">
+      <div
+        id={`${id}-image-box`}
+        class="w-24 h-24 sm:w-32 sm:h-32 shrink-0 rounded-lg border border-[#8c673b]/50 bg-[#5c3a1e]/10 flex items-center justify-center overflow-hidden"
+      >
+        <img id={`${id}-image`} class="hidden w-full h-full object-cover" alt="" referrerpolicy="no-referrer" />
+        <span id={`${id}-fallback`} class="material-symbols-outlined text-5xl text-[#785125]"></span>
+      </div>
+
+      <div class="flex-1 min-w-0">
+        <h3 id={`${id}-title`} class="font-bold text-lg leading-tight text-[#3a1d08] break-words"></h3>
+        <div id={`${id}-badges`} class="flex flex-wrap items-center gap-1.5 mt-1"></div>
+        <dl id={`${id}-fields`} class="mt-1.5 text-[11px] text-[#614224] flex flex-wrap gap-x-3 gap-y-0.5"></dl>
+      </div>
+
+      <button
+        type="button"
+        id={`${id}-close`}
+        class="w-7 h-7 shrink-0 rounded-lg bg-[#5c3a1e]/10 border border-[#8c673b]/40 hover:bg-[#5c3a1e]/20 text-[#3a1d08] flex items-center justify-center cursor-pointer"
+        aria-label="Cerrar ficha"
+      >
+        <span class="material-symbols-outlined text-[16px]">close</span>
+      </button>
+    </div>
+
+    <!-- Cuerpo -->
+    <div class="p-3 sm:p-4 overflow-y-auto space-y-3 flex-1 min-h-0">
+      <p id={`${id}-description`} class="text-sm leading-snug whitespace-pre-line"></p>
+      <div id={`${id}-sections`} class="space-y-3"></div>
+    </div>
+
+    <!-- Selector de nivel de espacio (solo hechizos) -->
+    <div id={`${id}-slot-picker`} class="hidden px-3 sm:px-4 py-2 border-t border-[#8c673b]/40 bg-[#5c3a1e]/10 shrink-0">
+      <p class="text-[11px] font-bold text-[#3a1d08] mb-1.5">Elige el espacio de conjuro</p>
+      <div id={`${id}-slot-options`} class="flex flex-wrap gap-1.5"></div>
+    </div>
+
+    <!-- Pie: acciones -->
+    <div id={`${id}-actions`} class="flex flex-wrap items-center justify-end gap-2 p-3 sm:p-4 border-t border-[#8c673b]/40 bg-[#5c3a1e]/10 shrink-0 empty:hidden"></div>
+  </div>
+</div>

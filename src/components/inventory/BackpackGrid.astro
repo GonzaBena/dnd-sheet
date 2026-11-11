@@ -69,6 +69,8 @@
 <script>
   import { showAlert } from '../../scripts/ui/notify';
   import { characterStore } from '../../scripts/state/characterStore';
+  import { escapeHtml, toCatalogEntry } from '../../scripts/dnd/catalog';
+  import { customBadgeHtml } from '../../scripts/ui/customBadge';
   import { openModal } from '../../scripts/animations/modalAnimations';
   import { attachSwipeToDelete } from '../../scripts/ui/swipeToDelete';
 
@@ -141,7 +143,8 @@
           </div>
           <div class="truncate">
             <div class="flex items-center gap-2">
-              <span class="font-headline font-bold text-sm text-[#f1f5f9] truncate">${item.name}</span>
+              <span class="font-headline font-bold text-sm text-[#f1f5f9] truncate">${escapeHtml(item.name)}</span>
+              ${customBadgeHtml(item)}
               <span class="px-2 py-0.2 rounded-full bg-amber-500/20 text-amber-300 text-[10px] font-bold border border-amber-500/40 shrink-0">x${item.quantity}</span>
               ${item.activationCondition ? `<span class="px-1.5 py-0.2 rounded bg-amber-500/10 text-amber-300 text-[9px] font-bold border border-amber-500/20 flex items-center gap-0.5 shrink-0"><span class="material-symbols-outlined text-[11px]">timer</span><span>${item.activationCondition}</span></span>` : ''}
             </div>
@@ -202,7 +205,11 @@
     quickSlotContainer.appendChild(card);
   }
 
+  // Fase D: acciones de la ficha que dependen del renglón (confirmación de borrado de cada objeto).
+  const deleteTriggers = new Map<string, () => void>();
+
   function renderBackpack(char: any) {
+    deleteTriggers.clear();
     renderQuickSlot(char);
 
     if (!gearContainer) return;
@@ -248,7 +255,8 @@
             <span class="material-symbols-outlined text-[17px] text-amber-500 shrink-0">${item.icon || 'inventory_2'}</span>
             <div class="truncate">
               <div class="flex items-center gap-1.5 flex-wrap">
-                <span class="text-[#f1f5f9] font-medium block truncate">${item.name}</span>
+                <span class="text-[#f1f5f9] font-medium block truncate">${escapeHtml(item.name)}</span>
+                ${customBadgeHtml(item)}
                 ${item.usableType && item.usableType !== 'none' ? `<span class="px-1 py-0.2 rounded bg-amber-500/10 text-amber-300 text-[9px] font-bold border border-amber-500/20 uppercase shrink-0">${item.usableType}</span>` : ''}
                 ${item.activationCondition ? `<span class="px-1.5 py-0.2 rounded bg-amber-500/10 text-amber-300 text-[9px] font-bold border border-amber-500/20 flex items-center gap-0.5 shrink-0" title="Condición de activación: ${item.activationCondition}"><span class="material-symbols-outlined text-[10px]">timer</span><span>${item.activationCondition}</span></span>` : ''}
               </div>
@@ -395,7 +403,14 @@
       };
 
       card.querySelector('.expand-item-btn')?.addEventListener('click', toggleExpand);
-      card.querySelector('.item-info-trigger')?.addEventListener('click', toggleExpand);
+      deleteTriggers.set(item.id, triggerItemDelete);
+
+      // Fase D: tocar el nombre abre la ficha; el detalle en línea sigue con la flecha.
+      card.querySelector('.item-info-trigger')?.addEventListener('click', () => {
+        window.dispatchEvent(new CustomEvent('open-item-detail', {
+          detail: { entry: toCatalogEntry('item', item), context: 'inventory' }
+        }));
+      });
 
       // Edit item trigger
       const triggerEdit = (e: Event) => {
@@ -437,6 +452,20 @@
   }
 
   renderBackpack(characterStore.get());
+
+  // Acciones de la ficha de objeto abierta desde la mochila (FD-3).
+  window.addEventListener('item-action', ((e: CustomEvent) => {
+    const { entryId, action, context } = e.detail || {};
+    if (context !== 'inventory') return;
+    if (action === 'use') {
+      const res = characterStore.consumeItem(entryId);
+      if (res.success && res.healed && res.healed > 0) {
+        showAlert(`¡Has consumido "${res.name}"! +${res.healed} PG recuperados.`, { kind: 'success' });
+      }
+    } else if (action === 'drop') {
+      deleteTriggers.get(entryId)?.();
+    }
+  }) as EventListener);
 
   window.addEventListener('character-updated', ((e: CustomEvent) => {
     renderBackpack(e.detail.character);

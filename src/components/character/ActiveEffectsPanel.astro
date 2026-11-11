@@ -1,0 +1,78 @@
+---
+// src/components/character/ActiveEffectsPanel.astro
+// Panel de efectos activos bajo los signos vitales (Spec 07, Fase E: FE-1…FE-4).
+---
+
+<section id="active-effects-panel" class="hidden mt-4" aria-label="Efectos activos">
+  <h3 class="text-[10px] font-headline font-bold text-[#94a3b8] uppercase tracking-wider mb-1.5 flex items-center gap-1">
+    <span class="material-symbols-outlined text-amber-500 text-[14px]">auto_awesome</span>
+    <span>Efectos activos</span>
+  </h3>
+  <div id="active-effects-chips" class="flex gap-2 overflow-x-auto md:flex-wrap md:overflow-visible pb-1"></div>
+</section>
+
+<script>
+  import { characterStore } from '../../scripts/state/characterStore';
+  import { sortForPanel, modifierText } from '../../scripts/dnd/effectFactory';
+  import { describeDuration } from '../../scripts/dnd/effects';
+  import { showChoice } from '../../scripts/ui/notify';
+  import type { ActiveEffect } from '../../scripts/models/effect';
+
+  const panel = document.getElementById('active-effects-panel');
+  const chips = document.getElementById('active-effects-chips');
+
+  const ICON: Record<ActiveEffect['sourceType'], string> = {
+    spell: 'auto_fix_high',
+    item: 'inventory_2',
+    feat: 'psychology',
+    dm: 'shield_person',
+    custom: 'star',
+  };
+
+  function el(tag: string, className: string, text?: string): HTMLElement {
+    const node = document.createElement(tag);
+    node.className = className;
+    if (text !== undefined) node.textContent = text;
+    return node;
+  }
+
+  async function openSheet(effect: ActiveEffect) {
+    const lines = effect.modifiers.length ? effect.modifiers.map(modifierText).join('\n') : 'Sin modificadores.';
+    const choice = await showChoice(`${describeDuration(effect.duration)}\n${lines}`, [
+      { value: 'end', label: 'Terminar', icon: 'close' },
+    ], { title: effect.name, cancelText: 'Cerrar' });
+    if (choice === 'end') characterStore.endEffect(effect.id);
+  }
+
+  function render(char: { activeEffects?: ActiveEffect[] }) {
+    if (!panel || !chips) return;
+    const effects = sortForPanel(char.activeEffects ?? []);
+    panel.classList.toggle('hidden', effects.length === 0);
+    chips.replaceChildren();
+    for (const effect of effects) {
+      const chip = el(
+        'button',
+        'shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-[#18202e] border border-amber-500/30 hover:border-amber-400 text-xs text-[#f1f5f9] cursor-pointer transition-colors'
+      ) as HTMLButtonElement;
+      chip.type = 'button';
+      const icon = el('span', 'material-symbols-outlined text-amber-400 text-[14px]', ICON[effect.sourceType] ?? 'star');
+      chip.append(
+        icon,
+        el('span', 'font-bold', effect.name),
+        el('span', 'text-[10px] text-[#94a3b8]', describeDuration(effect.duration))
+      );
+      chip.addEventListener('click', () => openSheet(effect));
+      chips.appendChild(chip);
+    }
+  }
+
+  render(characterStore.get());
+  window.addEventListener('character-updated', ((e: CustomEvent) => render(e.detail.character)) as EventListener);
+
+  // FE-4: un solo toast por tanda de efectos terminados.
+  window.addEventListener('effects-expired', ((e: CustomEvent) => {
+    const names = (e.detail?.expired ?? []).map((x: ActiveEffect) => x.name);
+    if (!names.length) return;
+    window.dispatchEvent(new CustomEvent('cloud-toast', { detail: { message: `Terminó: ${names.join(', ')}` } }));
+  }) as EventListener);
+</script>

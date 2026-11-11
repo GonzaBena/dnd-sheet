@@ -7,6 +7,8 @@ import StatusBanner from '../components/party/StatusBanner.astro';
 import ClassTabsNav from '../components/navigation/ClassTabsNav.astro';
 import HeroCard from '../components/character/HeroCard.astro';
 import VitalsGrid from '../components/character/VitalsGrid.astro';
+import ActiveEffectsPanel from '../components/character/ActiveEffectsPanel.astro';
+import ResourcesSection from '../components/character/ResourcesSection.astro';
 import AbilitiesGrid from '../components/character/AbilitiesGrid.astro';
 import SavingThrows from '../components/character/SavingThrows.astro';
 import SkillsList from '../components/character/SkillsList.astro';
@@ -38,6 +40,8 @@ import CloneCharacterModal from '../components/campaigns/CloneCharacterModal.ast
 import DmPanelModal from '../components/dm/DmPanelModal.astro';
 import DmControlGrimoire from '../components/dm/DmControlGrimoire.astro';
 import CompendiumModal from '../components/modals/CompendiumModal.astro';
+import ItemDetailModal from '../components/modals/ItemDetailModal.astro';
+import SpellDetailModal from '../components/modals/SpellDetailModal.astro';
 import TurnNotifier from '../components/party/TurnNotifier.astro';
 ---
 
@@ -86,6 +90,10 @@ import TurnNotifier from '../components/party/TurnNotifier.astro';
           <HeroCard>
             <VitalsGrid />
           </HeroCard>
+          <div class="relative z-10">
+            <ActiveEffectsPanel />
+            <ResourcesSection />
+          </div>
         </section>
 
         <!-- ADAPTABLE CLASS TABS NAVIGATION (Combate, Habilidades, Magia, Forma Salvaje, Mochila, Bitácora) -->
@@ -159,6 +167,8 @@ import TurnNotifier from '../components/party/TurnNotifier.astro';
   <CloneCharacterModal />
   <DmPanelModal />
   <CompendiumModal />
+  <ItemDetailModal />
+  <SpellDetailModal />
   <TurnNotifier />
 </BaseLayout>
 

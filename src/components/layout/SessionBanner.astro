@@ -214,12 +214,8 @@
     const char = characterStore.get();
     if (!char) return;
     if (await showConfirm(`Tus Puntos de Golpe se restauran al máximo (${char.hp.max} PG) y se limpian PG temporales.`, { title: '¿Descanso Largo?', confirmText: 'Descansar al Máximo' })) {
-      characterStore.updateHp(char.hp.max);
-      journalStore.log(
-        `Descanso Largo de ${char.name}`,
-        `${char.name} ha completado un descanso largo completo. Salud restaurada al 100%.`,
-        ['#Descanso']
-      );
+      // longRest() restaura PG, espacios, recursos y quita efectos "hasta descanso largo" (y registra el diario).
+      characterStore.longRest();
       showAlert(`¡Descanso largo completado! ${char.name} tiene ${char.hp.max} PG.`, { kind: 'success', title: 'Descanso largo' });
     }
   });

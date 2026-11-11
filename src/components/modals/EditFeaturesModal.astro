@@ -65,6 +65,10 @@
 <script>
   import { characterStore } from '../../scripts/state/characterStore';
   import { closeModal, openModal } from '../../scripts/animations/modalAnimations';
+  import { showForm, showAlert } from '../../scripts/ui/notify';
+  import { escapeHtml, parseEffectsText, effectsToText } from '../../scripts/dnd/catalog';
+  import { customBadgeHtml } from '../../scripts/ui/customBadge';
+  import { FEAT_TYPE_LABELS, type FeatType } from '../../scripts/models/catalog';
 
   const modal = document.getElementById('edit-features-modal');
   const backdrop = document.getElementById('modal-backdrop');
@@ -75,7 +79,20 @@
   const listContainer = document.getElementById('features-edit-list-container');
   const modalBody = document.getElementById('features-modal-body');
 
-  let tempFeatures: { id: string; title: string; description: string; uses?: string; enabled: boolean }[] = [];
+  interface TempFeature {
+    id: string;
+    title: string;
+    description: string;
+    uses?: string;
+    enabled: boolean;
+    featType?: FeatType;
+    resourceId?: string;
+    effects?: any[];
+    effectsText?: string;
+    effectsError?: string;
+    custom?: boolean;
+  }
+  let tempFeatures: TempFeature[] = [];
 
   function loadData() {
     const char = characterStore.get();
@@ -84,7 +101,13 @@
       title: f.title || '',
       description: f.description || '',
       uses: f.uses || '',
-      enabled: f.enabled !== false
+      enabled: f.enabled !== false,
+      // Se conservan los campos del catálogo para no perderlos al guardar (Spec 07, Fase C).
+      featType: f.featType,
+      resourceId: f.resourceId,
+      effects: f.effects,
+      effectsText: effectsToText(f.effects),
+      custom: f.custom
     }));
     renderList();
   }
@@ -109,6 +132,7 @@
       card.innerHTML = `
         <div class="flex items-center justify-between gap-2">
           <label class="flex items-center gap-2 cursor-pointer">
+            ${customBadgeHtml(feat)}
             <input type="checkbox" class="feat-toggle rounded bg-[#10141d] border-[#222f42] text-amber-500 focus:ring-amber-500/40" ${feat.enabled ? 'checked' : ''} data-index="${index}" />
             <span class="text-xs font-headline font-bold ${feat.enabled ? 'text-amber-300' : 'text-[#64748b]'}">
               ${feat.enabled ? 'Activo' : 'Inactivo'}
@@ -125,7 +149,7 @@
             <input
               type="text"
               class="feat-title-inp w-full p-2 rounded-lg bg-[#10141d] border border-[#222f42] text-[#f1f5f9] focus:border-amber-500 focus:outline-none"
-              value="${feat.title}"
+              value="${escapeHtml(feat.title)}"
               placeholder="ej: Emboscador Umbrío"
               data-index="${index}"
             />
@@ -135,11 +159,38 @@
             <input
               type="text"
               class="feat-uses-inp w-full p-2 rounded-lg bg-[#10141d] border border-[#222f42] text-[#f1f5f9] focus:border-amber-500 focus:outline-none"
-              value="${feat.uses || ''}"
+              value="${escapeHtml(feat.uses || '')}"
               placeholder="ej: 2 / descanso"
               data-index="${index}"
             />
           </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <div>
+            <label class="text-[#94a3b8] text-[10px] block mb-0.5">Tipo de rasgo</label>
+            <select class="feat-type-sel w-full p-2 rounded-lg bg-[#10141d] border border-[#222f42] text-[#f1f5f9] focus:border-amber-500 focus:outline-none">
+              ${(Object.keys(FEAT_TYPE_LABELS) as FeatType[]).map((t) => `<option value="${t}" ${(feat.featType ?? 'passive') === t ? 'selected' : ''}>${FEAT_TYPE_LABELS[t]}</option>`).join('')}
+            </select>
+          </div>
+          <div>
+            <label class="text-[#94a3b8] text-[10px] block mb-0.5">Recurso vinculado (opcional)</label>
+            <select class="feat-resource-sel w-full p-2 rounded-lg bg-[#10141d] border border-[#222f42] text-[#f1f5f9] focus:border-amber-500 focus:outline-none">
+              <option value="">Sin recurso</option>
+              ${(characterStore.get().resources || []).map((r: any) => `<option value="${escapeHtml(r.id)}" ${feat.resourceId === r.id ? 'selected' : ''}>${escapeHtml(r.name)} (${r.max - r.used}/${r.max})</option>`).join('')}
+              <option value="__new__">+ Crear recurso nuevo…</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label class="text-[#94a3b8] text-[10px] block mb-0.5">Efectos al activar (opcional, una línea por modificador: objetivo operación valor)</label>
+          <textarea
+            rows="2"
+            class="feat-effects-inp w-full p-2 rounded-lg bg-[#10141d] border border-[#222f42] text-[#cbd5e1] font-mono focus:border-amber-500 focus:outline-none resize-none"
+            placeholder="ac add 2&#10;save.dex advantage"
+          >${escapeHtml(feat.effectsText || '')}</textarea>
+          <p class="feat-effects-error text-[10px] text-rose-400 mt-0.5 ${feat.effectsError ? '' : 'hidden'}">${escapeHtml(feat.effectsError || '')}</p>
         </div>
 
         <div>
@@ -149,7 +200,7 @@
             class="feat-desc-inp w-full p-2 rounded-lg bg-[#10141d] border border-[#222f42] text-[#cbd5e1] focus:border-amber-500 focus:outline-none resize-none"
             placeholder="Detalles y efecto mecánico del rasgo..."
             data-index="${index}"
-          >${feat.description}</textarea>
+          >${escapeHtml(feat.description)}</textarea>
         </div>
       `;
 
@@ -157,6 +208,58 @@
       card.querySelector('.feat-toggle')?.addEventListener('change', (e: any) => {
         feat.enabled = e.target.checked;
         renderList();
+      });
+
+      card.querySelector('.feat-type-sel')?.addEventListener('change', (e: any) => {
+        feat.featType = e.target.value as FeatType;
+      });
+
+      card.querySelector('.feat-resource-sel')?.addEventListener('change', async (e: any) => {
+        const value = e.target.value as string;
+        if (value !== '__new__') {
+          feat.resourceId = value || undefined;
+          return;
+        }
+        const res = await showForm([
+          { name: 'name', label: 'Nombre del recurso', type: 'text', value: feat.title, required: true },
+          { name: 'max', label: 'Usos máximos', type: 'number', value: 1, min: 1, required: true },
+          {
+            name: 'rechargeOn', label: 'Se recupera con', type: 'select', value: 'longRest',
+            options: [
+              { value: 'shortRest', label: 'Descanso corto' },
+              { value: 'longRest', label: 'Descanso largo' },
+              { value: 'turn', label: 'Cada turno' },
+              { value: 'manual', label: 'A mano' }
+            ]
+          }
+        ], { title: 'Crear recurso nuevo', confirmText: 'Crear' });
+        if (res) {
+          // Se guarda de inmediato en el personaje (el registro de recursos es independiente de "Guardar Rasgos").
+          const created = characterStore.addResource({
+            name: (res.name || '').trim() || feat.title || 'Recurso',
+            max: Math.max(1, parseInt(res.max) || 1),
+            rechargeOn: (res.rechargeOn as any) || 'longRest',
+            source: 'custom'
+          });
+          feat.resourceId = created.id;
+        }
+        renderList();
+      });
+
+      card.querySelector('.feat-effects-inp')?.addEventListener('input', (e: any) => {
+        feat.effectsText = e.target.value;
+        const parsed = parseEffectsText(feat.effectsText || '');
+        const errEl = card.querySelector('.feat-effects-error') as HTMLElement | null;
+        if (Array.isArray(parsed)) {
+          feat.effects = parsed.length ? parsed : undefined;
+          feat.effectsError = undefined;
+        } else {
+          feat.effectsError = parsed.error;
+        }
+        if (errEl) {
+          errEl.textContent = feat.effectsError ?? '';
+          errEl.classList.toggle('hidden', !feat.effectsError);
+        }
       });
 
       card.querySelector('.feat-title-inp')?.addEventListener('input', (e: any) => {
@@ -186,7 +289,9 @@
       title: 'Nuevo Rasgo',
       description: 'Descripción del rasgo o dote.',
       uses: 'Pasivo',
-      enabled: true
+      enabled: true,
+      featType: 'passive',
+      custom: true
     });
     renderList();
 
@@ -221,7 +326,14 @@
   });
 
   saveBtn?.addEventListener('click', () => {
-    const valid = tempFeatures.filter(f => f.title.trim());
+    const bad = tempFeatures.find(f => f.title.trim() && f.effectsError);
+    if (bad) {
+      showAlert(`Corrige los efectos de "${bad.title}": ${bad.effectsError}`, { kind: 'warning' });
+      return;
+    }
+    const valid = tempFeatures
+      .filter(f => f.title.trim())
+      .map(({ effectsText, effectsError, ...f }) => ({ ...f, featType: f.featType ?? 'passive' }));
     characterStore.updateFeatures(valid);
     if (modal && backdrop) closeModal(modal, backdrop);
   });

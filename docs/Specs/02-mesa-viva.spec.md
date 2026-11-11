@@ -2,7 +2,7 @@
 
 Nov 9, 2026 · @Gonzalo Benavente
 
-Etapa 1 del [roadmap](../ROADMAP.md). Ideas I-02, I-06, I-30 e I-42 de [`IDEAS.md`](../IDEAS.md).
+Etapa 1 del [roadmap](../ROADMAP-vtt.md). Ideas I-02, I-06, I-30 e I-42 de [`IDEAS.md`](../IDEAS.md).
 
 ## Objetivo y alcance
 

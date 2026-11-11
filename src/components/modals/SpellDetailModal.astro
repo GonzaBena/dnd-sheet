@@ -1,0 +1,12 @@
+---
+// src/components/modals/SpellDetailModal.astro
+// Ficha de hechizo. Se abre con `open-spell-detail` (Spec 07, Fase D, T-246).
+import DetailModalShell from './DetailModalShell.astro';
+---
+
+<DetailModalShell prefix="spell" />
+
+<script>
+  import { initDetailModals } from '../../scripts/ui/detailModals';
+  initDetailModals();
+</script>

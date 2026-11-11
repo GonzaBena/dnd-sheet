@@ -4,7 +4,7 @@ Nov 9, 2026 · @Gonzalo Benavente
 
 > **Borrador.** Define objetivo, requisitos y fases a grandes rasgos. Se completa cuando las Specs 03 y 04 estén implementadas, porque se arma con sus datos.
 
-Etapa 5 del [roadmap](../ROADMAP.md). Ideas I-13 e I-14 de [`IDEAS.md`](../IDEAS.md).
+Etapa 5 del [roadmap](../ROADMAP-vtt.md). Ideas I-13 e I-14 de [`IDEAS.md`](../IDEAS.md).
 
 ## Objetivo y alcance
 
