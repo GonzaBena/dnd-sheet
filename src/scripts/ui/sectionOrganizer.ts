@@ -87,6 +87,14 @@ export const ALL_SECTION_IDS = Object.keys(SECTIONS_META);
 export function reorderSectionsDOM(char: CharacterData) {
   if (typeof document === 'undefined') return;
 
+  // Si estamos en el nuevo layout estructurado de 3 bloques (Bloque 1: Stats/Saves/Weapons vs Skills,
+  // Bloque 2: Mochila fila única, Bloque 3: Rasgos vs Magia), respetamos la ubicación semántica de cada bloque.
+  const block2 = document.getElementById('sheet-block-2');
+  const block3 = document.getElementById('sheet-block-3');
+  if (block2 && block3) {
+    return;
+  }
+
   const col1 = document.getElementById('workspace-col-1');
   const col2 = document.getElementById('workspace-col-2');
   if (!col1 || !col2) return;

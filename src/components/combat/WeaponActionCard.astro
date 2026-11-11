@@ -47,7 +47,7 @@
   <!-- Slot para barra de turno activo (TurnNotifier) -->
   <div data-turn-bar-slot class="hidden mb-3"></div>
 
-  <div class="section-body space-y-3" id="weapon-actions-container">
+  <div class="section-body grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 items-start" id="weapon-actions-container">
     <!-- Populated by JavaScript -->
   </div>
 </div>
@@ -117,10 +117,10 @@
               <span class="material-symbols-outlined text-[14px] text-amber-500">flash_on</span>
               <span>Daño</span>
             </button>
-            <button class="edit-weapon-btn w-6 h-6 rounded hover:bg-amber-500/20 text-[#94a3b8] hover:text-amber-400 flex items-center justify-center opacity-90 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity cursor-pointer ml-1" title="Editar arma y modificadores">
+            <button class="edit-weapon-btn w-6 h-6 rounded hover:bg-amber-500/20 text-[#94a3b8] hover:text-amber-400 flex sm:hidden sm:group-hover:flex items-center justify-center transition-colors cursor-pointer ml-0.5" title="Editar arma y modificadores">
               <span class="material-symbols-outlined text-[14px]">edit</span>
             </button>
-            <button class="delete-weapon-btn w-6 h-6 rounded hover:bg-rose-950/40 text-[#94a3b8] hover:text-rose-400 flex items-center justify-center opacity-90 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity cursor-pointer" title="Eliminar arma">
+            <button class="delete-weapon-btn w-6 h-6 rounded hover:bg-rose-950/40 text-[#94a3b8] hover:text-rose-400 flex sm:hidden sm:group-hover:flex items-center justify-center transition-colors cursor-pointer" title="Eliminar arma">
               <span class="material-symbols-outlined text-[14px]">close</span>
             </button>
           </div>

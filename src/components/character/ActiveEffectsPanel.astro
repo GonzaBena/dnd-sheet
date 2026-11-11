@@ -3,12 +3,15 @@
 // Panel de efectos activos bajo los signos vitales (Spec 07, Fase E: FE-1…FE-4).
 ---
 
-<section id="active-effects-panel" class="hidden mt-4" aria-label="Efectos activos">
-  <h3 class="text-[10px] font-headline font-bold text-[#94a3b8] uppercase tracking-wider mb-1.5 flex items-center gap-1">
-    <span class="material-symbols-outlined text-amber-500 text-[14px]">auto_awesome</span>
-    <span>Efectos activos</span>
-  </h3>
-  <div id="active-effects-chips" class="flex gap-2 overflow-x-auto md:flex-wrap md:overflow-visible pb-1"></div>
+<section id="active-effects-panel" class="rounded-xl bg-[#18202e]/70 border border-[#222f42] p-3 flex flex-col justify-between" aria-label="Efectos activos">
+  <div class="flex items-center justify-between mb-1.5">
+    <h3 class="text-[10px] font-headline font-bold text-[#94a3b8] uppercase tracking-wider flex items-center gap-1">
+      <span class="material-symbols-outlined text-amber-500 text-[14px]">auto_awesome</span>
+      <span>Efectos Activos</span>
+    </h3>
+    <span id="active-effects-count" class="text-[10px] font-mono text-[#64748b]">0 activos</span>
+  </div>
+  <div id="active-effects-chips" class="flex gap-1.5 overflow-x-auto md:flex-wrap md:overflow-visible"></div>
 </section>
 
 <script>
@@ -20,6 +23,7 @@
 
   const panel = document.getElementById('active-effects-panel');
   const chips = document.getElementById('active-effects-chips');
+  const countEl = document.getElementById('active-effects-count');
 
   const ICON: Record<ActiveEffect['sourceType'], string> = {
     spell: 'auto_fix_high',
@@ -47,12 +51,20 @@
   function render(char: { activeEffects?: ActiveEffect[] }) {
     if (!panel || !chips) return;
     const effects = sortForPanel(char.activeEffects ?? []);
-    panel.classList.toggle('hidden', effects.length === 0);
+    if (countEl) {
+      countEl.textContent = `${effects.length} ${effects.length === 1 ? 'activo' : 'activos'}`;
+    }
     chips.replaceChildren();
+    if (effects.length === 0) {
+      chips.appendChild(
+        el('p', 'text-[11px] text-[#64748b] italic py-0.5', 'Sin estados ni efectos temporales activos.')
+      );
+      return;
+    }
     for (const effect of effects) {
       const chip = el(
         'button',
-        'shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-[#18202e] border border-amber-500/30 hover:border-amber-400 text-xs text-[#f1f5f9] cursor-pointer transition-colors'
+        'shrink-0 flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#121721] border border-amber-500/30 hover:border-amber-400 text-xs text-[#f1f5f9] cursor-pointer transition-colors'
       ) as HTMLButtonElement;
       chip.type = 'button';
       const icon = el('span', 'material-symbols-outlined text-amber-400 text-[14px]', ICON[effect.sourceType] ?? 'star');

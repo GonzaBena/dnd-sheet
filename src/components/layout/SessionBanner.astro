@@ -1,136 +1,72 @@
 ---
 // src/components/layout/SessionBanner.astro
+// Tira compacta de contexto de campaña (1 línea)
 ---
 
-<section id="session-banner-root" class="relative mb-6 rounded-2xl bg-gradient-to-r from-[#121721] via-[#161e2c] to-[#121721] border border-amber-500/30 p-5 lg:p-6 shadow-[0_4px_25px_rgba(0,0,0,0.5)] overflow-hidden">
-  <div class="relative z-10 grid grid-cols-1 xl:grid-cols-12 gap-5 items-center">
-    <!-- LADO IZQUIERDO: Título y contexto de la sesión (7 cols) -->
-    <div class="xl:col-span-7 space-y-3 min-w-0">
-      <div class="flex items-center gap-3 cursor-pointer group" id="open-campaign-edit-trigger" title="Haz clic para editar la campaña, clima y ubicación">
-        <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-amber-500 to-amber-700 text-[#0a0d12] flex items-center justify-center font-bold shadow-[0_0_15px_rgba(245,158,11,0.4)] border border-amber-400/50 shrink-0">
-          <span class="material-symbols-outlined text-[24px]">castle</span>
-        </div>
-        <div class="min-w-0 space-y-0.5">
-          <div class="flex items-center gap-2 flex-wrap">
-            <span class="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 shadow-xs">
-              <span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
-              <span>Campaña Activa</span>
-            </span>
-            <span class="material-symbols-outlined text-[14px] text-amber-500/70 group-hover:text-amber-400 transition-colors">edit</span>
-          </div>
-          <h2 id="banner-campaign-title" class="text-xl sm:text-2xl font-headline font-bold text-[#f1f5f9] group-hover:text-amber-300 transition-colors truncate">
-            Aventura Independiente • Sesión 1 en Curso
-          </h2>
-        </div>
-      </div>
-
-      <!-- Quick Session Context Badges -->
-      <div class="flex flex-wrap items-center gap-2 font-label text-xs pt-1">
-        <div class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-[#10141d] border border-[#222f42] text-[#94a3b8] hover:border-amber-500/40 cursor-pointer transition-colors shadow-xs" id="banner-weather-chip" title="Haz clic para editar clima">
-          <span class="material-symbols-outlined text-[15px] text-amber-500">wb_twilight</span>
-          <span id="banner-weather-text" class="text-[#cbd5e1] text-[11px]">Clima: Niebla Espesa / Anochecer</span>
-        </div>
-        <div class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-[#10141d] border border-[#222f42] text-[#94a3b8] hover:border-amber-500/40 cursor-pointer transition-colors shadow-xs" id="banner-location-chip" title="Haz clic para editar ubicación">
-          <span class="material-symbols-outlined text-[15px] text-rose-400">map</span>
-          <span id="banner-location-text" class="text-[#cbd5e1] text-[11px]">Ubicación: Tierras Salvajes</span>
-        </div>
-
-        <!-- Milestone Celebration Button -->
-        <button
-          type="button"
-          id="open-milestone-btn"
-          class="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-600/20 via-amber-500/20 to-amber-600/20 border border-amber-500/40 text-amber-300 hover:text-amber-100 hover:border-amber-400 font-bold active:scale-95 transition-all cursor-pointer shadow-[0_0_12px_rgba(245,158,11,0.15)] text-[11px]"
-          title="Celebrar un logro o hito épico en la campaña"
-        >
-          <span class="material-symbols-outlined text-[15px] text-amber-400">military_tech</span>
-          <span>Celebrar Hito</span>
-        </button>
-
-        <!-- Ver Miembros de la Campaña -->
-        <button
-          type="button"
-          id="banner-roster-btn"
-          class="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-[#18202e] border border-amber-500/30 hover:border-amber-400 text-amber-300 font-bold active:scale-95 transition-all cursor-pointer shadow-xs text-[11px]"
-          title="Ver aventureros y miembros de la campaña"
-        >
-          <span class="material-symbols-outlined text-[15px]">groups</span>
-          <span>Miembros</span>
-        </button>
-
-        <!-- Ver Partida (Mesa VTT) -->
-        <a
-          id="banner-view-party-link"
-          href="/partida"
-          class="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-[#18202e] border border-amber-500/30 hover:border-amber-400 text-amber-300 font-bold active:scale-95 transition-all cursor-pointer shadow-xs text-[11px]"
-          title="Abrir la mesa de partida compartida (VTT)"
-        >
-          <span class="material-symbols-outlined text-[15px]">table_restaurant</span>
-          <span>Mesa de Partida</span>
-        </a>
-      </div>
+<section
+  id="session-banner-root"
+  class="relative mb-3 rounded-xl bg-[#121721]/90 border border-[#222f42] px-3.5 py-2 shadow-sm overflow-hidden"
+>
+  <div class="relative z-10 flex flex-wrap items-center justify-between gap-2 text-xs font-label">
+    <!-- Lado izquierdo: Campaña y Sesión (clicable para editar) -->
+    <div
+      class="flex items-center gap-2 cursor-pointer group min-w-0"
+      id="open-campaign-edit-trigger"
+      title="Haz clic para editar el nombre de la campaña, sesión, clima y ubicación"
+    >
+      <span class="w-6 h-6 rounded-lg bg-amber-500/15 border border-amber-500/40 text-amber-400 flex items-center justify-center shrink-0">
+        <span class="material-symbols-outlined text-[15px]">castle</span>
+      </span>
+      <h2
+        id="banner-campaign-title"
+        class="text-xs sm:text-sm font-headline font-bold text-[#f1f5f9] group-hover:text-amber-300 transition-colors truncate"
+      >
+        Aventura Independiente • Sesión 1
+      </h2>
+      <span class="material-symbols-outlined text-[13px] text-amber-500/60 group-hover:text-amber-400 transition-colors shrink-0">edit</span>
     </div>
 
-    <!-- LADO DERECHO: Botones de lanzar dados a la derecha del título (5 cols) -->
-    <div class="xl:col-span-5 rounded-xl bg-[#10141d]/90 border border-[#222f42] p-3.5 space-y-2.5 font-label text-xs backdrop-blur-sm shadow-md">
-      <!-- Quick Dice Bar -->
-      <div class="space-y-1.5">
-        <div class="flex items-center justify-between">
-          <span class="text-[11px] font-bold uppercase text-amber-400 tracking-wider flex items-center gap-1">
-            <span class="material-symbols-outlined text-[15px]">casino</span>
-            <span>Dados</span>
-          </span>
-          <label class="flex items-center gap-1.5 cursor-pointer text-[#94a3b8] hover:text-[#f1f5f9] select-none text-[10px]">
-            <input type="checkbox" id="session-banner-secret-dice-check" class="rounded bg-[#18202e] border-[#222f42] text-amber-500 focus:ring-amber-500/40" />
-            <span class="flex items-center gap-1">
-              <span>🔒</span>
-              <span>Tirada Oculta</span>
-            </span>
-          </label>
-        </div>
-        <div class="flex items-center gap-1 flex-wrap">
-          <button type="button" class="session-banner-dice-btn px-2.5 py-1 rounded-lg bg-[#18202e] border border-amber-500/40 text-amber-300 font-bold hover:bg-amber-500/20 active:scale-95 transition-all cursor-pointer shadow-xs text-xs" data-dice="1d20">d20</button>
-          <button type="button" class="session-banner-dice-btn px-2 py-1 rounded-lg bg-[#18202e] border border-[#222f42] hover:border-amber-400/60 text-[#cbd5e1] font-bold active:scale-95 transition-all cursor-pointer text-xs" data-dice="1d100">d100</button>
-          <button type="button" class="session-banner-dice-btn px-2 py-1 rounded-lg bg-[#18202e] border border-[#222f42] hover:border-amber-400/60 text-[#cbd5e1] font-bold active:scale-95 transition-all cursor-pointer text-xs" data-dice="2d6">2d6</button>
-          <button type="button" class="session-banner-dice-btn px-2 py-1 rounded-lg bg-[#18202e] border border-[#222f42] hover:border-amber-400/60 text-[#cbd5e1] font-bold active:scale-95 transition-all cursor-pointer text-xs" data-dice="1d12">1d12</button>
-          <button type="button" class="session-banner-dice-btn px-2 py-1 rounded-lg bg-[#18202e] border border-[#222f42] hover:border-amber-400/60 text-[#cbd5e1] font-bold active:scale-95 transition-all cursor-pointer text-xs" data-dice="1d10">1d10</button>
-          <button type="button" class="session-banner-dice-btn px-2 py-1 rounded-lg bg-[#18202e] border border-[#222f42] hover:border-amber-400/60 text-[#cbd5e1] font-bold active:scale-95 transition-all cursor-pointer text-xs" data-dice="1d8">1d8</button>
-          <button type="button" class="session-banner-dice-btn px-2 py-1 rounded-lg bg-[#18202e] border border-[#222f42] hover:border-amber-400/60 text-[#cbd5e1] font-bold active:scale-95 transition-all cursor-pointer text-xs" data-dice="1d6">1d6</button>
-          <button type="button" class="session-banner-dice-btn px-2 py-1 rounded-lg bg-[#18202e] border border-[#222f42] hover:border-amber-400/60 text-[#cbd5e1] font-bold active:scale-95 transition-all cursor-pointer text-xs" data-dice="1d4">1d4</button>
-        </div>
+    <!-- Lado derecho: Píldoras de contexto (Clima, Ubicación, Miembros, Hito) -->
+    <div class="flex flex-wrap items-center gap-1.5 min-w-0">
+      <div
+        class="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-[#10141d] border border-[#222f42] text-[#94a3b8] hover:border-amber-500/40 cursor-pointer transition-colors"
+        id="banner-weather-chip"
+        title="Haz clic para editar clima"
+      >
+        <span class="material-symbols-outlined text-[13px] text-amber-500">wb_twilight</span>
+        <span id="banner-weather-text" class="text-[#cbd5e1] text-[10px] sm:text-[11px] truncate max-w-[140px] sm:max-w-none">Niebla Espesa</span>
       </div>
 
-      <!-- Resting & Tactical Actions -->
-      <div class="flex items-center gap-1.5 pt-1.5 border-t border-[#222f42]/60 flex-wrap">
-        <button
-          type="button"
-          id="session-banner-short-rest-btn"
-          class="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#18202e] border border-[#222f42] hover:border-amber-500/50 text-[#cbd5e1] hover:text-amber-300 font-bold active:scale-95 transition-colors cursor-pointer text-[11px]"
-          title="Descanso corto para tu personaje (+8 PG)"
-        >
-          <span class="material-symbols-outlined text-[14px] text-amber-400">bedtime</span>
-          <span>Descanso Corto</span>
-        </button>
-
-        <button
-          type="button"
-          id="session-banner-long-rest-btn"
-          class="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#18202e] border border-[#222f42] hover:border-amber-500/50 text-[#cbd5e1] hover:text-amber-300 font-bold active:scale-95 transition-colors cursor-pointer text-[11px]"
-          title="Descanso largo (restaura PG al máximo)"
-        >
-          <span class="material-symbols-outlined text-[14px] text-indigo-400">hotel</span>
-          <span>Descanso Largo</span>
-        </button>
-
-        <a
-          href="/partida"
-          id="session-banner-vtt-btn"
-          class="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-gradient-to-r from-amber-600 via-amber-500 to-amber-600 hover:from-amber-500 hover:to-amber-400 text-[#0a0d12] font-bold shadow-[0_0_12px_rgba(245,158,11,0.3)] active:scale-95 transition-all cursor-pointer text-[11px] ml-auto"
-          title="Ir al mapa táctico y combate"
-        >
-          <span class="material-symbols-outlined text-[14px]">swords</span>
-          <span>Combate VTT</span>
-        </a>
+      <div
+        class="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-[#10141d] border border-[#222f42] text-[#94a3b8] hover:border-amber-500/40 cursor-pointer transition-colors"
+        id="banner-location-chip"
+        title="Haz clic para editar ubicación"
+      >
+        <span class="material-symbols-outlined text-[13px] text-rose-400">map</span>
+        <span id="banner-location-text" class="text-[#cbd5e1] text-[10px] sm:text-[11px] truncate max-w-[140px] sm:max-w-none">Tierras Salvajes</span>
       </div>
+
+      <!-- Ver Miembros de la Campaña -->
+      <button
+        type="button"
+        id="banner-roster-btn"
+        class="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-[#18202e] border border-amber-500/30 hover:border-amber-400 text-amber-300 font-bold active:scale-95 transition-all cursor-pointer text-[10px] sm:text-[11px]"
+        title="Ver aventureros y miembros de la campaña"
+      >
+        <span class="material-symbols-outlined text-[13px]">groups</span>
+        <span>Grupo</span>
+      </button>
+
+      <!-- Milestone Celebration Button -->
+      <button
+        type="button"
+        id="open-milestone-btn"
+        class="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-amber-500/15 border border-amber-500/40 text-amber-300 hover:text-amber-100 hover:border-amber-400 font-bold active:scale-95 transition-all cursor-pointer text-[10px] sm:text-[11px]"
+        title="Celebrar un logro o hito épico en la campaña"
+      >
+        <span class="material-symbols-outlined text-[13px] text-amber-400">military_tech</span>
+        <span class="hidden sm:inline">Hito</span>
+      </button>
     </div>
   </div>
 </section>
@@ -138,10 +74,7 @@
 <script>
   import { characterStore } from '../../scripts/state/characterStore';
   import { campaignStore } from '../../scripts/state/campaignStore';
-  import { showAlert, showConfirm } from '../../scripts/ui/notify';
-  import { journalStore } from '../../scripts/state/journalStore';
 
-  // Open campaign modal on banner elements click
   const openCampModal = () => {
     window.dispatchEvent(new CustomEvent('open-campaign-modal'));
   };
@@ -149,42 +82,11 @@
   document.getElementById('banner-weather-chip')?.addEventListener('click', openCampModal);
   document.getElementById('banner-location-chip')?.addEventListener('click', openCampModal);
 
-  // Open milestone celebration trigger
   document.getElementById('open-milestone-btn')?.addEventListener('click', (e) => {
     e.stopPropagation();
     window.dispatchEvent(new CustomEvent('open-new-milestone-modal'));
   });
 
-  // Quick dice buttons in session banner
-  document.querySelectorAll('.session-banner-dice-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const formula = btn.getAttribute('data-dice') || '1d20';
-      const secretCheck = document.getElementById('session-banner-secret-dice-check') as HTMLInputElement;
-      const isSecret = secretCheck?.checked || false;
-      const sides = parseInt(formula.replace(/\D/g, '')) || 20;
-      const count = parseInt(formula) || 1;
-      const char = characterStore.get();
-      const charName = char?.name || 'Aventurero';
-
-      window.dispatchEvent(new CustomEvent('open-dice-roller', {
-        detail: {
-          die: sides,
-          count: count,
-          modifier: 0,
-          label: isSecret ? `Tirada Secreta de ${charName} (${formula})` : `Tirada de ${charName} (${formula})`,
-          tag: isSecret ? '#Privado' : '#Tirada',
-          isSecret: isSecret,
-          characterId: char?.id,
-          characterName: charName,
-          authorName: charName,
-          campaignId: char?.campaignId || campaignStore.getActiveCampaignId(),
-          autoroll: true
-        }
-      }));
-    });
-  });
-
-  // Ver Miembros de la Campaña
   document.getElementById('banner-roster-btn')?.addEventListener('click', () => {
     const char = characterStore.get();
     const cid = char?.campaignId || campaignStore.getActiveCampaignId();
@@ -193,87 +95,36 @@
     }
   });
 
-  // Short rest in session banner
-  document.getElementById('session-banner-short-rest-btn')?.addEventListener('click', async () => {
-    const char = characterStore.get();
-    if (!char) return;
-    if (await showConfirm(`Recuperas +8 Puntos de Golpe en ${char.name}.`, { title: '¿Descanso Corto?', confirmText: 'Descansar (+8 PG)' })) {
-      const newHp = Math.min(char.hp.max, (char.hp.current || 0) + 8);
-      characterStore.updateHp(newHp);
-      journalStore.log(
-        `Descanso Corto de ${char.name}`,
-        `${char.name} ha tomado un descanso corto (+8 PG recuperados).`,
-        ['#Descanso']
-      );
-      showAlert(`¡Descanso corto aplicado! ${char.name} recuperó +8 PG (${newHp}/${char.hp.max}).`, { kind: 'success', title: 'Descanso corto' });
-    }
-  });
-
-  // Long rest in session banner
-  document.getElementById('session-banner-long-rest-btn')?.addEventListener('click', async () => {
-    const char = characterStore.get();
-    if (!char) return;
-    if (await showConfirm(`Tus Puntos de Golpe se restauran al máximo (${char.hp.max} PG) y se limpian PG temporales.`, { title: '¿Descanso Largo?', confirmText: 'Descansar al Máximo' })) {
-      // longRest() restaura PG, espacios, recursos y quita efectos "hasta descanso largo" (y registra el diario).
-      characterStore.longRest();
-      showAlert(`¡Descanso largo completado! ${char.name} tiene ${char.hp.max} PG.`, { kind: 'success', title: 'Descanso largo' });
-    }
-  });
-
   function renderBanner(char: any) {
     const title = document.getElementById('banner-campaign-title');
     const weather = document.getElementById('banner-weather-text');
     const loc = document.getElementById('banner-location-text');
-    const partyLink = document.getElementById('banner-view-party-link') as HTMLAnchorElement;
-    const vttBtn = document.getElementById('session-banner-vtt-btn') as HTMLAnchorElement;
+    const rosterBtn = document.getElementById('banner-roster-btn');
+    const milestoneBtn = document.getElementById('open-milestone-btn');
 
     const cid = char?.campaignId || campaignStore.getActiveCampaignId();
-    if (partyLink) {
-      if (cid) {
-        partyLink.href = `/partida?id=${encodeURIComponent(cid)}`;
-        partyLink.classList.remove('hidden');
-      } else {
-        partyLink.classList.add('hidden');
-      }
-    }
-    if (vttBtn) {
-      if (cid) {
-        vttBtn.href = `/partida?id=${encodeURIComponent(cid)}`;
-        vttBtn.classList.remove('hidden');
-      } else {
-        vttBtn.classList.add('hidden');
-      }
-    }
-
-    const rosterBtn = document.getElementById('banner-roster-btn');
     if (rosterBtn) {
-      if (cid) {
-        rosterBtn.classList.remove('hidden');
-      } else {
-        rosterBtn.classList.add('hidden');
-      }
+      rosterBtn.classList.toggle('hidden', !cid);
     }
 
-    const milestoneBtn = document.getElementById('open-milestone-btn');
     if (milestoneBtn) {
       const isDm = cid ? campaignStore.isCurrentUserDm(cid) : true;
-      if (cid && !isDm) {
-        milestoneBtn.classList.add('hidden');
-      } else {
-        milestoneBtn.classList.remove('hidden');
-      }
+      milestoneBtn.classList.toggle('hidden', Boolean(cid && !isDm));
     }
 
     if (!char) return;
-    
+
     if (title && char.sessionContext) {
-      title.textContent = `${char.sessionContext.campaignName} • Sesión ${char.sessionContext.sessionNumber} en Curso`;
+      title.textContent = `${char.sessionContext.campaignName} • Sesión ${char.sessionContext.sessionNumber}`;
     }
-    if (weather && char.sessionContext) weather.textContent = `Clima: ${char.sessionContext.weather}`;
-    if (loc && char.sessionContext) loc.textContent = `Ubicación: ${char.sessionContext.location}`;
+    if (weather && char.sessionContext) {
+      weather.textContent = char.sessionContext.weather;
+    }
+    if (loc && char.sessionContext) {
+      loc.textContent = char.sessionContext.location;
+    }
   }
 
-  // Hydrate immediately
   renderBanner(characterStore.get());
 
   window.addEventListener('character-updated', ((e: CustomEvent) => {

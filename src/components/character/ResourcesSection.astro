@@ -1,23 +1,23 @@
 ---
 // src/components/character/ResourcesSection.astro
-// UI mínima de recursos: crear, gastar, recuperar y borrar (Spec 07, Fase E: FE-8).
+// UI compacta de Bendiciones, Cargas y Recursos (Spec 07, Fase E: FE-8).
 ---
 
-<section id="resources-section" class="mt-4" aria-label="Recursos">
+<section id="resources-section" class="rounded-xl bg-[#18202e]/70 border border-[#222f42] p-3 flex flex-col justify-between" aria-label="Bendiciones y Recursos">
   <div class="flex items-center justify-between mb-1.5">
     <h3 class="text-[10px] font-headline font-bold text-[#94a3b8] uppercase tracking-wider flex items-center gap-1">
-      <span class="material-symbols-outlined text-amber-500 text-[14px]">bolt</span>
-      <span>Recursos</span>
+      <span class="material-symbols-outlined text-amber-500 text-[14px]">flare</span>
+      <span>Bendiciones y Recursos</span>
     </h3>
     <button
       type="button"
       id="resource-new-btn"
       class="text-[10px] text-amber-400 hover:text-amber-300 font-bold bg-amber-500/10 hover:bg-amber-500/20 px-2 py-0.5 rounded-lg border border-amber-500/30 cursor-pointer transition-colors"
     >
-      + Nuevo recurso
+      + Añadir
     </button>
   </div>
-  <div id="resources-list" class="space-y-1.5"></div>
+  <div id="resources-list" class="grid grid-cols-1 sm:grid-cols-2 gap-1.5"></div>
 </section>
 
 <script>
@@ -34,7 +34,7 @@
     b.title = title;
     b.setAttribute('aria-label', title);
     b.textContent = label;
-    b.className = `w-6 h-6 rounded-md bg-[#10141d] border border-[#222f42] hover:border-amber-500/40 text-[#cbd5e1] text-sm leading-none cursor-pointer ${extra}`;
+    b.className = `w-5 h-5 rounded bg-[#10141d] border border-[#222f42] hover:border-amber-500/40 text-[#cbd5e1] text-xs leading-none cursor-pointer flex items-center justify-center ${extra}`;
     b.addEventListener('click', onClick);
     return b;
   }
@@ -46,27 +46,27 @@
     list.replaceChildren();
     if (!resources.length) {
       const empty = document.createElement('p');
-      empty.className = 'text-[11px] text-[#64748b]';
-      empty.textContent = 'Sin recursos. Crea uno con "Nuevo recurso".';
+      empty.className = 'text-[11px] text-[#64748b] italic py-0.5 col-span-full';
+      empty.textContent = 'Sin bendiciones ni cargas. Usa "+ Añadir" para crear una.';
       list.appendChild(empty);
       return;
     }
     for (const r of resources) {
       const row = document.createElement('div');
-      row.className = 'flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-[#18202e] border border-[#222f42] text-xs';
+      row.className = 'flex items-center gap-1.5 px-2 py-1 rounded-lg bg-[#121721] border border-[#222f42] text-xs';
       const name = document.createElement('span');
       name.className = 'flex-1 min-w-0 truncate font-bold text-[#f1f5f9]';
       name.textContent = r.name;
       const count = document.createElement('span');
-      count.className = 'font-mono text-[#94a3b8]';
-      count.textContent = `${r.used}/${r.max}`;
-      count.title = `Quedan ${remaining(r)}`;
+      count.className = 'font-mono text-[11px] text-amber-300 shrink-0';
+      count.textContent = `${remaining(r)}/${r.max}`;
+      count.title = `Quedan ${remaining(r)} de ${r.max} (usados: ${r.used})`;
       row.append(
         name,
         count,
         btn('−', 'Gastar 1', () => characterStore.spendResource(r.id, 1)),
         btn('+', 'Recuperar 1', () => characterStore.recoverResource(r.id, 1)),
-        btn('×', 'Borrar recurso', async () => {
+        btn('×', 'Borrar bendición o recurso', async () => {
           if (await showConfirm(`¿Borrar "${r.name}"?`, { danger: true, confirmText: 'Borrar' })) {
             characterStore.removeResource(r.id);
           }
@@ -79,8 +79,8 @@
   document.getElementById('resource-new-btn')?.addEventListener('click', async () => {
     const values = await showForm(
       [
-        { name: 'name', label: 'Nombre', type: 'text', required: true, placeholder: 'Inspiración Bárdica' },
-        { name: 'max', label: 'Máximo', type: 'number', value: '1', min: 1, required: true },
+        { name: 'name', label: 'Nombre (Bendición, Don o Recurso)', type: 'text', required: true, placeholder: 'Bendición del Alba / Inspiración Bárdica' },
+        { name: 'max', label: 'Usos o Cargas Máximas', type: 'number', value: '1', min: 1, required: true },
         {
           name: 'rechargeOn',
           label: 'Se reinicia con',
@@ -94,7 +94,7 @@
           ],
         },
       ],
-      { title: 'Nuevo recurso', confirmText: 'Crear' }
+      { title: 'Nueva Bendición o Recurso', confirmText: 'Crear' }
     );
     if (!values) return;
     const name = values.name.trim();

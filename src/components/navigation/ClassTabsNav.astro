@@ -169,6 +169,10 @@
     const col1 = document.getElementById('workspace-col-1');
     const col2 = document.getElementById('workspace-col-2');
     const grid = document.getElementById('workspace-grid');
+    const block2 = document.getElementById('sheet-block-2');
+    const block3 = document.getElementById('sheet-block-3');
+    const b3Col1 = document.getElementById('sheet-block-3-col-1');
+    const b3Col2 = document.getElementById('sheet-block-3-col-2');
 
     const showAll = tab === 'all';
 
@@ -186,46 +190,78 @@
     
     setVis(secWeapons, (showAll && cfg.showWeapons) || tab === 'combat');
     setVis(secWildShape, cfg.showWildShape && (showAll || tab === 'wildshape'));
-    setVis(secCurrency, (showAll && cfg.showInventory) || tab === 'inventory');
+    setVis(secCurrency, true); // Monedas vive ahora en VitalsGrid arriba del todo
     setVis(secBackpack, (showAll && cfg.showInventory) || tab === 'inventory');
     setVis(secSpells, cfg.showSpells && (showAll || tab === 'spells'));
     setVis(secJournal, (showAll && cfg.showJournal) || tab === 'journal');
 
-    // DYNAMIC LAYOUT REORGANIZATION (Adapts cleanly based on which columns have visible sections)
+    // Adaptación dinámica de los 3 bloques de la ficha
     if (grid && col1 && col2) {
       if (tab === 'journal') {
         grid.classList.add('hidden');
       } else {
-        grid.classList.remove('hidden');
-
         const hasVisibleCol1 = Array.from(col1.children).some((el) => !el.classList.contains('hidden') && el.id !== 'section-drop-placeholder');
         const hasVisibleCol2 = Array.from(col2.children).some((el) => !el.classList.contains('hidden') && el.id !== 'section-drop-placeholder');
 
-        if (hasVisibleCol1 && hasVisibleCol2) {
-          // Both have content: standard 2-column layout
-          col1.classList.remove('hidden');
-          col2.classList.remove('hidden');
-          col1.className = 'space-y-6 w-full';
-          col2.className = 'space-y-6 w-full';
-          grid.className = 'grid grid-cols-1 lg:grid-cols-2 gap-6 items-start';
-        } else if (hasVisibleCol1 && !hasVisibleCol2) {
-          // Only col1 has content: expand centered
-          col2.classList.add('hidden');
-          col1.classList.remove('hidden');
-          col1.className = 'space-y-6 w-full max-w-4xl mx-auto col-span-full';
-          grid.className = 'grid grid-cols-1 gap-6 items-start';
-        } else if (!hasVisibleCol1 && hasVisibleCol2) {
-          // Only col2 has content: expand centered
-          col1.classList.add('hidden');
-          col2.classList.remove('hidden');
-          col2.className = 'space-y-6 w-full max-w-4xl mx-auto col-span-full';
-          grid.className = 'grid grid-cols-1 gap-6 items-start';
+        if (!hasVisibleCol1 && !hasVisibleCol2) {
+          grid.classList.add('hidden');
         } else {
-          col1.classList.remove('hidden');
-          col2.classList.remove('hidden');
-          col1.className = 'space-y-6 w-full';
-          col2.className = 'space-y-6 w-full';
-          grid.className = 'grid grid-cols-1 lg:grid-cols-2 gap-6 items-start';
+          grid.classList.remove('hidden');
+          if (hasVisibleCol1 && hasVisibleCol2) {
+            col1.classList.remove('hidden');
+            col2.classList.remove('hidden');
+            col1.className = 'space-y-5 w-full';
+            col2.className = 'space-y-5 w-full';
+            grid.className = 'grid grid-cols-1 lg:grid-cols-2 gap-6 items-start';
+          } else if (hasVisibleCol1 && !hasVisibleCol2) {
+            col2.classList.add('hidden');
+            col1.classList.remove('hidden');
+            col1.className = 'space-y-5 w-full max-w-4xl mx-auto col-span-full';
+            grid.className = 'grid grid-cols-1 gap-6 items-start';
+          } else if (!hasVisibleCol1 && hasVisibleCol2) {
+            col1.classList.add('hidden');
+            col2.classList.remove('hidden');
+            col2.className = 'space-y-5 w-full max-w-4xl mx-auto col-span-full';
+            grid.className = 'grid grid-cols-1 gap-6 items-start';
+          }
+        }
+      }
+    }
+
+    if (block2) {
+      const hasWeapons = secWeapons && !secWeapons.classList.contains('hidden');
+      const hasBackpack = secBackpack && !secBackpack.classList.contains('hidden');
+      block2.classList.toggle('hidden', tab === 'journal' || (!hasWeapons && !hasBackpack));
+    }
+
+    if (block3 && b3Col1 && b3Col2) {
+      if (tab === 'journal') {
+        block3.classList.add('hidden');
+      } else {
+        const hasB3Col1 = Array.from(b3Col1.children).some((el) => !el.classList.contains('hidden') && el.id !== 'section-drop-placeholder');
+        const hasB3Col2 = Array.from(b3Col2.children).some((el) => !el.classList.contains('hidden') && el.id !== 'section-drop-placeholder');
+
+        if (!hasB3Col1 && !hasB3Col2) {
+          block3.classList.add('hidden');
+        } else {
+          block3.classList.remove('hidden');
+          if (hasB3Col1 && hasB3Col2) {
+            b3Col1.classList.remove('hidden');
+            b3Col2.classList.remove('hidden');
+            b3Col1.className = 'space-y-5 w-full';
+            b3Col2.className = 'space-y-5 w-full';
+            block3.className = 'grid grid-cols-1 lg:grid-cols-2 gap-6 items-start';
+          } else if (hasB3Col1 && !hasB3Col2) {
+            b3Col2.classList.add('hidden');
+            b3Col1.classList.remove('hidden');
+            b3Col1.className = 'space-y-5 w-full max-w-4xl mx-auto col-span-full';
+            block3.className = 'grid grid-cols-1 gap-6 items-start';
+          } else if (!hasB3Col1 && hasB3Col2) {
+            b3Col1.classList.add('hidden');
+            b3Col2.classList.remove('hidden');
+            b3Col2.className = 'space-y-5 w-full max-w-4xl mx-auto col-span-full';
+            block3.className = 'grid grid-cols-1 gap-6 items-start';
+          }
         }
       }
     }

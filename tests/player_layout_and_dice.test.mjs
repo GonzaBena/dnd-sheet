@@ -63,34 +63,22 @@ test('Player VTT view (PartyView) distribution & dice layout checks', () => {
   );
 });
 
-test('SessionBanner player dice buttons & context checks', () => {
+test('SessionBanner slim context strip checks', () => {
   const sessionBannerPath = path.resolve('src/components/layout/SessionBanner.astro');
   const content = fs.readFileSync(sessionBannerPath, 'utf-8');
 
-  // 1. SessionBanner has 12-col grid with dice on right
+  // 1. SessionBanner is a compact 1-line context strip with campaign title, weather, location & group
   assert.ok(
-    content.includes('grid grid-cols-1 xl:grid-cols-12 gap-5 items-center'),
-    'SessionBanner must use 12-col responsive grid'
+    content.includes('id="banner-campaign-title"') && content.includes('id="open-campaign-edit-trigger"'),
+    'SessionBanner must include editable campaign title'
   );
   assert.ok(
-    content.includes('xl:col-span-7') && content.includes('id="banner-campaign-title"'),
-    'Title & context must be on left (7 cols)'
+    content.includes('id="banner-weather-chip"') && content.includes('id="banner-location-chip"'),
+    'SessionBanner must include weather and location chips'
   );
   assert.ok(
-    content.includes('xl:col-span-5') && content.includes('session-banner-dice-btn'),
-    'Quick dice buttons must be on right of title (5 cols)'
-  );
-
-  // 2. Secret roll checkbox
-  assert.ok(
-    content.includes('id="session-banner-secret-dice-check"'),
-    'SessionBanner must include secret roll checkbox'
-  );
-
-  // 3. Resting buttons
-  assert.ok(
-    content.includes('id="session-banner-short-rest-btn"') && content.includes('id="session-banner-long-rest-btn"'),
-    'SessionBanner must include short and long rest buttons'
+    content.includes('id="banner-roster-btn"'),
+    'SessionBanner must include group roster button'
   );
 });
 
@@ -108,26 +96,45 @@ test('InitiativeList card title & subtitle match combat section spec', () => {
   );
 });
 
-test('Header navbar buttons removal checks', () => {
+test('Header navbar HUD (<Nombre • PG • CA>, 6 dice & conditional /partida combat button) checks', () => {
   const headerPath = path.resolve('src/components/layout/Header.astro');
   const content = fs.readFileSync(headerPath, 'utf-8');
 
-  // Verify the 4 buttons are no longer present in the navbar
+  // Verify old redundant buttons remain removed
   assert.ok(
     !content.includes('id="header-open-compendium-btn"'),
     'Header must not have #header-open-compendium-btn in navbar'
   );
   assert.ok(
-    !content.includes('id="header-open-dice-btn"'),
-    'Header must not have #header-open-dice-btn in navbar'
-  );
-  assert.ok(
-    !content.includes('id="header-open-secret-dice-btn"'),
-    'Header must not have #header-open-secret-dice-btn in navbar'
-  );
-  assert.ok(
     !content.includes('id="header-rest-btn"'),
     'Header must not have #header-rest-btn in navbar'
+  );
+
+  // Verify new HUD <Nombre • PG • CA>
+  assert.ok(
+    content.includes('id="header-char-name"') &&
+    content.includes('id="header-char-hp"') &&
+    content.includes('id="header-char-ac"'),
+    'Header must include <Nombre • PG • CA> HUD elements'
+  );
+
+  // Verify 6 dice row (d4, d6, d8, d10, d12, d20) + secret toggle
+  assert.ok(
+    content.includes('id="header-dice-row"') &&
+    content.includes('header-quick-die-btn') &&
+    content.includes('data-die="4"') &&
+    content.includes('data-die="6"') &&
+    content.includes('data-die="8"') &&
+    content.includes('data-die="10"') &&
+    content.includes('data-die="12"') &&
+    content.includes('data-die="20"'),
+    'Header must include the 6 quick dice buttons (d4, d6, d8, d10, d12, d20)'
+  );
+
+  // Verify conditional combat button (/partida) next to alerts bell
+  assert.ok(
+    content.includes('id="header-combat-vtt-btn"') && content.includes('/partida'),
+    'Header must include conditional combat button linking to /partida'
   );
 });
 

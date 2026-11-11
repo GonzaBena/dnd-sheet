@@ -15,7 +15,6 @@ import SkillsList from '../components/character/SkillsList.astro';
 import FeaturesFeats from '../components/character/FeaturesFeats.astro';
 import WildShapePanel from '../components/character/WildShapePanel.astro';
 import WeaponActionCard from '../components/combat/WeaponActionCard.astro';
-import CurrencyPouch from '../components/inventory/CurrencyPouch.astro';
 import BackpackGrid from '../components/inventory/BackpackGrid.astro';
 import SpellcastingPanel from '../components/combat/SpellcastingPanel.astro';
 import QuickJournalFab from '../components/journal/QuickJournalFab.astro';
@@ -55,12 +54,12 @@ import TurnNotifier from '../components/party/TurnNotifier.astro';
   <!-- Main Viewport Area -->
   <main class="w-full pt-20 sm:pt-24 pb-16 bg-[#0a0d12] min-h-screen">
     <!-- Atmospheric Ambient Lighting Elements -->
-    <div class="relative w-full overflow-hidden px-4 sm:px-6 lg:px-10 py-4 max-w-[1720px] mx-auto">
+    <div class="relative w-full overflow-hidden px-4 sm:px-6 lg:px-10 py-3 max-w-[1720px] mx-auto">
       <div class="absolute -top-32 left-1/4 w-96 h-96 bg-amber-500/10 rounded-full blur-[110px] pointer-events-none"></div>
       <div class="absolute top-96 right-10 w-96 h-96 bg-rose-600/10 rounded-full blur-[120px] pointer-events-none"></div>
       <div class="absolute top-1/2 left-10 w-72 h-72 bg-amber-600/5 rounded-full blur-[90px] pointer-events-none"></div>
 
-      <!-- Top Session Context Banner & Quick d20 (Shown for player) -->
+      <!-- Top Slim Session Context Strip (Shown for player) -->
       <div id="session-banner-container" class="hidden">
         <SessionBanner />
       </div>
@@ -81,16 +80,16 @@ import TurnNotifier from '../components/party/TurnNotifier.astro';
       </div>
 
       <!-- 2. PLAYER CHARACTER SHEET WORKSPACE (Active when user is player) -->
-      <div id="player-sheet-workspace" class="hidden space-y-6">
+      <div id="player-sheet-workspace" class="hidden space-y-5">
         <!-- MAIN HERO & CHARACTER HEADER BANNER -->
-        <section class="relative mb-6 rounded-xl bg-[#121721] border border-[#222f42] shadow-[0_8px_30px_rgba(0,0,0,0.5)] p-6 lg:p-8 overflow-hidden">
+        <section class="relative mb-5 rounded-xl bg-[#121721] border border-[#222f42] shadow-[0_8px_30px_rgba(0,0,0,0.5)] p-5 lg:p-6 overflow-hidden">
           <!-- Decorative background runes/rings -->
           <div class="absolute -right-20 -bottom-20 w-80 h-80 rounded-full bg-amber-500/5 blur-2xl pointer-events-none"></div>
           
           <HeroCard>
             <VitalsGrid />
           </HeroCard>
-          <div class="relative z-10">
+          <div class="relative z-10 grid grid-cols-1 md:grid-cols-2 gap-3 mt-4 pt-4 border-t border-[#222f42]/60">
             <ActiveEffectsPanel />
             <ResourcesSection />
           </div>
@@ -99,38 +98,49 @@ import TurnNotifier from '../components/party/TurnNotifier.astro';
         <!-- ADAPTABLE CLASS TABS NAVIGATION (Combate, Habilidades, Magia, Forma Salvaje, Mochila, Bitácora) -->
         <ClassTabsNav />
 
-        <!-- MAIN 2-COLUMN DESKTOP WORKSPACE (ADAPTS DYNAMICALLY BY TAB) -->
-        <div class="w-full space-y-6">
+        <!-- MAIN 3-BLOCK CHARACTER SHEET WORKSPACE -->
+        <div class="w-full space-y-6" id="sheet-blocks-wrapper">
+          <!-- BLOQUE 1: STATS + SALVACIONES (IZQ) | HABILIDADES (DER) -->
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start" id="workspace-grid">
-            <!-- COLUMN 1: ABILITIES, SAVING THROWS, SKILLS & FEATURES -->
-            <div class="space-y-6" id="workspace-col-1">
+            <!-- Columna 1: Stats y Tiradas de Salvación -->
+            <div class="space-y-5" id="workspace-col-1">
               <div id="section-abilities" data-section-id="abilities" class="transition-all duration-200">
                 <AbilitiesGrid />
               </div>
               <div id="section-saves" data-section-id="saves" class="transition-all duration-200">
                 <SavingThrows />
               </div>
+            </div>
+
+            <!-- Columna 2: Habilidades (en móvil queda justo después de Salvaciones y antes de Armas) -->
+            <div class="space-y-5" id="workspace-col-2">
               <div id="section-skills" data-section-id="skills" class="transition-all duration-200">
                 <SkillsList />
               </div>
+            </div>
+          </div>
+
+          <!-- BLOQUE 2: ARMAS A ANCHO COMPLETO (FILA CORTA EN GRILLA) + MOCHILA A ANCHO COMPLETO (EN 2 COLUMNAS AMPLIAS) -->
+          <div class="space-y-6 w-full" id="sheet-block-2">
+            <div id="section-weapons" data-section-id="weapons" class="transition-all duration-200 w-full">
+              <WeaponActionCard />
+            </div>
+            <div id="section-backpack" data-section-id="backpack" class="transition-all duration-200 w-full">
+              <BackpackGrid />
+            </div>
+          </div>
+
+          <!-- BLOQUE 3: 2 COLUMNAS CON RASGOS Y HECHIZOS (+ FORMA SALVAJE) -->
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start" id="sheet-block-3">
+            <div class="space-y-5" id="sheet-block-3-col-1">
               <div id="section-features" data-section-id="features" class="transition-all duration-200">
                 <FeaturesFeats />
               </div>
             </div>
 
-            <!-- COLUMN 2: COMBAT ARSENAL, WILD SHAPE, CURRENCY, SATCHEL & SPELLCASTING -->
-            <div class="space-y-6" id="workspace-col-2">
-              <div id="section-weapons" data-section-id="weapons" class="transition-all duration-200">
-                <WeaponActionCard />
-              </div>
+            <div class="space-y-5" id="sheet-block-3-col-2">
               <div id="section-wildshape" data-section-id="wildshape" class="transition-all duration-200">
                 <WildShapePanel />
-              </div>
-              <div id="section-currency" data-section-id="currency" class="transition-all duration-200">
-                <CurrencyPouch />
-              </div>
-              <div id="section-backpack" data-section-id="backpack" class="transition-all duration-200">
-                <BackpackGrid />
               </div>
               <div id="section-spells" data-section-id="spells" class="transition-all duration-200">
                 <SpellcastingPanel />

@@ -3,187 +3,348 @@ import AlertPrefsMenu from './AlertPrefsMenu.astro';
 ---
 
 <header class="fixed top-0 w-full z-40 bg-[#0a0d12]/95 backdrop-blur-xl border-b border-[#222f42] shadow-[0_4px_25px_rgba(0,0,0,0.6)]">
-  <div class="h-16 sm:h-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-3">
-    <!-- Brand / Title -->
-    <a href="/" data-app-title-link class="relative z-10 touch-manipulation min-h-[44px] flex items-center gap-3 shrink-0 hover:opacity-90 transition-opacity" title="Ir a Campañas">
-      <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-500 to-amber-700 flex items-center justify-center shadow-[0_0_12px_rgba(245,158,11,0.5)] border border-amber-400/40">
+  <div class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-2 flex items-center justify-between gap-2">
+    <!-- Brand / Title (Icon-only on mobile/tablet to leave full room for the single-row HUD) -->
+    <a href="/" data-app-title-link class="relative z-10 touch-manipulation min-h-[38px] flex items-center gap-2.5 shrink-0 hover:opacity-90 transition-opacity" title="Ir a Gestión de Campañas">
+      <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-500 to-amber-700 flex items-center justify-center shadow-[0_0_12px_rgba(245,158,11,0.5)] border border-amber-400/40 shrink-0">
         <span class="material-symbols-outlined text-[#0a0d12] text-xl font-bold">auto_stories</span>
       </div>
-      <div class="flex flex-col">
+      <div class="hidden xl:flex flex-col">
         <span class="text-sm font-headline font-bold text-[#f1f5f9] leading-tight tracking-tight">Crónicas del Aventurero</span>
         <span id="header-app-subtitle" class="text-[10px] font-label text-amber-500 uppercase tracking-wider font-semibold">Grimorio de Campaña</span>
       </div>
     </a>
 
-    <!-- Active Campaign Badge (Clean center) -->
-    <a href="/" class="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#121721] border border-[#222f42] hover:border-amber-500/50 hover:bg-[#18202e] transition-all text-[11px] font-label shrink-0" title="Ver y gestionar campañas">
-      <div class="flex items-center gap-1.5 text-[#94a3b8]">
-        <span class="material-symbols-outlined text-[14px] text-amber-500">castle</span>
-        <span class="font-medium text-[#e2e8f0]" id="header-campaign-name">Maldición de Strahd</span>
-      </div>
-      <span class="text-[#334155]">•</span>
-      <div class="flex items-center gap-1 text-[#94a3b8]" id="header-char-chip">
-        <span class="font-semibold text-amber-400" id="header-char-level">Nvl. 5</span>
-        <span class="text-[#cbd5e1]" id="header-char-class">Explorador</span>
-      </div>
-    </a>
-
-    <!-- Quick Utilities & Actions -->
-    <div class="flex items-center gap-2 shrink-0">
-      <!-- Notifications Trigger -->
-      <div class="relative">
-        <button
-          id="header-alerts-btn"
-          class="w-8 h-8 rounded-full bg-[#18202e] border border-[#222f42] flex items-center justify-center hover:border-amber-500/50 transition-all text-[#94a3b8] hover:text-amber-400 cursor-pointer"
-          title="Preferencias de notificaciones"
-          type="button"
+    <!-- Center HUD Row: [<Nombre • PG • CA>] + [Encapsulated 6 Dice Bar] -->
+    <div class="flex flex-wrap items-center justify-center gap-1.5 sm:gap-2 min-w-0 flex-1 mx-auto">
+      <!-- Cápsula 1: <Nombre • PG • CA> -->
+      <div
+        id="header-hud-pill"
+        class="flex items-center justify-center gap-1.5 sm:gap-2.5 px-2.5 sm:px-3 py-1 rounded-xl bg-[#121721] border border-[#222f42] text-[11px] sm:text-xs font-label max-w-full shadow-inner shrink-0"
+      >
+        <!-- Nombre del personaje (o DM) -->
+        <a
+          href="/campaigns"
+          id="header-char-name-link"
+          class="font-headline font-bold text-[#f1f5f9] hover:text-amber-300 truncate max-w-[100px] sm:max-w-[160px] transition-colors flex items-center gap-1"
+          title="Ir a la hoja del personaje"
         >
-          <span class="material-symbols-outlined text-[18px]">notifications</span>
+          <span id="header-char-name">Atlas</span>
+        </a>
+
+        <span id="header-hud-sep-1" class="text-[#475569] font-bold">•</span>
+
+        <!-- Puntos de Golpe (Interactivo) -->
+        <button
+          type="button"
+          id="header-hp-btn"
+          class="flex items-center gap-1 text-rose-300 hover:text-rose-200 font-bold transition-colors cursor-pointer shrink-0"
+          title="Haz clic para modificar Puntos de Golpe rápidamente"
+        >
+          <span class="material-symbols-outlined text-[13px] text-rose-500">favorite</span>
+          <span id="header-char-hp" class="font-headline text-[#f1f5f9]">42/48</span>
+          <span class="text-[10px] text-[#94a3b8] hidden xs:inline">PG</span>
+          <span id="header-char-temp-hp" class="hidden px-1 py-0.2 rounded bg-amber-500/20 border border-amber-500/40 text-[9px] text-amber-300 font-bold">+5</span>
         </button>
 
-        <AlertPrefsMenu />
-      </div>
+        <span id="header-hud-sep-2" class="text-[#475569] font-bold">•</span>
 
-      <!-- Profile & Settings Dropdown Menu Trigger -->
-      <div class="relative">
-        <button
-          id="header-profile-btn"
-          class="w-8 h-8 rounded-full bg-gradient-to-br from-amber-500 to-amber-600 border border-amber-400/50 flex items-center justify-center shadow-[0_0_12px_rgba(245,158,11,0.4)] hover:brightness-110 active:scale-95 transition-all"
-          title="Opciones del personaje y campaña"
-          type="button"
-        >
-          <span class="material-symbols-outlined text-[#0a0d12] text-[18px] font-bold">manage_accounts</span>
-        </button>
-
-        <!-- Dropdown Menu -->
+        <!-- Clase de Armadura -->
         <div
-          id="header-profile-menu"
-          class="hidden absolute right-0 mt-2 w-56 rounded-xl bg-[#121721] border border-[#222f42] shadow-[0_10px_30px_rgba(0,0,0,0.8)] py-1.5 z-50 text-xs font-medium backdrop-blur-md"
+          id="header-ac-chip"
+          class="flex items-center gap-1 text-amber-300 font-bold shrink-0"
+          title="Clase de Armadura (CA)"
         >
-          <a
-            href="/"
-            class="w-full text-left px-3.5 py-2 text-[#e2e8f0] hover:bg-[#18202e] hover:text-amber-400 flex items-center gap-2.5 transition-colors font-medium"
-          >
-            <span class="material-symbols-outlined text-[16px] text-amber-500">castle</span>
-            <span>Gestión de Campañas</span>
-          </a>
-
-          <button
-            id="menu-roster-btn"
-            class="w-full text-left px-3.5 py-2 text-[#e2e8f0] hover:bg-[#18202e] hover:text-amber-400 flex items-center gap-2.5 transition-colors"
-          >
-            <span class="material-symbols-outlined text-[16px] text-amber-400">groups</span>
-            <span>Ver Aventureros de la Campaña</span>
-          </button>
-
-          <button
-            id="menu-clone-btn"
-            class="w-full text-left px-3.5 py-2 text-[#e2e8f0] hover:bg-[#18202e] hover:text-amber-400 flex items-center gap-2.5 transition-colors"
-          >
-            <span class="material-symbols-outlined text-[16px] text-amber-400">content_copy</span>
-            <span>Copiar / Clonar Personaje</span>
-          </button>
-
-          <button
-            id="menu-secret-dice-btn"
-            class="w-full text-left px-3.5 py-2 text-[#e2e8f0] hover:bg-[#18202e] hover:text-purple-400 flex items-center gap-2.5 transition-colors cursor-pointer"
-          >
-            <span class="material-symbols-outlined text-[16px] text-purple-400">visibility_off</span>
-            <span>Hacer Tirada Secreta</span>
-          </button>
-
-          <button
-            id="menu-compendium-btn"
-            class="w-full text-left px-3.5 py-2 text-[#e2e8f0] hover:bg-[#18202e] hover:text-amber-400 flex items-center gap-2.5 transition-colors cursor-pointer"
-          >
-            <span class="material-symbols-outlined text-[16px] text-amber-400">menu_book</span>
-            <span>Compendio SRD 5e</span>
-          </button>
-
-          <button
-            id="menu-rest-btn"
-            class="w-full text-left px-3.5 py-2 text-[#e2e8f0] hover:bg-[#18202e] hover:text-amber-400 flex items-center gap-2.5 transition-colors cursor-pointer"
-          >
-            <span class="material-symbols-outlined text-[16px] text-amber-500">bedtime</span>
-            <span>Tomar Descanso (Corto / Largo)</span>
-          </button>
-
-          <div class="h-px bg-[#222f42] my-1"></div>
-
-          <button
-            id="menu-edit-char-btn"
-            class="w-full text-left px-3.5 py-2 text-[#e2e8f0] hover:bg-[#18202e] hover:text-amber-400 flex items-center gap-2.5 transition-colors"
-          >
-            <span class="material-symbols-outlined text-[16px] text-amber-500">edit</span>
-            <span>Editar Personaje & Atributos</span>
-          </button>
-
-          <button
-            id="menu-panels-btn"
-            class="w-full text-left px-3.5 py-2 text-[#e2e8f0] hover:bg-[#18202e] hover:text-amber-400 flex items-center gap-2.5 transition-colors"
-          >
-            <span class="material-symbols-outlined text-[16px] text-emerald-400">tune</span>
-            <span>Personalizar Pestañas (Clase)</span>
-          </button>
-          
-          <button
-            id="menu-signout-btn"
-            class="hidden w-full text-left px-3.5 py-2 text-[#e2e8f0] hover:bg-[#18202e] hover:text-rose-400 flex items-center justify-between gap-2 transition-colors"
-          >
-            <div class="flex items-center gap-2.5 min-w-0">
-              <span class="material-symbols-outlined text-[16px] text-cyan-400">logout</span>
-              <span class="truncate">Cerrar sesión <span id="menu-signout-name" class="text-[#64748b]"></span></span>
-            </div>
-            <span id="header-sync-dot" class="w-2 h-2 rounded-full bg-emerald-400 shrink-0" title="Sincronizado en la nube"></span>
-          </button>
-
-          <button
-            id="menu-export-btn"
-            class="w-full text-left px-3.5 py-2 text-[#e2e8f0] hover:bg-[#18202e] hover:text-amber-400 flex items-center gap-2.5 transition-colors"
-          >
-            <span class="material-symbols-outlined text-[16px] text-emerald-400">file_download</span>
-            <span>Exportar Copia (JSON)</span>
-          </button>
-
-          <button
-            id="menu-import-btn"
-            class="w-full text-left px-3.5 py-2 text-[#e2e8f0] hover:bg-[#18202e] hover:text-amber-400 flex items-center gap-2.5 transition-colors"
-          >
-            <span class="material-symbols-outlined text-[16px] text-sky-400">file_upload</span>
-            <span>Importar Personaje</span>
-          </button>
-          <input type="file" id="import-file-input" accept=".json" class="hidden" />
-
-          <div class="h-px bg-[#222f42] my-1"></div>
-
-          <button
-            id="menu-reset-btn"
-            class="w-full text-left px-3.5 py-2 text-rose-400 hover:bg-rose-950/30 hover:text-rose-300 flex items-center gap-2.5 transition-colors"
-          >
-            <span class="material-symbols-outlined text-[16px]">delete_sweep</span>
-            <span>Borrar Todo / Reiniciar</span>
-          </button>
+          <span class="material-symbols-outlined text-[13px] text-amber-400">shield</span>
+          <span class="text-[10px] text-[#94a3b8] uppercase">CA</span>
+          <span id="header-char-ac" class="font-headline text-[#f1f5f9]">16</span>
         </div>
+
+        <!-- Chip modo DM (oculto en modo jugador) -->
+        <span id="header-char-chip" class="hidden items-center gap-1 text-[#94a3b8]">
+          <span class="font-semibold text-amber-400" id="header-char-level">Nvl. 5</span>
+          <span class="text-[#cbd5e1]" id="header-char-class">Explorador</span>
+        </span>
+        <span class="sr-only" id="header-campaign-name"></span>
+      </div>
+
+      <!-- Cápsula 2 (a la derecha del nombre/PG/CA): Barra de 6 dados encapsulada con borde ligero -->
+      <div
+        id="header-dice-row"
+        class="flex items-center justify-center gap-1 px-1.5 py-0.5 rounded-xl bg-[#121721] border border-amber-500/25 shadow-inner shrink-0"
+        aria-label="Barra rápida de dados"
+      >
+        <!-- Toggle tirada secreta -->
+        <button
+          type="button"
+          id="header-secret-dice-toggle"
+          aria-pressed="false"
+          class="px-1.5 py-0.5 rounded-lg bg-[#18202e] border border-[#222f42] hover:border-purple-500/50 text-[#94a3b8] hover:text-purple-300 text-[10px] font-bold flex items-center gap-0.5 transition-all cursor-pointer active:scale-95"
+          title="Alternar modo Tirada Secreta (🔒 privada para ti y el DM)"
+        >
+          <span class="material-symbols-outlined text-[12px]" id="header-secret-dice-icon">lock_open</span>
+          <span class="hidden md:inline text-[9px] uppercase tracking-wider" id="header-secret-dice-label">Pública</span>
+        </button>
+
+        <div class="h-3.5 w-px bg-[#222f42] mx-0.5"></div>
+
+        <button type="button" class="header-quick-die-btn px-1.5 sm:px-2 py-0.5 rounded-lg bg-[#18202e]/80 hover:bg-amber-500/20 border border-transparent hover:border-amber-400/50 text-[#cbd5e1] hover:text-amber-300 text-[10px] sm:text-[11px] font-headline font-bold active:scale-95 transition-all cursor-pointer" data-die="4" title="Lanzar d4">d4</button>
+        <button type="button" class="header-quick-die-btn px-1.5 sm:px-2 py-0.5 rounded-lg bg-[#18202e]/80 hover:bg-amber-500/20 border border-transparent hover:border-amber-400/50 text-[#cbd5e1] hover:text-amber-300 text-[10px] sm:text-[11px] font-headline font-bold active:scale-95 transition-all cursor-pointer" data-die="6" title="Lanzar d6">d6</button>
+        <button type="button" class="header-quick-die-btn px-1.5 sm:px-2 py-0.5 rounded-lg bg-[#18202e]/80 hover:bg-amber-500/20 border border-transparent hover:border-amber-400/50 text-[#cbd5e1] hover:text-amber-300 text-[10px] sm:text-[11px] font-headline font-bold active:scale-95 transition-all cursor-pointer" data-die="8" title="Lanzar d8">d8</button>
+        <button type="button" class="header-quick-die-btn px-1.5 sm:px-2 py-0.5 rounded-lg bg-[#18202e]/80 hover:bg-amber-500/20 border border-transparent hover:border-amber-400/50 text-[#cbd5e1] hover:text-amber-300 text-[10px] sm:text-[11px] font-headline font-bold active:scale-95 transition-all cursor-pointer" data-die="10" title="Lanzar d10 (o abre el modal para 2d10 / d100)">d10</button>
+        <button type="button" class="header-quick-die-btn px-1.5 sm:px-2 py-0.5 rounded-lg bg-[#18202e]/80 hover:bg-amber-500/20 border border-transparent hover:border-amber-400/50 text-[#cbd5e1] hover:text-amber-300 text-[10px] sm:text-[11px] font-headline font-bold active:scale-95 transition-all cursor-pointer" data-die="12" title="Lanzar d12">d12</button>
+        <button type="button" class="header-quick-die-btn px-1.5 sm:px-2 py-0.5 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 hover:border-amber-400 text-amber-300 text-[10px] sm:text-[11px] font-headline font-bold active:scale-95 transition-all cursor-pointer shadow-xs" data-die="20" title="Lanzar d20">d20</button>
       </div>
     </div>
+
+    <!-- Right Quick Utilities & Actions -->
+    <div class="flex items-center gap-1.5 sm:gap-2 shrink-0">
+        <!-- Botón de Combate VTT (/partida) — Visible SOLO si hay campaña disponible -->
+        <a
+          href="/partida"
+          id="header-combat-vtt-btn"
+          class="hidden w-8 h-8 rounded-full bg-[#18202e] border border-amber-500/40 hover:border-amber-400 hover:bg-amber-500/15 items-center justify-center transition-all text-amber-400 hover:text-amber-300 active:scale-95 shadow-[0_0_10px_rgba(245,158,11,0.2)] cursor-pointer"
+          title="Ir al combate y mesa táctica (/partida)"
+          aria-label="Ir a la mesa de combate"
+        >
+          <span class="material-symbols-outlined text-[17px]" id="header-combat-vtt-icon">swords</span>
+        </a>
+
+        <!-- Notifications Trigger -->
+        <div class="relative">
+          <button
+            id="header-alerts-btn"
+            class="w-8 h-8 rounded-full bg-[#18202e] border border-[#222f42] flex items-center justify-center hover:border-amber-500/50 transition-all text-[#94a3b8] hover:text-amber-400 cursor-pointer"
+            title="Preferencias de notificaciones"
+            type="button"
+          >
+            <span class="material-symbols-outlined text-[18px]">notifications</span>
+          </button>
+
+          <AlertPrefsMenu />
+        </div>
+
+        <!-- Profile & Settings Dropdown Menu Trigger -->
+        <div class="relative">
+          <button
+            id="header-profile-btn"
+            class="w-8 h-8 rounded-full bg-gradient-to-br from-amber-500 to-amber-600 border border-amber-400/50 flex items-center justify-center shadow-[0_0_12px_rgba(245,158,11,0.4)] hover:brightness-110 active:scale-95 transition-all cursor-pointer"
+            title="Opciones del personaje y campaña"
+            type="button"
+          >
+            <span class="material-symbols-outlined text-[#0a0d12] text-[18px] font-bold">manage_accounts</span>
+          </button>
+
+          <!-- Dropdown Menu -->
+          <div
+            id="header-profile-menu"
+            class="hidden absolute right-0 mt-2 w-56 rounded-xl bg-[#121721] border border-[#222f42] shadow-[0_10px_30px_rgba(0,0,0,0.8)] py-1.5 z-50 text-xs font-medium backdrop-blur-md"
+          >
+            <a
+              href="/"
+              class="w-full text-left px-3.5 py-2 text-[#e2e8f0] hover:bg-[#18202e] hover:text-amber-400 flex items-center gap-2.5 transition-colors font-medium"
+            >
+              <span class="material-symbols-outlined text-[16px] text-amber-500">castle</span>
+              <span>Gestión de Campañas</span>
+            </a>
+
+            <button
+              id="menu-roster-btn"
+              class="w-full text-left px-3.5 py-2 text-[#e2e8f0] hover:bg-[#18202e] hover:text-amber-400 flex items-center gap-2.5 transition-colors"
+            >
+              <span class="material-symbols-outlined text-[16px] text-amber-400">groups</span>
+              <span>Ver Aventureros de la Campaña</span>
+            </button>
+
+            <button
+              id="menu-clone-btn"
+              class="w-full text-left px-3.5 py-2 text-[#e2e8f0] hover:bg-[#18202e] hover:text-amber-400 flex items-center gap-2.5 transition-colors"
+            >
+              <span class="material-symbols-outlined text-[16px] text-amber-400">content_copy</span>
+              <span>Copiar / Clonar Personaje</span>
+            </button>
+
+            <button
+              id="menu-secret-dice-btn"
+              class="w-full text-left px-3.5 py-2 text-[#e2e8f0] hover:bg-[#18202e] hover:text-purple-400 flex items-center gap-2.5 transition-colors cursor-pointer"
+            >
+              <span class="material-symbols-outlined text-[16px] text-purple-400">visibility_off</span>
+              <span>Hacer Tirada Secreta</span>
+            </button>
+
+            <button
+              id="menu-compendium-btn"
+              class="w-full text-left px-3.5 py-2 text-[#e2e8f0] hover:bg-[#18202e] hover:text-amber-400 flex items-center gap-2.5 transition-colors cursor-pointer"
+            >
+              <span class="material-symbols-outlined text-[16px] text-amber-400">menu_book</span>
+              <span>Compendio SRD 5e</span>
+            </button>
+
+            <button
+              id="menu-rest-btn"
+              class="w-full text-left px-3.5 py-2 text-[#e2e8f0] hover:bg-[#18202e] hover:text-amber-400 flex items-center gap-2.5 transition-colors cursor-pointer"
+            >
+              <span class="material-symbols-outlined text-[16px] text-amber-500">bedtime</span>
+              <span>Tomar Descanso (Corto / Largo)</span>
+            </button>
+
+            <div class="h-px bg-[#222f42] my-1"></div>
+
+            <button
+              id="menu-edit-char-btn"
+              class="w-full text-left px-3.5 py-2 text-[#e2e8f0] hover:bg-[#18202e] hover:text-amber-400 flex items-center gap-2.5 transition-colors"
+            >
+              <span class="material-symbols-outlined text-[16px] text-amber-500">edit</span>
+              <span>Editar Personaje & Atributos</span>
+            </button>
+
+            <button
+              id="menu-panels-btn"
+              class="w-full text-left px-3.5 py-2 text-[#e2e8f0] hover:bg-[#18202e] hover:text-amber-400 flex items-center gap-2.5 transition-colors"
+            >
+              <span class="material-symbols-outlined text-[16px] text-emerald-400">tune</span>
+              <span>Personalizar Pestañas (Clase)</span>
+            </button>
+            
+            <button
+              id="menu-signout-btn"
+              class="hidden w-full text-left px-3.5 py-2 text-[#e2e8f0] hover:bg-[#18202e] hover:text-rose-400 flex items-center justify-between gap-2 transition-colors"
+            >
+              <div class="flex items-center gap-2.5 min-w-0">
+                <span class="material-symbols-outlined text-[16px] text-cyan-400">logout</span>
+                <span class="truncate">Cerrar sesión <span id="menu-signout-name" class="text-[#64748b]"></span></span>
+              </div>
+              <span id="header-sync-dot" class="w-2 h-2 rounded-full bg-emerald-400 shrink-0" title="Sincronizado en la nube"></span>
+            </button>
+
+            <button
+              id="menu-export-btn"
+              class="w-full text-left px-3.5 py-2 text-[#e2e8f0] hover:bg-[#18202e] hover:text-amber-400 flex items-center gap-2.5 transition-colors"
+            >
+              <span class="material-symbols-outlined text-[16px] text-emerald-400">file_download</span>
+              <span>Exportar Copia (JSON)</span>
+            </button>
+
+            <button
+              id="menu-import-btn"
+              class="w-full text-left px-3.5 py-2 text-[#e2e8f0] hover:bg-[#18202e] hover:text-amber-400 flex items-center gap-2.5 transition-colors"
+            >
+              <span class="material-symbols-outlined text-[16px] text-sky-400">file_upload</span>
+              <span>Importar Personaje</span>
+            </button>
+            <input type="file" id="import-file-input" accept=".json" class="hidden" />
+
+            <div class="h-px bg-[#222f42] my-1"></div>
+
+            <button
+              id="menu-reset-btn"
+              class="w-full text-left px-3.5 py-2 text-rose-400 hover:bg-rose-950/30 hover:text-rose-300 flex items-center gap-2.5 transition-colors"
+            >
+              <span class="material-symbols-outlined text-[16px]">delete_sweep</span>
+              <span>Borrar Todo / Reiniciar</span>
+            </button>
+          </div>
+        </div>
+      </div>
   </div>
 </header>
 
 <script>
-  import { showAlert } from '../../scripts/ui/notify';
+  import { showAlert, showForm } from '../../scripts/ui/notify';
   import { characterStore } from '../../scripts/state/characterStore';
   import { campaignStore } from '../../scripts/state/campaignStore';
   import { openModal } from '../../scripts/animations/modalAnimations';
   import { userStore } from '../../scripts/state/userStore';
   import { cloudSession } from '../../scripts/data/cloudSync';
 
-  // Título: en la página de campañas ("/") el enlace no cambiaba nada y parecía roto.
+  // Título: en la página de campañas ("/") el enlace sube al inicio suavemente.
   document.querySelectorAll<HTMLAnchorElement>('[data-app-title-link]').forEach(link => {
     link.addEventListener('click', (e) => {
       if (window.location.pathname === '/' ) {
         e.preventDefault();
         window.scrollTo({ top: 0, behavior: 'smooth' });
       }
+    });
+  });
+
+  // Clicking character name on /campaigns scrolls to top; on /partida navigates to /campaigns
+  const charNameLink = document.getElementById('header-char-name-link') as HTMLAnchorElement | null;
+  charNameLink?.addEventListener('click', (e) => {
+    if (window.location.pathname.startsWith('/campaigns')) {
+      e.preventDefault();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  });
+
+  // Direct HP edit from Header HUD
+  document.getElementById('header-hp-btn')?.addEventListener('click', async () => {
+    const char = characterStore.get();
+    if (!char) return;
+    const values = await showForm([
+      { name: 'cur', label: 'Actuales', type: 'number', value: char.hp.current, min: 0 },
+      { name: 'max', label: 'Máximos', type: 'number', value: char.hp.max, min: 1 },
+      { name: 'temp', label: 'Temporales', type: 'number', value: char.hp.temp, min: 0 },
+    ], { title: `Puntos de Golpe (${char.name})`, confirmText: 'Guardar' });
+    if (values) {
+      characterStore.setHp(Number(values.cur) || 0, Number(values.max) || char.hp.max, Number(values.temp) || 0);
+    }
+  });
+
+  // Quick Dice Bar in Header (d4, d6, d8, d10, d12, d20) + Secret Roll Toggle
+  let headerSecretRollActive = false;
+  const secretToggleBtn = document.getElementById('header-secret-dice-toggle');
+  const secretToggleIcon = document.getElementById('header-secret-dice-icon');
+  const secretToggleLabel = document.getElementById('header-secret-dice-label');
+
+  function updateHeaderSecretUi() {
+    if (!secretToggleBtn || !secretToggleIcon) return;
+    secretToggleBtn.setAttribute('aria-pressed', String(headerSecretRollActive));
+    if (headerSecretRollActive) {
+      secretToggleBtn.className = 'px-1.5 py-0.5 rounded-lg bg-purple-500/20 border border-purple-500/50 text-purple-300 text-[10px] font-bold flex items-center gap-0.5 transition-all cursor-pointer active:scale-95 shadow-[0_0_8px_rgba(168,85,247,0.3)]';
+      secretToggleIcon.textContent = 'lock';
+      if (secretToggleLabel) secretToggleLabel.textContent = 'Secreta';
+    } else {
+      secretToggleBtn.className = 'px-1.5 py-0.5 rounded-lg bg-[#18202e] border border-[#222f42] hover:border-purple-500/50 text-[#94a3b8] hover:text-purple-300 text-[10px] font-bold flex items-center gap-0.5 transition-all cursor-pointer active:scale-95';
+      secretToggleIcon.textContent = 'lock_open';
+      if (secretToggleLabel) secretToggleLabel.textContent = 'Pública';
+    }
+  }
+
+  secretToggleBtn?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    headerSecretRollActive = !headerSecretRollActive;
+    updateHeaderSecretUi();
+  });
+
+  document.querySelectorAll<HTMLButtonElement>('.header-quick-die-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const sides = Number(btn.getAttribute('data-die')) || 20;
+      const char = characterStore.get();
+      const activeCampId = campaignStore.getActiveCampaignId();
+      const isDm = campaignStore.isCurrentUserDm(activeCampId || undefined);
+      const urlMode = new URLSearchParams(window.location.search).get('mode');
+      const isDmMode = isDm && urlMode !== 'player';
+      const authorName = isDmMode ? 'Dungeon Master' : (char?.name || 'Aventurero');
+      const formula = `1d${sides}`;
+
+      window.dispatchEvent(new CustomEvent('open-dice-roller', {
+        detail: {
+          die: sides,
+          count: 1,
+          modifier: 0,
+          label: headerSecretRollActive
+            ? `Tirada Secreta de ${authorName} (${formula})`
+            : `Tirada de ${authorName} (${formula})`,
+          tag: headerSecretRollActive ? '#Privado' : '#Tirada',
+          isSecret: headerSecretRollActive,
+          isDmRoll: isDmMode,
+          characterId: isDmMode ? undefined : char?.id,
+          characterName: authorName,
+          authorName,
+          campaignId: char?.campaignId || activeCampId,
+          autoroll: true
+        }
+      }));
     });
   });
 
@@ -210,27 +371,7 @@ import AlertPrefsMenu from './AlertPrefsMenu.astro';
     alertMenu?.classList.add('hidden');
   });
 
-  // Open Compendium Modal
-  document.getElementById('header-open-compendium-btn')?.addEventListener('click', () => {
-    window.dispatchEvent(new CustomEvent('open-compendium-modal'));
-  });
-
-  // Open Dice Modal (Public)
-  document.getElementById('header-open-dice-btn')?.addEventListener('click', () => {
-    window.dispatchEvent(new CustomEvent('open-dice-roller', {
-      detail: {
-        die: 20,
-        count: 1,
-        modifier: 0,
-        label: 'Tirada de dados',
-        tag: '#Tirada',
-        isSecret: false,
-        autoroll: false
-      }
-    }));
-  });
-
-  // Open Dice Modal (Secret)
+  // Open Dice Modal (Secret from menu)
   const triggerSecretDiceModal = () => {
     window.dispatchEvent(new CustomEvent('open-dice-roller', {
       detail: {
@@ -245,7 +386,6 @@ import AlertPrefsMenu from './AlertPrefsMenu.astro';
     }));
   };
 
-  document.getElementById('header-open-secret-dice-btn')?.addEventListener('click', triggerSecretDiceModal);
   document.getElementById('menu-secret-dice-btn')?.addEventListener('click', () => {
     profileMenu?.classList.add('hidden');
     triggerSecretDiceModal();
@@ -332,7 +472,7 @@ import AlertPrefsMenu from './AlertPrefsMenu.astro';
     importInput?.click();
   });
 
-  importInput?.addEventListener('change', (e) => {
+  importInput?.addEventListener('change', () => {
     const file = importInput.files?.[0];
     if (file) {
       const reader = new FileReader();
@@ -342,7 +482,6 @@ import AlertPrefsMenu from './AlertPrefsMenu.astro';
         if (characterStore.importJson(text)) {
           const imported = characterStore.get();
           if (imported.id !== previousId) {
-            // Se creó un personaje nuevo: la URL tiene que apuntarle para que al recargar no vuelva la ficha anterior.
             const url = new URL(window.location.href);
             if (url.searchParams.has('character') || url.pathname.startsWith('/campaigns')) {
               url.searchParams.set('character', imported.id);
@@ -359,11 +498,6 @@ import AlertPrefsMenu from './AlertPrefsMenu.astro';
     }
   });
 
-  // Rest Modal trigger
-  document.getElementById('header-rest-btn')?.addEventListener('click', () => {
-    window.dispatchEvent(new CustomEvent('open-rest-modal'));
-  });
-
   // Panels config modal trigger
   document.getElementById('menu-panels-btn')?.addEventListener('click', () => {
     profileMenu?.classList.add('hidden');
@@ -373,19 +507,52 @@ import AlertPrefsMenu from './AlertPrefsMenu.astro';
   });
 
   function renderHeader(char: any) {
-    const levelEl = document.getElementById('header-char-level');
-    const classEl = document.getElementById('header-char-class');
     const campEl = document.getElementById('header-campaign-name');
     const appSubtitle = document.getElementById('header-app-subtitle');
     const charChip = document.getElementById('header-char-chip');
+    const nameEl = document.getElementById('header-char-name');
+    const hpBtn = document.getElementById('header-hp-btn');
+    const hpEl = document.getElementById('header-char-hp');
+    const tempHpEl = document.getElementById('header-char-temp-hp');
+    const acChip = document.getElementById('header-ac-chip');
+    const acEl = document.getElementById('header-char-ac');
+    const sep1 = document.getElementById('header-hud-sep-1');
+    const sep2 = document.getElementById('header-hud-sep-2');
+    const combatBtn = document.getElementById('header-combat-vtt-btn') as HTMLAnchorElement | null;
+    const combatIcon = document.getElementById('header-combat-vtt-icon');
 
     const activeCamp = campaignStore.getActiveCampaign();
-    const isDm = campaignStore.isCurrentUserDm();
+    const activeCampId = activeCamp?.id || char?.campaignId || campaignStore.getActiveCampaignId();
+    const isDm = campaignStore.isCurrentUserDm(activeCampId || undefined);
     const urlMode = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('mode') : null;
-    const isDmMode = isDm && urlMode !== 'player';
+    const myCharInCamp = activeCampId ? campaignStore.getMyCharacterForCampaign(activeCampId) : null;
+    const isDmMode = isDm && (!myCharInCamp || urlMode !== 'player');
 
     if (campEl) {
       campEl.textContent = activeCamp ? activeCamp.name : (char?.sessionContext?.campaignName || 'Sin Campaña');
+    }
+
+    // Botón de combate al lado de la campanita: solo visible si hay campaña disponible
+    if (combatBtn) {
+      if (activeCampId) {
+        combatBtn.classList.remove('hidden');
+        combatBtn.classList.add('flex');
+        const onPartidaPage = typeof window !== 'undefined' && window.location.pathname.startsWith('/partida');
+        if (onPartidaPage) {
+          combatBtn.href = isDmMode
+            ? `/campaigns?campaign=${encodeURIComponent(activeCampId)}&mode=dm`
+            : `/campaigns?campaign=${encodeURIComponent(activeCampId)}${char?.id ? `&character=${encodeURIComponent(char.id)}` : ''}`;
+          combatBtn.title = isDmMode ? 'Volver al Grimorio del Control' : `Volver a la hoja de ${char?.name || 'Personaje'}`;
+          if (combatIcon) combatIcon.textContent = isDmMode ? 'crown' : 'badge';
+        } else {
+          combatBtn.href = `/partida?id=${encodeURIComponent(activeCampId)}`;
+          combatBtn.title = 'Ir al combate y mesa táctica (/partida)';
+          if (combatIcon) combatIcon.textContent = 'swords';
+        }
+      } else {
+        combatBtn.classList.add('hidden');
+        combatBtn.classList.remove('flex');
+      }
     }
 
     const editCharBtn = document.getElementById('menu-edit-char-btn');
@@ -395,10 +562,19 @@ import AlertPrefsMenu from './AlertPrefsMenu.astro';
 
     if (isDmMode) {
       if (appSubtitle) appSubtitle.textContent = 'Grimorio del Control';
-      if (charChip) {
-        charChip.innerHTML = '<span class="font-bold text-amber-400 flex items-center gap-1"><span>👑</span><span>Dungeon Master</span></span>';
+      if (nameEl) nameEl.textContent = activeCamp ? activeCamp.name : 'Dungeon Master';
+      if (charNameLink && activeCampId) {
+        charNameLink.href = `/campaigns?campaign=${encodeURIComponent(activeCampId)}&mode=dm`;
       }
-      const myCharInCamp = activeCamp ? campaignStore.getMyCharacterForCampaign(activeCamp.id) : null;
+      hpBtn?.classList.add('hidden');
+      acChip?.classList.add('hidden');
+      sep2?.classList.add('hidden');
+      sep1?.classList.remove('hidden');
+      if (charChip) {
+        charChip.classList.remove('hidden');
+        charChip.classList.add('flex');
+        charChip.innerHTML = '<span class="font-bold text-amber-400 flex items-center gap-1"><span>👑</span><span>DM</span></span>';
+      }
       if (!myCharInCamp) {
         editCharBtn?.classList.add('hidden');
         cloneBtn?.classList.add('hidden');
@@ -412,9 +588,37 @@ import AlertPrefsMenu from './AlertPrefsMenu.astro';
       }
     } else {
       if (appSubtitle) appSubtitle.textContent = 'Grimorio de Campaña';
-      if (charChip && char) {
-        charChip.innerHTML = `<span class="font-semibold text-amber-400" id="header-char-level">Nvl. ${char.level}</span><span class="text-[#cbd5e1]" id="header-char-class">${char.className}</span>`;
+      hpBtn?.classList.remove('hidden');
+      acChip?.classList.remove('hidden');
+      sep1?.classList.remove('hidden');
+      sep2?.classList.remove('hidden');
+      charChip?.classList.add('hidden');
+      charChip?.classList.remove('flex');
+
+      if (char) {
+        if (nameEl) nameEl.textContent = char.name;
+        if (charNameLink) {
+          charNameLink.href = activeCampId
+            ? `/campaigns?campaign=${encodeURIComponent(activeCampId)}&character=${encodeURIComponent(char.id)}`
+            : `/campaigns?character=${encodeURIComponent(char.id)}`;
+        }
+        if (hpEl && char.hp) {
+          hpEl.textContent = `${char.hp.current}/${char.hp.max}`;
+        }
+        if (tempHpEl) {
+          const temp = char.hp?.temp || 0;
+          if (temp > 0) {
+            tempHpEl.textContent = `+${temp}`;
+            tempHpEl.classList.remove('hidden');
+          } else {
+            tempHpEl.classList.add('hidden');
+          }
+        }
+        if (acEl) {
+          acEl.textContent = String(char.armorClass ?? 10);
+        }
       }
+
       editCharBtn?.classList.remove('hidden');
       cloneBtn?.classList.remove('hidden');
       panelsBtn?.classList.remove('hidden');
@@ -436,6 +640,10 @@ import AlertPrefsMenu from './AlertPrefsMenu.astro';
   });
 
   window.addEventListener('campaigns-updated', () => {
+    renderHeader(characterStore.get());
+  });
+
+  window.addEventListener('active-campaign-changed', () => {
     renderHeader(characterStore.get());
   });
 

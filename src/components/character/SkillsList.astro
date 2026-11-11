@@ -3,14 +3,23 @@
 ---
 
 <div class="rounded-xl bg-[#121721] border border-[#222f42] p-4 shadow-sm">
-  <div class="flex items-center justify-between mb-3 select-none section-header-bar">
+  <div class="flex items-center justify-between mb-3 flex-wrap gap-2 select-none section-header-bar">
     <h3 class="text-xs font-headline font-bold text-[#f1f5f9] uppercase tracking-wider flex items-center gap-1.5">
       <span class="section-drag-handle material-symbols-outlined text-[#64748b] hover:text-amber-400 cursor-grab text-[16px] mr-0.5 transition-colors" title="Arrastrar para reordenar">drag_indicator</span>
       <span class="material-symbols-outlined text-amber-500 text-[16px]">verified</span>
-      <span>Habilidades Calculadas</span>
+      <span>Habilidades</span>
     </h3>
     
-    <div class="flex items-center gap-2">
+    <div class="flex items-center gap-1.5">
+      <button
+        type="button"
+        id="toggle-skills-filter-btn"
+        class="text-[10px] text-[#cbd5e1] hover:text-amber-300 font-bold bg-[#18202e] hover:bg-amber-500/15 px-2 py-1 rounded-lg border border-[#222f42] hover:border-amber-500/30 flex items-center gap-1 cursor-pointer transition-colors"
+        title="Alternar entre ver todas las habilidades o solo las competentes"
+      >
+        <span class="material-symbols-outlined text-[13px] text-amber-400" id="toggle-skills-filter-icon">filter_list</span>
+        <span id="toggle-skills-filter-label">Todas</span>
+      </button>
       <button
         type="button"
         id="open-skills-edit-btn"
@@ -35,7 +44,7 @@
     18 habilidades de D&D 5e calculadas con pericias
   </div>
 
-  <div class="section-body space-y-1.5" id="skills-list-container">
+  <div class="section-body grid grid-cols-3 lg:grid-cols-2 gap-2 lg:gap-1.5" id="skills-list-container">
     <!-- Populated and reactively refreshed via JavaScript -->
   </div>
 </div>
@@ -46,6 +55,22 @@
 
   const listContainer = document.getElementById('skills-list-container');
   const configBtn = document.getElementById('open-skills-edit-btn');
+  const filterBtn = document.getElementById('toggle-skills-filter-btn');
+  const filterLabel = document.getElementById('toggle-skills-filter-label');
+
+  let onlyProficient = false;
+
+  filterBtn?.addEventListener('click', () => {
+    onlyProficient = !onlyProficient;
+    if (filterLabel) {
+      filterLabel.textContent = onlyProficient ? 'Competentes' : 'Todas';
+    }
+    if (filterBtn) {
+      filterBtn.classList.toggle('border-amber-500/40', onlyProficient);
+      filterBtn.classList.toggle('text-amber-300', onlyProficient);
+    }
+    renderSkills(characterStore.get());
+  });
 
   configBtn?.addEventListener('click', () => {
     window.dispatchEvent(new CustomEvent('open-skills-modal'));
@@ -55,38 +80,66 @@
   });
 
   function renderSkills(char: any) {
-    if (!listContainer) return;
+    if (!listContainer || !char?.skills) return;
     listContainer.innerHTML = '';
 
-    char.skills.forEach((skill: any) => {
+    const skillsToShow = onlyProficient
+      ? char.skills.filter((s: any) => s.proficient || s.expertise || (s.customBonus && s.customBonus !== 0))
+      : char.skills;
+
+    if (skillsToShow.length === 0) {
+      listContainer.innerHTML = `
+        <div class="col-span-full py-3 text-center text-xs text-[#64748b]">
+          No hay habilidades competentes marcadas. Pulsa "Todas" o "Configurar".
+        </div>
+      `;
+      return;
+    }
+
+    skillsToShow.forEach((skill: any) => {
       const val = skill.value ?? 0;
       const modStr = val >= 0 ? `+${val}` : `${val}`;
 
-      let badgeHtml = '';
+      let dotHtml = `<span class="text-[9px] text-[#334155]" title="Sin competencia">○</span>`;
       if (skill.expertise) {
-        badgeHtml = `<span class="px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 text-[9px] font-bold uppercase border border-amber-500/40">Pericia x2</span>`;
+        dotHtml = `<span class="text-[10px] text-amber-400 font-bold" title="Pericia (x2)">◆</span>`;
       } else if (skill.proficient) {
-        badgeHtml = `<span class="px-1.5 py-0.2 rounded bg-[#10141d] text-emerald-400 text-[9px] font-semibold border border-emerald-500/30">Competente</span>`;
+        dotHtml = `<span class="text-[10px] text-emerald-400 font-bold" title="Competente">●</span>`;
       }
 
       let bonusBadge = '';
       if (skill.customBonus && skill.customBonus !== 0) {
-        bonusBadge = `<span class="px-1 py-0.2 rounded bg-cyan-500/20 text-cyan-300 text-[9px] font-mono border border-cyan-500/30" title="Bonificación de objeto o dote">${skill.customBonus >= 0 ? '+' : ''}${skill.customBonus} obj</span>`;
+        bonusBadge = `<span class="px-1 py-0.2 rounded bg-cyan-500/20 text-cyan-300 text-[8px] font-mono border border-cyan-500/30 shrink-0" title="Bonificación de objeto o dote">${skill.customBonus >= 0 ? '+' : ''}${skill.customBonus}</span>`;
       }
 
       const row = document.createElement('div');
-      row.className = 'p-2 rounded-lg bg-[#18202e] border border-[#222f42] hover:border-amber-500/40 flex items-center justify-between cursor-pointer active:scale-98 transition-all group';
+      row.className = `p-2 lg:px-2.5 lg:py-1.5 rounded-xl lg:rounded-lg bg-[#18202e] border ${skill.expertise ? 'border-amber-500/40 bg-amber-500/[0.04]' : skill.proficient ? 'border-emerald-500/30 bg-emerald-500/[0.03]' : 'border-[#222f42]'} hover:border-amber-500/60 flex flex-col lg:flex-row items-center justify-between text-center lg:text-left gap-1 lg:gap-1.5 cursor-pointer active:scale-95 lg:active:scale-98 transition-all group min-w-0 min-h-[72px] lg:min-h-0 relative`;
       row.title = `Tirar prueba de ${skill.name} (${modStr}) • Clic derecho o Shift+Clic para Tirada Secreta`;
       row.innerHTML = `
-        <div class="flex items-center gap-2">
-          <span class="text-[10px] uppercase font-bold text-[#64748b] w-6">${skill.stat}</span>
-          <span class="text-xs font-medium text-[#f1f5f9] group-hover:text-amber-300 transition-colors">${skill.name}</span>
-          ${badgeHtml}
+        <!-- Vista Cuadradito en Móvil / 1 Columna Global (< lg): [stat, nombre centrado, bonus] -->
+        <div class="flex lg:hidden w-full items-center justify-between gap-1 px-0.5">
+          <span class="text-[9px] uppercase font-bold text-[#64748b] tracking-wider leading-none">${skill.stat}</span>
+          <div class="flex items-center gap-1 leading-none">
+            ${bonusBadge}
+            ${dotHtml}
+          </div>
+        </div>
+        <span class="lg:hidden text-[11px] sm:text-xs font-medium text-[#f1f5f9] group-hover:text-amber-300 transition-colors text-center leading-tight line-clamp-2 w-full px-0.5">${skill.name}</span>
+        <div class="flex lg:hidden items-center justify-center gap-1">
+          <span class="font-headline font-bold text-sm sm:text-base leading-none ${skill.expertise ? 'text-amber-400' : skill.proficient ? 'text-emerald-300' : 'text-[#cbd5e1]'}">${modStr}</span>
+          <span class="material-symbols-outlined text-[12px] text-[#64748b] group-hover:text-amber-400 transition-colors">casino</span>
+        </div>
+
+        <!-- Vista Lista en Escritorio / Multi-Columna Global (lg+): fila horizontal clásica -->
+        <div class="hidden lg:flex items-center gap-1.5 min-w-0 flex-1">
+          ${dotHtml}
+          <span class="text-[9px] uppercase font-bold text-[#64748b] w-6 shrink-0">${skill.stat}</span>
+          <span class="text-xs font-medium text-[#f1f5f9] group-hover:text-amber-300 transition-colors truncate">${skill.name}</span>
           ${bonusBadge}
         </div>
-        <div class="flex items-center gap-2">
-          <span class="font-headline font-bold text-sm ${skill.expertise ? 'text-amber-400' : 'text-[#f1f5f9]'}">${modStr}</span>
-          <span class="material-symbols-outlined text-[14px] text-[#64748b] group-hover:text-amber-400 transition-colors">casino</span>
+        <div class="hidden lg:flex items-center gap-1 shrink-0">
+          <span class="font-headline font-bold text-xs sm:text-sm ${skill.expertise ? 'text-amber-400' : skill.proficient ? 'text-emerald-300' : 'text-[#cbd5e1]'}">${modStr}</span>
+          <span class="material-symbols-outlined text-[13px] text-[#64748b] group-hover:text-amber-400 transition-colors">casino</span>
         </div>
       `;
 

@@ -50,8 +50,8 @@
       <!-- Populated by JavaScript -->
     </div>
 
-    <!-- Standard Gear List (Single-column layout for ample text and action space) -->
-    <div class="flex flex-col gap-2 text-xs font-label" id="backpack-items-container">
+    <!-- Standard Gear List (2 wide columns on desktop across the full-width backpack row) -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-2.5 text-xs font-label items-start" id="backpack-items-container">
       <!-- Populated by JavaScript -->
     </div>
 
@@ -138,21 +138,23 @@
     const card = document.createElement('div');
     card.className = 'p-3.5 rounded-xl bg-gradient-to-r from-amber-500/10 via-[#18202e] to-[#18202e] border border-amber-500/30 flex flex-col gap-2 shadow-xs';
     card.innerHTML = `
-      <div class="flex items-center justify-between gap-3">
-        <div class="flex items-center gap-3 truncate">
+      <div class="flex items-center justify-between gap-2.5 flex-wrap sm:flex-nowrap">
+        <div class="flex items-center gap-3 min-w-0 flex-1">
           <div class="w-10 h-10 rounded-lg bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400 shrink-0">
             <span class="material-symbols-outlined text-[20px]">${item.icon || 'medication'}</span>
           </div>
-          <div class="truncate">
-            <div class="flex items-center gap-2">
+          <div class="min-w-0 flex-1">
+            <div class="flex items-center gap-1.5 flex-wrap">
               <span class="font-headline font-bold text-sm text-[#f1f5f9] truncate">${escapeHtml(item.name)}</span>
               ${customBadgeHtml(item)}
               <span class="px-2 py-0.2 rounded-full bg-amber-500/20 text-amber-300 text-[10px] font-bold border border-amber-500/40 shrink-0">x${item.quantity}</span>
+            </div>
+            <div class="flex items-center gap-2 flex-wrap mt-0.5">
+              <span class="text-xs text-[#94a3b8] font-label truncate">
+                ${item.description || (item.healAmount ? `Recupera +${item.healAmount} PG` : 'Objeto usable en combate')}
+              </span>
               ${item.activationCondition ? `<span class="px-1.5 py-0.2 rounded bg-amber-500/10 text-amber-300 text-[9px] font-bold border border-amber-500/20 flex items-center gap-0.5 shrink-0"><span class="material-symbols-outlined text-[11px]">timer</span><span>${item.activationCondition}</span></span>` : ''}
             </div>
-            <span class="text-xs text-[#94a3b8] font-label block truncate">
-              ${item.description || (item.healAmount ? `Recupera +${item.healAmount} PG` : 'Objeto usable en combate')}
-            </span>
           </div>
         </div>
 
@@ -252,12 +254,12 @@
       card.className = `relative p-2.5 rounded-lg bg-[#18202e] border ${isPinned ? 'border-amber-500/50 shadow-[0_0_12px_rgba(245,158,11,0.08)]' : 'border-transparent'} hover:border-amber-500/30 flex flex-col gap-2 group transition-colors w-full`;
 
       card.innerHTML = `
-        <div class="flex items-center justify-between w-full">
-          <div class="item-info-trigger flex items-center gap-2 truncate flex-1 mr-2 cursor-pointer select-none" title="Ver detalles y notas">
-            <span class="material-symbols-outlined text-[17px] text-amber-500 shrink-0">${item.icon || 'inventory_2'}</span>
-            <div class="truncate">
+        <div class="flex items-center justify-between gap-2 w-full min-w-0">
+          <div class="item-info-trigger flex items-center gap-2.5 min-w-0 flex-1 cursor-pointer select-none" title="Ver detalles y notas">
+            <span class="material-symbols-outlined text-[18px] text-amber-500 shrink-0">${item.icon || 'inventory_2'}</span>
+            <div class="min-w-0 flex-1">
               <div class="flex items-center gap-1.5 flex-wrap">
-                <span class="text-[#f1f5f9] font-medium block truncate">${escapeHtml(item.name)}</span>
+                <span class="text-[#f1f5f9] font-medium truncate max-w-full">${escapeHtml(item.name)}</span>
                 ${customBadgeHtml(item)}
                 ${item.usableType && item.usableType !== 'none' ? `<span class="px-1 py-0.2 rounded bg-amber-500/10 text-amber-300 text-[9px] font-bold border border-amber-500/20 uppercase shrink-0">${item.usableType}</span>` : ''}
                 ${item.activationCondition ? `<span class="px-1.5 py-0.2 rounded bg-amber-500/10 text-amber-300 text-[9px] font-bold border border-amber-500/20 flex items-center gap-0.5 shrink-0" title="Condición de activación: ${item.activationCondition}"><span class="material-symbols-outlined text-[10px]">timer</span><span>${item.activationCondition}</span></span>` : ''}
@@ -282,7 +284,7 @@
 
             <button
               type="button"
-              class="edit-item-btn w-6 h-6 rounded hover:bg-amber-500/20 text-[#94a3b8] hover:text-amber-400 opacity-90 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer"
+              class="edit-item-btn w-6 h-6 rounded hover:bg-amber-500/20 text-[#94a3b8] hover:text-amber-400 flex sm:hidden sm:group-hover:flex items-center justify-center transition-colors cursor-pointer"
               title="Editar objeto y notas"
             >
               <span class="material-symbols-outlined text-[14px]">edit</span>
@@ -290,7 +292,7 @@
 
             <button
               type="button"
-              class="pin-item-btn w-6 h-6 rounded hover:bg-[#10141d] ${isPinned ? 'text-amber-400' : 'text-[#64748b] opacity-70 sm:opacity-0 sm:group-hover:opacity-100'} transition-opacity flex items-center justify-center cursor-pointer"
+              class="pin-item-btn w-6 h-6 rounded hover:bg-[#10141d] ${isPinned ? 'text-amber-400 flex' : 'text-[#64748b] flex sm:hidden sm:group-hover:flex'} items-center justify-center transition-colors cursor-pointer"
               title="${isPinned ? 'Desasignar de acceso rápido' : 'Fijar como acceso rápido superior'}"
               data-id="${item.id}"
             >
@@ -371,10 +373,9 @@
       if (item.equipped && item.slot) badges.appendChild(mkBadge(`Equipado: ${SLOT_LABELS[item.slot as EquipSlot] ?? item.slot}`, 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30', 'checkroom'));
       if (item.attuned) badges.appendChild(mkBadge('Sintonizado', 'bg-violet-500/10 text-violet-300 border-violet-500/30', 'auto_awesome'));
       if (item.equipped && item.requiresAttunement && !item.attuned) badges.appendChild(mkBadge('Sin sintonizar: no aplica efectos', 'bg-rose-500/10 text-rose-300 border-rose-500/30', 'warning'));
-      if (badges.childElementCount > 0) card.querySelector('.expand-panel')?.before(badges);
 
       const equipRow = document.createElement('div');
-      equipRow.className = 'flex items-center gap-1.5 flex-wrap pt-1';
+      equipRow.className = 'flex items-center gap-1.5 flex-wrap ml-auto';
       if (isEquippable) {
         if (item.equipped) {
           const unBtn = document.createElement('button');
@@ -386,7 +387,7 @@
         } else {
           const slots = validSlotsFor(item);
           const sel = document.createElement('select');
-          sel.className = 'bg-[#10141d] text-[#cbd5e1] border border-[#222f42] rounded text-[10px] px-1 py-0.5';
+          sel.className = 'bg-[#10141d] text-[#cbd5e1] border border-[#222f42] rounded text-[10px] px-1.5 py-0.5';
           slots.forEach((s) => {
             const o = document.createElement('option');
             o.value = s;
@@ -419,7 +420,13 @@
         });
         equipRow.appendChild(atBtn);
       }
-      if (equipRow.childElementCount > 0) card.querySelector('.expand-panel')?.before(equipRow);
+      if (badges.childElementCount > 0 || equipRow.childElementCount > 0) {
+        const metaBar = document.createElement('div');
+        metaBar.className = 'flex items-center justify-between gap-2 flex-wrap pt-1.5 border-t border-[#222f42]/50';
+        if (badges.childElementCount > 0) metaBar.appendChild(badges);
+        if (equipRow.childElementCount > 0) metaBar.appendChild(equipRow);
+        card.querySelector('.expand-panel')?.before(metaBar);
+      }
 
       // Helper function to trigger delete modal
       const triggerItemDelete = () => {
