@@ -52,7 +52,7 @@ export interface Campaign {
 export interface DmEvent {
   id: string;
   campaignId: string;
-  type: 'dice_roll' | 'milestone' | 'session_update' | 'request_initiative';
+  type: 'dice_roll' | 'milestone' | 'session_update' | 'request_initiative' | 'group_rest';
   timestamp: number;
   dmName: string;
   payload: {
@@ -73,6 +73,8 @@ export interface DmEvent {
       weather?: string;
       location?: string;
     };
+    /** Descanso de grupo ordenado por el DM: cada hoja lo aplica a su propio personaje. */
+    rest?: 'short' | 'long';
     requestInitiative?: {
       combatId?: string;
       message?: string;

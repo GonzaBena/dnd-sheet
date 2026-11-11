@@ -346,6 +346,7 @@ import HandoutManager from '../dm/HandoutManager.astro';
   import { isFirebaseConfigured } from '../../scripts/firebase/client.ts';
   import { cloudSession } from '../../scripts/data/cloudSync.ts';
   import { campaignStore } from '../../scripts/state/campaignStore.ts';
+  import { broadcastGroupRest } from '../../scripts/state/groupRestSync.ts';
   import { journalStore } from '../../scripts/state/journalStore.ts';
   import { characterStore } from '../../scripts/state/characterStore.ts';
   import { userStore } from '../../scripts/state/userStore.ts';
@@ -475,6 +476,7 @@ import HandoutManager from '../dm/HandoutManager.astro';
           'El Dungeon Master decretó un descanso corto para todos los aventureros (+8 PG recuperados).',
           ['#Descanso']
         );
+        broadcastGroupRest(currentCampaignId, 'short');
         render();
         showAlert('¡Descanso corto aplicado a todos los aventureros!', { kind: 'success', title: 'Descanso corto' });
       }
@@ -495,6 +497,7 @@ import HandoutManager from '../dm/HandoutManager.astro';
           'El Dungeon Master concedió un descanso largo completo. Todos los aventureros han restablecido sus Puntos de Golpe al máximo.',
           ['#Descanso']
         );
+        broadcastGroupRest(currentCampaignId, 'long');
         render();
         showAlert('¡Descanso largo completado! Todos los aventureros tienen la salud restaurada.', { kind: 'success', title: 'Descanso largo' });
       }
@@ -601,13 +604,15 @@ import HandoutManager from '../dm/HandoutManager.astro';
         if (myChar.hp.temp) myChar.hp.temp = 0;
         campaignStore.saveCharacter(myChar);
         if (characterStore.get().id === myChar.id) {
-          characterStore.updateHp(myChar.hp.current);
+          // longRest() restaura PG, espacios, recursos y quita efectos "hasta descanso largo" (y registra el diario).
+          characterStore.longRest();
+        } else {
+          journalStore.log(
+            `Descanso Largo de ${myChar.name}`,
+            `${myChar.name} completó un descanso largo. Puntos de Golpe restaurados al máximo.`,
+            ['#Descanso']
+          );
         }
-        journalStore.log(
-          `Descanso Largo de ${myChar.name}`,
-          `${myChar.name} completó un descanso largo. Puntos de Golpe restaurados al máximo.`,
-          ['#Descanso']
-        );
         render();
         showAlert(`¡Descanso largo completado! ${myChar.name} tiene ${myChar.hp.max} PG.`, { kind: 'success', title: 'Descanso largo' });
       }

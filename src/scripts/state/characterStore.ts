@@ -797,6 +797,26 @@ class CharacterStoreManager {
     return { healed, remainingDice: this.character.hitDice.remaining };
   }
 
+  /**
+   * Descanso de grupo ordenado por el DM. Los PG ya los escribió el DM, así que el corto solo
+   * reinicia recursos y quita efectos; el largo es el descanso completo.
+   */
+  public applyGroupRest(rest: 'short' | 'long') {
+    if (rest === 'long') {
+      this.longRest();
+      return;
+    }
+    const recovered = this.applyRestToResources('short');
+    const expired = this.expireEffectsOnRest('short');
+    this.saveAndNotify();
+    this.emitEffectsExpired(expired);
+    journalStore.log(
+      'Descanso Corto de Grupo',
+      `El Dungeon Master decretó un descanso corto.${recovered.length ? ` Recursos recuperados: ${recovered.join(', ')}.` : ''}${expired.length ? ` Efectos terminados: ${expired.map((e) => e.name).join(', ')}.` : ''}`,
+      ['#Descanso']
+    );
+  }
+
   public longRest() {
     this.character.hp.current = this.character.hp.max;
     this.character.hp.temp = 0;

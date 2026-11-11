@@ -264,7 +264,7 @@ Orden: A → B → C → D → E. Las Fases B y C son independientes entre sí t
 ### Fase E — Panel de efectos y cierre · depende de las Fases B y D
 - [x] T-249 `ActiveEffectsPanel` (RF-257)
 - [x] T-250 Aplicar un efecto desde un hechizo o dote (RF-243, RF-244, RF-254)
-- [ ] T-251 Pasada de cierre y criterios de aceptación (RF-258)
+- [x] T-251 Pasada de cierre y criterios de aceptación (RF-258)
 
 ```
 Fase A ──┬──► Fase B ──────────────┐

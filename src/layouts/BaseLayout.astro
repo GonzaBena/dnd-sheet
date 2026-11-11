@@ -59,6 +59,18 @@ const {
   import { userStore } from '../scripts/state/userStore.ts';
   import type { DmEvent } from '../scripts/models/campaign.ts';
 
+  import { startGroupRestSync } from '../scripts/state/groupRestSync.ts';
+  import { startEffectsRoundSync } from '../scripts/state/effectsRoundSync.ts';
+  import { cloudSession } from '../scripts/data/cloudSync.ts';
+  startGroupRestSync();
+
+  // Descuento de rondas de los efectos: en todas las páginas, no solo en la hoja.
+  // En modo nube espera la sesión; sin sesión no arranca (igual que antes en campaigns.astro).
+  cloudSession.ready().then(() => {
+    if (cloudSession.isCloud() && cloudSession.state === 'signed-out') return;
+    startEffectsRoundSync();
+  });
+
   const handledInitiativeEventIds = new Set<string>();
 
   // Escucha solicitudes de iniciativa en tiempo real del DM
