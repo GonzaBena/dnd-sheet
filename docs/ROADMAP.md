@@ -149,8 +149,8 @@ Se asignan a una etapa cuando haga falta:
 
 | Spec | Etapa | Estado |
 | --- | --- | --- |
-| [07 — Cimientos de la hoja](Specs/07-cimientos-de-la-hoja.spec.md) | H1 | Completa, con [planes](Plans/07-cimientos-de-la-hoja/README.md) listos |
-| 08 — Equipo | H2 | Por escribir |
+| [07 — Cimientos de la hoja](Specs/07-cimientos-de-la-hoja.spec.md) | H1 | Hecha (H1 cerrada) |
+| [08 — Equipo](Specs/08-equipo.spec.md) | H2 | Completa, con [planes](Plans/08-equipo/README.md) listos |
 | 09 — Descansos y recursos | H3 | Por escribir |
 | 10 — Combate en la hoja | H4 | Por escribir |
 | 11 — Reacciones | H5 | Por escribir |
@@ -161,4 +161,4 @@ Los rangos de IDs de cada spec nueva se asignan al abrirla, a partir del 230 (la
 
 ## Próximo paso
 
-Ejecutar los planes de la Spec 07 (`docs/Plans/07-cimientos-de-la-hoja/`), empezando por la Fase A (recursos y migración). Antes de abrir la Spec 08 (H2), cerrar H1 con tests verdes y prueba manual.
+H1 cerrada (Spec 07 hecha). Siguiente: ejecutar los planes de la Spec 08 (H2) en `docs/Plans/08-equipo/`, empezando por la Fase A (modelo, slots y sintonización).
