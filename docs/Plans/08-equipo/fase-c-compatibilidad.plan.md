@@ -136,7 +136,7 @@ Prueba manual:
 
 ## 10. Checklist de cierre
 
-- [ ] T-260 … T-262 marcadas en la spec.
-- [ ] `// DECISION:` en FC-3 (mensaje en lugar de avisos) y FC-10 (qué quita "Ignorar").
-- [ ] Ningún `innerHTML` con texto de usuario.
-- [ ] `pnpm test` y `pnpm build` en verde.
+- [x] T-260 … T-262 marcadas en la spec.
+- [x] `// DECISION:` en FC-3 (mensaje en lugar de avisos) y FC-10 (qué quita "Ignorar").
+- [x] Ningún `innerHTML` con texto de usuario.
+- [x] `pnpm test` y `pnpm build` en verde.

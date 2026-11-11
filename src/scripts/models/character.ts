@@ -92,6 +92,10 @@ export interface WeaponData {
   magicBonus?: number;
 }
 
+// Competencias cargadas a mano (Spec 08, Fase C). Armadura: light|medium|heavy|shield.
+// Armas: simple|martial o el `index` de un arma concreta (p. ej. 'longsword').
+export interface Proficiencies { armor: string[]; weapons: string[] }
+
 export interface InventoryItem {
   id: string;
   name: string;
@@ -223,6 +227,8 @@ export interface CharacterData {
   };
 
   resources: Resource[];
+
+  proficiencies?: Proficiencies; // ausente = vacío
 
   activeEffects: ActiveEffect[];
   effectsLastRound?: { campaignId: string; round: number };

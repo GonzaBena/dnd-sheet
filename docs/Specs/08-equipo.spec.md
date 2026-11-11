@@ -226,9 +226,9 @@ IDs a partir de T-252 (la Spec 07 llega hasta T-251). Se ejecuta una fase a la v
 - [x] T-259 Modal de objeto con datos de armadura, arma y slot (RF-281)
 
 **Fase C — Competencias y compatibilidad** (depende de la Fase B)
-- [ ] T-260 Campo `proficiencies` y UI de casillas para cargarlas a mano (RF-269)
-- [ ] T-261 Evaluador de compatibilidad con penalizaciones declaradas, con tests (RF-270, RF-271, RF-267, RF-268)
-- [ ] T-262 Aviso en la hoja y botón "Ignorar" (RF-270, RF-272)
+- [x] T-260 Campo `proficiencies` y UI de casillas para cargarlas a mano (RF-269)
+- [x] T-261 Evaluador de compatibilidad con penalizaciones declaradas, con tests (RF-270, RF-271, RF-267, RF-268)
+- [x] T-262 Aviso en la hoja y botón "Ignorar" (RF-270, RF-272)
 
 **Fase D — CA derivada** (depende de la Fase C)
 - [ ] T-263 `computeAc` con fórmulas y partes, con tests (RF-273, RF-274, RF-275)

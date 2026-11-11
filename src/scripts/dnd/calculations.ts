@@ -54,6 +54,10 @@ export function recalculateCharacter(char: CharacterData): CharacterData {
   // Spec 08, Fase A: attunedItems pasa a ser `attuned` en el inventario.
   migrateAttuned(char);
   if (!Array.isArray(char.activeEffects)) char.activeEffects = [];
+  // Spec 08, Fase C: competencias cargadas a mano; ausente = vacío.
+  if (!char.proficiencies) char.proficiencies = { armor: [], weapons: [] };
+  if (!Array.isArray(char.proficiencies.armor)) char.proficiencies.armor = [];
+  if (!Array.isArray(char.proficiencies.weapons)) char.proficiencies.weapons = [];
 
   if (!char.rulesEdition) {
     char.rulesEdition = '2024';

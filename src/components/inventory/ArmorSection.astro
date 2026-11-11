@@ -58,6 +58,7 @@
   import { SLOT_LABELS, wornSlotsFor } from '../../scripts/dnd/equipment';
   import type { EquipSlot } from '../../scripts/models/character';
   import { characterStore } from '../../scripts/state/characterStore';
+  import { checkCompatibility } from '../../scripts/dnd/compat';
   import { toCatalogEntry } from '../../scripts/dnd/catalog';
 
   // Slots que se ven aquí, en una cuadrícula de 3x3 ordenada como un cuerpo (cabeza arriba, botas abajo);
@@ -108,6 +109,9 @@
     }
     openSlot = null;
   }
+
+  // Avisos de compatibilidad (Fase C) del objeto, calculados una vez por render.
+  let compatByItem = new Map<string, string[]>();
 
   function renderSlot(slot: EquipSlot, item: any | undefined) {
     const cell = el(
@@ -165,6 +169,12 @@
     if (ac) meta.appendChild(chip(ac, 'bg-sky-500/10 text-sky-300 border-sky-500/30'));
     if (item.attuned) meta.appendChild(chip('Sintonizado', 'bg-violet-500/10 text-violet-300 border-violet-500/30'));
     else if (item.requiresAttunement) meta.appendChild(chip('Sin sintonizar', 'bg-rose-500/10 text-rose-300 border-rose-500/30'));
+    const warns = compatByItem.get(item.id);
+    if (warns?.length) {
+      const w = chip('Aviso', 'bg-amber-500/10 text-amber-300 border-amber-500/30');
+      w.title = warns.join('\n');
+      meta.appendChild(w);
+    }
     cell.appendChild(meta);
 
     const actions = el('div', 'flex items-center gap-1 mt-auto flex-wrap');
@@ -228,6 +238,10 @@
     if (!grid) return;
     const inv = char.inventory || [];
     grid.replaceChildren();
+    compatByItem = new Map();
+    for (const w of checkCompatibility(char).warnings) {
+      compatByItem.set(w.itemId, [...(compatByItem.get(w.itemId) ?? []), w.text]);
+    }
     let equipped = 0;
     ARMOR_SLOTS.forEach((slot) => {
       const item = inv.find((i: any) => i.equipped && i.slot === slot);

@@ -9,7 +9,7 @@ export type EffectDuration =
   | { kind: 'indefinite' };
 
 export interface Modifier {
-  target: string; // 'ac', 'attack', 'save.dex', 'skill.stealth', 'speed', …
+  target: string; // 'ac', 'attack', 'save.dex', 'check.str', 'skill.stealth', 'speed', 'spellcasting', …
   op: 'add' | 'set' | 'advantage' | 'disadvantage' | 'resistance';
   value?: number | string;
   when?: string; // lo evalúa H4

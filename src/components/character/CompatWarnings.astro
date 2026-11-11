@@ -1,0 +1,90 @@
+---
+// src/components/character/CompatWarnings.astro
+// Spec 08, Fase C: avisos de competencia y requisitos del equipo puesto. La hoja avisa, no bloquea.
+// Todo el texto entra con textContent.
+---
+
+<div id="compat-warnings" class="w-full rounded-xl bg-[#18202e] border border-[#222f42] p-2.5 sm:p-3 text-[11px] font-label space-y-2">
+  <div class="flex items-center justify-between gap-2">
+    <div class="flex items-center gap-1.5">
+      <span class="material-symbols-outlined text-sky-400 text-[15px]">verified_user</span>
+      <span class="text-[10px] font-bold uppercase tracking-wider text-[#94a3b8]">Competencias y avisos</span>
+    </div>
+    <button type="button" id="compat-prof-btn" class="text-[10px] text-sky-400 hover:text-sky-300 font-bold bg-sky-500/10 hover:bg-sky-500/20 px-2 py-0.5 rounded border border-sky-500/30 flex items-center gap-1 cursor-pointer transition-colors">
+      <span class="material-symbols-outlined text-[12px]">tune</span>
+      <span>Competencias</span>
+    </button>
+  </div>
+  <div id="compat-list" class="space-y-1.5"></div>
+</div>
+
+<script>
+  import { characterStore } from '../../scripts/state/characterStore';
+  import { checkCompatibility } from '../../scripts/dnd/compat';
+
+  const root = document.getElementById('compat-warnings');
+  const list = document.getElementById('compat-list');
+
+  function note(text: string, cls: string) {
+    const p = document.createElement('p');
+    p.className = cls;
+    p.textContent = text;
+    return p;
+  }
+
+  function row(char: any, w: { itemId: string; text: string; ignorable: boolean }, ignored: boolean) {
+    const item = document.createElement('div');
+    item.className = `flex items-start gap-2 p-2 rounded-lg border ${
+      ignored ? 'bg-[#10141d] border-[#222f42] opacity-50' : 'bg-amber-500/10 border-amber-500/30'
+    }`;
+    const icon = document.createElement('span');
+    icon.className = 'material-symbols-outlined text-[15px] text-amber-400 shrink-0';
+    icon.textContent = 'warning';
+    const text = document.createElement('span');
+    text.className = 'flex-1 text-[#f1f5f9]';
+    text.textContent = w.text;
+    item.append(icon, text);
+    if (w.ignorable || ignored) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'shrink-0 px-1.5 py-0.5 rounded border border-[#222f42] text-[#94a3b8] hover:text-[#f1f5f9] text-[9px] font-bold cursor-pointer';
+      btn.textContent = ignored ? 'Restablecer' : 'Ignorar';
+      btn.addEventListener('click', () => characterStore.setIgnoreWarnings(w.itemId, !ignored));
+      item.appendChild(btn);
+    }
+    return item;
+  }
+
+  function render(char: any) {
+    if (!list || !root) return;
+    const result = checkCompatibility(char);
+    list.replaceChildren();
+
+    // FC-3: sin competencias cargadas, un único mensaje en lugar de avisos por objeto.
+    if (result.proficiencyMissing) {
+      list.appendChild(note('Cargá tus competencias para que los avisos sean fiables.', 'text-[#94a3b8]'));
+      return;
+    }
+
+    const rows = result.warnings.map((w) => row(char, w, false));
+    // Los objetos ignorados no generan avisos: se listan aparte, atenuados, para poder restablecerlos.
+    const ignored = (char.inventory || []).filter((i: any) => i.equipped && i.ignoreWarnings && (i.armor || i.weapon));
+    const dimmed = ignored.map((i: any) =>
+      row(char, { itemId: i.id, text: `${i.name}: aviso ignorado.`, ignorable: true }, true),
+    );
+    if (rows.length + dimmed.length === 0) {
+      list.appendChild(note('Sin avisos: tu equipo es compatible con tus competencias.', 'text-emerald-300/90'));
+      return;
+    }
+    list.append(...rows, ...dimmed);
+  }
+
+  document.getElementById('compat-prof-btn')?.addEventListener('click', () => {
+    window.dispatchEvent(new CustomEvent('open-proficiencies-modal'));
+  });
+
+  render(characterStore.get());
+  window.addEventListener('character-updated', ((e: CustomEvent) => {
+    render(e.detail.character);
+  }) as EventListener);
+</script>

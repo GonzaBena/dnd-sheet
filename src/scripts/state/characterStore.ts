@@ -4,7 +4,7 @@ import { getRandomCharacterAvatar, isBrokenAvatarUrl } from '../data/characterAv
 import { recalculateCharacter, calculateLevelUpHpGain } from '../dnd/calculations.ts';
 import { spend, recover, resetOn, remaining } from '../dnd/resources.ts';
 import { equipAcross, unequipItem, unequipAction, setActionHands, attuneItem, unattuneItem, ACTION_PREFIX, type EquipResult, type AcrossResult } from '../dnd/equipment.ts';
-import type { EquipSlot } from '../models/character.ts';
+import type { EquipSlot, Proficiencies } from '../models/character.ts';
 import type { Resource } from '../models/resource.ts';
 import type { ActiveEffect } from '../models/effect.ts';
 import { addEffect, removeEffect, tickRounds, expireOnRest, roundDelta, type AddResult } from '../dnd/effects.ts';
@@ -750,6 +750,19 @@ class CharacterStoreManager {
 
   public unequipItem(itemId: string) {
     this.character.inventory = unequipItem(this.character.inventory, itemId);
+    this.saveAndNotify();
+  }
+
+  // Competencias y avisos (Spec 08, Fase C). Una escritura por cambio.
+  public setProficiencies(prof: Proficiencies) {
+    this.character.proficiencies = { armor: [...prof.armor], weapons: [...prof.weapons] };
+    this.saveAndNotify();
+  }
+
+  public setIgnoreWarnings(itemId: string, ignore: boolean) {
+    this.character.inventory = this.character.inventory.map(i =>
+      i.id === itemId ? { ...i, ignoreWarnings: ignore } : i
+    );
     this.saveAndNotify();
   }
 

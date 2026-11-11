@@ -1,5 +1,6 @@
 ---
 // src/components/character/VitalsGrid.astro
+import CompatWarnings from './CompatWarnings.astro';
 ---
 
 <div class="xl:col-span-8 flex flex-col gap-2.5 w-full">
@@ -153,6 +154,9 @@
       </div>
     </div>
   </div>
+
+  <!-- Avisos de competencia y requisitos del equipo (Spec 08, Fase C) -->
+  <CompatWarnings />
 
   <!-- FILA 3: [ Velocidad | Dados de Golpe y Descansos ] -->
   <div class="grid grid-cols-2 gap-2.5 w-full">

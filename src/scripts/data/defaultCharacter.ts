@@ -209,6 +209,8 @@ export const defaultCharacter: CharacterData = {
 
   activeEffects: [],
 
+  proficiencies: { armor: [], weapons: [] },
+
   wildShape: {
     usesTotal: 2,
     usesRemaining: 2,

@@ -23,7 +23,7 @@ export interface EquipResult {
 // nombre (escudo/rodela/broquel/shield) y una armadura sin datos va al cuerpo. Si no, un escudo
 // manual se ofrecería para cabeza o anillos.
 const SHIELD_NAME = /\b(escudo|rodela|broquel|adarga|pavés|shield)\b/i;
-const isShield = (i: InventoryItem) =>
+export const isShield = (i: InventoryItem) =>
   i.armor?.category === 'shield' || (i.category === 'armor' && !i.armor && SHIELD_NAME.test(i.name)) ||
   (!i.armor && i.category !== 'weapon' && SHIELD_NAME.test(i.name));
 const isWeapon = (i: InventoryItem) => i.category === 'weapon' || !!i.weapon;
