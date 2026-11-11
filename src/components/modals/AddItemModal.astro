@@ -55,7 +55,12 @@ import CustomEntryFields from '../ui/CustomEntryFields.astro';
             <option value="potion">Poción o Consumible</option>
             <option value="treasure">Tesoro / Joya</option>
             <option value="weapon">Arma / Munición</option>
+            <option value="armor">Armadura / Escudo</option>
           </select>
+          <label class="flex items-center gap-1.5 mt-1.5 text-[11px] text-[#94a3b8] cursor-pointer">
+            <input type="checkbox" id="item-requires-attunement" class="accent-amber-500" />
+            Requiere sintonización
+          </label>
         </div>
 
         <div>
@@ -178,6 +183,7 @@ import CustomEntryFields from '../ui/CustomEntryFields.astro';
   const editIdInp = document.getElementById('item-edit-id') as HTMLInputElement;
   const nameInp = document.getElementById('item-name-input') as HTMLInputElement;
   const catSel = document.getElementById('item-category-select') as HTMLSelectElement;
+  const attuneChk = document.getElementById('item-requires-attunement') as HTMLInputElement;
   const qtyInp = document.getElementById('item-quantity-input') as HTMLInputElement;
   const usableSel = document.getElementById('item-usable-select') as HTMLSelectElement;
   const healInp = document.getElementById('item-heal-input') as HTMLInputElement;
@@ -189,6 +195,7 @@ import CustomEntryFields from '../ui/CustomEntryFields.astro';
     editIdInp.value = '';
     nameInp.value = '';
     catSel.value = 'gear';
+    attuneChk.checked = false;
     qtyInp.value = '1';
     usableSel.value = 'none';
     healInp.value = '0';
@@ -205,6 +212,7 @@ import CustomEntryFields from '../ui/CustomEntryFields.astro';
     editIdInp.value = item.id;
     nameInp.value = item.name || '';
     catSel.value = item.category || 'gear';
+    attuneChk.checked = !!item.requiresAttunement;
     qtyInp.value = (item.quantity || 1).toString();
     usableSel.value = item.usableType || 'none';
     healInp.value = (item.healAmount || 0).toString();
@@ -269,6 +277,7 @@ import CustomEntryFields from '../ui/CustomEntryFields.astro';
     else if (usableType === 'edible') icon = 'lunch_dining';
     else if (usableType === 'usable') icon = 'bolt';
     else if (cat === 'weapon') icon = 'swords';
+    else if (cat === 'armor') icon = 'shield';
     else if (cat === 'treasure') icon = 'diamond';
 
     const custom = customEntry.read();
@@ -278,6 +287,7 @@ import CustomEntryFields from '../ui/CustomEntryFields.astro';
       ...custom.patch,
       name,
       category: cat,
+      requiresAttunement: attuneChk.checked || undefined,
       quantity: parseInt(qtyInp.value || '1') || 1,
       description: descInp.value.trim(),
       icon,

@@ -91,6 +91,7 @@
 <script>
   import { characterStore } from '../../scripts/state/characterStore';
   import { openModal } from '../../scripts/animations/modalAnimations';
+  import { MAX_ATTUNED } from '../../scripts/dnd/equipment';
 
   const attunedContainer = document.getElementById('attuned-items-container');
   const attunedBadge = document.getElementById('attuned-limit-badge');
@@ -105,25 +106,34 @@
 
   function renderAttuned(char: any) {
     if (!attunedContainer) return;
-    attunedContainer.innerHTML = '';
+    attunedContainer.replaceChildren();
 
-    const items = char.attunedItems || [];
-    const count = items.filter((it: any) => !it.name.includes('Libre') && it.name.trim()).length;
-    if (attunedBadge) attunedBadge.textContent = `${count} / 3 Límite`;
+    // Spec 08, Fase A: los sintonizados viven en el inventario (`attuned`).
+    const items = (char.inventory || []).filter((it: any) => it.attuned);
+    if (attunedBadge) attunedBadge.textContent = `${items.length} / ${MAX_ATTUNED} Límite`;
 
-    items.forEach((item: any, i: number) => {
-      const isFree = item.name.includes('Libre') || !item.name.trim();
+    for (let i = 0; i < MAX_ATTUNED; i++) {
+      const item = items[i];
       const el = document.createElement('div');
-      el.className = `p-1.5 px-2.5 rounded-lg bg-[#18202e] border ${isFree ? 'border-dashed border-[#222f42] opacity-60' : 'border-[#222f42] hover:border-amber-500/40'} flex items-center justify-between text-[11px] transition-colors`;
-      el.innerHTML = `
-        <div class="flex items-center gap-2 truncate">
-          <span class="material-symbols-outlined text-[14px] ${isFree ? 'text-[#64748b]' : 'text-amber-400'}">${item.icon || 'stars'}</span>
-          <span class="truncate ${isFree ? 'text-[#64748b] italic' : 'text-[#f1f5f9] font-medium'}">${item.name}</span>
-        </div>
-        <span class="text-[10px] text-[#64748b] shrink-0">Ranura ${i + 1}</span>
-      `;
+      el.className = `p-1.5 px-2.5 rounded-lg bg-[#18202e] border ${item ? 'border-[#222f42] hover:border-amber-500/40' : 'border-dashed border-[#222f42] opacity-60'} flex items-center justify-between text-[11px] transition-colors`;
+
+      const left = document.createElement('div');
+      left.className = 'flex items-center gap-2 truncate';
+      const icon = document.createElement('span');
+      icon.className = `material-symbols-outlined text-[14px] ${item ? 'text-amber-400' : 'text-[#64748b]'}`;
+      icon.textContent = item ? (item.icon || 'stars') : 'lock_open';
+      const name = document.createElement('span');
+      name.className = `truncate ${item ? 'text-[#f1f5f9] font-medium' : 'text-[#64748b] italic'}`;
+      name.textContent = item ? item.name : 'Ranura Libre';
+      left.append(icon, name);
+
+      const slot = document.createElement('span');
+      slot.className = 'text-[10px] text-[#64748b] shrink-0';
+      slot.textContent = `Ranura ${i + 1}`;
+
+      el.append(left, slot);
       attunedContainer.appendChild(el);
-    });
+    }
   }
 
   function renderCoins(char: any) {

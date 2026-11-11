@@ -3,6 +3,8 @@ import { defaultCharacter } from '../data/defaultCharacter.ts';
 import { getRandomCharacterAvatar, isBrokenAvatarUrl } from '../data/characterAvatars.ts';
 import { recalculateCharacter, calculateLevelUpHpGain } from '../dnd/calculations.ts';
 import { spend, recover, resetOn, remaining } from '../dnd/resources.ts';
+import { equipAcross, unequipItem, unequipAction, setActionHands, attuneItem, unattuneItem, ACTION_PREFIX, type EquipResult, type AcrossResult } from '../dnd/equipment.ts';
+import type { EquipSlot } from '../models/character.ts';
 import type { Resource } from '../models/resource.ts';
 import type { ActiveEffect } from '../models/effect.ts';
 import { addEffect, removeEffect, tickRounds, expireOnRest, roundDelta, type AddResult } from '../dnd/effects.ts';
@@ -709,15 +711,59 @@ class CharacterStoreManager {
     );
   }
 
-  public updateAttunedItems(items: CharacterData['attunedItems']) {
-    this.character.attunedItems = items;
+  // Equipo y sintonización (Spec 08, Fase A). Una sola escritura por acción.
+  public equipItem(itemId: string, slot: EquipSlot): AcrossResult {
+    return this.equipKey(itemId, slot);
+  }
+
+  public equipWeapon(actionId: string, slot: EquipSlot): AcrossResult {
+    return this.equipKey(ACTION_PREFIX + actionId, slot);
+  }
+
+  private equipKey(key: string, slot: EquipSlot): AcrossResult {
+    const result = equipAcross(this.character.inventory, this.character.actions, key, slot);
+    if (result.error) return result;
+    this.character.inventory = result.inventory;
+    this.character.actions = result.actions;
     this.saveAndNotify();
-    const activeNames = items.filter(i => !i.name.includes('Libre')).map(i => i.name).join(', ');
+    const name = key.startsWith(ACTION_PREFIX)
+      ? result.actions.find(a => a.id === key.slice(ACTION_PREFIX.length))?.name
+      : result.inventory.find(i => i.id === key)?.name;
     journalStore.log(
-      'Objetos Sintonizados configurados',
-      `Ranuras de sintonización mágicas actualizadas: ${activeNames || 'Ninguno'}.`,
-      ['#Configuración']
+      'Objeto equipado',
+      `"${name}" equipado en ${slot}.` +
+        (result.unequipped.length ? ` Se quitó: ${result.unequipped.map(i => i.name).join(', ')}.` : ''),
+      ['#Equipo']
     );
+    return result;
+  }
+
+  public unequipWeapon(actionId: string) {
+    this.character.actions = unequipAction(this.character.actions, actionId);
+    this.saveAndNotify();
+  }
+
+  public setWeaponHands(actionId: string, hands: 1 | 2) {
+    this.character.actions = setActionHands(this.character.actions, actionId, hands);
+    this.saveAndNotify();
+  }
+
+  public unequipItem(itemId: string) {
+    this.character.inventory = unequipItem(this.character.inventory, itemId);
+    this.saveAndNotify();
+  }
+
+  public attuneItem(itemId: string): EquipResult {
+    const result = attuneItem(this.character.inventory, itemId);
+    if (result.error) return result;
+    this.character.inventory = result.inventory;
+    this.saveAndNotify();
+    return result;
+  }
+
+  public unattuneItem(itemId: string) {
+    this.character.inventory = unattuneItem(this.character.inventory, itemId);
+    this.saveAndNotify();
   }
 
   public toggleFeature(featureId: string): boolean {

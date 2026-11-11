@@ -1,5 +1,6 @@
 import type { CharacterData, StatBlock, SkillItem } from '../models/character';
 import { migrateSlots, migrateResources } from './resources.ts';
+import { migrateAttuned } from './equipment.ts';
 
 export const STANDARD_5E_SKILLS: { id: string; name: string; stat: 'str' | 'dex' | 'con' | 'int' | 'wis' | 'cha' }[] = [
   { id: 'acrobatics', name: 'Acrobacias', stat: 'dex' },
@@ -50,6 +51,8 @@ export function recalculateCharacter(char: CharacterData): CharacterData {
   // wildShape se crea más abajo si falta, por eso migrateResources se repite al final.
   migrateSlots(char);
   migrateResources(char);
+  // Spec 08, Fase A: attunedItems pasa a ser `attuned` en el inventario.
+  migrateAttuned(char);
   if (!Array.isArray(char.activeEffects)) char.activeEffects = [];
 
   if (!char.rulesEdition) {

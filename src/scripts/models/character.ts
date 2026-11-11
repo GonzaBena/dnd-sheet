@@ -35,6 +35,10 @@ export interface AttackAction {
   addAbilityToDamage?: boolean;
   mastery?: string;
   notes?: string;
+  // Equipo (Spec 08, Fase A): las armas se equipan desde su sección
+  equipped?: boolean;
+  slot?: EquipSlot;
+  hands?: 1 | 2;
 }
 
 export interface SpellItem {
@@ -64,6 +68,30 @@ export interface SpellItem {
   effects?: Modifier[];
 }
 
+// Equipo (Spec 08, Fase A)
+export type EquipSlot =
+  | 'head' | 'body' | 'gloves' | 'neck' | 'ring1' | 'ring2'
+  | 'boots' | 'cloak' | 'mainHand' | 'offHand' | 'shield';
+
+export interface ArmorData {
+  category: 'light' | 'medium' | 'heavy' | 'shield';
+  baseAc: number;
+  dexCap?: number | null; // null/ausente = sin tope; 0 = sin DES
+  strMin?: number;
+  stealthDisadv?: boolean;
+  bonus?: number; // armadura mágica +1, +2…
+}
+
+export interface WeaponData {
+  category: 'simple' | 'martial';
+  damageDice: string;
+  damageType: string;
+  properties: string[];
+  range?: { normal: number; long: number };
+  versatileDice?: string;
+  magicBonus?: number;
+}
+
 export interface InventoryItem {
   id: string;
   name: string;
@@ -71,7 +99,16 @@ export interface InventoryItem {
   weight?: string;
   weightLb?: number;
   description?: string;
-  category: 'potion' | 'gear' | 'treasure' | 'weapon';
+  category: 'potion' | 'gear' | 'treasure' | 'weapon' | 'armor';
+  // Equipo (Spec 08, Fase A)
+  equipped?: boolean;
+  slot?: EquipSlot;
+  hands?: 1 | 2;
+  attuned?: boolean;
+  requiresAttunement?: boolean;
+  armor?: ArmorData;
+  weapon?: WeaponData;
+  ignoreWarnings?: boolean;
   icon?: string;
   usableType?: 'none' | 'potion' | 'drinkable' | 'edible' | 'usable';
   healAmount?: number;

@@ -214,10 +214,10 @@ IDs a partir de RF-260 (la Spec 07 llega hasta RF-258).
 IDs a partir de T-252 (la Spec 07 llega hasta T-251). Se ejecuta una fase a la vez, cerrando cada una con tests verdes.
 
 **Fase A — Modelo, slots y sintonización**
-- [ ] T-252 Tipos `EquipSlot`, `ArmorData`, `WeaponData` y campos nuevos en `InventoryItem` y `CharacterData` (RF-260)
-- [ ] T-253 Lógica pura de equipar/desequipar, manos y tope de sintonización, con tests (RF-261, RF-262)
-- [ ] T-254 Migración de `attunedItems` al inventario con tests (RF-263)
-- [ ] T-255 UI de equipo en la mochila y `EditAttunedModal` con contador `n/3` (RF-260, RF-262, RF-264)
+- [x] T-252 Tipos `EquipSlot`, `ArmorData`, `WeaponData` y campos nuevos en `InventoryItem` y `CharacterData` (RF-260)
+- [x] T-253 Lógica pura de equipar/desequipar, manos y tope de sintonización, con tests (RF-261, RF-262)
+- [x] T-254 Migración de `attunedItems` al inventario con tests (RF-263)
+- [x] T-255 UI de equipo en la mochila y `EditAttunedModal` con contador `n/3` (RF-260, RF-262, RF-264)
 
 **Fase B — Armaduras y armas en el catálogo** (depende de la Fase A)
 - [ ] T-256 `srdToEntry` y alta de armaduras con `ArmorData`, y escudos (RF-265, RF-266)

@@ -68,6 +68,8 @@
 
 <script>
   import { showAlert } from '../../scripts/ui/notify';
+  import { SLOT_LABELS, validSlotsFor } from '../../scripts/dnd/equipment';
+  import type { EquipSlot } from '../../scripts/models/character';
   import { characterStore } from '../../scripts/state/characterStore';
   import { escapeHtml, toCatalogEntry } from '../../scripts/dnd/catalog';
   import { customBadgeHtml } from '../../scripts/ui/customBadge';
@@ -347,6 +349,78 @@
         </div>
       `;
 
+      // Equipo y sintonización (Spec 08, Fase A). Todo el texto con textContent.
+      // Las armas se equipan desde la sección "Armas y Acciones de Ataque".
+      const isEquippable = item.category !== 'potion' && item.category !== 'treasure' && item.category !== 'weapon';
+      const mkBadge = (text: string, cls: string, icon?: string) => {
+        const b = document.createElement('span');
+        b.className = `px-1.5 py-0.5 rounded text-[9px] font-bold border flex items-center gap-0.5 shrink-0 ${cls}`;
+        if (icon) {
+          const ic = document.createElement('span');
+          ic.className = 'material-symbols-outlined text-[10px]';
+          ic.textContent = icon;
+          b.appendChild(ic);
+        }
+        const t = document.createElement('span');
+        t.textContent = text;
+        b.appendChild(t);
+        return b;
+      };
+      const badges = document.createElement('div');
+      badges.className = 'flex items-center gap-1 flex-wrap';
+      if (item.equipped && item.slot) badges.appendChild(mkBadge(`Equipado: ${SLOT_LABELS[item.slot as EquipSlot] ?? item.slot}`, 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30', 'checkroom'));
+      if (item.attuned) badges.appendChild(mkBadge('Sintonizado', 'bg-violet-500/10 text-violet-300 border-violet-500/30', 'auto_awesome'));
+      if (item.equipped && item.requiresAttunement && !item.attuned) badges.appendChild(mkBadge('Sin sintonizar: no aplica efectos', 'bg-rose-500/10 text-rose-300 border-rose-500/30', 'warning'));
+      if (badges.childElementCount > 0) card.querySelector('.expand-panel')?.before(badges);
+
+      const equipRow = document.createElement('div');
+      equipRow.className = 'flex items-center gap-1.5 flex-wrap pt-1';
+      if (isEquippable) {
+        if (item.equipped) {
+          const unBtn = document.createElement('button');
+          unBtn.type = 'button';
+          unBtn.className = 'px-2 py-0.5 rounded bg-[#10141d] text-[#cbd5e1] hover:text-amber-300 border border-[#222f42] text-[10px] font-bold cursor-pointer';
+          unBtn.textContent = 'Quitar';
+          unBtn.addEventListener('click', () => characterStore.unequipItem(item.id));
+          equipRow.appendChild(unBtn);
+        } else {
+          const slots = validSlotsFor(item);
+          const sel = document.createElement('select');
+          sel.className = 'bg-[#10141d] text-[#cbd5e1] border border-[#222f42] rounded text-[10px] px-1 py-0.5';
+          slots.forEach((s) => {
+            const o = document.createElement('option');
+            o.value = s;
+            o.textContent = SLOT_LABELS[s];
+            sel.appendChild(o);
+          });
+          const eqBtn = document.createElement('button');
+          eqBtn.type = 'button';
+          eqBtn.className = 'px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 hover:bg-amber-500 hover:text-[#0a0d12] border border-amber-500/30 text-[10px] font-bold cursor-pointer';
+          eqBtn.textContent = 'Equipar';
+          eqBtn.addEventListener('click', () => {
+            const res = characterStore.equipItem(item.id, sel.value as EquipSlot);
+            if (res.error) showAlert(res.error, { kind: 'warning' });
+            else if (res.unequipped.length > 0) {
+              showAlert(`Se quitó ${res.unequipped.map((u) => u.name).join(', ')} para equipar ${item.name}.`, { kind: 'warning' });
+            }
+          });
+          equipRow.append(sel, eqBtn);
+        }
+      }
+      if (item.requiresAttunement || item.attuned) {
+        const atBtn = document.createElement('button');
+        atBtn.type = 'button';
+        atBtn.className = 'px-2 py-0.5 rounded bg-violet-500/15 text-violet-300 hover:bg-violet-500/30 border border-violet-500/30 text-[10px] font-bold cursor-pointer';
+        atBtn.textContent = item.attuned ? 'Quitar sintonía' : 'Sintonizar';
+        atBtn.addEventListener('click', () => {
+          if (item.attuned) { characterStore.unattuneItem(item.id); return; }
+          const res = characterStore.attuneItem(item.id);
+          if (res.error) showAlert(res.error, { kind: 'warning' });
+        });
+        equipRow.appendChild(atBtn);
+      }
+      if (equipRow.childElementCount > 0) card.querySelector('.expand-panel')?.before(equipRow);
+
       // Helper function to trigger delete modal
       const triggerItemDelete = () => {
         window.dispatchEvent(new CustomEvent('open-delete-modal', {
@@ -354,7 +428,7 @@
             type: 'inventory',
             id: item.id,
             name: item.name,
-            category: item.category === 'potion' ? 'Poción' : item.category === 'weapon' ? 'Arma' : item.category === 'treasure' ? 'Tesoro' : 'Equipo',
+            category: item.category === 'potion' ? 'Poción' : item.category === 'weapon' ? 'Arma' : item.category === 'armor' ? 'Armadura' : item.category === 'treasure' ? 'Tesoro' : 'Equipo',
             icon: item.icon || 'inventory_2',
             quantity: item.quantity,
             title: '¿Eliminar de la mochila?',
