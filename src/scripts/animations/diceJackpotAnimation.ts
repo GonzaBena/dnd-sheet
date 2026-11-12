@@ -30,15 +30,20 @@ export function animateJackpotRoll(
   reelContainer.innerHTML = '';
   const reelSlots: { box: HTMLElement; strip: HTMLElement; finalVal: number }[] = [];
 
+  const isCompact = count > 4;
   // Create perfectly rigid, fixed-size reel boxes with overflow-hidden
   finalRolls.forEach((finalVal, i) => {
     // 1. Rigid outer container that NEVER moves or resizes
     const box = document.createElement('div');
-    box.className = 'w-16 h-20 sm:w-20 sm:h-24 rounded-2xl bg-[#10141d] border-2 border-amber-500/30 flex items-center justify-center relative overflow-hidden shadow-[inset_0_2px_12px_rgba(0,0,0,0.8)] shrink-0';
+    box.className = isCompact
+      ? 'w-12 h-14 sm:w-14 sm:h-16 rounded-xl bg-[#10141d] border-2 border-amber-500/30 flex items-center justify-center relative overflow-hidden shadow-[inset_0_2px_12px_rgba(0,0,0,0.8)] shrink-0'
+      : 'w-16 h-20 sm:w-20 sm:h-24 rounded-2xl bg-[#10141d] border-2 border-amber-500/30 flex items-center justify-center relative overflow-hidden shadow-[inset_0_2px_12px_rgba(0,0,0,0.8)] shrink-0';
 
     // 2. Inner rolling element containing numbers with tabular numerals
     const strip = document.createElement('div');
-    strip.className = 'w-full flex flex-col items-center justify-center text-3xl sm:text-4xl font-headline font-bold text-amber-300 tabular-nums select-none leading-none';
+    strip.className = isCompact
+      ? 'w-full flex flex-col items-center justify-center text-xl sm:text-2xl font-headline font-bold text-amber-300 tabular-nums select-none leading-none'
+      : 'w-full flex flex-col items-center justify-center text-3xl sm:text-4xl font-headline font-bold text-amber-300 tabular-nums select-none leading-none';
     
     // Initial display
     strip.textContent = '?';
@@ -51,7 +56,7 @@ export function animateJackpotRoll(
   let finishedCount = 0;
 
   reelSlots.forEach(({ box, strip, finalVal }, i) => {
-    const duration = 1100 + (i * 250);
+    const duration = 900 + Math.min(i * 180, 900);
 
     // Rapidly cycle numbers without ANY transform on the outer box
     const interval = setInterval(() => {

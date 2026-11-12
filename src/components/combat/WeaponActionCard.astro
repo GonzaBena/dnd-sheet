@@ -98,13 +98,10 @@
           </div>
 
           <div class="flex items-center gap-1.5 shrink-0">
-            <button class="roll-atk-btn px-2.5 py-1.5 rounded-lg bg-gradient-to-r from-amber-600 to-amber-500 text-[#0a0d12] text-xs font-bold shadow-sm hover:brightness-110 active:scale-95 transition-all flex items-center gap-1 cursor-pointer" title="Tirar Ataque con ${act.name}">
-              <span class="material-symbols-outlined text-[14px]">casino</span>
-              <span>${act.bonus}</span>
-            </button>
-            <button class="roll-dmg-btn px-2.5 py-1.5 rounded-lg bg-[#121721] border border-[#222f42] hover:border-amber-500/40 text-amber-300 text-xs font-bold active:scale-95 transition-all flex items-center gap-1 cursor-pointer" title="Tirar Daño (${act.damage})">
-              <span class="material-symbols-outlined text-[14px] text-amber-500">flash_on</span>
-              <span>Daño</span>
+            <button class="roll-atk-btn px-3 py-1.5 rounded-lg bg-gradient-to-r from-amber-600 to-amber-500 text-[#0a0d12] text-xs font-headline font-extrabold shadow-sm hover:brightness-110 active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer" title="Atacar con ${act.name} (${act.bonus} al impacto → ${act.damage} ${act.damageType})">
+              <span class="material-symbols-outlined text-[15px]">swords</span>
+              <span>Atacar</span>
+              <span class="px-1.5 py-0.2 rounded bg-[#0a0d12]/20 text-[#0a0d12] font-mono text-[10px] font-bold">${act.bonus}</span>
             </button>
             <button class="edit-weapon-btn w-6 h-6 rounded hover:bg-amber-500/20 text-[#94a3b8] hover:text-amber-400 flex sm:hidden sm:group-hover:flex items-center justify-center transition-colors cursor-pointer ml-0.5" title="Editar arma y modificadores">
               <span class="material-symbols-outlined text-[14px]">edit</span>
@@ -224,9 +221,19 @@
         onTrigger: triggerWeaponDelete
       });
 
-      // Attack roll button click
+      const parseDamageFormula = (dmgStr: string) => {
+        const match = (dmgStr || '').match(/(\d+)d(\d+)(?:\s*([+-])\s*(\d+))?/);
+        const count = match ? parseInt(match[1]) || 1 : 1;
+        const die = match ? parseInt(match[2]) || 8 : 8;
+        const sign = match && match[3] === '-' ? -1 : 1;
+        const mod = match && match[4] ? sign * parseInt(match[4]) : 0;
+        return { count, die, mod };
+      };
+
+      // Attack roll button click (encadena automáticamente la tirada de daño del arma tras el d20)
       const triggerAtkRoll = (isSecret = false) => {
         const bonusNum = parseInt(act.bonus.replace(/[^0-9-]/g, '')) || 0;
+        const dmg = parseDamageFormula(act.damage);
         window.dispatchEvent(new CustomEvent('open-dice-roller', {
           detail: {
             die: 20,
@@ -234,52 +241,27 @@
             modifier: bonusNum,
             label: isSecret ? `Ataque Secreto con ${act.name}` : `Ataque con ${act.name}`,
             tag: isSecret ? '#Privado' : '#Combate',
-            isSecret
+            isSecret,
+            followUpDamage: {
+              count: dmg.count,
+              die: dmg.die,
+              modifier: dmg.mod,
+              damageType: act.damageType || 'Físico',
+              weaponOrSpellName: act.name,
+            }
           }
         }));
       };
 
       const atkBtn = card.querySelector('.roll-atk-btn');
       if (atkBtn) {
-        atkBtn.setAttribute('title', `Tirar ataque de ${act.name} • Clic derecho o Shift+Clic para Tirada Secreta`);
+        atkBtn.setAttribute('title', `Atacar con ${act.name} (${act.bonus} al impacto → ${act.damage} ${act.damageType}) • Clic derecho o Shift+Clic para Tirada Secreta`);
         atkBtn.addEventListener('click', (e: any) => {
           triggerAtkRoll(Boolean(e.shiftKey || e.altKey));
         });
         atkBtn.addEventListener('contextmenu', (e) => {
           e.preventDefault();
           triggerAtkRoll(true);
-        });
-      }
-
-      // Damage roll button click
-      const triggerDmgRoll = (isSecret = false) => {
-        const match = act.damage.match(/(\d+)d(\d+)(?:\s*([+-])\s*(\d+))?/);
-        const count = match ? parseInt(match[1]) || 1 : 1;
-        const die = match ? parseInt(match[2]) || 8 : 8;
-        const sign = match && match[3] === '-' ? -1 : 1;
-        const mod = match && match[4] ? sign * parseInt(match[4]) : 0;
-
-        window.dispatchEvent(new CustomEvent('open-dice-roller', {
-          detail: {
-            die,
-            count,
-            modifier: mod,
-            label: isSecret ? `Daño Secreto de ${act.name} (${act.damageType})` : `Daño de ${act.name} (${act.damageType})`,
-            tag: isSecret ? '#Privado' : '#Combate',
-            isSecret
-          }
-        }));
-      };
-
-      const dmgBtn = card.querySelector('.roll-dmg-btn');
-      if (dmgBtn) {
-        dmgBtn.setAttribute('title', `Tirar daño de ${act.name} • Clic derecho o Shift+Clic para Tirada Secreta`);
-        dmgBtn.addEventListener('click', (e: any) => {
-          triggerDmgRoll(Boolean(e.shiftKey || e.altKey));
-        });
-        dmgBtn.addEventListener('contextmenu', (e) => {
-          e.preventDefault();
-          triggerDmgRoll(true);
         });
       }
 

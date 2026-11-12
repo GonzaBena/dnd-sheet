@@ -175,6 +175,21 @@
           <option value="Transmutación">Transmutación</option>
         </select>
 
+        <!-- Equipment Subtype Filter -->
+        <select
+          id="compendium-equipment-subtype"
+          class="hidden px-2.5 py-2 rounded-xl bg-[#18202e] border border-[#222f42] text-[#cbd5e1] text-xs focus:border-amber-500 focus:outline-none cursor-pointer"
+        >
+          <option value="">Todos los Objetos y Consumibles</option>
+          <option value="consumable">🧪 Consumibles y Pociones</option>
+          <option value="tools">🛠️ Herramientas y Kits</option>
+          <option value="packs">🎒 Paquetes de Aventura</option>
+          <option value="ammunition">🏹 Munición</option>
+          <option value="focus">🔮 Focos y Símbolos Arcanos</option>
+          <option value="mount">🐎 Monturas y Vehículos</option>
+          <option value="general">📦 Equipo de Aventura General</option>
+        </select>
+
         <!-- Weapons Type Filter -->
         <select
           id="compendium-weapon-type"
@@ -263,6 +278,7 @@
 
 <script>
   import { toCatalogEntry } from '../../scripts/dnd/catalog';
+  import { wornSlotsFor, SLOT_LABELS } from '../../scripts/dnd/equipment';
   import { dndApiService, type UnifiedSpell, type UnifiedEquipment, type UnifiedMagicItem, type UnifiedFeat, type UnifiedClass, type UnifiedSpecies } from '../../scripts/api/dndApiService';
   import { srdCacheManager, type SrdEdition } from '../../scripts/api/srdCacheManager';
   import { characterStore } from '../../scripts/state/characterStore';
@@ -287,6 +303,7 @@
   const filterContainer = document.getElementById('compendium-filter-container');
   const spellLevelSel = document.getElementById('compendium-spell-level') as HTMLSelectElement;
   const spellSchoolSel = document.getElementById('compendium-spell-school') as HTMLSelectElement;
+  const equipSubtypeSel = document.getElementById('compendium-equipment-subtype') as HTMLSelectElement;
   const weaponTypeSel = document.getElementById('compendium-weapon-type') as HTMLSelectElement;
   const magicRaritySel = document.getElementById('compendium-magic-rarity') as HTMLSelectElement;
   const modalTitle = document.getElementById('compendium-modal-title');
@@ -319,6 +336,13 @@
       title: 'Compendio de Armas de Combate',
       subtitle: 'Armas cuerpo a cuerpo, a distancia y maestrías (2024 / 2014)',
       placeholder: 'Buscar arma por nombre, tipo de daño o maestría...'
+    },
+    armor: {
+      allowedCategories: ['armor'],
+      defaultCategory: 'armor',
+      title: 'Compendio de Armaduras, Escudos y Equipo Puesto',
+      subtitle: 'Armaduras, escudos y prendas equipables compatibles con tus ranuras (2024 / 2014)',
+      placeholder: 'Buscar armadura, escudo, casco, capa, botas, guantes o anillo...'
     },
     feats: {
       allowedCategories: ['feats'],
@@ -398,6 +422,10 @@
       if (activeCategory === 'spells') spellSchoolSel.classList.remove('hidden');
       else spellSchoolSel.classList.add('hidden');
     }
+    if (equipSubtypeSel) {
+      if (activeCategory === 'equipment') equipSubtypeSel.classList.remove('hidden');
+      else equipSubtypeSel.classList.add('hidden');
+    }
     if (weaponTypeSel) {
       if (activeCategory === 'weapons') weaponTypeSel.classList.remove('hidden');
       else weaponTypeSel.classList.add('hidden');
@@ -408,7 +436,7 @@
     }
 
     if (filterContainer) {
-      const hasVisibleFilters = activeCategory === 'spells' || activeCategory === 'weapons' || activeCategory === 'magic-items';
+      const hasVisibleFilters = activeCategory === 'spells' || activeCategory === 'equipment' || activeCategory === 'weapons' || activeCategory === 'magic-items';
       if (hasVisibleFilters) filterContainer.classList.remove('hidden');
       else filterContainer.classList.add('hidden');
     }
@@ -452,6 +480,7 @@
 
   spellLevelSel?.addEventListener('change', filterAndRenderResults);
   spellSchoolSel?.addEventListener('change', filterAndRenderResults);
+  equipSubtypeSel?.addEventListener('change', filterAndRenderResults);
   weaponTypeSel?.addEventListener('change', filterAndRenderResults);
   magicRaritySel?.addEventListener('change', filterAndRenderResults);
 
@@ -468,11 +497,22 @@
       if (activeCategory === 'spells') {
         currentResults = await dndApiService.searchSpells(activeEdition);
       } else if (activeCategory === 'equipment') {
-        currentResults = await dndApiService.searchEquipment(activeEdition, { category: 'gear' });
+        currentResults = await dndApiService.searchEquipment(activeEdition, { category: 'gear-and-potion' });
       } else if (activeCategory === 'weapons') {
         currentResults = await dndApiService.searchEquipment(activeEdition, { category: 'weapon' });
       } else if (activeCategory === 'armor') {
-        currentResults = await dndApiService.searchEquipment(activeEdition, { category: 'armor' });
+        const mundaneArmor = await dndApiService.searchEquipment(activeEdition, { category: 'armor' });
+        if (currentScope === 'armor') {
+          const allMagic = await dndApiService.searchMagicItems(activeEdition);
+          const wearableMagic = allMagic.filter(mi => {
+            const payload = dndApiService.toInventoryPayload(mi);
+            if (payload.category === 'weapon') return false;
+            return payload.category === 'armor' || wornSlotsFor(payload as any).length > 0;
+          });
+          currentResults = [...mundaneArmor, ...wearableMagic];
+        } else {
+          currentResults = mundaneArmor;
+        }
       } else if (activeCategory === 'magic-items') {
         currentResults = await dndApiService.searchMagicItems(activeEdition);
       } else if (activeCategory === 'feats') {
@@ -508,6 +548,16 @@
         }
         return true;
       });
+    } else if (activeCategory === 'equipment') {
+      const subtypeVal = equipSubtypeSel?.value || '';
+      filtered = filtered.filter((eq: UnifiedEquipment) => {
+        if (subtypeVal && eq.subCategory !== subtypeVal) return false;
+        if (query) {
+          const combined = `${eq.name} ${eq.nameEs} ${eq.equipmentType || ''} ${eq.description || ''} ${eq.activationCondition || ''}`.toLowerCase();
+          if (!combined.includes(query)) return false;
+        }
+        return true;
+      });
     } else if (activeCategory === 'weapons') {
       const weaponTypeVal = weaponTypeSel?.value || '';
       filtered = filtered.filter((w: UnifiedEquipment) => {
@@ -523,7 +573,7 @@
       filtered = filtered.filter((mi: UnifiedMagicItem) => {
         if (rarityVal && mi.rarityEs !== rarityVal) return false;
         if (query) {
-          const combined = `${mi.name} ${mi.nameEs || ''} ${mi.description || ''} ${mi.rarity || ''} ${mi.rarityEs || ''}`.toLowerCase();
+          const combined = `${mi.name} ${mi.nameEs || ''} ${mi.category || ''} ${mi.description || ''} ${mi.rarity || ''} ${mi.rarityEs || ''}`.toLowerCase();
           if (!combined.includes(query)) return false;
         }
         return true;
@@ -587,15 +637,37 @@
       `;
       subtitle = `${item.attackType || 'Cuerpo a cuerpo'} • ${item.cost || 'Común'}`;
     } else if (activeCategory === 'armor') {
-      badges = `
-        <span class="text-[9px] px-1.5 py-0.5 rounded bg-sky-500/10 text-sky-400 border border-sky-500/30 font-bold">${item.armorClass || 'Armadura'}</span>
-      `;
-      subtitle = `${item.cost || ''} • ${item.weight ? `${item.weight} lb` : ''}`;
+      if ('rarity' in item) {
+        const slots = wornSlotsFor(dndApiService.toInventoryPayload(item) as any);
+        const slotText = slots[0] ? SLOT_LABELS[slots[0]] : 'Equipable';
+        badges = `
+          <span class="text-[9px] px-1.5 py-0.5 rounded bg-sky-500/10 text-sky-400 border border-sky-500/30 font-bold">🛡️ ${slotText}</span>
+          <span class="text-[9px] px-1.5 py-0.5 rounded bg-purple-500/10 text-purple-400 border border-purple-500/30 font-bold">${item.rarityEs || 'Mágico'}</span>
+        `;
+        subtitle = [item.category || 'Objeto maravilloso', item.attunement ? 'Requiere sintonización' : ''].filter(Boolean).join(' • ');
+      } else {
+        badges = `
+          <span class="text-[9px] px-1.5 py-0.5 rounded bg-sky-500/10 text-sky-400 border border-sky-500/30 font-bold">${item.armorClass || 'Armadura'}</span>
+        `;
+        subtitle = [item.cost || '', item.weight ? `${item.weight} lb` : ''].filter(Boolean).join(' • ');
+      }
     } else if (activeCategory === 'magic-items') {
       badges = `
         <span class="text-[9px] px-1.5 py-0.5 rounded bg-purple-500/10 text-purple-400 border border-purple-500/30 font-bold">${item.rarityEs || 'Mágico'}</span>
+        ${item.attunement ? `<span class="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/30">Sintonía</span>` : ''}
       `;
       subtitle = item.category || 'Objeto';
+    } else if (activeCategory === 'equipment') {
+      const usableBadge = item.usableType === 'drinkable'
+        ? `<span class="text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 font-bold">🧪 Bebible</span>`
+        : item.usableType === 'edible'
+        ? `<span class="text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 font-bold">🍖 Comestible</span>`
+        : item.usableType === 'usable'
+        ? `<span class="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-300 border border-amber-500/30 font-bold">⚡ Usable</span>`
+        : '';
+      const costBadge = item.cost ? `<span class="text-[9px] px-1.5 py-0.5 rounded bg-[#1e293b] text-[#94a3b8]">${item.cost}</span>` : '';
+      badges = `${usableBadge}${costBadge}`;
+      subtitle = [item.equipmentType, item.weight ? `${item.weight} lb` : ''].filter(Boolean).join(' • ');
     } else {
       subtitle = item.equipmentType || item.prerequisites || '';
     }
@@ -701,15 +773,73 @@
           </div>
         ` : ''}
       `;
+    } else if (activeCategory === 'equipment' || activeCategory === 'armor') {
+      if ('rarity' in item) {
+        const mi = item as UnifiedMagicItem;
+        const slots = wornSlotsFor(dndApiService.toInventoryPayload(mi) as any);
+        const slotText = slots[0] ? SLOT_LABELS[slots[0]] : 'Equipable';
+        mainBadge = `${slotText} • ${mi.rarityEs}`;
+        if (addBtnText) addBtnText.textContent = 'Añadir a la Mochila';
+
+        metaHtml = `
+          <div class="flex flex-wrap items-center gap-2">
+            <span class="text-xs px-2.5 py-1 rounded-lg bg-sky-500/20 text-sky-300 border border-sky-500/40 font-bold">
+              🛡️ Ranura: ${slotText}
+            </span>
+            <span class="text-xs px-2.5 py-1 rounded-lg bg-purple-500/20 text-purple-300 border border-purple-500/40 font-bold">
+              ${mi.rarityEs}
+            </span>
+            <span class="text-xs px-2.5 py-1 rounded-lg bg-[#10141d] text-[#cbd5e1] border border-[#222f42] font-bold">
+              ${mi.category}
+            </span>
+            ${mi.attunement ? `
+              <span class="text-xs px-2.5 py-1 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/40 font-bold">
+                Requiere Sintonización
+              </span>
+            ` : ''}
+          </div>
+        `;
+      } else {
+        const eq = item as UnifiedEquipment;
+        mainBadge = eq.equipmentType || (activeCategory === 'armor' ? 'Armadura' : 'Equipo');
+        if (addBtnText) addBtnText.textContent = 'Añadir a la Mochila';
+
+        const useLabel = eq.usableType === 'drinkable'
+          ? '🧪 Consumible (Bebible)'
+          : eq.usableType === 'edible'
+          ? '🍖 Consumible (Comestible)'
+          : eq.usableType === 'usable'
+          ? '⚡ Objeto Usable en Juego'
+          : eq.armorClass
+          ? `🛡️ Equipable (${eq.armorClass})`
+          : '🎒 Equipo de Mochila';
+
+        metaHtml = `
+          <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 p-3 rounded-xl bg-[#10141d] border border-[#222f42] text-xs">
+            <div><span class="text-[#64748b] block text-[10px]">Tipo / Uso:</span><span class="font-bold text-amber-300">${useLabel}</span></div>
+            <div><span class="text-[#64748b] block text-[10px]">Coste:</span><span class="font-bold text-[#f1f5f9]">${eq.cost || '—'}</span></div>
+            <div><span class="text-[#64748b] block text-[10px]">Peso:</span><span class="font-bold text-[#f1f5f9]">${eq.weight ? `${eq.weight} lb` : '—'}</span></div>
+          </div>
+          ${eq.activationCondition ? `
+            <div class="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-xs text-emerald-300 flex items-center gap-2">
+              <span class="material-symbols-outlined text-[16px]">bolt</span>
+              <span><strong>Regla de Uso:</strong> ${eq.activationCondition}${eq.healAmount ? ` • Cura ~${eq.healAmount} PG` : ''}</span>
+            </div>
+          ` : ''}
+        `;
+      }
     } else if (activeCategory === 'magic-items') {
       const mi = item as UnifiedMagicItem;
       mainBadge = mi.rarityEs;
       if (addBtnText) addBtnText.textContent = 'Añadir a la Mochila';
 
       metaHtml = `
-        <div class="flex items-center gap-2">
+        <div class="flex flex-wrap items-center gap-2">
           <span class="text-xs px-2.5 py-1 rounded-lg bg-purple-500/20 text-purple-300 border border-purple-500/40 font-bold">
             ${mi.rarityEs}
+          </span>
+          <span class="text-xs px-2.5 py-1 rounded-lg bg-[#10141d] text-[#cbd5e1] border border-[#222f42] font-bold">
+            ${mi.category}
           </span>
           ${mi.attunement ? `
             <span class="text-xs px-2.5 py-1 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/40 font-bold">
@@ -860,7 +990,8 @@
     syncEditionWithCharacter();
     const reqScope = e.detail?.scope || (e.detail?.category === 'spells' ? 'spells' :
                      e.detail?.category === 'weapons' ? 'weapons' :
-                     (e.detail?.category === 'equipment' || e.detail?.category === 'magic-items' || e.detail?.category === 'armor') ? 'inventory' :
+                     e.detail?.category === 'armor' ? 'armor' :
+                     (e.detail?.category === 'equipment' || e.detail?.category === 'magic-items') ? 'inventory' :
                      e.detail?.category === 'feats' ? 'feats' :
                      e.detail?.category === 'classes' ? 'classes' : 'all');
 

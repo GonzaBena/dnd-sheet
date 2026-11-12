@@ -21,11 +21,15 @@ export interface EquipResult {
 
 // DECISION: los objetos creados a mano no traen `armor`, así que el escudo también se reconoce por
 // nombre (escudo/rodela/broquel/shield) y una armadura sin datos va al cuerpo. Si no, un escudo
-// manual se ofrecería para cabeza o anillos.
+// manual se ofrecería para cabeza o anillos. Se excluyen pergaminos, pociones y kits consumibles.
 const SHIELD_NAME = /\b(escudo|rodela|broquel|adarga|pavés|shield)\b/i;
+const CONSUMABLE_OR_KIT_NAME = /\b(pergamino|poci[oó]n|elixir|vial|frasco|botiqu[ií]n|kit|raci[oó]n|scroll|potion|flask|healer)\b/i;
 export const isShield = (i: InventoryItem) =>
-  i.armor?.category === 'shield' || (i.category === 'armor' && !i.armor && SHIELD_NAME.test(i.name)) ||
-  (!i.armor && i.category !== 'weapon' && SHIELD_NAME.test(i.name));
+  i.armor?.category === 'shield' ||
+  (!CONSUMABLE_OR_KIT_NAME.test(i.name) && (
+    (i.category === 'armor' && !i.armor && SHIELD_NAME.test(i.name)) ||
+    (!i.armor && i.category !== 'weapon' && i.category !== 'potion' && (!i.usableType || i.usableType === 'none') && SHIELD_NAME.test(i.name))
+  ));
 const isWeapon = (i: InventoryItem) => i.category === 'weapon' || !!i.weapon;
 const isBodyArmor = (i: InventoryItem) => !isShield(i) && (!!i.armor || i.category === 'armor');
 
@@ -33,18 +37,18 @@ const isBodyArmor = (i: InventoryItem) => !isShield(i) && (!!i.armor || i.catego
 export const isDefenseItem = (i: InventoryItem) => isShield(i) || isBodyArmor(i);
 
 // DECISION: un objeto genérico no dice dónde se lleva, así que para ofrecerlo en un slot de prenda se
-// infiere por el nombre (casco→cabeza, anillo→anillos...). Sin pista no se ofrece en ninguno: no tiene
-// sentido sugerir una flecha para la cabeza. `validSlotsFor` sigue siendo permisivo para equipar a mano.
+// infiere por el nombre (casco→cabeza, anillo→anillos...) o por `equipSlot` explícito. Sin pista no se
+// ofrece en ninguno: no tiene sentido equipar un botiquín de curandero o una cuerda en la cabeza.
 const L = '(?<![\\p{L}])';
 const R = '(?![\\p{L}])';
 const NAME_SLOTS: [RegExp, EquipSlot[]][] = [
-  [new RegExp(`${L}(armadura|coraza|cota|peto|brigantina|jub[oó]n|armou?r|mail|breastplate|plate)s?${R}`, 'iu'), ['body']],
-  [new RegExp(`${L}(casco|yelmo|sombrero|capucha|corona|diadema|tiara|gorro|helm|hat|circlet|crown)s?${R}`, 'iu'), ['head']],
-  [new RegExp(`${L}(amuleto|collar|colgante|medall[oó]n|talism[aá]n|amulet|necklace|periapt|pendant)s?${R}`, 'iu'), ['neck']],
+  [new RegExp(`${L}(armadura|coraza|cota|peto|brigantina|jub[oó]n|t[uú]nica|vestidura|vestimenta|armou?r|mail|breastplate|plate|robe|vestment)s?${R}`, 'iu'), ['body']],
+  [new RegExp(`${L}(casco|yelmo|sombrero|capucha|corona|diadema|tiara|gorro|gafas|lentes|helm|hat|circlet|crown|headband|goggles)s?${R}`, 'iu'), ['head']],
+  [new RegExp(`${L}(amuleto|collar|colgante|medall[oó]n|talism[aá]n|periapto|broche|escarabajo|amulet|necklace|periapt|pendant|medallion|talisman|brooch|scarab)s?${R}`, 'iu'), ['neck']],
   [new RegExp(`${L}(anillo|sortija|ring)s?${R}`, 'iu'), ['ring1', 'ring2']],
-  [new RegExp(`${L}(capa|manto|cloak|cape|mantle)s?${R}`, 'iu'), ['cloak']],
-  [new RegExp(`${L}(guante|guantelete|manopla|glove|gauntlet)s?${R}`, 'iu'), ['gloves']],
-  [new RegExp(`${L}(bota|zapato|sandalia|boot|shoe)s?${R}`, 'iu'), ['boots']],
+  [new RegExp(`${L}(capa|manto|cintur[oó]n|cloak|cape|mantle|belt)s?${R}`, 'iu'), ['cloak']],
+  [new RegExp(`${L}(guante|guantelete|manopla|brazal|brazalete|glove|gauntlet|bracer)s?${R}`, 'iu'), ['gloves']],
+  [new RegExp(`${L}(bota|zapato|sandalia|zapatilla|boot|shoe|slipper)s?${R}`, 'iu'), ['boots']],
 ];
 
 /**
@@ -63,16 +67,25 @@ export function wornSlotsFor(item: InventoryItem): EquipSlot[] {
   if (item.category === 'potion' || item.category === 'treasure' || isWeapon(item)) return [];
   if (isShield(item)) return ['shield'];
   if (item.armor && item.armor.category !== 'shield') return ['body'];
+  if (item.equipSlot) {
+    if (item.equipSlot === 'ring1' || item.equipSlot === 'ring2') return ['ring1', 'ring2'];
+    return [item.equipSlot];
+  }
+  if (CONSUMABLE_OR_KIT_NAME.test(item.name)) return [];
+  if (item.usableType && item.usableType !== 'none' && item.usableType !== 'usable') return [];
   for (const [re, slots] of NAME_SLOTS) if (re.test(item.name)) return slots;
   return isBodyArmor(item) ? ['body'] : [];
 }
 
-/** Slots válidos según el tipo de objeto. El resto de objetos va al slot que elija el jugador. */
+/** Slots válidos según el tipo de objeto. Objetos genéricos, herramientas y consumibles no tienen slot corporal. */
 export function validSlotsFor(item: InventoryItem): EquipSlot[] {
   if (isShield(item)) return ['shield'];
   if (isBodyArmor(item)) return ['body'];
   if (isWeapon(item)) return item.hands === 2 ? ['mainHand'] : ['mainHand', 'offHand'];
-  return EQUIP_SLOTS.filter((s) => s !== 'mainHand' && s !== 'offHand' && s !== 'shield' && s !== 'body');
+  if (item.equipSlot === 'mainHand' || item.equipSlot === 'offHand') {
+    return item.hands === 2 ? ['mainHand'] : ['mainHand', 'offHand'];
+  }
+  return wornSlotsFor(item);
 }
 
 const stripEquip = (i: InventoryItem): InventoryItem => {

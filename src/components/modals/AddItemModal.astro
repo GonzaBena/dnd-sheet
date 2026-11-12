@@ -52,13 +52,33 @@ const lblCls = 'text-[#94a3b8] block mb-1 text-[12.5px] font-semibold';
                 <span>Buscar en el compendio</span>
               </button>
             </div>
-            <input
-              type="text"
-              id="item-name-input"
-              autocomplete="off"
-              placeholder="Cota de malla, Poción de curación, Reliquia…"
-              class={inputCls}
-            />
+            <div class="relative">
+              <input
+                type="text"
+                id="item-name-input"
+                autocomplete="off"
+                placeholder="Escribe para buscar en español o inglés (ej. Botiquín, Poción, Cuerda, Cota de malla)…"
+                class={inputCls}
+              />
+              <!-- Sugerencias rápidas del SRD en vivo -->
+              <div
+                id="item-srd-suggestions"
+                class="hidden absolute left-0 right-0 top-full mt-1 z-30 max-h-60 overflow-y-auto rounded-xl bg-[#10141d] border border-amber-500/40 shadow-[0_15px_35px_rgba(0,0,0,0.9)] divide-y divide-[#1e293b]/60"
+              ></div>
+            </div>
+            <div id="item-srd-prefill-banner" class="hidden mt-2 p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-between gap-2 text-xs">
+              <div class="text-emerald-300 flex items-center gap-1.5 min-w-0">
+                <span class="material-symbols-outlined text-[16px] shrink-0">check_circle</span>
+                <span class="truncate" id="item-srd-prefill-text">Datos del SRD cargados automáticamente</span>
+              </div>
+              <button
+                type="button"
+                id="item-quick-save-srd-btn"
+                class="px-3 py-1 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-[#08120c] font-bold shrink-0 cursor-pointer transition-colors"
+              >
+                Guardar ahora
+              </button>
+            </div>
           </div>
 
           <div class="grid grid-cols-2 gap-3 max-[420px]:grid-cols-1">
@@ -76,6 +96,21 @@ const lblCls = 'text-[#94a3b8] block mb-1 text-[12.5px] font-semibold';
               <label class={lblCls} for="item-quantity-input">Cantidad</label>
               <input type="number" id="item-quantity-input" value="1" min="1" max="999" class={inputCls} />
             </div>
+          </div>
+
+          <div>
+            <label class={lblCls} for="item-equip-slot-select">Ranura donde se equipa <span class="font-normal text-[#64748b]">(evita equipar objetos de mochila en el cuerpo)</span></label>
+            <select id="item-equip-slot-select" class={inputCls}>
+              <option value="">Automático según nombre / Ninguna (solo mochila)</option>
+              <option value="head">🪖 Cabeza (casco, yelmo, tiara, sombrero)</option>
+              <option value="neck">📿 Cuello (amuleto, collar, medallón)</option>
+              <option value="cloak">🧥 Capa / Manto</option>
+              <option value="gloves">🧤 Guantes / Brazales / Guanteletes</option>
+              <option value="ring1">💍 Anillo / Sortija</option>
+              <option value="boots">🥾 Botas / Calzado</option>
+              <option value="armor">🛡️ Cuerpo (Armadura / Túnica)</option>
+              <option value="offHand">🛡️ Mano secundaria (Escudo)</option>
+            </select>
           </div>
 
           <div class="border-t border-[#222f42] pt-4 space-y-3.5">
@@ -159,6 +194,8 @@ const lblCls = 'text-[#94a3b8] block mb-1 text-[12.5px] font-semibold';
   import { initCustomEntry } from '../../scripts/ui/customEntry';
   import { initSteps } from '../../scripts/ui/modalSteps';
   import { showAlert } from '../../scripts/ui/notify';
+  import { dndApiService } from '../../scripts/api/dndApiService';
+  import { wornSlotsFor } from '../../scripts/dnd/equipment';
 
   const customEntry = initCustomEntry('item');
 
@@ -173,6 +210,7 @@ const lblCls = 'text-[#94a3b8] block mb-1 text-[12.5px] font-semibold';
   const editIdInp = document.getElementById('item-edit-id') as HTMLInputElement;
   const nameInp = document.getElementById('item-name-input') as HTMLInputElement;
   const catSel = document.getElementById('item-category-select') as HTMLSelectElement;
+  const equipSlotSel = document.getElementById('item-equip-slot-select') as HTMLSelectElement;
   const attuneChk = document.getElementById('item-requires-attunement') as HTMLInputElement;
   const qtyInp = document.getElementById('item-quantity-input') as HTMLInputElement;
   const usableSel = document.getElementById('item-usable-select') as HTMLSelectElement;
@@ -181,8 +219,13 @@ const lblCls = 'text-[#94a3b8] block mb-1 text-[12.5px] font-semibold';
   const descInp = document.getElementById('item-desc-input') as HTMLInputElement;
   const notesInp = document.getElementById('item-notes-input') as HTMLTextAreaElement;
   const customToggle = document.getElementById('item-custom-toggle') as HTMLInputElement | null;
+  const suggestionsBox = document.getElementById('item-srd-suggestions');
+  const prefillBanner = document.getElementById('item-srd-prefill-banner');
+  const prefillText = document.getElementById('item-srd-prefill-text');
+  const quickSaveBtn = document.getElementById('item-quick-save-srd-btn');
 
   let finalLabel = 'Guardar objeto';
+  let suggestTimeout: number | undefined;
 
   // Los pasos que existen dependen de la categoría y de "Entrada propia".
   const steps = initSteps({
@@ -198,10 +241,113 @@ const lblCls = 'text-[#94a3b8] block mb-1 text-[12.5px] font-semibold';
         : null,
   });
 
+  function hideSuggestions() {
+    suggestionsBox?.classList.add('hidden');
+  }
+
+  function applySrdSuggestion(unified: any) {
+    const payload = dndApiService.toInventoryPayload(unified);
+    nameInp.value = payload.name || unified.nameEs || unified.name || '';
+    catSel.value = payload.category || 'gear';
+    attuneChk.checked = !!payload.requiresAttunement;
+    usableSel.value = payload.usableType || 'none';
+    healInp.value = (payload.healAmount || 0).toString();
+    activationInp.value = payload.activationCondition || '';
+    descInp.value = payload.description || '';
+    notesInp.value = payload.notes || '';
+    if (equipSlotSel) equipSlotSel.value = (payload as any).equipSlot || '';
+
+    customEntry.reset('srd', payload);
+    customEntry.setCategory(catSel.value);
+    steps.refresh();
+    hideSuggestions();
+
+    if (prefillBanner && prefillText) {
+      prefillText.textContent = `✓ Cargado del SRD: ${payload.name}`;
+      prefillBanner.classList.remove('hidden');
+    }
+  }
+
+  function isArmorOrWearableItem(unified: any): boolean {
+    if ('armorClass' in unified && unified.category === 'armor') return true;
+    const payload = dndApiService.toInventoryPayload(unified) as any;
+    return payload.category === 'armor' || wornSlotsFor(payload).length > 0;
+  }
+
+  nameInp?.addEventListener('input', () => {
+    const q = nameInp.value.trim();
+    if (suggestTimeout) window.clearTimeout(suggestTimeout);
+    if (q.length < 2 || editIdInp.value) {
+      hideSuggestions();
+      return;
+    }
+    suggestTimeout = window.setTimeout(async () => {
+      const edition = characterStore.get()?.rulesEdition || '2024';
+      const currentCat = catSel.value;
+      const [eqList, miList] = await Promise.all([
+        dndApiService.searchEquipment(edition, {
+          query: q,
+          category: currentCat === 'armor' ? 'armor' : currentCat === 'weapon' ? 'weapon' : 'all',
+        }),
+        currentCat === 'weapon' ? Promise.resolve([]) : dndApiService.searchMagicItems(edition, q),
+      ]);
+      const filteredMi = currentCat === 'armor'
+        ? miList.filter(mi => isArmorOrWearableItem(mi))
+        : miList;
+      const combined = [...eqList.slice(0, 6), ...filteredMi.slice(0, 4)].slice(0, 8);
+      if (!suggestionsBox || combined.length === 0) {
+        hideSuggestions();
+        return;
+      }
+      suggestionsBox.innerHTML = combined.map((item, i) => {
+        const isMagic = 'rarity' in item;
+        const title = item.nameEs && item.nameEs !== item.name ? `${item.nameEs} <span class="text-[#64748b] font-normal">(${item.name})</span>` : item.name;
+        const badge = isMagic
+          ? `<span class="text-[10px] px-1.5 py-0.5 rounded bg-purple-500/15 text-purple-300 border border-purple-500/30">${item.rarityEs}</span>`
+          : item.usableType === 'drinkable' || item.usableType === 'edible' || item.usableType === 'usable'
+          ? `<span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">Consumible / Usable</span>`
+          : `<span class="text-[10px] px-1.5 py-0.5 rounded bg-[#1e293b] text-[#94a3b8]">${item.equipmentType || item.category}</span>`;
+
+        return `
+          <div data-srd-idx="${i}" class="p-2.5 hover:bg-[#18202e] cursor-pointer flex items-center justify-between gap-2 text-xs transition-colors">
+            <div class="min-w-0 flex-1">
+              <div class="font-bold text-[#f1f5f9] truncate">${title}</div>
+              <div class="text-[10px] text-[#94a3b8] truncate">${item.description ? item.description.slice(0, 75) : (item.cost || '')}</div>
+            </div>
+            <div class="flex items-center gap-1.5 shrink-0">
+              ${badge}
+              <span class="text-[10px] text-amber-400 font-bold">Elegir</span>
+            </div>
+          </div>
+        `;
+      }).join('');
+      suggestionsBox.classList.remove('hidden');
+
+      suggestionsBox.querySelectorAll('[data-srd-idx]').forEach(el => {
+        el.addEventListener('click', () => {
+          const idx = parseInt(el.getAttribute('data-srd-idx') || '0', 10);
+          if (combined[idx]) applySrdSuggestion(combined[idx]);
+        });
+      });
+    }, 120);
+  });
+
+  document.addEventListener('click', (e) => {
+    const t = e.target as HTMLElement;
+    if (!t.closest('#item-name-input') && !t.closest('#item-srd-suggestions')) {
+      hideSuggestions();
+    }
+  });
+
+  quickSaveBtn?.addEventListener('click', () => {
+    form?.dispatchEvent(new Event('submit', { cancelable: true }));
+  });
+
   function resetForm() {
     editIdInp.value = '';
     nameInp.value = '';
     catSel.value = 'gear';
+    if (equipSlotSel) equipSlotSel.value = '';
     attuneChk.checked = false;
     qtyInp.value = '1';
     usableSel.value = 'none';
@@ -209,6 +355,8 @@ const lblCls = 'text-[#94a3b8] block mb-1 text-[12.5px] font-semibold';
     activationInp.value = '';
     descInp.value = '';
     notesInp.value = '';
+    hideSuggestions();
+    prefillBanner?.classList.add('hidden');
     customEntry.reset('new');
     customEntry.setCategory(catSel.value);
     if (modalTitle) modalTitle.textContent = 'Añadir objeto a la mochila';
@@ -220,6 +368,7 @@ const lblCls = 'text-[#94a3b8] block mb-1 text-[12.5px] font-semibold';
     editIdInp.value = item.id;
     nameInp.value = item.name || '';
     catSel.value = item.category || 'gear';
+    if (equipSlotSel) equipSlotSel.value = item.equipSlot || '';
     attuneChk.checked = !!item.requiresAttunement;
     qtyInp.value = (item.quantity || 1).toString();
     usableSel.value = item.usableType || 'none';
@@ -227,6 +376,8 @@ const lblCls = 'text-[#94a3b8] block mb-1 text-[12.5px] font-semibold';
     activationInp.value = item.activationCondition || '';
     descInp.value = item.description || '';
     notesInp.value = item.notes || '';
+    hideSuggestions();
+    prefillBanner?.classList.add('hidden');
 
     if (modalTitle) modalTitle.textContent = 'Editar objeto de la mochila';
     if (modalSubtitle) modalSubtitle.textContent = `Ajustando propiedades y notas de "${item.name}"`;
@@ -248,6 +399,10 @@ const lblCls = 'text-[#94a3b8] block mb-1 text-[12.5px] font-semibold';
       // Atajo de "Añadir defensa": abre con la categoría ya elegida.
       catSel.value = e.detail.category;
       customEntry.setCategory(catSel.value);
+      if (e.detail.category === 'armor') {
+        if (modalTitle) modalTitle.textContent = 'Añadir armadura o defensa';
+        if (modalSubtitle) modalSubtitle.textContent = 'Armaduras, escudos y prendas equipables en las ranuras del personaje.';
+      }
     }
     steps.reset();
     if (modal && backdrop) openModal(modal, backdrop);
@@ -255,9 +410,16 @@ const lblCls = 'text-[#94a3b8] block mb-1 text-[12.5px] font-semibold';
 
   document.getElementById('item-open-compendium-btn')?.addEventListener('click', () => {
     const q = nameInp.value.trim();
+    const isArmor = catSel.value === 'armor';
+    const isWeapon = catSel.value === 'weapon';
     if (modal && backdrop) closeModal(modal, backdrop);
     window.dispatchEvent(new CustomEvent('open-compendium-modal', {
-      detail: { scope: 'inventory', category: 'equipment', query: q, targetModal: 'add-item' }
+      detail: {
+        scope: isArmor ? 'armor' : isWeapon ? 'weapons' : 'inventory',
+        category: isArmor ? 'armor' : isWeapon ? 'weapons' : 'equipment',
+        query: q,
+        targetModal: 'add-item'
+      }
     }));
   });
 
@@ -300,6 +462,7 @@ const lblCls = 'text-[#94a3b8] block mb-1 text-[12.5px] font-semibold';
     const cat = catSel.value as any;
     const usableType = (usableSel?.value || 'none') as any;
     const healAmount = parseInt(healInp?.value || '0') || 0;
+    const equipSlot = (equipSlotSel?.value || undefined) as any;
 
     if (usableType === 'drinkable' || cat === 'potion') icon = 'medication';
     else if (usableType === 'edible') icon = 'lunch_dining';
@@ -319,6 +482,7 @@ const lblCls = 'text-[#94a3b8] block mb-1 text-[12.5px] font-semibold';
       ...custom.patch,
       name,
       category: cat,
+      ...(equipSlot ? { equipSlot } : { equipSlot: undefined }),
       requiresAttunement: attuneChk.checked || undefined,
       quantity: parseInt(qtyInp.value || '1') || 1,
       description: descInp.value.trim(),
@@ -336,6 +500,8 @@ const lblCls = 'text-[#94a3b8] block mb-1 text-[12.5px] font-semibold';
     }
 
     form.reset();
+    hideSuggestions();
+    prefillBanner?.classList.add('hidden');
     if (modal && backdrop) closeModal(modal, backdrop);
     if (custom.imageRejected) {
       showAlert('La imagen se descartó: solo se admiten URLs https:// o data:image/ cortas. El objeto se guardó sin imagen.', { kind: 'warning', title: 'Imagen no válida' });

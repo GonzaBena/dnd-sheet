@@ -109,6 +109,7 @@ export interface InventoryItem {
   // Equipo (Spec 08, Fase A)
   equipped?: boolean;
   slot?: EquipSlot;
+  equipSlot?: EquipSlot;
   hands?: 1 | 2;
   attuned?: boolean;
   requiresAttunement?: boolean;
@@ -118,6 +119,7 @@ export interface InventoryItem {
   icon?: string;
   usableType?: 'none' | 'potion' | 'drinkable' | 'edible' | 'usable';
   healAmount?: number;
+  healDice?: string;
   activationCondition?: string;
   notes?: string;
   // Catálogo (Spec 07, Fase C)

@@ -21,7 +21,7 @@ test('equipItem en slot libre equipa y no desequipa nada', () => {
 });
 
 test('equipItem en slot ocupado desequipa el anterior y lo devuelve', () => {
-  let r = equipItem([gear('a'), gear('b')], 'a', 'head');
+  let r = equipItem([gear('a', { name: 'Casco A' }), gear('b', { name: 'Casco B' })], 'a', 'head');
   r = equipItem(r.inventory, 'b', 'head');
   assert.deepStrictEqual(r.unequipped.map((i) => i.id), ['a']);
   assert.strictEqual(byId(r.inventory, 'a').equipped, false);
@@ -80,7 +80,7 @@ test('armadura sin datos va al cuerpo; un objeto común no puede ir al slot shie
 });
 
 test('dos anillos conviven; un tercero en ring1 reemplaza al primero', () => {
-  let r = equipItem([gear('r1'), gear('r2'), gear('r3')], 'r1', 'ring1');
+  let r = equipItem([gear('r1', { name: 'Anillo 1' }), gear('r2', { name: 'Anillo 2' }), gear('r3', { name: 'Anillo 3' })], 'r1', 'ring1');
   r = equipItem(r.inventory, 'r2', 'ring2');
   assert.deepStrictEqual(r.unequipped, []);
   r = equipItem(r.inventory, 'r3', 'ring1');
@@ -90,7 +90,7 @@ test('dos anillos conviven; un tercero en ring1 reemplaza al primero', () => {
 });
 
 test('mover un objeto equipado a otro slot libera el anterior', () => {
-  let r = equipItem([gear('r1')], 'r1', 'ring1');
+  let r = equipItem([gear('r1', { name: 'Anillo de plata' })], 'r1', 'ring1');
   r = equipItem(r.inventory, 'r1', 'ring2');
   assert.deepStrictEqual(r.unequipped, []);
   assert.strictEqual(byId(r.inventory, 'r1').slot, 'ring2');
@@ -247,4 +247,28 @@ test('wornSlotsFor: armadura y escudo van a cuerpo y escudo', () => {
   assert.deepStrictEqual(wornSlotsFor(gear('cota', { category: 'armor', armor: { category: 'heavy', baseAc: 16 } })), ['body']);
   assert.deepStrictEqual(wornSlotsFor(shield('esc')), ['shield']);
   assert.deepStrictEqual(wornSlotsFor(gear('v', { category: 'armor', name: 'Armadura de cuero con capucha', armor: { category: 'light', baseAc: 11 } })), ['body']);
+});
+
+test('validSlotsFor: Botiquín de curandero (Healer\'s Kit) y objetos de mochila NO pueden equiparse en la cabeza ni otros slots', () => {
+  const healersKit = gear('hk', { name: "Botiquín de curandero (Healer's Kit)", usableType: 'usable' });
+  const rope = gear('rope', { name: 'Cuerda de cáñamo (50 pies)' });
+  const torch = gear('torch', { name: 'Antorcha (Torch)', usableType: 'usable' });
+  const potion = gear('pot', { name: 'Poción de curación', category: 'potion', usableType: 'drinkable' });
+
+  for (const item of [healersKit, rope, torch, potion]) {
+    assert.deepStrictEqual(validSlotsFor(item), [], `${item.name} no debe ofrecer ranuras de equipo`);
+    const res = equipItem([item], item.id, 'head');
+    assert.ok(res.error, `${item.name} debe rechazar equiparse en head`);
+    assert.strictEqual(byId(res.inventory, item.id).equipped, undefined);
+  }
+});
+
+test('validSlotsFor: respeta equipSlot explícito para objetos personalizados', () => {
+  const customHead = gear('corona', { name: 'Reliquia Solar', equipSlot: 'head' });
+  const customRing = gear('sortija', { name: 'Sello del Rey', equipSlot: 'ring1' });
+  assert.deepStrictEqual(validSlotsFor(customHead), ['head']);
+  assert.deepStrictEqual(validSlotsFor(customRing), ['ring1', 'ring2']);
+  const r = equipItem([customHead], 'corona', 'head');
+  assert.strictEqual(r.error, undefined);
+  assert.strictEqual(byId(r.inventory, 'corona').equipped, true);
 });

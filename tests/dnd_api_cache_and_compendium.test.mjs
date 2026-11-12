@@ -257,4 +257,49 @@ test('D&D 5e API, SRD Cache, 2024 vs 2014 and Compendium Integration Tests', asy
     const potionInEquipmentSearch = await dndApiService.searchEquipment('2024', { query: 'potion of healing' });
     assert.ok(potionInEquipmentSearch.length > 0, 'Searching for potions in equipment returns matching potion');
   });
+
+  await t.test('8. Full Spanish equipment & magic item translations, subtype filters, and consumable rules', async () => {
+    // 1. All SRD 2024 equipment items have a Spanish translation (nameEs)
+    const allEq2024 = await dndApiService.searchEquipment('2024');
+    const untranslatedEq = allEq2024.filter(e => e.nameEs === e.name);
+    assert.strictEqual(untranslatedEq.length, 0, `Todos los objetos de equipo 2024 deben estar traducidos, faltan: ${untranslatedEq.map(u => u.index).join(', ')}`);
+
+    // 2. Search for "Botiquín de curandero" (healers-kit) in Spanish
+    const healersSearch = await dndApiService.searchEquipment('2024', { query: 'Botiquín de curandero' });
+    assert.ok(healersSearch.length > 0, 'Debe encontrar el Botiquín de curandero buscando en español');
+    const hk = healersSearch.find(i => i.index === 'healers-kit');
+    assert.ok(hk, 'healers-kit presente');
+    assert.strictEqual(hk.usableType, 'usable');
+    assert.strictEqual(hk.subCategory, 'consumable');
+    assert.ok(hk.activationCondition && hk.activationCondition.includes('10 usos'));
+
+    // 3. gear-and-potion category includes both gear and potions
+    const gearAndPotions = await dndApiService.searchEquipment('2024', { category: 'gear-and-potion' });
+    assert.ok(gearAndPotions.some(i => i.category === 'potion'), 'gear-and-potion incluye pociones');
+    assert.ok(gearAndPotions.some(i => i.category === 'gear'), 'gear-and-potion incluye equipo general');
+    assert.strictEqual(gearAndPotions.some(i => i.category === 'weapon' || i.category === 'armor'), false);
+
+    // 4. Subcategory filtering works (consumable, tools, packs)
+    const consumables = await dndApiService.searchEquipment('2024', { category: 'gear-and-potion', subCategory: 'consumable' });
+    assert.ok(consumables.some(i => i.index === 'potion-of-healing'));
+    assert.ok(consumables.some(i => i.index === 'healers-kit'));
+
+    // 5. Magic items are translated to Spanish and distinguish consumables from passive wearables
+    const bagSearch = await dndApiService.searchMagicItems('2024', 'Bolsa de contención');
+    assert.ok(bagSearch.length > 0, 'Encuentra Bolsa de contención (Bag of Holding) en español');
+
+    const ringList = await dndApiService.searchMagicItems('2024', 'Anillo de protección');
+    assert.ok(ringList.length > 0, 'Encuentra Anillo de protección en español');
+    const ringPayload = dndApiService.toInventoryPayload(ringList[0]);
+    assert.strictEqual(ringPayload.usableType, 'none', 'Anillo de protección no es consumible de un uso');
+    assert.strictEqual(ringPayload.requiresAttunement, true);
+
+    const healPotionList = await dndApiService.searchMagicItems('2024', 'Poción de curación');
+    const healPotion = healPotionList.find(i => i.index === 'potions-of-healing');
+    assert.ok(healPotion);
+    const healPotionPayload = dndApiService.toInventoryPayload(healPotion);
+    assert.strictEqual(healPotionPayload.category, 'potion');
+    assert.strictEqual(healPotionPayload.usableType, 'drinkable');
+    assert.strictEqual(healPotionPayload.healAmount, 7);
+  });
 });

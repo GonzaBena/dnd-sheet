@@ -35,6 +35,43 @@
         <span class="px-2 py-0.5 rounded bg-amber-500/30 text-amber-200 text-[10px] font-mono">1d20</span>
       </div>
 
+      <!-- Banner de Tirada de Salvación del Enemigo (Conjuros / Efectos CD) -->
+      <div
+        id="dice-save-banner"
+        class="hidden p-3 rounded-xl bg-sky-500/10 border border-sky-500/40 text-sky-200 text-xs space-y-2 shadow-xs"
+      >
+        <div class="flex items-center justify-between gap-2">
+          <div class="flex items-center gap-1.5 font-bold text-sky-300">
+            <span class="material-symbols-outlined text-[17px] text-sky-400">shield</span>
+            <span id="dice-save-banner-title">El enemigo debe superar Salvación</span>
+          </div>
+          <span id="dice-save-dc-pill" class="px-2 py-0.5 rounded-lg bg-sky-500/25 border border-sky-400/50 text-sky-200 font-headline font-bold text-xs shrink-0">
+            CD 13 DES
+          </span>
+        </div>
+        <p id="dice-save-banner-sub" class="text-[11px] text-[#cbd5e1] leading-snug">
+          Solicita al DM o tira la salvación del objetivo. Si falla, recibe el daño completo; si supera, aplica mitad de daño o el efecto indicado por el conjuro.
+        </p>
+        <div class="flex items-center gap-2 pt-0.5">
+          <button
+            type="button"
+            id="dice-roll-enemy-save-btn"
+            class="flex-1 py-1.5 px-2.5 rounded-lg bg-[#10141d] hover:bg-sky-500/20 border border-sky-500/40 text-sky-300 font-bold text-[11px] flex items-center justify-center gap-1 transition-all cursor-pointer"
+          >
+            <span class="material-symbols-outlined text-[14px]">casino</span>
+            <span>Tirar Salvación del Enemigo (d20)</span>
+          </button>
+          <button
+            type="button"
+            id="dice-roll-save-dmg-btn"
+            class="hidden flex-1 py-1.5 px-2.5 rounded-lg bg-amber-500/20 hover:bg-amber-500 hover:text-[#0a0d12] border border-amber-500/40 text-amber-300 font-bold text-[11px] flex items-center justify-center gap-1 transition-all cursor-pointer"
+          >
+            <span class="material-symbols-outlined text-[14px]">local_fire_department</span>
+            <span id="dice-roll-save-dmg-label">Tirar Daño</span>
+          </button>
+        </div>
+      </div>
+
       <!-- 1. Barra Superior Compacta: Modo (Virtual / Físico) + Toggle Tirada Secreta -->
       <div class="flex items-center justify-between gap-2">
         <div class="grid grid-cols-2 gap-1 p-1 bg-[#10141d] rounded-xl border border-[#222f42] text-[11px] font-bold font-label flex-1">
@@ -185,6 +222,12 @@
         </button>
       </div>
 
+      <!-- 3B. Contenedor de Encadenamiento de Daño tras Tirada de Ataque (d20 -> Daño) -->
+      <div
+        id="dice-followup-container"
+        class="hidden p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/40 flex flex-col gap-2"
+      ></div>
+
       <!-- 4. Selector de Dado (6 dados principales en fila + d100) y Cantidad / Modificador -->
       <div class="p-3 rounded-xl bg-[#18202e]/60 border border-[#222f42] space-y-2.5">
         <div class="grid grid-cols-7 gap-1" id="dice-type-selector">
@@ -284,6 +327,32 @@
   const targetContainer = document.getElementById('dice-target-container');
   const targetSelect = document.getElementById('dice-target-select') as HTMLSelectElement;
   const targetAcBadge = document.getElementById('dice-target-ac-badge');
+  const followUpContainer = document.getElementById('dice-followup-container');
+  const saveBanner = document.getElementById('dice-save-banner');
+  const saveBannerTitle = document.getElementById('dice-save-banner-title');
+  const saveDcPill = document.getElementById('dice-save-dc-pill');
+  const rollEnemySaveBtn = document.getElementById('dice-roll-enemy-save-btn');
+  const rollSaveDmgBtn = document.getElementById('dice-roll-save-dmg-btn');
+  const rollSaveDmgLabel = document.getElementById('dice-roll-save-dmg-label');
+
+  interface FollowUpDamageSpec {
+    count: number;
+    die: number;
+    modifier: number;
+    damageType: string;
+    weaponOrSpellName: string;
+  }
+
+  interface SaveInfoSpec {
+    dc: number;
+    ability: string;
+    spellName: string;
+    damageCount?: number;
+    damageDie?: number;
+    damageMod?: number;
+    damageType?: string;
+    isRollingEnemySave?: boolean;
+  }
 
   let isPhysicalMode = false;
   let selectedDie = 20;
@@ -302,6 +371,8 @@
     isInitiative?: boolean;
     characterId?: string;
     campaignId?: string;
+    followUpDamage?: FollowUpDamageSpec;
+    saveInfo?: SaveInfoSpec;
   } = { label: 'Tirada de dados', tag: '#Tirada', isDmRoll: false, isSecret: false };
 
   function applyLockState(lockDie: boolean, lockCount: boolean) {
@@ -599,6 +670,100 @@
     });
   }
 
+  function triggerFollowUpDamage(isCritical: boolean) {
+    const f = rollContext.followUpDamage;
+    if (!f) return;
+
+    const dmgCount = isCritical ? f.count * 2 : f.count;
+    selectedDie = f.die;
+    selectedCount = dmgCount;
+    if (modInput) modInput.value = String(f.modifier ?? 0);
+    if (countDisplay) countDisplay.textContent = String(selectedCount);
+
+    rollContext.lockDie = false;
+    rollContext.lockCount = false;
+    rollContext.label = `${isCritical ? 'Daño Crítico' : 'Daño'}: ${f.weaponOrSpellName} (${f.damageType})`;
+    rollContext.followUpDamage = undefined;
+
+    applyLockState(false, false);
+    updateActiveDieButtons();
+    renderReelPlaceholders();
+    updatePhysicalCalculations();
+    followUpContainer?.classList.add('hidden');
+
+    if (!isPhysicalMode) {
+      executeRoll();
+    } else if (physicalInput) {
+      physicalInput.value = '';
+      physicalInput.focus();
+    }
+  }
+
+  function renderFollowUpAfterAttack(res: RollResult, targetAc: number | null) {
+    if (!followUpContainer) return;
+    const f = rollContext.followUpDamage;
+    if (!f || res.dieType !== 20) {
+      followUpContainer.classList.add('hidden');
+      return;
+    }
+
+    const modStr = f.modifier !== 0 ? `${f.modifier >= 0 ? '+' : ''}${f.modifier}` : '';
+    const normalFormula = `${f.count}d${f.die}${modStr}`;
+    const critFormula = `${f.count * 2}d${f.die}${modStr}`;
+    const missedTargetAc = !res.isCrit && (res.isFumble || (targetAc !== null && res.total < targetAc));
+
+    if (res.isCrit) {
+      followUpContainer.className = 'p-2.5 rounded-xl bg-amber-500/15 border-2 border-amber-500/60 flex flex-col gap-2 shadow-[0_0_20px_rgba(245,158,11,0.2)]';
+      followUpContainer.innerHTML = `
+        <div class="flex items-center justify-between text-xs text-amber-300 font-bold">
+          <span>🔥 ¡20 Natural! Dados de daño duplicados</span>
+          <span class="font-mono text-amber-200">${critFormula} ${f.damageType}</span>
+        </div>
+        <button
+          type="button"
+          id="dice-chain-dmg-btn"
+          class="w-full py-2 px-3 rounded-lg bg-gradient-to-r from-rose-600 to-amber-500 hover:brightness-110 text-[#0a0d12] font-headline font-extrabold text-xs flex items-center justify-center gap-1.5 shadow-md cursor-pointer transition-all"
+        >
+          <span class="material-symbols-outlined text-[16px]">local_fire_department</span>
+          <span>¡Lanzar Daño Crítico Ahora! (${critFormula})</span>
+        </button>
+      `;
+    } else if (missedTargetAc) {
+      followUpContainer.className = 'p-2 rounded-xl bg-[#18202e] border border-[#222f42] flex items-center justify-between gap-2 text-xs';
+      followUpContainer.innerHTML = `
+        <span class="text-[#94a3b8] text-[11px]">El ataque no superó la CA o fue pifia.</span>
+        <button
+          type="button"
+          id="dice-chain-dmg-btn"
+          class="px-2.5 py-1 rounded-lg bg-[#10141d] hover:bg-amber-500/20 border border-[#222f42] hover:border-amber-500/40 text-[#cbd5e1] hover:text-amber-300 font-bold text-[11px] shrink-0 cursor-pointer transition-colors"
+        >
+          Tirar daño igual (${normalFormula})
+        </button>
+      `;
+    } else {
+      followUpContainer.className = 'p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/40 flex flex-col gap-2';
+      followUpContainer.innerHTML = `
+        <div class="flex items-center justify-between text-xs text-emerald-300 font-bold">
+          <span>⚔️ Paso 2 del Ataque: Tirada de Daño</span>
+          <span class="font-mono text-emerald-200">${normalFormula} ${f.damageType}</span>
+        </div>
+        <button
+          type="button"
+          id="dice-chain-dmg-btn"
+          class="w-full py-2 px-3 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-[#06120b] font-headline font-extrabold text-xs flex items-center justify-center gap-1.5 shadow-md cursor-pointer transition-all"
+        >
+          <span class="material-symbols-outlined text-[16px]">swords</span>
+          <span>¡Lanzar Daño del Ataque! (${normalFormula} ${f.damageType})</span>
+        </button>
+      `;
+    }
+
+    followUpContainer.classList.remove('hidden');
+    document.getElementById('dice-chain-dmg-btn')?.addEventListener('click', () => {
+      triggerFollowUpDamage(res.isCrit);
+    });
+  }
+
   function processRollResult(res: RollResult, isPhysical: boolean, physicalVal?: number) {
     let rollDetails = isPhysical ? `${physicalVal}` : res.rolls.join(' + ');
     let modDetails = res.modifier !== 0 ? ` (${res.modifier >= 0 ? '+' : ''}${res.modifier})` : '';
@@ -620,7 +785,14 @@
     const targetAc = targetOpt?.dataset.ac ? parseInt(targetOpt.dataset.ac) : null;
 
     let targetHitEvaluation = '';
-    if (selectedTarget && res.dieType === 20) {
+    const saveInfo = rollContext.saveInfo;
+    if (saveInfo && saveInfo.isRollingEnemySave && res.dieType === 20) {
+      if (res.total >= saveInfo.dc) {
+        targetHitEvaluation = `<span class="text-sky-300 font-bold block text-xs mt-0.5">🛡️ ¡El enemigo SUPERA la Salvación de ${saveInfo.ability}! (${res.total} vs CD ${saveInfo.dc}) → Mitad de daño / Efecto reducido</span>`;
+      } else {
+        targetHitEvaluation = `<span class="text-rose-400 font-bold block text-xs mt-0.5">💥 ¡El enemigo FALLA la Salvación de ${saveInfo.ability}! (${res.total} vs CD ${saveInfo.dc}) → ¡Recibe el Daño/Efecto Completo!</span>`;
+      }
+    } else if (selectedTarget && res.dieType === 20) {
       if (res.isCrit) {
         targetHitEvaluation = `<span class="text-amber-400 font-bold block text-xs mt-0.5">🎯 ¡Impacto Crítico contra ${selectedTarget}!</span>`;
       } else if (res.isFumble) {
@@ -633,6 +805,14 @@
         }
       }
     }
+
+    const halfDmgOnSaveHtml = saveInfo && !saveInfo.isRollingEnemySave && res.dieType !== 20
+      ? `<div class="mt-1 px-2.5 py-1 rounded-lg bg-sky-500/15 border border-sky-500/30 text-[11px] text-sky-200 flex items-center justify-center gap-3">
+           <span>💥 <strong>Si falla (CD ${saveInfo.dc} ${saveInfo.ability}):</strong> ${res.total} daño</span>
+           <span>•</span>
+           <span>🛡️ <strong>Si supera:</strong> ${Math.floor(res.total / 2)} daño (mitad)</span>
+         </div>`
+      : '';
 
     let badgeHtml = '';
     if (isDm) {
@@ -663,6 +843,7 @@
           <span class="text-[#cbd5e1] text-xs">${rollContext.label}${targetLabel} [${rollDetails}]${modDetails} = </span>
           <strong class="text-xl font-headline font-bold ${res.isCrit ? 'text-amber-400' : 'text-[#f1f5f9]'}">${res.total}</strong>
         </div>
+        ${halfDmgOnSaveHtml}
         <span class="${isSecret ? 'text-purple-300' : 'text-emerald-400'} block text-[11px] mt-1 font-bold flex items-center justify-center gap-1">
           <span class="material-symbols-outlined text-[13px]">${isSecret ? 'lock' : 'check_circle'}</span>
           <span>Registrado automáticamente en Bitácora</span>
@@ -675,6 +856,7 @@
       physicalFeedback.innerHTML = `
         <div class="flex flex-col items-center gap-1">
           ${specialTag || targetHitEvaluation}
+          ${halfDmgOnSaveHtml}
           <span class="text-emerald-400 font-bold text-xs flex items-center gap-1">
             <span class="material-symbols-outlined text-[14px]">check_circle</span>
             <span>¡Registrado en Bitácora con éxito! Total: ${res.total}</span>
@@ -682,6 +864,9 @@
         </div>
       `;
     }
+
+    // Mostrar encadenamiento de daño si era tirada de ataque con followUpDamage
+    renderFollowUpAfterAttack(res, targetAc);
 
     // AUTOMATIC LOGGING TO JOURNAL
     const modStr = res.modifier !== 0 ? ` ${res.modifier >= 0 ? '+' : ''}${res.modifier}` : '';
@@ -700,7 +885,15 @@
     const currentChar = characterStore.get();
 
     let targetLogText = '';
-    if (selectedTarget) {
+    if (saveInfo) {
+      if (saveInfo.isRollingEnemySave && res.dieType === 20) {
+        targetLogText = res.total >= saveInfo.dc
+          ? ` (Salvación ${saveInfo.ability} vs CD ${saveInfo.dc}: ¡SUPERADA!)`
+          : ` (Salvación ${saveInfo.ability} vs CD ${saveInfo.dc}: ¡FALLIDA!)`;
+      } else if (!saveInfo.isRollingEnemySave && res.dieType !== 20) {
+        targetLogText = ` (Exige Salvación ${saveInfo.ability} CD ${saveInfo.dc} • Daño completo: ${res.total} / Mitad si supera: ${Math.floor(res.total / 2)})`;
+      }
+    } else if (selectedTarget) {
       if (targetAc && res.dieType === 20) {
         if (res.isCrit) targetLogText = ` (Objetivo: ${selectedTarget} • ¡GOLPE CRÍTICO!)`;
         else if (res.isFumble) targetLogText = ` (Objetivo: ${selectedTarget} • ¡PIFIA!)`;
@@ -784,6 +977,60 @@
     if (logBtn) logBtn.classList.add('hidden');
   }
 
+  function updateSaveBannerUi(saveInfo?: SaveInfoSpec) {
+    if (!saveBanner) return;
+    if (!saveInfo) {
+      saveBanner.classList.add('hidden');
+      return;
+    }
+    saveBanner.classList.remove('hidden');
+    if (saveBannerTitle) {
+      saveBannerTitle.textContent = `Conjuro "${saveInfo.spellName}" exige Salvación`;
+    }
+    if (saveDcPill) {
+      saveDcPill.textContent = `CD ${saveInfo.dc} ${saveInfo.ability}`;
+    }
+    if (rollSaveDmgBtn && rollSaveDmgLabel) {
+      if (saveInfo.damageDie && saveInfo.damageCount) {
+        const modStr = saveInfo.damageMod ? `${saveInfo.damageMod >= 0 ? '+' : ''}${saveInfo.damageMod}` : '';
+        rollSaveDmgLabel.textContent = `Tirar Daño (${saveInfo.damageCount}d${saveInfo.damageDie}${modStr})`;
+        rollSaveDmgBtn.classList.remove('hidden');
+      } else {
+        rollSaveDmgBtn.classList.add('hidden');
+      }
+    }
+  }
+
+  rollEnemySaveBtn?.addEventListener('click', () => {
+    const s = rollContext.saveInfo;
+    if (!s) return;
+    s.isRollingEnemySave = true;
+    selectedDie = 20;
+    selectedCount = 1;
+    if (modInput) modInput.value = '0';
+    if (countDisplay) countDisplay.textContent = '1';
+    rollContext.label = `Salvación de ${s.ability} del Enemigo (vs CD ${s.dc} - ${s.spellName})`;
+    updateActiveDieButtons();
+    renderReelPlaceholders();
+    updatePhysicalCalculations();
+    if (!isPhysicalMode) executeRoll();
+  });
+
+  rollSaveDmgBtn?.addEventListener('click', () => {
+    const s = rollContext.saveInfo;
+    if (!s || !s.damageDie || !s.damageCount) return;
+    s.isRollingEnemySave = false;
+    selectedDie = s.damageDie;
+    selectedCount = s.damageCount;
+    if (modInput) modInput.value = String(s.damageMod ?? 0);
+    if (countDisplay) countDisplay.textContent = String(selectedCount);
+    rollContext.label = `Daño de Conjuro: ${s.spellName} (${s.damageType || 'Mágico'})`;
+    updateActiveDieButtons();
+    renderReelPlaceholders();
+    updatePhysicalCalculations();
+    if (!isPhysicalMode) executeRoll();
+  });
+
   // Window event for opening with rich context from any component
   window.addEventListener('open-dice-roller', ((e: CustomEvent) => {
     const detail = e.detail || {};
@@ -808,8 +1055,39 @@
       isInitiative: Boolean(detail.isInitiative),
       characterId: detail.characterId,
       campaignId: detail.campaignId,
+      followUpDamage: detail.followUpDamage,
+      saveInfo: detail.saveInfo ? { ...detail.saveInfo } : undefined,
     };
 
+    if (followUpContainer) {
+      const f = rollContext.followUpDamage;
+      if (f) {
+        const modStr = f.modifier !== 0 ? `${f.modifier >= 0 ? '+' : ''}${f.modifier}` : '';
+        const normalFormula = `${f.count}d${f.die}${modStr}`;
+        followUpContainer.className = 'p-2 rounded-xl bg-[#18202e] border border-[#222f42] flex items-center justify-between gap-2 text-xs';
+        followUpContainer.innerHTML = `
+          <span class="text-[#94a3b8] text-[11px] flex items-center gap-1">
+            <span class="material-symbols-outlined text-[14px] text-amber-400">swords</span>
+            <span>Paso 1: Impacto (d20) → Paso 2: <strong>${normalFormula} ${f.damageType}</strong></span>
+          </span>
+          <button
+            type="button"
+            id="dice-skip-to-dmg-btn"
+            class="px-2.5 py-1 rounded-lg bg-[#10141d] hover:bg-amber-500/20 border border-[#222f42] hover:border-amber-500/40 text-amber-300 font-bold text-[11px] shrink-0 cursor-pointer transition-colors"
+            title="Saltar la tirada de d20 y tirar directamente el daño del ataque"
+          >
+            Tirar solo Daño
+          </button>
+        `;
+        followUpContainer.classList.remove('hidden');
+        document.getElementById('dice-skip-to-dmg-btn')?.addEventListener('click', () => {
+          triggerFollowUpDamage(false);
+        });
+      } else {
+        followUpContainer.classList.add('hidden');
+      }
+    }
+    updateSaveBannerUi(rollContext.saveInfo);
     applyLockState(lockDie, lockCount);
 
     if (countDisplay) countDisplay.textContent = String(selectedCount);
@@ -826,7 +1104,10 @@
 
     if (summaryText) {
       const targetTxt = rollContext.targetName ? ` contra <strong class="text-rose-300">${rollContext.targetName}</strong>` : '';
-      summaryText.innerHTML = `<span class="text-[#94a3b8] text-xs">Preparado para: <strong class="text-amber-300">${rollContext.label}</strong>${targetTxt} ${isSecretVal ? '<span class="text-purple-300 font-bold">(Secreta 🔒)</span>' : ''}</span>`;
+      const followTxt = rollContext.followUpDamage
+        ? ` <span class="text-emerald-400 font-bold"><br/>• Paso 1: Impacto (d20) → Paso 2: Daño (${rollContext.followUpDamage.count}d${rollContext.followUpDamage.die})</span>`
+        : '';
+      summaryText.innerHTML = `<span class="text-[#94a3b8] text-xs">Preparado para: <strong class="text-amber-300">${rollContext.label}</strong>${targetTxt}${followTxt} ${isSecretVal ? '<span class="text-purple-300 font-bold">(Secreta 🔒)</span>' : ''}</span>`;
     }
 
     if (modal && backdrop) openModal(modal, backdrop);
@@ -862,7 +1143,7 @@
     }
   });
   document.getElementById('dice-count-inc')?.addEventListener('click', () => {
-    if (selectedCount < 4) {
+    if (selectedCount < 12) {
       selectedCount++;
       if (countDisplay) countDisplay.textContent = String(selectedCount);
       renderReelPlaceholders();

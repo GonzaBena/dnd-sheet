@@ -239,6 +239,14 @@
       const card = document.createElement('div');
       card.className = `relative p-2.5 rounded-lg bg-[#18202e] border ${isPinned ? 'border-amber-500/50 shadow-[0_0_12px_rgba(245,158,11,0.08)]' : 'border-transparent'} hover:border-amber-500/30 flex flex-col gap-2 group transition-colors w-full`;
 
+      const usableLabelEs = item.usableType === 'drinkable' || item.category === 'potion'
+        ? 'Bebible'
+        : item.usableType === 'edible'
+        ? 'Comestible'
+        : item.usableType === 'usable'
+        ? 'Usable'
+        : '';
+
       card.innerHTML = `
         <div class="flex items-center justify-between gap-2 w-full min-w-0">
           <div class="item-info-trigger flex items-center gap-2.5 min-w-0 flex-1 cursor-pointer select-none" title="Ver detalles y notas">
@@ -247,10 +255,10 @@
               <div class="flex items-center gap-1.5 flex-wrap">
                 <span class="text-[#f1f5f9] font-medium truncate max-w-full">${escapeHtml(item.name)}</span>
                 ${customBadgeHtml(item)}
-                ${item.usableType && item.usableType !== 'none' ? `<span class="px-1 py-0.2 rounded bg-amber-500/10 text-amber-300 text-[9px] font-bold border border-amber-500/20 uppercase shrink-0">${item.usableType}</span>` : ''}
-                ${item.activationCondition ? `<span class="px-1.5 py-0.2 rounded bg-amber-500/10 text-amber-300 text-[9px] font-bold border border-amber-500/20 flex items-center gap-0.5 shrink-0" title="Condición de activación: ${item.activationCondition}"><span class="material-symbols-outlined text-[10px]">timer</span><span>${item.activationCondition}</span></span>` : ''}
+                ${usableLabelEs ? `<span class="px-1.5 py-0.2 rounded bg-emerald-500/10 text-emerald-300 text-[9px] font-bold border border-emerald-500/25 uppercase shrink-0">${usableLabelEs}</span>` : ''}
+                ${item.activationCondition ? `<span class="px-1.5 py-0.2 rounded bg-amber-500/10 text-amber-300 text-[9px] font-bold border border-amber-500/20 flex items-center gap-0.5 shrink-0" title="Condición de activación: ${item.activationCondition}"><span class="material-symbols-outlined text-[10px]">timer</span><span>${escapeHtml(item.activationCondition)}</span></span>` : ''}
               </div>
-              ${item.description ? `<span class="text-[10px] text-[#64748b] truncate block">${item.description}</span>` : ''}
+              ${item.description ? `<span class="text-[10px] text-[#64748b] truncate block">${escapeHtml(item.description)}</span>` : ''}
             </div>
           </div>
 
@@ -338,8 +346,11 @@
       `;
 
       // Equipo y sintonización (Spec 08, Fase A). Todo el texto con textContent.
-      // Las armas se equipan desde la sección "Armas y Acciones de Ataque".
-      const isEquippable = item.category !== 'potion' && item.category !== 'treasure' && item.category !== 'weapon';
+      // Las armas se equipan desde la sección "Armas y Acciones de Ataque", y solo los objetos
+      // realmente vestibles (con ranuras válidas en validSlotsFor) muestran el selector de ranura.
+      const slots = validSlotsFor(item);
+      const isEquippable = (item.equipped || slots.length > 0) && item.category !== 'weapon';
+      const isWeaponInBackpack = item.category === 'weapon' || !!item.weapon;
       const mkBadge = (text: string, cls: string, icon?: string) => {
         const b = document.createElement('span');
         b.className = `px-1.5 py-0.5 rounded text-[9px] font-bold border flex items-center gap-0.5 shrink-0 ${cls}`;
@@ -362,6 +373,28 @@
 
       const equipRow = document.createElement('div');
       equipRow.className = 'flex items-center gap-1.5 flex-wrap ml-auto';
+      if (isWeaponInBackpack) {
+        const hasAttack = (char.actions || []).some((a: any) => a.itemId === item.id || a.name === item.name);
+        if (hasAttack) {
+          badges.appendChild(mkBadge('En Armas y Ataques', 'bg-amber-500/10 text-amber-300 border-amber-500/30', 'swords'));
+        } else {
+          const prepBtn = document.createElement('button');
+          prepBtn.type = 'button';
+          prepBtn.className = 'px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 hover:bg-amber-500 hover:text-[#0a0d12] border border-amber-500/30 text-[10px] font-bold cursor-pointer';
+          prepBtn.textContent = '⚔️ Preparar Ataque';
+          prepBtn.addEventListener('click', () => {
+            const created = characterStore.createAttackFromWeapon(item.id);
+            if (created) {
+              showAlert(`¡"${item.name}" añadido a tu panel de Armas y Acciones de Ataque!`, { kind: 'success' });
+            } else {
+              window.dispatchEvent(new CustomEvent('open-add-weapon-modal', {
+                detail: { prefill: { name: item.name, type: 'Cuerpo a cuerpo', damageDice: item.weapon?.damage || '1d6', damageType: item.weapon?.damageType || 'Cortante' } }
+              }));
+            }
+          });
+          equipRow.appendChild(prepBtn);
+        }
+      }
       if (isEquippable) {
         if (item.equipped) {
           const unBtn = document.createElement('button');
@@ -370,8 +403,7 @@
           unBtn.textContent = 'Quitar';
           unBtn.addEventListener('click', () => characterStore.unequipItem(item.id));
           equipRow.appendChild(unBtn);
-        } else {
-          const slots = validSlotsFor(item);
+        } else if (slots.length > 0) {
           const sel = document.createElement('select');
           sel.className = 'bg-[#10141d] text-[#cbd5e1] border border-[#222f42] rounded text-[10px] px-1.5 py-0.5';
           slots.forEach((s) => {

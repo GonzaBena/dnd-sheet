@@ -8,8 +8,11 @@ import {
   translateCastingTime,
   translateProperty,
   translateRarity,
+  translateEquipmentCategory,
   getSpellSpanishName,
   getEquipmentSpanishName,
+  getMagicItemSpanishName,
+  COMMON_ITEM_EFFECT_HINTS_ES,
   WEAPON_MASTERIES_ES,
   matchesQuery,
   normalizeText,
@@ -49,6 +52,7 @@ export interface UnifiedEquipment {
   name: string;
   nameEs: string;
   category: 'weapon' | 'armor' | 'gear' | 'potion' | 'treasure';
+  subCategory?: 'consumable' | 'tools' | 'packs' | 'ammunition' | 'focus' | 'mount' | 'general';
   equipmentType?: string;
   cost?: string;
   weight?: number;
@@ -69,6 +73,7 @@ export interface UnifiedEquipment {
   description: string;
   usableType: 'none' | 'potion' | 'drinkable' | 'edible' | 'usable';
   healAmount?: number;
+  activationCondition?: string;
   edition: SrdEdition;
 }
 
@@ -118,7 +123,8 @@ export interface SpellFilters {
 
 export interface EquipmentFilters {
   query?: string;
-  category?: 'all' | 'weapon' | 'armor' | 'gear' | 'potion';
+  category?: 'all' | 'weapon' | 'armor' | 'gear' | 'potion' | 'gear-and-potion';
+  subCategory?: 'all' | 'consumable' | 'tools' | 'packs' | 'ammunition' | 'focus' | 'mount' | 'general';
 }
 
 class DndApiService {
@@ -296,31 +302,60 @@ class DndApiService {
       strPrerequisite = raw.str_minimum || 0;
     }
 
-    // Consumible / Curación
+    // Consumible / Curación y Subcategoría
+    const idx = raw.index || raw.name?.toLowerCase().replace(/[^a-z0-9]/g, '-') || '';
     let usableType: 'none' | 'potion' | 'drinkable' | 'edible' | 'usable' = 'none';
     let healAmount: number | undefined;
+    let activationCondition: string | undefined;
 
-    if (cat === 'potion') {
+    const hint = COMMON_ITEM_EFFECT_HINTS_ES[idx];
+    if (hint) {
+      usableType = hint.usableType;
+      healAmount = hint.healAmount;
+      activationCondition = hint.activationCondition;
+    } else if (cat === 'potion') {
       usableType = 'drinkable';
-      if (raw.index === 'potion-of-healing') healAmount = 7; // Promedio 2d4+2
-      else if (raw.index === 'potion-of-greater-healing') healAmount = 14;
+      if (idx === 'potion-of-healing') healAmount = 7; // Promedio 2d4+2
+      else if (idx === 'potion-of-greater-healing') healAmount = 14;
     }
 
-    const desc = this.extractDescription(raw.description || raw.desc);
+    // Subcategoría para filtrado de Equipo y Consumibles
+    let subCategory: string = 'general';
+    const gearCatIdx = raw.gear_category?.index || '';
+    if (cat === 'potion' || usableType === 'drinkable' || usableType === 'edible' || ['healers-kit', 'caltrops', 'ball-bearings-bag-of-1-000', 'torch', 'candle', 'tinderbox'].includes(idx)) {
+      subCategory = 'consumable';
+    } else if (catStr.includes('tools') || gearCatIdx.includes('tools') || gearCatIdx.includes('kits') || idx.endsWith('-supplies') || idx.endsWith('-tools') || idx.endsWith('-kit')) {
+      subCategory = 'tools';
+    } else if (gearCatIdx === 'equipment-packs' || idx.endsWith('-pack')) {
+      subCategory = 'packs';
+    } else if (gearCatIdx === 'ammunition' || catStr.includes('ammunition') || ['arrows', 'crossbow-bolts', 'sling-bullets', 'blowgun-needles', 'firearm-bullets'].includes(idx)) {
+      subCategory = 'ammunition';
+    } else if (['holy-symbols', 'arcane-foci', 'druidic-foci'].includes(gearCatIdx) || ['component-pouch', 'spellbook', 'amulet', 'emblem', 'reliquary', 'crystal', 'orb', 'rod', 'staff', 'wand', 'sprig-of-mistletoe', 'totem', 'wooden-staff', 'yew-wand'].includes(idx)) {
+      subCategory = 'focus';
+    } else if (catStr.includes('mounts') || catStr.includes('vehicles') || gearCatIdx.includes('mounts') || gearCatIdx.includes('tack')) {
+      subCategory = 'mount';
+    }
+
+    const rawDesc = this.extractDescription(raw.description || raw.desc);
+    const desc = hint?.descEs ? (rawDesc ? `${hint.descEs}\n\n${rawDesc}` : hint.descEs) : rawDesc;
 
     // Spec 08, Fase B: datos estructurados de armadura/arma (FB-2/FB-3).
     const armorData = armorFromSrd(raw);
     const weaponData = armorData ? undefined : weaponFromSrd(raw);
 
+    const rawEquipType = raw.gear_category?.name || raw.equipment_category?.name || raw.weapon_category || undefined;
+    const equipmentType = rawEquipType ? translateEquipmentCategory(rawEquipType) : undefined;
+
     return {
-      index: raw.index || raw.name?.toLowerCase().replace(/[^a-z0-9]/g, '-'),
+      index: idx,
       name: raw.name || '',
       armor: armorData,
       weapon: weaponData?.weapon,
       hands: weaponData?.hands,
-      nameEs: getEquipmentSpanishName(raw.index, raw.name),
+      nameEs: getEquipmentSpanishName(idx, raw.name),
       category: cat,
-      equipmentType: raw.equipment_category?.name || raw.weapon_category || undefined,
+      subCategory,
+      equipmentType,
       cost: cost || undefined,
       weight,
       damageDice: damageDice || undefined,
@@ -336,6 +371,7 @@ class DndApiService {
       description: desc,
       usableType,
       healAmount,
+      activationCondition,
       edition
     };
   }
@@ -344,18 +380,20 @@ class DndApiService {
    * Normaliza objetos mágicos
    */
   public normalizeMagicItem(raw: any, edition: SrdEdition): UnifiedMagicItem {
+    const idx = raw.index || raw.name?.toLowerCase().replace(/[^a-z0-9]/g, '-') || '';
     const rarity = raw.rarity?.name || 'Varies';
     const rarityEs = translateRarity(rarity);
     const desc = this.extractDescription(raw.description || raw.desc);
+    const rawCat = raw.equipment_category?.name || raw.equipment_category?.index || 'Objeto Mágico';
 
     return {
-      index: raw.index || raw.name?.toLowerCase().replace(/[^a-z0-9]/g, '-'),
+      index: idx,
       name: raw.name || '',
-      nameEs: raw.name || '',
+      nameEs: getMagicItemSpanishName(idx, raw.name || ''),
       rarity,
       rarityEs,
-      attunement: !!raw.requires_attunement,
-      category: raw.equipment_category?.name || 'Objeto Mágico',
+      attunement: !!(raw.attunement || raw.requires_attunement || /requires attunement/i.test(desc)),
+      category: translateEquipmentCategory(rawCat),
       description: desc,
       edition
     };
@@ -396,13 +434,20 @@ class DndApiService {
         if (filters.category === 'armor' && item.category !== 'armor') return false;
         if (filters.category === 'potion' && item.category !== 'potion') return false;
         if (filters.category === 'gear' && item.category !== 'gear') return false;
+        if (filters.category === 'gear-and-potion' && item.category !== 'gear' && item.category !== 'potion') return false;
+      }
+      if (filters.subCategory && filters.subCategory !== 'all') {
+        if (item.subCategory !== filters.subCategory) return false;
       }
       if (filters.query && filters.query.trim() !== '') {
-        const matches = matchesQuery([item.name, item.nameEs, item.category, item.description, ...(item.properties || [])], filters.query);
+        const matches = matchesQuery(
+          [item.name, item.nameEs, item.category, item.equipmentType || '', item.activationCondition || '', item.description, ...(item.properties || [])],
+          filters.query
+        );
         if (!matches) return false;
       }
       return true;
-    }).sort((a, b) => a.name.localeCompare(b.name));
+    }).sort((a, b) => (a.nameEs || a.name).localeCompare(b.nameEs || b.name, 'es'));
   }
 
   /**
@@ -412,11 +457,11 @@ class DndApiService {
     const rawList = await srdCacheManager.getCategory(edition, 'magic-items');
     const normalized = rawList.map(r => this.normalizeMagicItem(r, edition));
 
-    if (!query || query.trim() === '') return normalized;
+    const filtered = (!query || query.trim() === '')
+      ? normalized
+      : normalized.filter(item => matchesQuery([item.name, item.nameEs, item.rarity, item.rarityEs, item.category, item.description], query));
 
-    return normalized.filter(item => {
-      return matchesQuery([item.name, item.nameEs, item.rarity, item.rarityEs, item.description], query);
-    }).sort((a, b) => a.name.localeCompare(b.name));
+    return filtered.sort((a, b) => (a.nameEs || a.name).localeCompare(b.nameEs || b.name, 'es'));
   }
 
   /**
@@ -506,15 +551,27 @@ class DndApiService {
 
   public toInventoryPayload(unified: UnifiedEquipment | UnifiedMagicItem): Partial<InventoryItem> {
     if ('rarity' in unified) {
+      const lowerIdx = unified.index.toLowerCase();
+      const lowerCat = unified.category.toLowerCase();
+      const isPotion = lowerIdx.includes('potion') || lowerIdx.includes('philter') || lowerIdx.includes('elixir') || lowerCat.includes('poción') || lowerCat.includes('potion');
+      const isScrollOrWand = lowerIdx.includes('scroll') || lowerIdx.includes('wand-') || lowerIdx.includes('bead-') || lowerIdx.includes('feather-token') || lowerIdx.includes('necklace-of-fireballs') || lowerIdx.includes('chime-of-opening') || lowerIdx.includes('candle-of-invocation') || lowerIdx.includes('dust-of-') || lowerIdx.includes('oil-of-') || lowerCat.includes('pergamino') || lowerCat.includes('varita');
+
+      let healAmount: number | undefined;
+      if (lowerIdx === 'potion-of-healing' || lowerIdx === 'potions-of-healing' || lowerIdx === 'potion-of-healing-common') healAmount = 7;
+      else if (lowerIdx === 'potion-of-greater-healing' || lowerIdx === 'potion-of-healing-greater') healAmount = 14;
+      else if (lowerIdx === 'potion-of-superior-healing' || lowerIdx === 'potion-of-healing-superior') healAmount = 28;
+      else if (lowerIdx === 'potion-of-supreme-healing' || lowerIdx === 'potion-of-healing-supreme') healAmount = 45;
+
       return {
         source: 'srd',
         custom: false,
-        name: unified.name,
+        name: unified.nameEs && unified.nameEs !== unified.name ? `${unified.nameEs} (${unified.name})` : unified.name,
         quantity: 1,
-        category: 'gear',
+        category: isPotion ? 'potion' : 'gear',
         ...(unified.attunement ? { requiresAttunement: true } : {}),
-        usableType: 'usable',
-        notes: `[${unified.rarityEs}] ${unified.description.slice(0, 300)}`
+        usableType: isPotion ? 'drinkable' : (isScrollOrWand ? 'usable' : 'none'),
+        ...(healAmount ? { healAmount } : {}),
+        notes: `[${unified.rarityEs} • ${unified.category}] ${unified.description.slice(0, 300)}`
       };
     }
 
@@ -536,6 +593,7 @@ class DndApiService {
       weightLb: unified.weight,
       usableType: unified.usableType,
       healAmount: unified.healAmount,
+      activationCondition: unified.activationCondition,
       notes: [
         unified.cost ? `Coste: ${unified.cost}` : '',
         unified.mastery ? `Maestría: ${unified.mastery} - ${unified.masteryDesc}` : '',
