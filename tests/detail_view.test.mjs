@@ -15,6 +15,8 @@ const feat = () => ({ id: 'f1', kind: 'feat', source: 'srd', name: 'Alerta', des
 test('availableActions: objeto en inventory (sin equip/give hasta que existan, H2/H6)', () => {
   assert.deepStrictEqual(availableActions(item(), 'inventory'), ['drop']);
   assert.deepStrictEqual(availableActions(item({ usableType: 'consumable' }), 'inventory'), ['use', 'drop']);
+  // armaduras, armas y equipo traen usableType 'none': no se consumen
+  assert.deepStrictEqual(availableActions(item({ usableType: 'none' }), 'inventory'), ['drop']);
 });
 
 test('availableActions: loot y compendio solo ofrecen add', () => {

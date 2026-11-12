@@ -159,7 +159,9 @@ export function availableActions(entry: CatalogEntry, ctx: DetailContext): Detai
     if (ctx === 'inventory') {
       // DECISION: 'equip' y 'give' siguen en el tipo, pero no se ofrecen hasta que el store tenga esas
       // acciones (H2/H6). Hoy el inventario solo sabe consumir y quitar.
-      if (has(entry.meta?.usableType)) out.push('use');
+      // `usableType` 'none' (armaduras, armas, equipo) no se consume: no se ofrece "Usar".
+      const usable = entry.meta?.usableType;
+      if (has(usable) && usable !== 'none') out.push('use');
       out.push('drop');
     }
   } else if (entry.kind === 'spell' && ctx === 'spellbook') {
