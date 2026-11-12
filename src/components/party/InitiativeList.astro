@@ -175,6 +175,7 @@ import { isOwnedBy } from '../../scripts/vtt/initiative';
   import { campaignStore } from '../../scripts/state/campaignStore.ts';
   import { characterStore } from '../../scripts/state/characterStore.ts';
   import { userStore } from '../../scripts/state/userStore.ts';
+  import { getArmorClass } from '../../scripts/dnd/ac.ts';
   import { animateHpBar } from '../../scripts/animations/hpAnimations.ts';
   import type { Combat, Combatant } from '../../scripts/models/combat.ts';
 
@@ -269,7 +270,7 @@ import { isOwnedBy } from '../../scripts/vtt/initiative';
         : (c.isPlayer && myChar && myChar.name === c.name ? myChar : undefined);
 
       const displayName = liveChar?.name?.trim() ? liveChar.name.trim() : c.name;
-      const displayAc = typeof liveChar?.armorClass === 'number' ? liveChar.armorClass : c.ac;
+      const displayAc = liveChar ? getArmorClass(liveChar) : c.ac;
       const effectiveCombatant: Combatant = liveChar
         ? {
             ...c,

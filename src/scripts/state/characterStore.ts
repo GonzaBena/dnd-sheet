@@ -7,6 +7,7 @@ import { equipAcross, unequipItem, unequipAction, setActionHands, attuneItem, un
 import type { EquipSlot, Proficiencies } from '../models/character.ts';
 import type { Resource } from '../models/resource.ts';
 import type { ActiveEffect } from '../models/effect.ts';
+import { getArmorClass } from '../dnd/ac.ts';
 import { addEffect, removeEffect, tickRounds, expireOnRest, roundDelta, type AddResult } from '../dnd/effects.ts';
 import { journalStore } from './journalStore.ts';
 import { campaignStore } from './campaignStore.ts';
@@ -228,7 +229,7 @@ class CharacterStoreManager {
     this.saveAndNotify();
     journalStore.log(
       'Configuración del Personaje guardada',
-      `Perfil actualizado: "${this.character.name}" (Nivel ${this.character.level} ${this.character.className}, CA ${this.character.armorClass}, PG máx ${this.character.hp.max}).`,
+      `Perfil actualizado: "${this.character.name}" (Nivel ${this.character.level} ${this.character.className}, CA ${getArmorClass(this.character)}, PG máx ${this.character.hp.max}).`,
       ['#Configuración']
     );
   }
@@ -756,6 +757,13 @@ class CharacterStoreManager {
   // Competencias y avisos (Spec 08, Fase C). Una escritura por cambio.
   public setProficiencies(prof: Proficiencies) {
     this.character.proficiencies = { armor: [...prof.armor], weapons: [...prof.weapons] };
+    this.saveAndNotify();
+  }
+
+  /** FD-6: número = override manual; `undefined` vuelve al cálculo. Una sola escritura. */
+  public setManualAc(value: number | undefined) {
+    if (typeof value === 'number' && Number.isFinite(value)) this.character.armorClass = Math.round(value);
+    else delete this.character.armorClass;
     this.saveAndNotify();
   }
 

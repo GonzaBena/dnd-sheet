@@ -140,8 +140,8 @@ Prueba manual (personaje antiguo con CA manual, más un mago y un bárbaro):
 
 ## 10. Checklist de cierre
 
-- [ ] T-263 … T-266 marcadas en la spec.
-- [ ] `// DECISION:` en FD-2 y FD-6.
-- [ ] No queda ningún lector directo de `armorClass` salvo el override.
-- [ ] `tests/effects.test.mjs` sigue en verde.
-- [ ] `pnpm test` y `pnpm build` en verde.
+- [x] T-263 … T-266 marcadas en la spec.
+- [x] `// DECISION:` en FD-2 y FD-6.
+- [x] No queda ningún lector directo de `armorClass` salvo el override.
+- [x] `tests/effects.test.mjs` sigue en verde.
+- [x] `pnpm test` y `pnpm build` en verde.

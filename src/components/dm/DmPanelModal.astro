@@ -127,6 +127,7 @@ import SessionStatusControls from './SessionStatusControls.astro';
   import { characterStore } from '../../scripts/state/characterStore';
   import { journalStore } from '../../scripts/state/journalStore';
   import { userStore } from '../../scripts/state/userStore';
+  import { getArmorClass } from '../../scripts/dnd/ac.ts';
   import { congratulationBanner } from '../../scripts/ui/congratulationBanner';
   import { openModal, closeModal } from '../../scripts/animations/modalAnimations';
 
@@ -219,7 +220,7 @@ import SessionStatusControls from './SessionStatusControls.astro';
           <div class="grid grid-cols-3 gap-1.5 text-center text-[10px]">
             <div class="p-1 rounded bg-[#10141d] border border-[#222f42]">
               <span class="text-[#64748b] block">CA</span>
-              <strong class="text-amber-400 font-headline text-xs">${char.armorClass}</strong>
+              <strong class="text-amber-400 font-headline text-xs">${getArmorClass(char)}</strong>
             </div>
             <div class="p-1 rounded bg-[#10141d] border border-[#222f42]">
               <span class="text-[#64748b] block">Percep. Pas.</span>

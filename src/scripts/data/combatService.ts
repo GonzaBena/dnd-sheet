@@ -28,6 +28,7 @@ import { userStore } from '../state/userStore.ts';
 import { normalizeStatus, canPerform } from '../vtt/sessionStatus.ts';
 import { getFirebase, isFirebaseConfigured } from '../firebase/client.ts';
 import { toPlain } from './cloudTypes.ts';
+import { getArmorClass } from '../dnd/ac.ts';
 
 const LOCAL_STORAGE_PREFIX = 'dnd_combat_';
 
@@ -244,7 +245,7 @@ export function buildPlayerCombatants(cid: string): Combatant[] {
     initiative: 10,
     hp: typeof char.hp?.current === 'number' ? char.hp.current : 10,
     maxHp: typeof char.hp?.max === 'number' && char.hp.max > 0 ? char.hp.max : 10,
-    ac: typeof char.armorClass === 'number' ? char.armorClass : 10,
+    ac: getArmorClass(char),
     conditions: [],
     isPlayer: true,
     hiddenHp: false,

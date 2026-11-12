@@ -4,6 +4,7 @@
 
 import type { Combat, Combatant } from '../models/combat.ts';
 import type { CharacterData } from '../models/character.ts';
+import { getArmorClass } from '../dnd/ac.ts';
 
 /**
  * Ordena combatientes según F1-2:
@@ -272,7 +273,7 @@ export function syncCombatantsWithCharacters(
     const newName = char.name?.trim() ? char.name.trim() : c.name;
     const newHp = typeof char.hp?.current === 'number' ? char.hp.current : c.hp;
     const newMaxHp = typeof char.hp?.max === 'number' && char.hp.max > 0 ? char.hp.max : c.maxHp;
-    const newAc = typeof char.armorClass === 'number' ? char.armorClass : c.ac;
+    const newAc = getArmorClass(char);
 
     if (c.name !== newName || c.hp !== newHp || c.maxHp !== newMaxHp || c.ac !== newAc) {
       changed = true;

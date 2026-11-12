@@ -1,6 +1,7 @@
 // src/scripts/dnd/effects.ts
 // Funciones puras del registro de efectos activos (Spec 07, Fase B). No mutan sus argumentos.
 import type { ActiveEffect, EffectDuration, Modifier } from '../models/effect.ts';
+import type { InventoryItem } from '../models/character.ts';
 
 export interface AddResult {
   effects: ActiveEffect[];
@@ -67,14 +68,26 @@ export function expireOnRest(
 }
 
 /** FB-5: coincidencia exacta o por prefijo con punto (`save` coincide con `save.dex`). No evalúa `when`. */
-export function collectModifiers(char: { activeEffects?: ActiveEffect[] }, target: string): Modifier[] {
+export function collectModifiers(
+  char: { activeEffects?: ActiveEffect[]; inventory?: InventoryItem[] },
+  target: string,
+): Modifier[] {
   const out: Modifier[] = [];
+  const matches = (m: Modifier) => m.target === target || m.target.startsWith(target + '.');
   for (const e of char.activeEffects ?? []) {
-    for (const m of e.modifiers ?? []) {
-      if (m.target === target || m.target.startsWith(target + '.')) out.push(m);
-    }
+    for (const m of e.modifiers ?? []) if (matches(m)) out.push(m);
+  }
+  // FD-4/FD-8: un objeto aporta efectos solo si está equipado y, si lo exige, sintonizado.
+  for (const item of char.inventory ?? []) {
+    if (!itemContributes(item)) continue;
+    for (const m of item.effects ?? []) if (matches(m)) out.push(m);
   }
   return out;
+}
+
+/** FD-4 (RF-264): equipado y, si requiere sintonización, también sintonizado. */
+export function itemContributes(item: InventoryItem): boolean {
+  return !!item.equipped && (!item.requiresAttunement || !!item.attuned);
 }
 
 export function describeDuration(d: EffectDuration): string {

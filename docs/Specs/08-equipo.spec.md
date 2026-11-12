@@ -231,10 +231,10 @@ IDs a partir de T-252 (la Spec 07 llega hasta T-251). Se ejecuta una fase a la v
 - [x] T-262 Aviso en la hoja y botón "Ignorar" (RF-270, RF-272)
 
 **Fase D — CA derivada** (depende de la Fase C)
-- [ ] T-263 `computeAc` con fórmulas y partes, con tests (RF-273, RF-274, RF-275)
-- [ ] T-264 `collectModifiers` incluye efectos de objetos equipados, con tests (RF-264, RF-276)
-- [ ] T-265 `getArmorClass` y migración de lectores, incluida la forma salvaje (RF-277)
-- [ ] T-266 Desglose de la CA en la hoja y override manual (RF-275, RF-278)
+- [x] T-263 `computeAc` con fórmulas y partes, con tests (RF-273, RF-274, RF-275)
+- [x] T-264 `collectModifiers` incluye efectos de objetos equipados, con tests (RF-264, RF-276)
+- [x] T-265 `getArmorClass` y migración de lectores, incluida la forma salvaje (RF-277)
+- [x] T-266 Desglose de la CA en la hoja y override manual (RF-275, RF-278)
 
 **Fase E — Armas en acción y cierre** (depende de las Fases B y D)
 - [ ] T-267 Enlace entre `AttackAction` y el arma equipada (RF-280)

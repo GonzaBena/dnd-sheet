@@ -81,6 +81,24 @@ test('collectModifiers', () => {
   assert.strictEqual(collectModifiers({}, 'ac').length, 0);
 });
 
+test('collectModifiers: efectos de objetos según FD-4', () => {
+  const ring = (extra) => ({
+    id: 'r', name: 'Anillo', quantity: 1, category: 'gear',
+    effects: [{ target: 'ac', op: 'add', value: 1 }], ...extra,
+  });
+  const n = (inventory) => collectModifiers({ inventory }, 'ac').length;
+  assert.strictEqual(n([ring({})]), 0, 'sin equipar no aporta');
+  assert.strictEqual(n([ring({ equipped: true })]), 1, 'equipado sin sintonía requerida aporta');
+  assert.strictEqual(n([ring({ equipped: true, requiresAttunement: true })]), 0, 'requiere sintonía y no la tiene');
+  assert.strictEqual(n([ring({ equipped: true, requiresAttunement: true, attuned: true })]), 1);
+  assert.strictEqual(n([ring({ requiresAttunement: true, attuned: true })]), 0, 'sintonizado pero sin equipar');
+  // suma objetos y efectos activos; sin inventario se comporta como antes
+  const e = { id: 'e', name: 'e', sourceType: 'custom', duration: { kind: 'indefinite' }, appliedAt: 0,
+    modifiers: [{ target: 'ac', op: 'add', value: 2 }] };
+  assert.strictEqual(collectModifiers({ activeEffects: [e], inventory: [ring({ equipped: true })] }, 'ac').length, 2);
+  assert.strictEqual(collectModifiers({ activeEffects: [e] }, 'ac').length, 1);
+});
+
 test('describeDuration', () => {
   assert.strictEqual(describeDuration({ kind: 'rounds', remaining: 1 }), '1 ronda');
   assert.strictEqual(describeDuration({ kind: 'rounds', remaining: 2 }), '2 rondas');

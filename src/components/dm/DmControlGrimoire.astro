@@ -312,6 +312,7 @@ import HandoutManager from './HandoutManager.astro';
   import { characterStore } from '../../scripts/state/characterStore';
   import { journalStore, getEntryVisibility } from '../../scripts/state/journalStore';
   import { userStore } from '../../scripts/state/userStore';
+  import { getArmorClass } from '../../scripts/dnd/ac.ts';
   import { congratulationBanner } from '../../scripts/ui/congratulationBanner';
   import { canPerform, normalizeStatus } from '../../scripts/vtt/sessionStatus.ts';
   import { subscribeNotes } from '../../scripts/data/notesService.ts';
@@ -436,7 +437,7 @@ import HandoutManager from './HandoutManager.astro';
             <!-- Datos tácticos e inspiración -->
             <div class="flex items-center justify-between gap-2 pt-2 border-t border-[#222f42]">
               <div class="flex items-center gap-3 text-[11px] text-[#94a3b8]">
-                <span title="Clase de armadura">CA <strong class="text-amber-400 font-headline text-xs">${char.armorClass}</strong></span>
+                <span title="Clase de armadura">CA <strong class="text-amber-400 font-headline text-xs">${getArmorClass(char)}</strong></span>
                 <span title="Percepción pasiva">PP <strong class="text-[#cbd5e1] font-headline text-xs">${passivePerception}</strong></span>
                 <span title="Iniciativa">Ini <strong class="text-emerald-400 font-headline text-xs">+${char.initiativeBonus || 3}</strong></span>
               </div>

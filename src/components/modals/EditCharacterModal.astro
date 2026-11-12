@@ -179,8 +179,11 @@ import { CHARACTER_PRESET_IMAGES } from '../../scripts/data/characterAvatars';
             <input type="number" id="edit-char-max-hp" class="w-full p-2.5 rounded-lg bg-[#18202e] border border-[#222f42] text-[#f1f5f9] focus:border-amber-500 focus:outline-none" />
           </div>
           <div>
-            <label class="text-[#94a3b8] block mb-1">Clase de Armadura</label>
-            <input type="number" id="edit-char-ac" class="w-full p-2.5 rounded-lg bg-[#18202e] border border-[#222f42] text-[#f1f5f9] focus:border-amber-500 focus:outline-none" />
+            <label class="text-[#94a3b8] block mb-1">CA manual (opcional)</label>
+            <div class="flex gap-2">
+              <input type="number" id="edit-char-ac" placeholder="Calculada" class="w-full p-2.5 rounded-lg bg-[#18202e] border border-[#222f42] text-[#f1f5f9] focus:border-amber-500 focus:outline-none" />
+              <button type="button" id="edit-char-ac-reset" title="Volver al cálculo" class="px-2.5 rounded-lg bg-[#18202e] border border-[#222f42] text-[#94a3b8] hover:text-[#f1f5f9] hover:border-amber-500/50 text-[10px] whitespace-nowrap cursor-pointer">Volver al cálculo</button>
+            </div>
           </div>
           <div>
             <label class="text-[#94a3b8] block mb-1">Velocidad (ft)</label>
@@ -229,6 +232,7 @@ import { CHARACTER_PRESET_IMAGES } from '../../scripts/data/characterAvatars';
   const maxHpInp = document.getElementById('edit-char-max-hp') as HTMLInputElement;
   const hpHint = document.getElementById('edit-char-hp-hint');
   const acInp = document.getElementById('edit-char-ac') as HTMLInputElement;
+  document.getElementById('edit-char-ac-reset')?.addEventListener('click', () => { if (acInp) acInp.value = ''; });
   const speedInp = document.getElementById('edit-char-speed') as HTMLInputElement;
 
   const strInp = document.getElementById('edit-stat-str') as HTMLInputElement;
@@ -263,7 +267,7 @@ import { CHARACTER_PRESET_IMAGES } from '../../scripts/data/characterAvatars';
     }
     if (maxHpInp) maxHpInp.value = String(char.hp.max);
     if (hpHint) hpHint.classList.add('hidden');
-    if (acInp) acInp.value = String(char.armorClass);
+    if (acInp) acInp.value = typeof char.armorClass === 'number' ? String(char.armorClass) : '';
     if (speedInp) speedInp.value = String(char.speedFt);
 
     if (strInp) strInp.value = String(char.stats.str.score);
@@ -393,7 +397,10 @@ import { CHARACTER_PRESET_IMAGES } from '../../scripts/data/characterAvatars';
       }
     }
 
-    char.armorClass = parseInt(acInp?.value || '10');
+    // FD-6: vacío = sin override (CA calculada); un número manda sobre el cálculo.
+    const manualAc = parseInt(acInp?.value ?? '', 10);
+    if (Number.isFinite(manualAc)) char.armorClass = manualAc;
+    else delete char.armorClass;
     char.speedFt = parseInt(speedInp?.value || '30');
 
     char.stats.str.score = parseInt(strInp?.value || '10');

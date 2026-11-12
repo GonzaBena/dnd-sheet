@@ -1,6 +1,7 @@
 import type { CharacterData, StatBlock, SkillItem } from '../models/character';
 import { migrateSlots, migrateResources } from './resources.ts';
 import { migrateAttuned } from './equipment.ts';
+import { migrateArmorClass } from './ac.ts';
 
 export const STANDARD_5E_SKILLS: { id: string; name: string; stat: 'str' | 'dex' | 'con' | 'int' | 'wis' | 'cha' }[] = [
   { id: 'acrobatics', name: 'Acrobacias', stat: 'dex' },
@@ -58,6 +59,8 @@ export function recalculateCharacter(char: CharacterData): CharacterData {
   if (!char.proficiencies) char.proficiencies = { armor: [], weapons: [] };
   if (!Array.isArray(char.proficiencies.armor)) char.proficiencies.armor = [];
   if (!Array.isArray(char.proficiencies.weapons)) char.proficiencies.weapons = [];
+  // Spec 08, Fase D (FD-6): `armorClass` pasa a ser un override; si coincide con el cálculo se limpia.
+  migrateArmorClass(char);
 
   if (!char.rulesEdition) {
     char.rulesEdition = '2024';

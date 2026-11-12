@@ -470,6 +470,7 @@
   import { areAllPlayersInInitiative, computeAutoLinks } from '../../scripts/vtt/initiative.ts';
   import { campaignStore } from '../../scripts/state/campaignStore.ts';
   import { userStore } from '../../scripts/state/userStore.ts';
+  import { getArmorClass } from '../../scripts/dnd/ac.ts';
   import { showConfirm, showForm, showAlert } from '../../scripts/ui/notify.ts';
   import { animateHpBar } from '../../scripts/animations/hpAnimations.ts';
   import { listMaps, addToken, watchActiveMap } from '../../scripts/data/mapService.ts';
@@ -708,7 +709,7 @@
         : undefined;
 
       const displayName = liveChar?.name?.trim() ? liveChar.name.trim() : c.name;
-      const displayAc = typeof liveChar?.armorClass === 'number' ? liveChar.armorClass : (c.ac || 10);
+      const displayAc = liveChar ? getArmorClass(liveChar) : (c.ac || 10);
       const displayHp = typeof liveChar?.hp?.current === 'number' ? liveChar.hp.current : c.hp;
       const displayMaxHp = typeof liveChar?.hp?.max === 'number' && liveChar.hp.max > 0 ? liveChar.hp.max : c.maxHp;
       const avatarUrl = liveChar?.avatarUrl || c.avatarUrl || (c.isPlayer ? '/characters/ch-1.avif' : '/characters/ch-3.avif');
@@ -1459,7 +1460,7 @@
       const initVal = Number(input.value) || 10;
       const hp = typeof liveChar?.hp?.current === 'number' ? liveChar.hp.current : (Number(input.dataset.hp) || 10);
       const maxHp = typeof liveChar?.hp?.max === 'number' && liveChar.hp.max > 0 ? liveChar.hp.max : (Number(input.dataset.maxHp) || 10);
-      const ac = typeof liveChar?.armorClass === 'number' ? liveChar.armorClass : (Number(input.dataset.ac) || 10);
+      const ac = liveChar ? getArmorClass(liveChar) : (Number(input.dataset.ac) || 10);
       const ownerUid = liveChar?.userId || input.dataset.owner || undefined;
 
       combatants.push({
@@ -1739,7 +1740,7 @@
           initiative: detail.initiativeTotal,
           hp: typeof liveChar?.hp?.current === 'number' ? liveChar.hp.current : 10,
           maxHp: typeof liveChar?.hp?.max === 'number' && liveChar.hp.max > 0 ? liveChar.hp.max : 10,
-          ac: typeof liveChar?.armorClass === 'number' ? liveChar.armorClass : 10,
+          ac: liveChar ? getArmorClass(liveChar) : 10,
           conditions: [],
           isPlayer: true,
           hiddenHp: false,

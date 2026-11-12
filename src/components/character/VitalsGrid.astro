@@ -95,7 +95,7 @@ import CompatWarnings from './CompatWarnings.astro';
   <!-- FILA 2: [ CA | Iniciativa | Sintonización ] -->
   <div class="grid grid-cols-2 lg:grid-cols-12 gap-2.5 w-full">
     <!-- Armor Class (3 cols on lg, 1 col on mobile) -->
-    <div class="col-span-1 lg:col-span-3 rounded-xl bg-[#18202e] border border-[#222f42] p-2.5 sm:p-3 flex items-center gap-2.5 shadow-sm hover:border-amber-500/40 transition-colors">
+    <div id="vitals-ac-card" role="button" tabindex="0" title="Ver desglose de la CA" class="col-span-1 lg:col-span-3 rounded-xl bg-[#18202e] border border-[#222f42] p-2.5 sm:p-3 flex items-center gap-2.5 shadow-sm hover:border-amber-500/40 transition-colors cursor-pointer">
       <div class="w-9 h-9 rounded-lg bg-amber-500/10 border border-amber-500/30 flex items-center justify-center shrink-0">
         <span class="material-symbols-outlined text-amber-400 text-[20px]">shield</span>
       </div>
@@ -204,6 +204,12 @@ import CompatWarnings from './CompatWarnings.astro';
   import { animateHpBar } from '../../scripts/animations/hpAnimations';
   import { openModal } from '../../scripts/animations/modalAnimations';
   import { MAX_ATTUNED } from '../../scripts/dnd/equipment';
+  import { computeAc, getArmorClass } from '../../scripts/dnd/ac';
+
+  const acCard = document.getElementById('vitals-ac-card');
+  const openAcBreakdown = () => window.dispatchEvent(new CustomEvent('open-ac-breakdown-modal'));
+  acCard?.addEventListener('click', openAcBreakdown);
+  acCard?.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openAcBreakdown(); } });
 
   const barEl = document.getElementById('hp-progress-bar');
   const tempBarEl = document.getElementById('hp-temp-bar');
@@ -378,8 +384,9 @@ import CompatWarnings from './CompatWarnings.astro';
     const hdDispEl = document.getElementById('vitals-hitdice-display');
     const hdTypeEl = document.getElementById('vitals-hitdice-type');
 
-    if (acEl) acEl.textContent = String(char.armorClass);
-    if (acNoteEl) acNoteEl.textContent = char.armorNote;
+    if (acEl) acEl.textContent = String(getArmorClass(char));
+    // FD-9: la nota es libre; si está vacía se muestra la fórmula con la que se calculó.
+    if (acNoteEl) acNoteEl.textContent = char.armorNote || (char.wildShape?.activeForm ? 'Forma salvaje' : computeAc(char).formula);
     if (initEl) initEl.textContent = `${char.initiativeBonus >= 0 ? '+' : ''}${char.initiativeBonus}`;
     if (speedEl) speedEl.textContent = String(char.speedFt);
     if (hdDispEl) hdDispEl.textContent = `${char.hitDice.remaining} / ${char.hitDice.total}`;

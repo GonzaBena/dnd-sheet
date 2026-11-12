@@ -255,6 +255,7 @@ import AlertPrefsMenu from './AlertPrefsMenu.astro';
   import { campaignStore } from '../../scripts/state/campaignStore';
   import { openModal } from '../../scripts/animations/modalAnimations';
   import { userStore } from '../../scripts/state/userStore';
+  import { getArmorClass } from '../../scripts/dnd/ac.ts';
   import { cloudSession } from '../../scripts/data/cloudSync';
 
   // Título: en la página de campañas ("/") el enlace sube al inicio suavemente.
@@ -615,7 +616,7 @@ import AlertPrefsMenu from './AlertPrefsMenu.astro';
           }
         }
         if (acEl) {
-          acEl.textContent = String(char.armorClass ?? 10);
+          acEl.textContent = String(getArmorClass(char));
         }
       }
 
