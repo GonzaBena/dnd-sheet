@@ -220,6 +220,20 @@ test('el dueño escribe recursos, efectos e imagen de objetos; el DM no (Spec 07
   await assertSucceeds(updateDoc(doc(db(DM), 'characters', 'char-player'), { hp: { current: 5, max: 20, temp: 0 }, inspiration: true, updatedAt: 4 }));
 });
 
+test('el dueño escribe inventario, competencias y CA; el DM no (Spec 08)', async () => {
+  const owner = db(PLAYER);
+  const dm = db(DM);
+  const ref = (d) => doc(d, 'characters', 'char-player');
+  await assertSucceeds(updateDoc(ref(owner), { inventory: [{ id: 'e1', name: 'Espada larga', quantity: 1, category: 'weapon', equipped: true, slot: 'mainHand' }] }));
+  await assertSucceeds(updateDoc(ref(owner), { proficiencies: { armor: ['light'], weapons: ['martial'] } }));
+  await assertSucceeds(updateDoc(ref(owner), { armorClass: 17 }));
+  await assertFails(updateDoc(ref(dm), { inventory: [] }));
+  await assertFails(updateDoc(ref(dm), { proficiencies: { armor: [], weapons: [] } }));
+  await assertFails(updateDoc(ref(dm), { armorClass: 30 }));
+  // Regresión: el DM sigue pudiendo escribir PG, inspiración y updatedAt.
+  await assertSucceeds(updateDoc(ref(dm), { hp: { current: 7, max: 20, temp: 0 }, inspiration: false, updatedAt: 5 }));
+});
+
 test('DM o creador pueden desvincular la ficha de un jugador (campaignId → null)', async () => {
   await assertSucceeds(updateDoc(doc(db(DM), 'characters', 'char-player'), { campaignId: null, sessionContext: deleteField(), updatedAt: 3 }));
   await assertFails(updateDoc(doc(db(OTHER), 'characters', 'char-player'), { campaignId: null }));

@@ -144,13 +144,14 @@ Se asignan a una etapa cuando haga falta:
 - Indicador de lo que queda en el turno: acción, adicional, reacción, movimiento, interacción con objeto.
 - Modo "turno rápido" para móvil, con lo que se hace ahora arriba y el resto plegado.
 - Tiempos de ponerse y quitarse la armadura.
+- Oferta "Crear ataque" en la UI al equipar un arma de la mochila (la lógica ya existe: `characterStore.createAttackFromWeapon`); hoy la mochila no equipa armas.
 
 ## Estado de las specs
 
 | Spec | Etapa | Estado |
 | --- | --- | --- |
 | [07 — Cimientos de la hoja](Specs/07-cimientos-de-la-hoja.spec.md) | H1 | Hecha (H1 cerrada) |
-| [08 — Equipo](Specs/08-equipo.spec.md) | H2 | Completa, con [planes](Plans/08-equipo/README.md) listos |
+| [08 — Equipo](Specs/08-equipo.spec.md) | H2 | Cerrada (H2 cerrada; la UI de "Crear ataque" quedó diferida) |
 | 09 — Descansos y recursos | H3 | Por escribir |
 | 10 — Combate en la hoja | H4 | Por escribir |
 | 11 — Reacciones | H5 | Por escribir |
@@ -161,4 +162,4 @@ Los rangos de IDs de cada spec nueva se asignan al abrirla, a partir del 230 (la
 
 ## Próximo paso
 
-H1 cerrada (Spec 07 hecha). Siguiente: ejecutar los planes de la Spec 08 (H2) en `docs/Plans/08-equipo/`, empezando por la Fase A (modelo, slots y sintonización).
+H1 y H2 cerradas (Specs 07 y 08 hechas). Siguiente: escribir la Spec 09 — Descansos y recursos (H3).

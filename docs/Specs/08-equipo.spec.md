@@ -237,9 +237,9 @@ IDs a partir de T-252 (la Spec 07 llega hasta T-251). Se ejecuta una fase a la v
 - [x] T-266 Desglose de la CA en la hoja y override manual (RF-275, RF-278)
 
 **Fase E — Armas en acción y cierre** (depende de las Fases B y D)
-- [ ] T-267 Enlace entre `AttackAction` y el arma equipada (RF-280)
-- [ ] T-268 Tests de reglas del DM (RF-282)
-- [ ] T-269 Prueba manual con DM y jugador y cierre de la etapa
+- [x] T-267 Enlace entre `AttackAction` y el arma equipada (RF-280). Lógica (`weaponAttack.ts`, `createAttackFromWeapon`) hecha; la oferta en la UI queda diferida, ver Ideas sueltas del ROADMAP
+- [x] T-268 Tests de reglas del DM (RF-282)
+- [x] T-269 Prueba manual con DM y jugador y cierre de la etapa (11/11; el paso 4, "Crear ataque" en la UI, queda diferido)
 
 ## Criterios de aceptación, cuotas y pruebas
 
@@ -266,4 +266,4 @@ IDs a partir de T-252 (la Spec 07 llega hasta T-251). Se ejecuta una fase a la v
 
 ## Preguntas abiertas
 
-Ninguna por ahora.
+Ninguna por ahora. La oferta "Crear ataque" en la UI (criterio 6) se difirió a Ideas sueltas del ROADMAP; la lógica ya existe y está testeada.

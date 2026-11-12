@@ -7,6 +7,7 @@ import { equipAcross, unequipItem, unequipAction, setActionHands, attuneItem, un
 import type { EquipSlot, Proficiencies } from '../models/character.ts';
 import type { Resource } from '../models/resource.ts';
 import type { ActiveEffect } from '../models/effect.ts';
+import { buildAttackFromWeapon, upsertAttack } from '../dnd/weaponAttack.ts';
 import { getArmorClass } from '../dnd/ac.ts';
 import { addEffect, removeEffect, tickRounds, expireOnRest, roundDelta, type AddResult } from '../dnd/effects.ts';
 import { journalStore } from './journalStore.ts';
@@ -737,6 +738,16 @@ class CharacterStoreManager {
       ['#Equipo']
     );
     return result;
+  }
+
+  // DECISION (FE-2): crear o actualizar el ataque es una acción explícita, nunca automática al equipar.
+  // DECISION (FE-7): al desequipar el arma la acción no se borra; se elimina a mano.
+  public createAttackFromWeapon(itemId: string): boolean {
+    const item = this.character.inventory.find(i => i.id === itemId);
+    if (!item?.weapon) return false;
+    this.character.actions = upsertAttack(this.character.actions, buildAttackFromWeapon(this.character, item));
+    this.saveAndNotify();
+    return true;
   }
 
   public unequipWeapon(actionId: string) {

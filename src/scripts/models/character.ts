@@ -39,6 +39,8 @@ export interface AttackAction {
   equipped?: boolean;
   slot?: EquipSlot;
   hands?: 1 | 2;
+  // Spec 08, Fase E: arma del inventario de la que salió este ataque
+  itemId?: string;
 }
 
 export interface SpellItem {
