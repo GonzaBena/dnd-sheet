@@ -13,10 +13,10 @@ const spell = (meta = {}, extra = {}) => ({
 const feat = () => ({ id: 'f1', kind: 'feat', source: 'srd', name: 'Alerta', description: '', meta: {} });
 
 test('availableActions: objeto en inventory (sin equip/give hasta que existan, H2/H6)', () => {
-  assert.deepStrictEqual(availableActions(item(), 'inventory'), ['drop']);
-  assert.deepStrictEqual(availableActions(item({ usableType: 'consumable' }), 'inventory'), ['use', 'drop']);
+  assert.deepStrictEqual(availableActions(item(), 'inventory'), ['edit', 'drop']);
+  assert.deepStrictEqual(availableActions(item({ usableType: 'consumable' }), 'inventory'), ['use', 'edit', 'drop']);
   // armaduras, armas y equipo traen usableType 'none': no se consumen
-  assert.deepStrictEqual(availableActions(item({ usableType: 'none' }), 'inventory'), ['drop']);
+  assert.deepStrictEqual(availableActions(item({ usableType: 'none' }), 'inventory'), ['edit', 'drop']);
 });
 
 test('availableActions: loot y compendio solo ofrecen add', () => {

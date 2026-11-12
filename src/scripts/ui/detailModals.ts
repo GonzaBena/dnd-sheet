@@ -28,6 +28,7 @@ export interface DetailActionDetail {
 
 const ACTION_LABEL: Record<DetailAction, { text: string; icon: string; primary?: boolean; danger?: boolean }> = {
   equip: { text: 'Equipar', icon: 'shield' },
+  edit: { text: 'Modificar', icon: 'edit' },
   use: { text: 'Usar', icon: 'science', primary: true },
   give: { text: 'Dar', icon: 'redeem' },
   drop: { text: 'Quitar', icon: 'delete', danger: true },

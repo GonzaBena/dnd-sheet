@@ -9,7 +9,7 @@ import { SLOT_LABELS, validSlotsFor } from './equipment.ts';
 
 export type DetailContext = 'inventory' | 'spellbook' | 'compendium' | 'loot';
 export type DetailAction =
-  | 'equip' | 'use' | 'give' | 'drop' | 'add' | 'cast' | 'apply-effect' | 'remove';
+  | 'equip' | 'edit' | 'use' | 'give' | 'drop' | 'add' | 'cast' | 'apply-effect' | 'remove';
 
 export interface DetailField { label: string; value: string }
 export interface DetailSection { title: string; rows: DetailField[] }
@@ -162,7 +162,8 @@ export function availableActions(entry: CatalogEntry, ctx: DetailContext): Detai
       // `usableType` 'none' (armaduras, armas, equipo) no se consume: no se ofrece "Usar".
       const usable = entry.meta?.usableType;
       if (has(usable) && usable !== 'none') out.push('use');
-      out.push('drop');
+      // Modificar abre el mismo modal de edición que la mochila (sirve también para armaduras y escudos).
+      out.push('edit', 'drop');
     }
   } else if (entry.kind === 'spell' && ctx === 'spellbook') {
     out.push('cast');

@@ -529,6 +529,9 @@
       if (res.success && res.healed && res.healed > 0) {
         showAlert(`¡Has consumido "${res.name}"! +${res.healed} PG recuperados.`, { kind: 'success' });
       }
+    } else if (action === 'edit') {
+      const item = characterStore.get().inventory.find((i: any) => i.id === entryId);
+      if (item) window.dispatchEvent(new CustomEvent('open-edit-item-modal', { detail: { item } }));
     } else if (action === 'drop') {
       deleteTriggers.get(entryId)?.();
     }
