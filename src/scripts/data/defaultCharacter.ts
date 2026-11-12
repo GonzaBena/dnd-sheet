@@ -24,8 +24,8 @@ export const defaultCharacter: CharacterData = {
     temp: 5,
   },
   
-  armorClass: 16,
-  armorNote: 'Cuero tach. + Escudo',
+  // CA calculada (Spec 08, Fase D): sin override ni nota; el desglose sale del equipo equipado.
+  armorNote: '',
   initiativeBonus: 3,
   speedFt: 30,
   speedNote: '6 casillas',

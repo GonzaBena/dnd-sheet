@@ -61,6 +61,9 @@ export function recalculateCharacter(char: CharacterData): CharacterData {
   if (!Array.isArray(char.proficiencies.weapons)) char.proficiencies.weapons = [];
   // Spec 08, Fase D (FD-6): `armorClass` pasa a ser un override; si coincide con el cálculo se limpia.
   migrateArmorClass(char);
+  // DECISION (FD-9): `armorNote` ya no es la descripción automática. La nota que traía el personaje de
+  // ejemplo se limpia (exacta, para no tocar notas escritas por el usuario).
+  if (char.armorNote === 'Cuero tach. + Escudo') char.armorNote = '';
 
   if (!char.rulesEdition) {
     char.rulesEdition = '2024';

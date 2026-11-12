@@ -79,6 +79,16 @@ import { CHARACTER_PRESET_IMAGES } from '../../scripts/data/characterAvatars';
             <input type="number" id="edit-char-level" min="1" max="20" class="w-full p-2.5 rounded-lg bg-[#18202e] border border-[#222f42] text-[#f1f5f9] focus:border-amber-500 focus:outline-none" />
           </div>
           <div>
+            <label class="text-[#94a3b8] block mb-1">Dado de golpe</label>
+            <select id="edit-char-hitdie" class="w-full p-2.5 rounded-lg bg-[#18202e] border border-[#222f42] text-[#f1f5f9] focus:border-amber-500 focus:outline-none">
+              <option value="d6">d6</option>
+              <option value="d8">d8</option>
+              <option value="d10">d10</option>
+              <option value="d12">d12</option>
+            </select>
+            <span class="text-[10px] text-[#64748b] block mt-1">Se sugiere según la clase; cámbialo si hace falta.</span>
+          </div>
+          <div>
             <label class="text-[#94a3b8] block mb-1">Especie / Raza</label>
             <input type="text" id="edit-char-race" class="w-full p-2.5 rounded-lg bg-[#18202e] border border-[#222f42] text-[#f1f5f9] focus:border-amber-500 focus:outline-none" />
           </div>
@@ -210,6 +220,7 @@ import { CHARACTER_PRESET_IMAGES } from '../../scripts/data/characterAvatars';
   import { closeModal } from '../../scripts/animations/modalAnimations';
   import { congratulationBanner } from '../../scripts/ui/congratulationBanner';
   import { calculateLevelUpHpGain, calculateModifier } from '../../scripts/dnd/calculations';
+  import { hitDieForClass } from '../../scripts/dnd/hitDice';
   import { getRandomCharacterAvatar, isBrokenAvatarUrl, sanitizeAvatarUrl } from '../../scripts/data/characterAvatars';
 
   const modal = document.getElementById('edit-character-modal');
@@ -225,6 +236,14 @@ import { CHARACTER_PRESET_IMAGES } from '../../scripts/data/characterAvatars';
   const titleInp = document.getElementById('edit-char-title') as HTMLInputElement;
   const quoteInp = document.getElementById('edit-char-quote') as HTMLTextAreaElement;
   const levelInp = document.getElementById('edit-char-level') as HTMLInputElement;
+  const hitDieSel = document.getElementById('edit-char-hitdie') as HTMLSelectElement;
+  // Tras un cambio manual del dado, cambiar la clase ya no lo pisa.
+  let hitDieTouched = false;
+  hitDieSel?.addEventListener('change', () => { hitDieTouched = true; updateSuggestedHp(); });
+  classInp?.addEventListener('input', () => {
+    const suggested = hitDieForClass(classInp.value);
+    if (suggested && hitDieSel && !hitDieTouched) { hitDieSel.value = suggested; updateSuggestedHp(); }
+  });
   const raceInp = document.getElementById('edit-char-race') as HTMLInputElement;
   const editionInp = document.getElementById('edit-char-edition') as HTMLSelectElement;
   const alignInp = document.getElementById('edit-char-alignment') as HTMLInputElement;
@@ -258,6 +277,8 @@ import { CHARACTER_PRESET_IMAGES } from '../../scripts/data/characterAvatars';
     if (titleInp) titleInp.value = char.title || '';
     if (quoteInp) quoteInp.value = char.quote || '';
     if (levelInp) levelInp.value = String(char.level);
+    hitDieTouched = false;
+    if (hitDieSel) hitDieSel.value = char.hitDice?.die || hitDieForClass(char.className) || 'd10';
     if (editionInp) editionInp.value = char.rulesEdition || '2024';
     if (raceInp) raceInp.value = char.race;
     if (alignInp) alignInp.value = char.alignment;
@@ -285,7 +306,7 @@ import { CHARACTER_PRESET_IMAGES } from '../../scripts/data/characterAvatars';
 
     const conScore = parseInt(conInp?.value || String(char.stats?.con?.score || 10)) || 10;
     const conMod = calculateModifier(conScore);
-    const die = char.hitDice?.die || 'd10';
+    const die = hitDieSel?.value || char.hitDice?.die || 'd10';
     const levelDiff = curLevelVal - initialLevel;
 
     if (levelDiff !== 0) {
@@ -382,7 +403,7 @@ import { CHARACTER_PRESET_IMAGES } from '../../scripts/data/characterAvatars';
 
     // Hit Dice calculation
     if (!char.hitDice) {
-      char.hitDice = { total: newLevel, remaining: newLevel, die: 'd10' };
+      char.hitDice = { total: newLevel, remaining: newLevel, die: hitDieSel?.value || 'd10' };
     } else if (newLevel !== oldLevel) {
       const levelDiff = newLevel - oldLevel;
       const oldRemaining = char.hitDice.remaining;
@@ -396,6 +417,7 @@ import { CHARACTER_PRESET_IMAGES } from '../../scripts/data/characterAvatars';
         char.hitDice.remaining = Math.min(newLevel, oldRemaining);
       }
     }
+    if (hitDieSel?.value) char.hitDice.die = hitDieSel.value;
 
     // FD-6: vacío = sin override (CA calculada); un número manda sobre el cálculo.
     const manualAc = parseInt(acInp?.value ?? '', 10);
