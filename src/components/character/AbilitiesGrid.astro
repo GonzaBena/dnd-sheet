@@ -28,43 +28,73 @@
 
   <div class="section-body grid grid-cols-3 gap-2">
     <!-- Fuerza -->
-    <div data-stat="str" class="stat-card p-2.5 rounded-xl bg-[#18202e] border border-[#222f42] hover:border-amber-500/40 transition-all flex flex-col items-center text-center group cursor-pointer active:scale-95 shadow-xs" title="Haz clic para tirar prueba de Fuerza">
-      <span class="text-[10px] font-bold uppercase tracking-wider text-[#94a3b8]">FUE</span>
+    <div data-stat="str" class="stat-card p-2.5 rounded-xl bg-[#18202e] border border-[#222f42] hover:border-amber-500/40 transition-all flex flex-col items-center text-center group cursor-pointer active:scale-95 shadow-xs relative" title="Haz clic para tirar prueba de Fuerza">
+      <div class="w-full flex items-center justify-between px-0.5 mb-0.5">
+        <span class="text-[10px] font-bold uppercase tracking-wider text-[#94a3b8]">FUE</span>
+        <button type="button" class="stat-info-btn text-[#64748b] hover:text-amber-400 p-0.5 rounded transition-colors cursor-pointer flex items-center justify-center" data-stat="str" title="Ver desglose de Fuerza" aria-label="Ver desglose de Fuerza">
+          <span class="material-symbols-outlined text-[13px]">info</span>
+        </button>
+      </div>
       <span id="stat-str-mod" class="text-xl sm:text-2xl font-headline font-bold text-[#f1f5f9] my-0.5 group-hover:text-amber-400 transition-colors">+2</span>
       <span id="stat-str-score" class="text-[11px] px-2 py-0.2 rounded-full bg-[#10141d] border border-[#222f42] text-[#94a3b8] font-semibold">14</span>
     </div>
 
     <!-- Destreza -->
-    <div data-stat="dex" class="stat-card p-2.5 rounded-xl bg-[#18202e] border border-[#222f42] hover:border-amber-500/40 transition-all flex flex-col items-center text-center group cursor-pointer active:scale-95 shadow-xs" title="Haz clic para tirar prueba de Destreza">
-      <span class="text-[10px] font-bold uppercase tracking-wider text-[#94a3b8]">DES</span>
+    <div data-stat="dex" class="stat-card p-2.5 rounded-xl bg-[#18202e] border border-[#222f42] hover:border-amber-500/40 transition-all flex flex-col items-center text-center group cursor-pointer active:scale-95 shadow-xs relative" title="Haz clic para tirar prueba de Destreza">
+      <div class="w-full flex items-center justify-between px-0.5 mb-0.5">
+        <span class="text-[10px] font-bold uppercase tracking-wider text-[#94a3b8]">DES</span>
+        <button type="button" class="stat-info-btn text-[#64748b] hover:text-amber-400 p-0.5 rounded transition-colors cursor-pointer flex items-center justify-center" data-stat="dex" title="Ver desglose de Destreza" aria-label="Ver desglose de Destreza">
+          <span class="material-symbols-outlined text-[13px]">info</span>
+        </button>
+      </div>
       <span id="stat-dex-mod" class="text-xl sm:text-2xl font-headline font-bold text-amber-400 my-0.5 transition-colors">+3</span>
       <span id="stat-dex-score" class="text-[11px] px-2 py-0.2 rounded-full bg-[#10141d] border border-[#222f42] text-[#94a3b8] font-semibold">16</span>
     </div>
 
     <!-- Constitución -->
-    <div data-stat="con" class="stat-card p-2.5 rounded-xl bg-[#18202e] border border-[#222f42] hover:border-amber-500/40 transition-all flex flex-col items-center text-center group cursor-pointer active:scale-95 shadow-xs" title="Haz clic para tirar prueba de Constitución">
-      <span class="text-[10px] font-bold uppercase tracking-wider text-[#94a3b8]">CON</span>
+    <div data-stat="con" class="stat-card p-2.5 rounded-xl bg-[#18202e] border border-[#222f42] hover:border-amber-500/40 transition-all flex flex-col items-center text-center group cursor-pointer active:scale-95 shadow-xs relative" title="Haz clic para tirar prueba de Constitución">
+      <div class="w-full flex items-center justify-between px-0.5 mb-0.5">
+        <span class="text-[10px] font-bold uppercase tracking-wider text-[#94a3b8]">CON</span>
+        <button type="button" class="stat-info-btn text-[#64748b] hover:text-amber-400 p-0.5 rounded transition-colors cursor-pointer flex items-center justify-center" data-stat="con" title="Ver desglose de Constitución" aria-label="Ver desglose de Constitución">
+          <span class="material-symbols-outlined text-[13px]">info</span>
+        </button>
+      </div>
       <span id="stat-con-mod" class="text-xl sm:text-2xl font-headline font-bold text-[#f1f5f9] my-0.5 group-hover:text-amber-400 transition-colors">+2</span>
       <span id="stat-con-score" class="text-[11px] px-2 py-0.2 rounded-full bg-[#10141d] border border-[#222f42] text-[#94a3b8] font-semibold">14</span>
     </div>
 
     <!-- Inteligencia -->
-    <div data-stat="int" class="stat-card p-2.5 rounded-xl bg-[#18202e] border border-[#222f42] hover:border-amber-500/40 transition-all flex flex-col items-center text-center group cursor-pointer active:scale-95 shadow-xs" title="Haz clic para tirar prueba de Inteligencia">
-      <span class="text-[10px] font-bold uppercase tracking-wider text-[#94a3b8]">INT</span>
+    <div data-stat="int" class="stat-card p-2.5 rounded-xl bg-[#18202e] border border-[#222f42] hover:border-amber-500/40 transition-all flex flex-col items-center text-center group cursor-pointer active:scale-95 shadow-xs relative" title="Haz clic para tirar prueba de Inteligencia">
+      <div class="w-full flex items-center justify-between px-0.5 mb-0.5">
+        <span class="text-[10px] font-bold uppercase tracking-wider text-[#94a3b8]">INT</span>
+        <button type="button" class="stat-info-btn text-[#64748b] hover:text-amber-400 p-0.5 rounded transition-colors cursor-pointer flex items-center justify-center" data-stat="int" title="Ver desglose de Inteligencia" aria-label="Ver desglose de Inteligencia">
+          <span class="material-symbols-outlined text-[13px]">info</span>
+        </button>
+      </div>
       <span id="stat-int-mod" class="text-xl sm:text-2xl font-headline font-bold text-[#f1f5f9] my-0.5 group-hover:text-amber-400 transition-colors">+0</span>
       <span id="stat-int-score" class="text-[11px] px-2 py-0.2 rounded-full bg-[#10141d] border border-[#222f42] text-[#94a3b8] font-semibold">10</span>
     </div>
 
     <!-- Sabiduría -->
-    <div data-stat="wis" class="stat-card p-2.5 rounded-xl bg-[#18202e] border border-[#222f42] hover:border-amber-500/40 transition-all flex flex-col items-center text-center group cursor-pointer active:scale-95 shadow-xs" title="Haz clic para tirar prueba de Sabiduría">
-      <span class="text-[10px] font-bold uppercase tracking-wider text-[#94a3b8]">SAB</span>
+    <div data-stat="wis" class="stat-card p-2.5 rounded-xl bg-[#18202e] border border-[#222f42] hover:border-amber-500/40 transition-all flex flex-col items-center text-center group cursor-pointer active:scale-95 shadow-xs relative" title="Haz clic para tirar prueba de Sabiduría">
+      <div class="w-full flex items-center justify-between px-0.5 mb-0.5">
+        <span class="text-[10px] font-bold uppercase tracking-wider text-[#94a3b8]">SAB</span>
+        <button type="button" class="stat-info-btn text-[#64748b] hover:text-amber-400 p-0.5 rounded transition-colors cursor-pointer flex items-center justify-center" data-stat="wis" title="Ver desglose de Sabiduría" aria-label="Ver desglose de Sabiduría">
+          <span class="material-symbols-outlined text-[13px]">info</span>
+        </button>
+      </div>
       <span id="stat-wis-mod" class="text-xl sm:text-2xl font-headline font-bold text-[#f1f5f9] my-0.5 group-hover:text-amber-400 transition-colors">+2</span>
       <span id="stat-wis-score" class="text-[11px] px-2 py-0.2 rounded-full bg-[#10141d] border border-[#222f42] text-[#94a3b8] font-semibold">15</span>
     </div>
 
     <!-- Carisma -->
-    <div data-stat="cha" class="stat-card p-2.5 rounded-xl bg-[#18202e] border border-[#222f42] hover:border-amber-500/40 transition-all flex flex-col items-center text-center group cursor-pointer active:scale-95 shadow-xs" title="Haz clic para tirar prueba de Carisma">
-      <span class="text-[10px] font-bold uppercase tracking-wider text-[#94a3b8]">CAR</span>
+    <div data-stat="cha" class="stat-card p-2.5 rounded-xl bg-[#18202e] border border-[#222f42] hover:border-amber-500/40 transition-all flex flex-col items-center text-center group cursor-pointer active:scale-95 shadow-xs relative" title="Haz clic para tirar prueba de Carisma">
+      <div class="w-full flex items-center justify-between px-0.5 mb-0.5">
+        <span class="text-[10px] font-bold uppercase tracking-wider text-[#94a3b8]">CAR</span>
+        <button type="button" class="stat-info-btn text-[#64748b] hover:text-amber-400 p-0.5 rounded transition-colors cursor-pointer flex items-center justify-center" data-stat="cha" title="Ver desglose de Carisma" aria-label="Ver desglose de Carisma">
+          <span class="material-symbols-outlined text-[13px]">info</span>
+        </button>
+      </div>
       <span id="stat-cha-mod" class="text-xl sm:text-2xl font-headline font-bold text-[#f1f5f9] my-0.5 group-hover:text-amber-400 transition-colors">-1</span>
       <span id="stat-cha-score" class="text-[11px] px-2 py-0.2 rounded-full bg-[#10141d] border border-[#222f42] text-[#94a3b8] font-semibold">8</span>
     </div>
@@ -82,6 +112,17 @@
     wis: 'Sabiduría',
     cha: 'Carisma'
   };
+
+  // Botones de información para abrir el desglose de la característica
+  document.querySelectorAll('.stat-info-btn').forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const stat = btn.getAttribute('data-stat');
+      if (stat) {
+        window.dispatchEvent(new CustomEvent('open-stat-breakdown', { detail: { stat } }));
+      }
+    });
+  });
 
   // Clicking an ability card sets modifier and opens dice roller
   document.querySelectorAll('.stat-card').forEach((card) => {
@@ -121,12 +162,38 @@
     stats.forEach((s) => {
       const modEl = document.getElementById(`stat-${s}-mod`);
       const scoreEl = document.getElementById(`stat-${s}-score`);
-      if (modEl && char.stats[s]) {
-        const mod = char.stats[s].modifier;
-        modEl.textContent = `${mod >= 0 ? '+' : ''}${mod}`;
-      }
-      if (scoreEl && char.stats[s]) {
-        scoreEl.textContent = String(char.stats[s].score);
+      const infoBtn = document.querySelector(`.stat-info-btn[data-stat="${s}"]`);
+      const statObj = char.stats?.[s];
+
+      if (statObj) {
+        const mod = statObj.modifier;
+        if (modEl) {
+          modEl.textContent = `${mod >= 0 ? '+' : ''}${mod}`;
+        }
+        if (scoreEl) {
+          scoreEl.textContent = String(statObj.score);
+        }
+
+        // Resaltar visualmente si la puntuación tiene modificadores activos de objetos o efectos
+        const isModified = typeof statObj.baseScore === 'number' && statObj.baseScore !== statObj.score;
+        if (scoreEl) {
+          if (isModified) {
+            scoreEl.className = 'text-[11px] px-2 py-0.2 rounded-full bg-amber-500/15 border border-amber-500/40 text-amber-300 font-bold shadow-[0_0_8px_rgba(245,158,11,0.2)]';
+            scoreEl.title = `Puntuación potenciada (Base ${statObj.baseScore})`;
+          } else {
+            scoreEl.className = 'text-[11px] px-2 py-0.2 rounded-full bg-[#10141d] border border-[#222f42] text-[#94a3b8] font-semibold';
+            scoreEl.removeAttribute('title');
+          }
+        }
+        if (infoBtn) {
+          if (isModified) {
+            infoBtn.classList.remove('text-[#64748b]');
+            infoBtn.classList.add('text-amber-400');
+          } else {
+            infoBtn.classList.add('text-[#64748b]');
+            infoBtn.classList.remove('text-amber-400');
+          }
+        }
       }
     });
   }

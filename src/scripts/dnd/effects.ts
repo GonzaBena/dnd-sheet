@@ -2,6 +2,49 @@
 // Funciones puras del registro de efectos activos (Spec 07, Fase B). No mutan sus argumentos.
 import type { ActiveEffect, EffectDuration, Modifier } from '../models/effect.ts';
 import type { InventoryItem } from '../models/character.ts';
+import { normalizeStatName } from './stats.ts';
+
+const TARGET_PREFIX_ALIASES: Record<string, string> = {
+  check: 'check',
+  checks: 'check',
+  prueba: 'check',
+  pruebas: 'check',
+  skill: 'check',
+  skills: 'check',
+  habilidad: 'check',
+  habilidades: 'check',
+  save: 'save',
+  saves: 'save',
+  salvacion: 'save',
+  salvaciones: 'save',
+  stat: 'stat',
+  stats: 'stat',
+  ability: 'stat',
+  caracteristica: 'stat',
+  caracteristicas: 'stat',
+};
+
+function normalizePrefix(raw: string): string {
+  const clean = raw.trim().toLowerCase().normalize('NFD').replace(/\p{M}/gu, '');
+  return TARGET_PREFIX_ALIASES[clean] ?? clean;
+}
+
+export function targetsMatch(modTarget: string, target: string): boolean {
+  if (modTarget === target || modTarget.startsWith(target + '.')) return true;
+  const mParts = modTarget.split('.');
+  const tParts = target.split('.');
+  if (mParts.length === tParts.length && mParts.length === 2) {
+    const p1 = normalizePrefix(mParts[0]);
+    const p2 = normalizePrefix(tParts[0]);
+    if (p1 === p2) {
+      const s1 = normalizeStatName(mParts[1]);
+      const s2 = normalizeStatName(tParts[1]);
+      if (s1 && s2 && s1 === s2) return true;
+      if (mParts[1].toLowerCase() === tParts[1].toLowerCase()) return true;
+    }
+  }
+  return false;
+}
 
 export interface AddResult {
   effects: ActiveEffect[];
@@ -69,11 +112,11 @@ export function expireOnRest(
 
 /** FB-5: coincidencia exacta o por prefijo con punto (`save` coincide con `save.dex`). No evalúa `when`. */
 export function collectModifiers(
-  char: { activeEffects?: ActiveEffect[]; inventory?: InventoryItem[] },
+  char: { activeEffects?: ActiveEffect[]; inventory?: InventoryItem[]; features?: any[] },
   target: string,
 ): Modifier[] {
   const out: Modifier[] = [];
-  const matches = (m: Modifier) => m.target === target || m.target.startsWith(target + '.');
+  const matches = (m: Modifier) => targetsMatch(m.target, target);
   for (const e of char.activeEffects ?? []) {
     for (const m of e.modifiers ?? []) if (matches(m)) out.push(m);
   }
@@ -81,6 +124,11 @@ export function collectModifiers(
   for (const item of char.inventory ?? []) {
     if (!itemContributes(item)) continue;
     for (const m of item.effects ?? []) if (matches(m)) out.push(m);
+  }
+  // Rasgos pasivos o activos de la sección Dotes y Rasgos
+  for (const feat of char.features ?? []) {
+    if (feat.enabled === false) continue;
+    for (const m of feat.effects ?? []) if (matches(m)) out.push(m);
   }
   return out;
 }

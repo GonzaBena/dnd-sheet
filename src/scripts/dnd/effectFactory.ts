@@ -91,8 +91,13 @@ export function modifierText(m: Modifier): string {
   let text: string;
   switch (m.op) {
     case 'add': {
-      const v = Number(m.value ?? 0);
-      text = `${label} ${v >= 0 ? '+' : '-'}${Math.abs(v)}`;
+      if (typeof m.value === 'string' && !Number.isFinite(Number(m.value))) {
+        const statName = ABILITY[m.value] ?? m.value.toUpperCase();
+        text = `${label} + mod. ${statName}`;
+      } else {
+        const v = Number(m.value ?? 0);
+        text = `${label} ${v >= 0 ? '+' : '-'}${Math.abs(v)}`;
+      }
       break;
     }
     case 'set':

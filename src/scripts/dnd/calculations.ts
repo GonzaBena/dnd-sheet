@@ -2,6 +2,8 @@ import type { CharacterData, StatBlock, SkillItem } from '../models/character';
 import { migrateSlots, migrateResources } from './resources.ts';
 import { migrateAttuned } from './equipment.ts';
 import { migrateArmorClass } from './ac.ts';
+import { computeStat, ABILITY_KEYS, resolveModifierValue } from './stats.ts';
+import { collectModifiers } from './effects.ts';
 
 export const STANDARD_5E_SKILLS: { id: string; name: string; stat: 'str' | 'dex' | 'con' | 'int' | 'wis' | 'cha' }[] = [
   { id: 'acrobatics', name: 'Acrobacias', stat: 'dex' },
@@ -78,14 +80,21 @@ export function recalculateCharacter(char: CharacterData): CharacterData {
   const prof = calculateProficiencyBonus(char.level);
   char.proficiencyBonus = prof;
 
-  // 1. Recalculate stat modifiers
-  const statKeys: (keyof CharacterData['stats'])[] = ['str', 'dex', 'con', 'int', 'wis', 'cha'];
-  statKeys.forEach((key) => {
-    char.stats[key].modifier = calculateModifier(char.stats[key].score);
+  // 1. Recalculate dynamic stats and modifiers (Spec: Stats from Items & Effects)
+  ABILITY_KEYS.forEach((key) => {
+    if (typeof char.stats[key].baseScore !== 'number') {
+      char.stats[key].baseScore = char.stats[key].score;
+    }
+    const computed = computeStat(char, key);
+    char.stats[key].score = computed.total;
+    char.stats[key].modifier = computed.modifier;
   });
 
-  // 2. Initiative defaults to DEX modifier
+  // 2. Initiative defaults to DEX modifier + dynamic modifiers (e.g. initiative add wis/cha)
   char.initiativeBonus = char.stats.dex.modifier;
+  for (const m of collectModifiers(char, 'initiative')) {
+    if (m.op === 'add') char.initiativeBonus += resolveModifierValue(char, m);
+  }
 
   // 3. Ensure all standard skills exist
   if (!char.skills) char.skills = [];
@@ -102,6 +111,18 @@ export function recalculateCharacter(char: CharacterData): CharacterData {
     if (proficient) skillBonus += prof;
     if (expertise) skillBonus += prof; // D&D 5e expertise adds proficiency bonus a second time
     skillBonus += customBonus; // Items, feats, or magical bonuses
+
+    // Modificadores dinámicos para esta habilidad o para pruebas de esta característica
+    // (Ej: check.cha add wis para Glamour Sobrenatural)
+    const skillMods = [
+      ...collectModifiers(char, `skill.${std.id}`),
+      ...collectModifiers(char, `check.${std.stat}`),
+    ];
+    for (const m of skillMods) {
+      if (m.op === 'add') {
+        skillBonus += resolveModifierValue(char, m);
+      }
+    }
 
     return {
       id: std.id,

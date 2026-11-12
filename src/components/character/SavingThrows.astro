@@ -44,6 +44,8 @@
 <script>
   import { characterStore } from '../../scripts/state/characterStore';
   import { openModal } from '../../scripts/animations/modalAnimations';
+  import { collectModifiers } from '../../scripts/dnd/effects';
+  import { resolveModifierValue } from '../../scripts/dnd/stats';
 
   const container = document.getElementById('saving-throws-container');
   const editBtn = document.getElementById('open-saves-edit-btn');
@@ -72,7 +74,15 @@
     keys.forEach((key) => {
       const stat = char.stats[key];
       const isProf = stat.savingProficient;
-      const totalMod = stat.modifier + (isProf ? char.proficiencyBonus : 0);
+      const saveMods = [
+        ...collectModifiers(char, `save.${key}`),
+        ...collectModifiers(char, 'save'),
+      ];
+      let dynamicSave = 0;
+      for (const m of saveMods) {
+        if (m.op === 'add') dynamicSave += resolveModifierValue(char, m);
+      }
+      const totalMod = stat.modifier + (isProf ? char.proficiencyBonus : 0) + dynamicSave;
       const modStr = totalMod >= 0 ? `+${totalMod}` : `${totalMod}`;
 
       const item = document.createElement('div');

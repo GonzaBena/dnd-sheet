@@ -1,0 +1,206 @@
+---
+// src/components/modals/StatBreakdownModal.astro
+// Desglose de puntuaciones de característica (Puntuación Base, objetos equipados y efectos activos).
+---
+
+<div id="stat-breakdown-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
+  <div class="modal-content w-full max-w-md rounded-2xl bg-[#121721] border border-[#222f42] shadow-[0_20px_60px_rgba(0,0,0,0.9)] overflow-hidden flex flex-col">
+    <div class="p-4 bg-[#18202e] border-b border-[#222f42] flex items-center justify-between">
+      <div class="flex items-center gap-2.5">
+        <div id="stat-bd-icon-wrap" class="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center border border-amber-500/30">
+          <span id="stat-bd-icon" class="material-symbols-outlined text-[18px]">psychology</span>
+        </div>
+        <div>
+          <h3 class="font-headline font-bold text-base text-[#f1f5f9]">
+            <span id="stat-bd-name">Sabiduría</span> <span id="stat-bd-total" class="text-amber-400">20</span>
+          </h3>
+          <span id="stat-bd-subtitle" class="text-[10px] text-[#94a3b8]">Modificador +5 (Base 19)</span>
+        </div>
+      </div>
+      <button id="stat-bd-close-btn" type="button" class="w-7 h-7 rounded-lg bg-[#10141d] border border-[#222f42] hover:border-rose-500/50 text-[#94a3b8] hover:text-rose-400 flex items-center justify-center text-xs transition-colors cursor-pointer" aria-label="Cerrar">
+        <span class="material-symbols-outlined text-[16px]">close</span>
+      </button>
+    </div>
+
+    <div class="p-5 space-y-4 text-xs font-label overflow-y-auto max-h-[70vh]">
+      <section>
+        <h4 class="text-[10px] uppercase tracking-wider text-[#94a3b8] mb-2 font-bold">Desglose del Valor</h4>
+        <ul id="stat-bd-parts" class="space-y-1.5 p-3 rounded-lg bg-[#10141d] border border-[#222f42]">
+          <!-- Populated by JS -->
+        </ul>
+      </section>
+
+      <section id="stat-bd-sources-section">
+        <h4 class="text-[10px] uppercase tracking-wider text-[#94a3b8] mb-2 font-bold">Objetos y Efectos Modificadores</h4>
+        <div id="stat-bd-sources" class="space-y-2">
+          <!-- Populated by JS -->
+        </div>
+      </section>
+
+      <section class="p-3 rounded-lg bg-[#18202e]/60 border border-[#222f42] flex items-center justify-between gap-3">
+        <div>
+          <span class="text-[#f1f5f9] font-bold block text-[11px]">Puntuación base del personaje</span>
+          <span class="text-[10px] text-[#64748b]">Ajusta el valor natural sin magia ni equipo.</span>
+        </div>
+        <button
+          type="button"
+          id="stat-bd-edit-btn"
+          class="px-2.5 py-1 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[11px] font-bold cursor-pointer transition-colors"
+        >
+          Editar Base
+        </button>
+      </section>
+    </div>
+
+    <div class="p-4 bg-[#18202e] border-t border-[#222f42] flex justify-end">
+      <button type="button" id="stat-bd-cancel-btn" class="px-4 py-2 rounded-xl bg-[#121721] border border-[#222f42] text-[#94a3b8] hover:text-[#f1f5f9] cursor-pointer">
+        Cerrar
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+  import { characterStore } from '../../scripts/state/characterStore';
+  import { closeModal, openModal } from '../../scripts/animations/modalAnimations';
+  import { computeStat, type AbilityKey } from '../../scripts/dnd/stats';
+
+  const modal = document.getElementById('stat-breakdown-modal');
+  const backdrop = document.getElementById('modal-backdrop');
+  const $ = (id: string) => document.getElementById(id);
+
+  let currentStat: AbilityKey = 'wis';
+
+  function li(text: string, value: string, isTotal = false) {
+    const el = document.createElement('li');
+    el.className = `flex items-center justify-between gap-3 ${isTotal ? 'pt-1.5 border-t border-[#222f42] font-bold' : ''}`;
+    const left = document.createElement('span');
+    left.className = isTotal ? 'text-amber-300' : 'text-[#cbd5e1]';
+    left.textContent = text;
+    el.append(left);
+
+    const right = document.createElement('strong');
+    right.className = `font-headline ${isTotal ? 'text-amber-400 text-sm' : 'text-[#f1f5f9]'}`;
+    right.textContent = value;
+    el.append(right);
+    return el;
+  }
+
+  function render() {
+    const char = characterStore.get();
+    const statData = computeStat(char, currentStat);
+
+    const nameEl = $('stat-bd-name');
+    const totalEl = $('stat-bd-total');
+    const subtitleEl = $('stat-bd-subtitle');
+    const iconEl = $('stat-bd-icon');
+    const partsEl = $('stat-bd-parts');
+    const sourcesEl = $('stat-bd-sources');
+
+    if (nameEl) nameEl.textContent = `${statData.name} (${statData.abbr})`;
+    if (totalEl) totalEl.textContent = String(statData.total);
+    if (iconEl) iconEl.textContent = statData.icon;
+
+    const modSign = statData.modifier >= 0 ? `+${statData.modifier}` : `${statData.modifier}`;
+    if (subtitleEl) {
+      subtitleEl.textContent = statData.hasModifiers
+        ? `Modificador ${modSign} • Puntuación Base: ${statData.base}`
+        : `Modificador ${modSign} • Sin modificadores externos`;
+    }
+
+    if (partsEl) {
+      partsEl.innerHTML = '';
+      statData.parts.forEach((p) => {
+        const sign = p.label === 'Base' || p.label.includes('Fijado')
+          ? String(p.value)
+          : (p.value >= 0 ? `+${p.value}` : `${p.value}`);
+        partsEl.appendChild(li(p.label, sign));
+      });
+      partsEl.appendChild(li('Total Resultante', `${statData.total} (${modSign})`, true));
+    }
+
+    if (sourcesEl) {
+      sourcesEl.innerHTML = '';
+      if (statData.sources.length === 0) {
+        const empty = document.createElement('div');
+        empty.className = 'p-3 rounded-lg bg-[#10141d] border border-[#222f42] text-[#64748b] text-[11px] italic';
+        empty.textContent = `No tienes objetos equipados ni efectos activos que modifiquen ${statData.name}.`;
+        sourcesEl.appendChild(empty);
+      } else {
+        statData.sources.forEach((s) => {
+          const card = document.createElement('div');
+          card.className = 'p-2.5 rounded-lg bg-[#10141d] border border-amber-500/20 flex items-center justify-between gap-2';
+
+          const left = document.createElement('div');
+          left.className = 'min-w-0 flex-1';
+
+          const top = document.createElement('div');
+          top.className = 'flex items-center gap-1.5 flex-wrap';
+
+          const icon = document.createElement('span');
+          icon.className = 'material-symbols-outlined text-[14px] text-amber-400';
+          icon.textContent = s.type === 'item' ? (s.item?.icon || 'shield') : 'magic_button';
+          top.appendChild(icon);
+
+          const title = document.createElement('span');
+          title.className = 'font-bold text-[#f1f5f9] text-xs truncate';
+          title.textContent = s.label;
+          top.appendChild(title);
+
+          if (s.item?.slot) {
+            const slotBadge = document.createElement('span');
+            slotBadge.className = 'text-[9px] px-1.5 py-0.2 rounded bg-[#18202e] text-[#94a3b8] border border-[#222f42] uppercase';
+            slotBadge.textContent = s.item.slot;
+            top.appendChild(slotBadge);
+          }
+
+          if (s.item?.attuned) {
+            const attBadge = document.createElement('span');
+            attBadge.className = 'text-[9px] px-1.5 py-0.2 rounded bg-violet-500/15 text-violet-300 border border-violet-500/30 font-bold';
+            attBadge.textContent = 'Sintonizado';
+            top.appendChild(attBadge);
+          }
+
+          left.appendChild(top);
+
+          const desc = document.createElement('div');
+          desc.className = 'text-[10px] text-[#94a3b8] mt-0.5';
+          const effectDesc = s.m.op === 'set'
+            ? `Fija la puntuación en ${s.m.value}`
+            : `Suma ${Number(s.m.value) >= 0 ? `+${s.m.value}` : s.m.value} a ${statData.name}`;
+          desc.textContent = effectDesc;
+          left.appendChild(desc);
+
+          card.appendChild(left);
+          sourcesEl.appendChild(card);
+        });
+      }
+    }
+  }
+
+  window.addEventListener('open-stat-breakdown', ((e: CustomEvent) => {
+    if (e.detail?.stat) {
+      currentStat = e.detail.stat;
+    }
+    render();
+    if (modal && backdrop) openModal(modal, backdrop);
+  }) as EventListener);
+
+  window.addEventListener('character-updated', () => {
+    if (modal && !modal.classList.contains('hidden')) {
+      render();
+    }
+  });
+
+  $('stat-bd-close-btn')?.addEventListener('click', () => {
+    if (modal && backdrop) closeModal(modal, backdrop);
+  });
+  $('stat-bd-cancel-btn')?.addEventListener('click', () => {
+    if (modal && backdrop) closeModal(modal, backdrop);
+  });
+
+  $('stat-bd-edit-btn')?.addEventListener('click', () => {
+    if (modal && backdrop) closeModal(modal, backdrop);
+    window.dispatchEvent(new CustomEvent('open-edit-character-modal'));
+  });
+</script>

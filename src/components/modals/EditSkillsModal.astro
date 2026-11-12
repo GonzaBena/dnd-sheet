@@ -68,6 +68,8 @@
 <script>
   import { characterStore } from '../../scripts/state/characterStore';
   import { closeModal } from '../../scripts/animations/modalAnimations';
+  import { collectModifiers } from '../../scripts/dnd/effects';
+  import { resolveModifierValue } from '../../scripts/dnd/stats';
 
   const modal = document.getElementById('edit-skills-modal');
   const backdrop = document.getElementById('modal-backdrop');
@@ -82,13 +84,14 @@
   let tempSkills: any[] = [];
   let tempStats: any = {};
   let currentPb = 3;
+  let currentChar: any = null;
 
   function loadModalData() {
-    const char = characterStore.get();
-    currentPb = char.proficiencyBonus;
+    currentChar = characterStore.get();
+    currentPb = currentChar.proficiencyBonus;
     if (pbDisplay) pbDisplay.textContent = String(currentPb);
-    tempSkills = JSON.parse(JSON.stringify(char.skills || []));
-    tempStats = JSON.parse(JSON.stringify(char.stats));
+    tempSkills = JSON.parse(JSON.stringify(currentChar.skills || []));
+    tempStats = JSON.parse(JSON.stringify(currentChar.stats));
 
     renderSaves();
     renderSkills();
@@ -99,11 +102,20 @@
     savesGrid.innerHTML = '';
     const stats: (keyof typeof tempStats)[] = ['str', 'dex', 'con', 'int', 'wis', 'cha'];
     const names = { str: 'Fuerza', dex: 'Destreza', con: 'Constitución', int: 'Inteligencia', wis: 'Sabiduría', cha: 'Carisma' };
+    const char = currentChar || characterStore.get();
 
     stats.forEach((s) => {
       const isProf = tempStats[s]?.savingProficient;
       const mod = tempStats[s]?.modifier ?? 0;
-      const total = mod + (isProf ? currentPb : 0);
+      const saveMods = [
+        ...collectModifiers(char, `save.${s}`),
+        ...collectModifiers(char, 'save'),
+      ];
+      let dynamicSave = 0;
+      for (const m of saveMods) {
+        if (m.op === 'add') dynamicSave += resolveModifierValue(char, m);
+      }
+      const total = mod + (isProf ? currentPb : 0) + dynamicSave;
 
       const label = document.createElement('label');
       label.className = `p-2 rounded-lg bg-[#18202e] border ${isProf ? 'border-amber-500/50 bg-amber-500/5' : 'border-[#222f42]'} flex items-center justify-between cursor-pointer select-none transition-colors`;
@@ -112,7 +124,10 @@
           <input type="checkbox" class="save-check rounded bg-[#10141d] border-[#222f42] text-amber-500 focus:ring-amber-500/40 cursor-pointer" data-stat="${s}" ${isProf ? 'checked' : ''} />
           <span class="text-xs font-medium text-[#f1f5f9]">${names[s]}</span>
         </div>
-        <span class="font-headline font-bold text-xs ${isProf ? 'text-amber-400' : 'text-[#94a3b8]'}">${total >= 0 ? '+' : ''}${total}</span>
+        <div class="flex items-center gap-1">
+          ${dynamicSave !== 0 ? `<span class="px-1 py-0.2 rounded bg-amber-500/20 text-amber-300 text-[9px] font-mono border border-amber-500/30" title="Bono de dote u objeto mágico">${dynamicSave >= 0 ? '+' : ''}${dynamicSave}</span>` : ''}
+          <span class="font-headline font-bold text-xs ${isProf ? 'text-amber-400' : 'text-[#94a3b8]'}">${total >= 0 ? '+' : ''}${total}</span>
+        </div>
       `;
 
       label.querySelector('input')?.addEventListener('change', (e: any) => {
@@ -127,11 +142,25 @@
   function renderSkills() {
     if (!skillsList) return;
     skillsList.innerHTML = '';
+    const char = currentChar || characterStore.get();
 
     tempSkills.forEach((skill, index) => {
       const statMod = tempStats[skill.stat]?.modifier ?? 0;
       const customBonus = skill.customBonus || 0;
-      let total = statMod + (skill.proficient ? currentPb : 0) + (skill.expertise ? currentPb : 0) + customBonus;
+
+      // Modificadores dinámicos (ej: Glamour Sobrenatural check.car add sab)
+      const skillMods = [
+        ...collectModifiers(char, `skill.${skill.id}`),
+        ...collectModifiers(char, `check.${skill.stat}`),
+      ];
+      let dynamicBonus = 0;
+      for (const m of skillMods) {
+        if (m.op === 'add') {
+          dynamicBonus += resolveModifierValue(char, m);
+        }
+      }
+
+      let total = statMod + (skill.proficient ? currentPb : 0) + (skill.expertise ? currentPb : 0) + customBonus + dynamicBonus;
 
       const row = document.createElement('div');
       row.className = 'p-2.5 rounded-xl bg-[#18202e] border border-[#222f42] flex flex-wrap items-center justify-between gap-3 text-xs';
@@ -140,6 +169,7 @@
         <div class="flex items-center gap-2 min-w-[150px]">
           <span class="w-7 text-[10px] uppercase font-bold text-[#64748b]">${skill.stat}</span>
           <span class="font-medium text-[#f1f5f9] text-xs">${skill.name}</span>
+          ${dynamicBonus !== 0 ? `<span class="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 text-[9px] font-mono border border-amber-500/30 shrink-0" title="Bono dinámico de dote u objeto (ej: Glamour Sobrenatural)">+${dynamicBonus} dinámico</span>` : ''}
         </div>
 
         <div class="flex items-center gap-3 flex-wrap">

@@ -3,7 +3,7 @@ import { defaultCharacter } from '../data/defaultCharacter.ts';
 import { getRandomCharacterAvatar, isBrokenAvatarUrl } from '../data/characterAvatars.ts';
 import { recalculateCharacter, calculateLevelUpHpGain } from '../dnd/calculations.ts';
 import { spend, recover, resetOn, remaining } from '../dnd/resources.ts';
-import { equipAcross, unequipItem, unequipAction, setActionHands, attuneItem, unattuneItem, ACTION_PREFIX, type EquipResult, type AcrossResult } from '../dnd/equipment.ts';
+import { equipAcross, unequipItem, unequipAction, setActionHands, attuneItem, unattuneItem, validSlotsFor, ACTION_PREFIX, type EquipResult, type AcrossResult } from '../dnd/equipment.ts';
 import type { EquipSlot, Proficiencies } from '../models/character.ts';
 import type { Resource } from '../models/resource.ts';
 import type { ActiveEffect } from '../models/effect.ts';
@@ -161,7 +161,9 @@ class CharacterStoreManager {
   public updateStat(statKey: keyof CharacterData['stats'], newScore: number) {
     if (this.character.stats[statKey]) {
       const oldScore = this.character.stats[statKey].score;
-      this.character.stats[statKey].score = Math.max(1, Math.min(30, newScore));
+      const clamped = Math.max(1, Math.min(30, newScore));
+      this.character.stats[statKey].baseScore = clamped;
+      this.character.stats[statKey].score = clamped;
       this.saveAndNotify();
       journalStore.log(
         `Atributo ${statKey.toUpperCase()} modificado`,
@@ -355,7 +357,18 @@ class CharacterStoreManager {
     const itemIndex = this.character.inventory.findIndex(i => i.id === id);
     if (itemIndex === -1) return;
     const old = this.character.inventory[itemIndex];
-    this.character.inventory[itemIndex] = { ...old, ...updates, id };
+    let nextItem = { ...old, ...updates, id };
+
+    // Si el objeto estaba equipado y se cambió el equipSlot a una ranura distinta o incompatible,
+    // se desequipa para no quedar en una ranura inválida o atascado en la anterior.
+    if (nextItem.equipped && nextItem.slot && updates.equipSlot !== undefined) {
+      const validSlots = validSlotsFor(nextItem);
+      if (!validSlots.includes(nextItem.slot)) {
+        nextItem = { ...nextItem, equipped: false, slot: undefined };
+      }
+    }
+
+    this.character.inventory[itemIndex] = nextItem;
     this.saveAndNotify();
     journalStore.log(
       'Objeto de mochila modificado',

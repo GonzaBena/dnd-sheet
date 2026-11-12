@@ -305,12 +305,13 @@ import { CHARACTER_PRESET_IMAGES } from '../../scripts/data/characterAvatars';
     if (acInp) acInp.value = typeof char.armorClass === 'number' ? String(char.armorClass) : '';
     if (speedInp) speedInp.value = String(char.speedFt);
 
-    if (strInp) strInp.value = String(char.stats.str.score);
-    if (dexInp) dexInp.value = String(char.stats.dex.score);
-    if (conInp) conInp.value = String(char.stats.con.score);
-    if (intInp) intInp.value = String(char.stats.int.score);
-    if (wisInp) wisInp.value = String(char.stats.wis.score);
-    if (chaInp) chaInp.value = String(char.stats.cha.score);
+    const baseOrScore = (s: any) => String(s?.baseScore ?? s?.score ?? 10);
+    if (strInp) strInp.value = baseOrScore(char.stats.str);
+    if (dexInp) dexInp.value = baseOrScore(char.stats.dex);
+    if (conInp) conInp.value = baseOrScore(char.stats.con);
+    if (intInp) intInp.value = baseOrScore(char.stats.int);
+    if (wisInp) wisInp.value = baseOrScore(char.stats.wis);
+    if (chaInp) chaInp.value = baseOrScore(char.stats.cha);
   }
 
   function updateSuggestedHp() {
@@ -439,12 +440,25 @@ import { CHARACTER_PRESET_IMAGES } from '../../scripts/data/characterAvatars';
     else delete char.armorClass;
     char.speedFt = parseInt(speedInp?.value || '30');
 
-    char.stats.str.score = parseInt(strInp?.value || '10');
-    char.stats.dex.score = parseInt(dexInp?.value || '10');
-    char.stats.con.score = parseInt(conInp?.value || '10');
-    char.stats.int.score = parseInt(intInp?.value || '10');
-    char.stats.wis.score = parseInt(wisInp?.value || '10');
-    char.stats.cha.score = parseInt(chaInp?.value || '10');
+    const strVal = parseInt(strInp?.value || '10');
+    const dexVal = parseInt(dexInp?.value || '10');
+    const conVal = parseInt(conInp?.value || '10');
+    const intVal = parseInt(intInp?.value || '10');
+    const wisVal = parseInt(wisInp?.value || '10');
+    const chaVal = parseInt(chaInp?.value || '10');
+
+    char.stats.str.baseScore = strVal;
+    char.stats.str.score = strVal;
+    char.stats.dex.baseScore = dexVal;
+    char.stats.dex.score = dexVal;
+    char.stats.con.baseScore = conVal;
+    char.stats.con.score = conVal;
+    char.stats.int.baseScore = intVal;
+    char.stats.int.score = intVal;
+    char.stats.wis.baseScore = wisVal;
+    char.stats.wis.score = wisVal;
+    char.stats.cha.baseScore = chaVal;
+    char.stats.cha.score = chaVal;
 
     // Save and recalculate
     characterStore.updateFullCharacter(char);

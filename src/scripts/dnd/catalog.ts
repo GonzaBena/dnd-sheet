@@ -3,6 +3,7 @@
 import type { CatalogEntry, CatalogKind } from '../models/catalog.ts';
 import type { Modifier } from '../models/effect.ts';
 import type { ArmorData, WeaponData } from '../models/character.ts';
+import { normalizeStatName } from './stats.ts';
 
 type Raw = Record<string, unknown>;
 
@@ -333,6 +334,22 @@ export function sanitizeImageUrl(url: unknown): string | undefined {
 
 const OPS: Modifier['op'][] = ['add', 'set', 'advantage', 'disadvantage', 'resistance'];
 
+const OP_ALIASES: Record<string, Modifier['op']> = {
+  add: 'add',
+  '+': 'add',
+  sumar: 'add',
+  suma: 'add',
+  set: 'set',
+  '=': 'set',
+  fijar: 'set',
+  advantage: 'advantage',
+  ventaja: 'advantage',
+  disadvantage: 'disadvantage',
+  desventaja: 'disadvantage',
+  resistance: 'resistance',
+  resistencia: 'resistance',
+};
+
 /**
  * Editor simple de efectos: una línea por modificador, `objetivo operación [valor]`
  * (por ejemplo `ac add 2`, `save.dex advantage`). Texto vacío → [].
@@ -341,25 +358,39 @@ export function parseEffectsText(text: string): Modifier[] | { error: string } {
   const out: Modifier[] = [];
   const lines = String(text ?? '').split(/\r?\n/);
   for (let i = 0; i < lines.length; i++) {
-    const line = lines[i].trim();
+    let line = lines[i].trim();
+    if (!line) continue;
+    // Limpiar comillas iniciales y finales si el usuario copió o pegó con comillas
+    line = line.replace(/^["'`]/, '').replace(/["'`]$/, '').trim();
     if (!line) continue;
     const n = i + 1;
-    const [target, op, ...rest] = line.split(/\s+/);
-    if (!target || !op) return { error: `Línea ${n}: usa "objetivo operación valor" (ej: ac add 2).` };
+    const [target, rawOp, ...rest] = line.split(/\s+/);
+    if (!target || !rawOp) return { error: `Línea ${n}: usa "objetivo operación valor" (ej: ac add 2).` };
     if (!/^[a-z][a-z0-9_-]*(\.[a-z0-9_-]+)*$/i.test(target)) {
       return { error: `Línea ${n}: el objetivo "${target}" no es válido.` };
     }
-    if (!(OPS as string[]).includes(op)) {
-      return { error: `Línea ${n}: operación "${op}" desconocida (${OPS.join(', ')}).` };
+    const op = OP_ALIASES[rawOp.toLowerCase()];
+    if (!op) {
+      return { error: `Línea ${n}: operación "${rawOp}" desconocida (${OPS.join(', ')}).` };
     }
-    const rawValue = rest.join(' ');
-    const mod: Modifier = { target, op: op as Modifier['op'] };
+    const rawValue = rest.join(' ').trim();
+    if (!rawValue && (op === 'add' || op === 'set')) {
+      return { error: `Línea ${n}: "${op}" necesita un valor numérico o una característica (ej: 2, wis, sab).` };
+    }
+    const mod: Modifier = { target, op };
     if (op === 'add' || op === 'set') {
-      const num = Number(rawValue);
-      if (!rawValue || !Number.isFinite(num)) {
-        return { error: `Línea ${n}: "${op}" necesita un valor numérico.` };
+      const cleanVal = rawValue.replace(/^\+\s*/, '').trim();
+      const num = Number(cleanVal);
+      if (Number.isFinite(num)) {
+        mod.value = num;
+      } else {
+        const statRef = normalizeStatName(rawValue);
+        if (statRef) {
+          mod.value = statRef;
+        } else {
+          return { error: `Línea ${n}: "${op}" necesita un valor numérico o una característica válida (ej: 2, wis, sab).` };
+        }
       }
-      mod.value = num;
     } else if (rawValue) {
       mod.value = rawValue;
     }

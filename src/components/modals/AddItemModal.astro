@@ -104,11 +104,11 @@ const lblCls = 'text-[#94a3b8] block mb-1 text-[12.5px] font-semibold';
               <option value="">Automático según nombre / Ninguna (solo mochila)</option>
               <option value="head">🪖 Cabeza (casco, yelmo, tiara, sombrero)</option>
               <option value="neck">📿 Cuello (amuleto, collar, medallón)</option>
-              <option value="cloak">🧥 Capa / Manto</option>
+              <option value="cloak">🧥 Capa / Manto / Túnica</option>
               <option value="gloves">🧤 Guantes / Brazales / Guanteletes</option>
               <option value="ring1">💍 Anillo / Sortija</option>
               <option value="boots">🥾 Botas / Calzado</option>
-              <option value="armor">🛡️ Cuerpo (Armadura / Túnica)</option>
+              <option value="body">🛡️ Cuerpo (Armadura / Túnica / Ropa)</option>
               <option value="offHand">🛡️ Mano secundaria (Escudo)</option>
             </select>
           </div>
@@ -196,6 +196,7 @@ const lblCls = 'text-[#94a3b8] block mb-1 text-[12.5px] font-semibold';
   import { showAlert } from '../../scripts/ui/notify';
   import { dndApiService } from '../../scripts/api/dndApiService';
   import { wornSlotsFor } from '../../scripts/dnd/equipment';
+  import { parseEffectsText } from '../../scripts/dnd/catalog';
 
   const customEntry = initCustomEntry('item');
 
@@ -368,7 +369,8 @@ const lblCls = 'text-[#94a3b8] block mb-1 text-[12.5px] font-semibold';
     editIdInp.value = item.id;
     nameInp.value = item.name || '';
     catSel.value = item.category || 'gear';
-    if (equipSlotSel) equipSlotSel.value = item.equipSlot || '';
+    const slot = item.equipSlot === 'armor' ? 'body' : (item.equipSlot || '');
+    if (equipSlotSel) equipSlotSel.value = slot;
     attuneChk.checked = !!item.requiresAttunement;
     qtyInp.value = (item.quantity || 1).toString();
     usableSel.value = item.usableType || 'none';
@@ -478,8 +480,24 @@ const lblCls = 'text-[#94a3b8] block mb-1 text-[12.5px] font-semibold';
       return;
     }
 
+    let effects = (custom.patch as any).effects;
+    if (!effects || effects.length === 0) {
+      const noteLines = (notesInp.value || '').split(/\r?\n/);
+      const extracted: any[] = [];
+      for (const line of noteLines) {
+        const p = parseEffectsText(line.trim());
+        if (Array.isArray(p) && p.length > 0) {
+          extracted.push(...p);
+        }
+      }
+      if (extracted.length > 0) {
+        effects = extracted;
+      }
+    }
+
     const payload = {
       ...custom.patch,
+      ...(effects?.length ? { effects, custom: true, source: 'custom' } : {}),
       name,
       category: cat,
       ...(equipSlot ? { equipSlot } : { equipSlot: undefined }),

@@ -4,6 +4,7 @@ import type { FeatType } from './catalog.ts';
 
 export interface StatBlock {
   score: number;
+  baseScore?: number;
   modifier: number;
   savingProficient: boolean;
 }

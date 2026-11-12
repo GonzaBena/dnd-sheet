@@ -184,21 +184,27 @@
         </div>
 
         <div>
-          <label class="text-[#94a3b8] text-[10px] block mb-0.5">Efectos al activar (opcional, una línea por modificador: objetivo operación valor)</label>
+          <label class="text-[#94a3b8] text-[10px] block mb-0.5 font-bold">Efectos mecánicos automáticos (pasivos o al activar: objetivo operación valor)</label>
           <textarea
             rows="2"
-            class="feat-effects-inp w-full p-2 rounded-lg bg-[#10141d] border border-[#222f42] text-[#cbd5e1] font-mono focus:border-amber-500 focus:outline-none resize-none"
-            placeholder="ac add 2&#10;save.dex advantage"
+            class="feat-effects-inp w-full p-2 rounded-lg bg-[#10141d] border border-[#222f42] text-[#cbd5e1] font-mono focus:border-amber-500 focus:outline-none resize-none text-[12px]"
+            placeholder="check.car add sab&#10;ac add 1"
           >${escapeHtml(feat.effectsText || '')}</textarea>
+          <div class="flex flex-wrap gap-1 mt-1">
+            <button type="button" data-fx="check.car add sab" class="feat-quick-fx text-[9px] px-2 py-0.5 rounded bg-[#10141d] border border-[#222f42] hover:border-amber-500/50 text-[#cbd5e1] hover:text-amber-300 transition-colors cursor-pointer">+ Glamour (CAR + SAB)</button>
+            <button type="button" data-fx="car set sab" class="feat-quick-fx text-[9px] px-2 py-0.5 rounded bg-[#10141d] border border-[#222f42] hover:border-amber-500/50 text-[#cbd5e1] hover:text-amber-300 transition-colors cursor-pointer">CAR = SAB</button>
+            <button type="button" data-fx="ac add 1" class="feat-quick-fx text-[9px] px-2 py-0.5 rounded bg-[#10141d] border border-[#222f42] hover:border-amber-500/50 text-[#cbd5e1] hover:text-amber-300 transition-colors cursor-pointer">+1 CA</button>
+            <button type="button" data-fx="save.dex advantage" class="feat-quick-fx text-[9px] px-2 py-0.5 rounded bg-[#10141d] border border-[#222f42] hover:border-amber-500/50 text-[#cbd5e1] hover:text-amber-300 transition-colors cursor-pointer">Ventaja DES</button>
+          </div>
           <p class="feat-effects-error text-[10px] text-rose-400 mt-0.5 ${feat.effectsError ? '' : 'hidden'}">${escapeHtml(feat.effectsError || '')}</p>
         </div>
 
         <div>
-          <label class="text-[#94a3b8] text-[10px] block mb-0.5">Descripción y Reglas</label>
+          <label class="text-[#94a3b8] text-[10px] block mb-0.5">Descripción y Reglas narrativas</label>
           <textarea
             rows="2"
             class="feat-desc-inp w-full p-2 rounded-lg bg-[#10141d] border border-[#222f42] text-[#cbd5e1] focus:border-amber-500 focus:outline-none resize-none"
-            placeholder="Detalles y efecto mecánico del rasgo..."
+            placeholder="Texto descriptivo y reglas narrativas del rasgo..."
             data-index="${index}"
           >${escapeHtml(feat.description)}</textarea>
         </div>
@@ -260,6 +266,18 @@
           errEl.textContent = feat.effectsError ?? '';
           errEl.classList.toggle('hidden', !feat.effectsError);
         }
+      });
+
+      card.querySelectorAll<HTMLElement>('.feat-quick-fx').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const fx = btn.dataset.fx ?? '';
+          const inp = card.querySelector('.feat-effects-inp') as HTMLTextAreaElement | null;
+          if (inp) {
+            inp.value = inp.value.trim() ? `${inp.value.trim()}\n${fx}` : fx;
+            inp.dispatchEvent(new Event('input'));
+            inp.focus();
+          }
+        });
       });
 
       card.querySelector('.feat-title-inp')?.addEventListener('input', (e: any) => {
@@ -326,6 +344,41 @@
   });
 
   saveBtn?.addEventListener('click', () => {
+    // Sincronizar directamente desde el DOM para capturar cualquier edición pendiente
+    const cards = listContainer?.children || [];
+    for (let i = 0; i < cards.length && i < tempFeatures.length; i++) {
+      const card = cards[i] as HTMLElement;
+      const titleInp = card.querySelector('.feat-title-inp') as HTMLInputElement | null;
+      const usesInp = card.querySelector('.feat-uses-inp') as HTMLInputElement | null;
+      const descInp = card.querySelector('.feat-desc-inp') as HTMLTextAreaElement | null;
+      const effInp = card.querySelector('.feat-effects-inp') as HTMLTextAreaElement | null;
+      if (titleInp) tempFeatures[i].title = titleInp.value;
+      if (usesInp) tempFeatures[i].uses = usesInp.value;
+      if (descInp) tempFeatures[i].description = descInp.value;
+      
+      let text = effInp ? effInp.value.trim() : (tempFeatures[i].effectsText || '').trim();
+      // Si el usuario escribió la fórmula de efecto en la descripción por error, detectarla
+      if (!text && descInp && descInp.value) {
+        const lines = descInp.value.split(/\r?\n/);
+        const effectCandidate = lines.find((l) => {
+          const p = parseEffectsText(l.trim());
+          return Array.isArray(p) && p.length > 0;
+        });
+        if (effectCandidate) {
+          text = effectCandidate.trim();
+        }
+      }
+
+      tempFeatures[i].effectsText = text;
+      const parsed = parseEffectsText(text);
+      if (Array.isArray(parsed)) {
+        tempFeatures[i].effects = parsed.length ? parsed : undefined;
+        tempFeatures[i].effectsError = undefined;
+      } else {
+        tempFeatures[i].effectsError = parsed.error;
+      }
+    }
+
     const bad = tempFeatures.find(f => f.title.trim() && f.effectsError);
     if (bad) {
       showAlert(`Corrige los efectos de "${bad.title}": ${bad.effectsError}`, { kind: 'warning' });
