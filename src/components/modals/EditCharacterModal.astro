@@ -50,7 +50,7 @@ import { CHARACTER_PRESET_IMAGES } from '../../scripts/data/characterAvatars';
               </button>
             </div>
             <div class="grid grid-cols-2 gap-2">
-              <input type="text" id="edit-char-class" placeholder="Clase" class="w-full p-2.5 rounded-lg bg-[#18202e] border border-[#222f42] text-[#f1f5f9] focus:border-amber-500 focus:outline-none" />
+              <select id="edit-char-class" aria-label="Clase" class="w-full p-2.5 rounded-lg bg-[#18202e] border border-[#222f42] text-[#f1f5f9] focus:border-amber-500 focus:outline-none"></select>
               <input type="text" id="edit-char-subclass" placeholder="Subclase" class="w-full p-2.5 rounded-lg bg-[#18202e] border border-[#222f42] text-[#f1f5f9] focus:border-amber-500 focus:outline-none" />
             </div>
           </div>
@@ -220,6 +220,7 @@ import { CHARACTER_PRESET_IMAGES } from '../../scripts/data/characterAvatars';
   import { closeModal } from '../../scripts/animations/modalAnimations';
   import { congratulationBanner } from '../../scripts/ui/congratulationBanner';
   import { calculateLevelUpHpGain, calculateModifier } from '../../scripts/dnd/calculations';
+  import { CHARACTER_CLASSES, matchClass } from '../../scripts/dnd/classes';
   import { hitDieForClass } from '../../scripts/dnd/hitDice';
   import { getRandomCharacterAvatar, isBrokenAvatarUrl, sanitizeAvatarUrl } from '../../scripts/data/characterAvatars';
 
@@ -231,7 +232,20 @@ import { CHARACTER_PRESET_IMAGES } from '../../scripts/data/characterAvatars';
 
   // Input refs
   const nameInp = document.getElementById('edit-char-name') as HTMLInputElement;
-  const classInp = document.getElementById('edit-char-class') as HTMLInputElement;
+  const classInp = document.getElementById('edit-char-class') as HTMLSelectElement;
+  for (const c of CHARACTER_CLASSES) classInp.add(new Option(c, c));
+  // Clase antigua escrita a mano que no coincide con ninguna: se conserva como opción extra.
+  function setClass(value: string) {
+    classInp.querySelector('option[data-legacy]')?.remove();
+    const canon = matchClass(value);
+    if (canon) { classInp.value = canon; return; }
+    if (value.trim()) {
+      const o = new Option(value, value);
+      o.dataset.legacy = '1';
+      classInp.add(o);
+      classInp.value = value;
+    }
+  }
   const subclassInp = document.getElementById('edit-char-subclass') as HTMLInputElement;
   const titleInp = document.getElementById('edit-char-title') as HTMLInputElement;
   const quoteInp = document.getElementById('edit-char-quote') as HTMLTextAreaElement;
@@ -240,7 +254,7 @@ import { CHARACTER_PRESET_IMAGES } from '../../scripts/data/characterAvatars';
   // Tras un cambio manual del dado, cambiar la clase ya no lo pisa.
   let hitDieTouched = false;
   hitDieSel?.addEventListener('change', () => { hitDieTouched = true; updateSuggestedHp(); });
-  classInp?.addEventListener('input', () => {
+  classInp?.addEventListener('change', () => {
     const suggested = hitDieForClass(classInp.value);
     if (suggested && hitDieSel && !hitDieTouched) { hitDieSel.value = suggested; updateSuggestedHp(); }
   });
@@ -272,7 +286,7 @@ import { CHARACTER_PRESET_IMAGES } from '../../scripts/data/characterAvatars';
     wasFullHp = char.hp.current >= char.hp.max;
 
     if (nameInp) nameInp.value = char.name;
-    if (classInp) classInp.value = char.className;
+    if (classInp) setClass(char.className || '');
     if (subclassInp) subclassInp.value = char.subclass || '';
     if (titleInp) titleInp.value = char.title || '';
     if (quoteInp) quoteInp.value = char.quote || '';
