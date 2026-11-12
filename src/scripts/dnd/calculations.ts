@@ -61,6 +61,13 @@ export function recalculateCharacter(char: CharacterData): CharacterData {
   if (!Array.isArray(char.proficiencies.weapons)) char.proficiencies.weapons = [];
   // Spec 08, Fase D (FD-6): `armorClass` pasa a ser un override; si coincide con el cálculo se limpia.
   migrateArmorClass(char);
+  // 1 dado de golpe por nivel: si el total quedó atrás (nivel cambiado por otra vía), se alinea.
+  // DECISION: los dados ganados llegan sin gastar y los sobrantes se recortan; idempotente.
+  if (char.hitDice && Number.isFinite(char.level) && char.level >= 1 && char.hitDice.total !== char.level) {
+    const diff = char.level - char.hitDice.total;
+    char.hitDice.total = char.level;
+    char.hitDice.remaining = Math.max(0, Math.min(char.level, char.hitDice.remaining + Math.max(diff, 0)));
+  }
   // DECISION (FD-9): `armorNote` ya no es la descripción automática. La nota que traía el personaje de
   // ejemplo se limpia (exacta, para no tocar notas escritas por el usuario).
   if (char.armorNote === 'Cuero tach. + Escudo') char.armorNote = '';
