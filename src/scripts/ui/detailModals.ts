@@ -8,6 +8,7 @@ import {
   type DetailAction, type DetailContext,
 } from '../dnd/detailView';
 import { characterStore } from '../state/characterStore';
+import { lockBodyScroll, unlockBodyScroll } from './scrollLock';
 
 export interface DetailOpenDetail {
   /** Entrada ya convertida o un elemento crudo (objeto, hechizo, dote) que se convierte aquí. */
@@ -22,8 +23,10 @@ export interface DetailActionDetail {
   action: DetailAction;
   context: DetailContext;
   entry: CatalogEntry;
-  /** Solo en 'cast': nivel del espacio elegido; ausente en trucos. */
+  /** Solo en 'cast': nivel del espacio elegido; ausente en trucos o si es uso gratuito. */
   level?: number;
+  freeCast?: boolean;
+  resourceId?: string;
 }
 
 const ACTION_LABEL: Record<DetailAction, { text: string; icon: string; primary?: boolean; danger?: boolean }> = {
@@ -77,6 +80,7 @@ export function initDetailModals(): void {
     if (e.key !== 'Escape' || !openId) return;
     document.getElementById(`${openId}-modal`)?.classList.add('hidden');
     openId = null;
+    unlockBodyScroll();
   });
 }
 
@@ -89,14 +93,24 @@ function mount(prefix: 'item' | 'spell', openEvent: string, actionEvent: string)
   const close = () => {
     root.classList.add('hidden');
     if (openId === id) openId = null;
+    unlockBodyScroll();
   };
 
   $('close').addEventListener('click', close);
   root.addEventListener('click', (e) => { if (e.target === root) close(); });
 
-  const dispatch = (entry: CatalogEntry, action: DetailAction, context: DetailContext, level?: number) => {
+  const dispatch = (
+    entry: CatalogEntry,
+    action: DetailAction,
+    context: DetailContext,
+    level?: number,
+    freeCast?: boolean,
+    resourceId?: string
+  ) => {
     const detail: DetailActionDetail = { entryId: entry.id, action, context, entry };
     if (level !== undefined) detail.level = level;
+    if (freeCast) detail.freeCast = true;
+    if (resourceId) detail.resourceId = resourceId;
     window.dispatchEvent(new CustomEvent(actionEvent, { detail }));
   };
 
@@ -160,6 +174,24 @@ function mount(prefix: 'item' | 'spell', openEvent: string, actionEvent: string)
       }
       sections.append(box);
     }
+
+    if (entry.kind === 'spell' && entry.meta?.resourceId) {
+      const char = characterStore.get();
+      const r = char?.resources?.find((x) => x.id === entry.meta?.resourceId);
+      if (r) {
+        const rem = Math.max(0, r.max - r.used);
+        const box = el('div', 'rounded-lg border border-[#8c673b]/40 bg-[#5c3a1e]/10 p-2.5');
+        box.append(el('h4', 'text-[10px] font-bold uppercase tracking-wider text-[#785125] mb-1', 'Uso gratuito vinculado'));
+        const line = el('div', 'text-xs flex flex-wrap gap-1.5 py-0.5 text-[#3a1d08]');
+        const rechargeLabel = r.rechargeOn === 'longRest' ? 'Descanso largo' : r.rechargeOn === 'shortRest' ? 'Descanso corto' : r.rechargeOn === 'turn' ? 'Por turno' : 'Manual';
+        line.append(
+          el('span', 'font-bold shrink-0', `${r.name}:`),
+          el('span', '', `${rem}/${r.max} disponibles (Recarga: ${rechargeLabel})`)
+        );
+        box.append(line);
+        sections.append(box);
+      }
+    }
   }
 
   function renderActions(entry: CatalogEntry, context: DetailContext) {
@@ -191,9 +223,18 @@ function mount(prefix: 'item' | 'spell', openEvent: string, actionEvent: string)
       b.addEventListener('click', () => { dispatch(entry, 'cast', context); close(); });
       return b;
     }
-    const slots = characterStore.get()?.spellcasting?.slots ?? {};
+    const char = characterStore.get();
+    const slots = char?.spellcasting?.slots ?? {};
     const levels = castableLevels(spellLevel, slots);
-    const anyLeft = levels.some((l) => l.remaining > 0);
+    const anySlotsLeft = levels.some((l) => l.remaining > 0);
+
+    const resourceId = entry.meta?.resourceId as string | undefined;
+    const linkedResource = resourceId && char?.resources
+      ? char.resources.find((r) => r.id === resourceId)
+      : undefined;
+    const freeRemaining = linkedResource ? Math.max(0, linkedResource.max - linkedResource.used) : 0;
+
+    const anyLeft = anySlotsLeft || freeRemaining > 0;
     if (!anyLeft) {
       const b = btn('cast', 'Sin espacios');
       b.disabled = true;
@@ -206,6 +247,33 @@ function mount(prefix: 'item' | 'spell', openEvent: string, actionEvent: string)
       const options = document.getElementById(`${id}-slot-options`);
       if (!picker || !options) return;
       options.replaceChildren();
+
+      const pickerLabel = picker.querySelector('p');
+      if (pickerLabel) {
+        pickerLabel.textContent = linkedResource
+          ? 'Elige un espacio de conjuro o uso gratuito'
+          : 'Elige el espacio de conjuro';
+      }
+
+      if (linkedResource) {
+        const freeBtn = el('button',
+          'px-2.5 py-1 rounded-lg border text-xs font-bold transition-all ' +
+          (freeRemaining > 0
+            ? 'bg-[#785125] text-[#fff8ea] border-[#3a1d08] hover:bg-[#5c3a1e] cursor-pointer shadow-sm'
+            : 'border-[#3a1d08]/40 opacity-40 cursor-not-allowed text-[#785125]'),
+          `⭐ Uso gratuito (${freeRemaining}/${linkedResource.max})`);
+        freeBtn.type = 'button';
+        if (freeRemaining <= 0) {
+          freeBtn.disabled = true;
+        } else {
+          freeBtn.addEventListener('click', () => {
+            dispatch(entry, 'cast', context, undefined, true, linkedResource.id);
+            close();
+          });
+        }
+        options.append(freeBtn);
+      }
+
       for (const l of levels) {
         const o = el('button',
           'px-2.5 py-1 rounded-lg border border-[#3a1d08] text-xs font-bold ' +
@@ -235,6 +303,7 @@ function mount(prefix: 'item' | 'spell', openEvent: string, actionEvent: string)
     renderHeader(entry);
     renderBody(entry);
     renderActions(entry, d.context);
+    lockBodyScroll();
     root.classList.remove('hidden');
     openId = id;
     $('close').focus();

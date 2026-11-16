@@ -103,14 +103,8 @@
               <span>Atacar</span>
               <span class="px-1.5 py-0.2 rounded bg-[#0a0d12]/20 text-[#0a0d12] font-mono text-[10px] font-bold">${act.bonus}</span>
             </button>
-            <button class="edit-weapon-btn w-6 h-6 rounded hover:bg-amber-500/20 text-[#94a3b8] hover:text-amber-400 flex sm:hidden sm:group-hover:flex items-center justify-center transition-colors cursor-pointer ml-0.5" title="Editar arma y modificadores">
-              <span class="material-symbols-outlined text-[14px]">edit</span>
-            </button>
-            <button class="delete-weapon-btn w-6 h-6 rounded hover:bg-rose-950/40 text-[#94a3b8] hover:text-rose-400 flex sm:hidden sm:group-hover:flex items-center justify-center transition-colors cursor-pointer" title="Eliminar arma">
-              <span class="material-symbols-outlined text-[14px]">close</span>
-            </button>
-            <button class="expand-weapon-btn w-6 h-6 rounded hover:bg-[#10141d] text-[#64748b] hover:text-[#cbd5e1] flex items-center justify-center cursor-pointer" title="Notas, etiquetas y equipar" aria-label="Mostrar u ocultar detalles">
-              <span class="material-symbols-outlined text-[16px] transition-transform ${expandedWeapons.has(act.id) ? 'rotate-180' : ''}">expand_more</span>
+            <button class="expand-weapon-btn w-6 h-6 rounded hover:bg-[#10141d] text-[#64748b] hover:text-[#cbd5e1] flex items-center justify-center cursor-pointer transition-colors" title="Opciones, notas y equipar" aria-label="Mostrar u ocultar detalles">
+              <span class="material-symbols-outlined text-[16px] transition-transform ${expandedWeapons.has(act.id) ? 'rotate-180 text-amber-400' : ''}">expand_more</span>
             </button>
           </div>
         </div>
@@ -123,6 +117,16 @@
             </div>
           ` : ''}
           ${tagsHtml ? `<div class="flex flex-wrap gap-1.5">${tagsHtml}</div>` : ''}
+          <div class="flex items-center justify-end gap-2 pt-1 border-t border-[#222f42]/40">
+            <button type="button" class="edit-weapon-btn px-2.5 py-1 rounded-lg bg-[#10141d] hover:bg-amber-500/20 text-[#cbd5e1] hover:text-amber-300 border border-[#222f42] hover:border-amber-500/40 text-[11px] font-bold flex items-center gap-1 cursor-pointer transition-colors" title="Editar arma y modificadores">
+              <span class="material-symbols-outlined text-[13px]">edit</span>
+              <span>Editar</span>
+            </button>
+            <button type="button" class="delete-weapon-btn px-2.5 py-1 rounded-lg bg-[#10141d] hover:bg-rose-500/20 text-[#94a3b8] hover:text-rose-400 border border-[#222f42] hover:border-rose-500/40 text-[11px] font-bold flex items-center gap-1 cursor-pointer transition-colors" title="Eliminar arma">
+              <span class="material-symbols-outlined text-[13px]">delete</span>
+              <span>Eliminar</span>
+            </button>
+          </div>
         </div>
       `;
 
@@ -242,6 +246,7 @@
             label: isSecret ? `Ataque Secreto con ${act.name}` : `Ataque con ${act.name}`,
             tag: isSecret ? '#Privado' : '#Combate',
             isSecret,
+            isAttackRoll: true,
             followUpDamage: {
               count: dmg.count,
               die: dmg.die,

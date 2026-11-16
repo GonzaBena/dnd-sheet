@@ -255,3 +255,58 @@ export function migrateAttuned(char: CharacterData): boolean {
   (char as any).attunedItems = [];
   return true;
 }
+
+/** Extrae el peso numérico en libras (lb) de un objeto. */
+export function getItemWeightLb(item: InventoryItem): number {
+  if (typeof item.weightLb === 'number' && Number.isFinite(item.weightLb)) {
+    return Math.max(0, item.weightLb);
+  }
+  if (typeof item.weight === 'string') {
+    const parsed = parseFloat(item.weight.replace(/[^\d.]/g, ''));
+    if (Number.isFinite(parsed)) return Math.max(0, parsed);
+  }
+  return 0;
+}
+
+/** Calcula el peso total del inventario multiplicando peso unitario por cantidad. */
+export function computeInventoryWeight(inventory: InventoryItem[] = []): number {
+  let total = 0;
+  for (const item of inventory) {
+    const qty = Math.max(1, typeof item.quantity === 'number' && Number.isFinite(item.quantity) ? item.quantity : 1);
+    total += getItemWeightLb(item) * qty;
+  }
+  return Math.round(total * 10) / 10;
+}
+
+export interface CarryingCapacityResult {
+  totalWeightLb: number;
+  maxCarryLb: number;
+  pushDragLiftLb: number;
+  isEncumbered: boolean;
+}
+
+/**
+ * Regla oficial D&D 5e de capacidad de carga estándar:
+ * - Capacidad Máxima de Carga = Fuerza × 15 lb
+ * - Empujar, Arrastrar o Levantar = Fuerza × 30 lb
+ * Si la criatura tiene tamaño grande o rasgo de Constitución Poderosa (ej. Goliat, Orco), se duplica.
+ */
+export function computeCarryingCapacity(
+  char: Pick<CharacterData, 'stats'> & Partial<Pick<CharacterData, 'inventory' | 'race' | 'features'>>
+): CarryingCapacityResult {
+  const strScore = char.stats?.str?.score ?? 10;
+  const isPowerfulBuild = /goliat|goliath|orco|orc|bugbear|centauro|firbolg/i.test(char.race ?? '') ||
+    (char.features ?? []).some((f) => /constituci[oó]n poderosa|powerful build/i.test(f.title ?? ''));
+
+  const multiplier = isPowerfulBuild ? 2 : 1;
+  const maxCarryLb = strScore * 15 * multiplier;
+  const pushDragLiftLb = strScore * 30 * multiplier;
+  const totalWeightLb = computeInventoryWeight(char.inventory ?? []);
+
+  return {
+    totalWeightLb,
+    maxCarryLb,
+    pushDragLiftLb,
+    isEncumbered: totalWeightLb > maxCarryLb,
+  };
+}

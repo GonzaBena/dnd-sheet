@@ -1,261 +1,367 @@
 ---
 // src/components/modals/AddSpellModal.astro
-import CustomEntryFields from '../ui/CustomEntryFields.astro';
+// Alta y edición de conjuros por pasos con StepRail (lo básico → tiradas → usos y notas → imagen/efectos).
+import StepRail from '../ui/StepRail.astro';
+import CustomEntryToggle from '../ui/CustomEntryToggle.astro';
+
+const inputCls =
+  'w-full p-2.5 rounded-lg bg-[#18202e] border border-[#222f42] text-[#f1f5f9] focus:border-amber-500 focus:outline-none';
+const lblCls = 'text-[#94a3b8] block mb-1 text-[12.5px] font-semibold';
 ---
 
 <div id="add-spell-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
-  <div class="modal-content w-full max-w-lg rounded-2xl bg-[#121721] border border-[#222f42] shadow-[0_20px_60px_rgba(0,0,0,0.9)] overflow-hidden flex flex-col max-h-[90vh]">
+  <div class="modal-content w-full max-w-xl rounded-2xl bg-[#121721] border border-[#222f42] shadow-[0_20px_60px_rgba(0,0,0,0.9)] overflow-hidden flex flex-col h-[min(680px,92vh)]">
     <!-- Header -->
     <div class="p-4 bg-[#18202e] border-b border-[#222f42] flex items-center justify-between shrink-0">
-      <div class="flex items-center gap-2">
-        <div class="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center border border-amber-500/30">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center border border-amber-500/30">
           <span class="material-symbols-outlined text-[20px]" id="spell-modal-icon">auto_fix_high</span>
         </div>
         <div>
-          <h3 class="font-headline font-bold text-base text-[#f1f5f9]" id="spell-modal-title">Añadir Conjuro al Grimorio</h3>
-          <span class="text-[10px] text-[#94a3b8]" id="spell-modal-subtitle">Configura trucos, hechizos, modificadores dinámicos y notas</span>
+          <h3 class="font-headline font-semibold text-lg leading-tight text-[#f1f5f9]" id="spell-modal-title">Añadir Conjuro al Grimorio</h3>
+          <span class="text-[12.5px] text-[#94a3b8]" id="spell-modal-subtitle">Configura trucos, hechizos, modificadores dinámicos y notas</span>
         </div>
       </div>
-      <button id="add-spell-close-btn" class="w-7 h-7 rounded-lg bg-[#10141d] border border-[#222f42] hover:border-rose-500/50 text-[#94a3b8] hover:text-rose-400 flex items-center justify-center text-xs transition-colors cursor-pointer">
-        <span class="material-symbols-outlined text-[16px]">close</span>
+      <button id="add-spell-close-btn" type="button" aria-label="Cerrar" class="w-8 h-8 rounded-lg bg-[#10141d] border border-[#222f42] hover:border-rose-500/50 text-[#94a3b8] hover:text-rose-400 flex items-center justify-center transition-colors cursor-pointer">
+        <span class="material-symbols-outlined text-[18px]">close</span>
       </button>
     </div>
 
-    <!-- Body -->
-    <form id="add-spell-form" class="p-5 space-y-3.5 text-xs font-label overflow-y-auto flex-1">
+    <!-- Formulario por pasos -->
+    <form id="add-spell-form" novalidate class="flex flex-col flex-1 min-h-0 font-label">
       <input type="hidden" id="spell-edit-id" value="" />
+      <StepRail />
 
-      <div>
-        <div class="flex items-center justify-between mb-1">
-          <label class="text-[#94a3b8]">Nombre del Truco / Conjuro</label>
-          <button
-            type="button"
-            id="spell-open-compendium-btn"
-            class="text-[10px] text-amber-400 hover:text-amber-300 font-bold flex items-center gap-1 bg-amber-500/10 hover:bg-amber-500/20 px-2 py-0.5 rounded-lg border border-amber-500/30 transition-all cursor-pointer"
-            title="Buscar en la base de datos oficial del SRD (2024 o 2014)"
-          >
-            <span class="material-symbols-outlined text-[13px]">menu_book</span>
-            <span>Buscar en Compendio SRD</span>
-          </button>
-        </div>
-        <input
-          type="text"
-          id="spell-name-input"
-          required
-          placeholder="ej: Guía, Curar Heridas, Marca del Cazador, Rayo de Fuego..."
-          class="w-full p-2.5 rounded-lg bg-[#18202e] border border-[#222f42] text-[#f1f5f9] focus:border-amber-500 focus:outline-none"
-        />
-      </div>
-
-      <div class="grid grid-cols-2 gap-3">
-        <div>
-          <label class="text-[#94a3b8] block mb-1">Nivel de Conjuro</label>
-          <select id="spell-level-select" class="w-full p-2.5 rounded-lg bg-[#18202e] border border-[#222f42] text-[#f1f5f9] focus:border-amber-500 focus:outline-none">
-            <option value="0">Truco (Nivel 0)</option>
-            <option value="1" selected>Nivel 1</option>
-            <option value="2">Nivel 2</option>
-            <option value="3">Nivel 3</option>
-            <option value="4">Nivel 4</option>
-            <option value="5">Nivel 5</option>
-          </select>
-        </div>
-
-        <div>
-          <label class="text-[#94a3b8] block mb-1">Escuela de Magia</label>
-          <select id="spell-school-select" class="w-full p-2.5 rounded-lg bg-[#18202e] border border-[#222f42] text-[#f1f5f9] focus:border-amber-500 focus:outline-none">
-            <option value="Evocación">Evocación</option>
-            <option value="Abjuración">Abjuración</option>
-            <option value="Adivinación">Adivinación</option>
-            <option value="Ilusión">Ilusión</option>
-            <option value="Transmutación">Transmutación</option>
-            <option value="Encantamiento">Encantamiento</option>
-            <option value="Nigromancia">Nigromancia</option>
-            <option value="Conjuración">Conjuración</option>
-          </select>
-        </div>
-      </div>
-
-      <div class="grid grid-cols-2 gap-3">
-        <div>
-          <label class="text-[#94a3b8] block mb-1">Tiempo de Lanzamiento</label>
-          <input
-            type="text"
-            id="spell-time-input"
-            value="1 acción"
-            placeholder="ej: 1 acción, 1 acción adicional, 1 reacción"
-            class="w-full p-2.5 rounded-lg bg-[#18202e] border border-[#222f42] text-[#f1f5f9] focus:border-amber-500 focus:outline-none"
-          />
-        </div>
-
-        <div>
-          <label class="text-[#94a3b8] block mb-1">Alcance</label>
-          <input
-            type="text"
-            id="spell-range-input"
-            value="60 ft"
-            placeholder="ej: Toque, 30 ft, 60 ft, Personal"
-            class="w-full p-2.5 rounded-lg bg-[#18202e] border border-[#222f42] text-[#f1f5f9] focus:border-amber-500 focus:outline-none"
-          />
-        </div>
-      </div>
-
-      <div class="grid grid-cols-2 gap-3">
-        <div>
-          <label class="text-[#94a3b8] block mb-1">Duración</label>
-          <input
-            type="text"
-            id="spell-duration-input"
-            value="Instantáneo"
-            placeholder="ej: Instantáneo, Concentración hasta 1 min, 1 hora"
-            class="w-full p-2.5 rounded-lg bg-[#18202e] border border-[#222f42] text-[#f1f5f9] focus:border-amber-500 focus:outline-none"
-          />
-        </div>
-
-        <div>
-          <label class="text-[#94a3b8] block mb-1">Componentes</label>
-          <input
-            type="text"
-            id="spell-components-input"
-            value="V, S"
-            placeholder="ej: V, S, M (una pluma)"
-            class="w-full p-2.5 rounded-lg bg-[#18202e] border border-[#222f42] text-[#f1f5f9] focus:border-amber-500 focus:outline-none"
-          />
-        </div>
-      </div>
-
-      <!-- Modifiers & Damage/Healing Mechanics Section -->
-      <div class="p-3 rounded-xl bg-[#10141d] border border-[#222f42] space-y-3">
-        <span class="font-bold text-[#cbd5e1] text-[11px] flex items-center gap-1.5">
-          <span class="material-symbols-outlined text-amber-500 text-[16px]">tune</span>
-          <span>Tiradas y Modificadores Dinámicos</span>
-        </span>
-
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <label class="flex items-center gap-2 cursor-pointer select-none">
-            <input type="checkbox" id="spell-is-attack-check" class="w-4 h-4 rounded border-[#222f42] text-amber-500 focus:ring-amber-500/20 bg-[#18202e]" />
-            <span class="text-[#cbd5e1] text-[11px]">Tirada de Ataque de Conjuro</span>
-          </label>
-          <label class="flex items-center gap-2 cursor-pointer select-none">
-            <input type="checkbox" id="spell-is-save-check" class="w-4 h-4 rounded border-[#222f42] text-amber-500 focus:ring-amber-500/20 bg-[#18202e]" />
-            <span class="text-[#cbd5e1] text-[11px]">Tirada de Salvación enemiga</span>
-          </label>
-        </div>
-
-        <!-- Save attribute selector -->
-        <div id="spell-save-options" class="hidden">
-          <label class="text-[#94a3b8] block mb-1">Atributo de Salvación Requerido</label>
-          <select id="spell-save-ability-select" class="w-full p-2 rounded-lg bg-[#18202e] border border-[#222f42] text-[#f1f5f9] focus:border-amber-500 focus:outline-none">
-            <option value="dex">Destreza (DEX)</option>
-            <option value="con">Constitución (CON)</option>
-            <option value="wis">Sabiduría (WIS)</option>
-            <option value="str">Fuerza (STR)</option>
-            <option value="int">Inteligencia (INT)</option>
-            <option value="cha">Carisma (CHA)</option>
-          </select>
-        </div>
-
-        <!-- Formula and damage section -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <div data-step-body class="flex-1 overflow-y-auto p-5 text-sm">
+        <!-- Paso 1: Lo básico -->
+        <section data-page="basic" class="space-y-4">
           <div>
-            <label class="text-[#94a3b8] block mb-1">Dados de Daño / Curación (Opcional)</label>
+            <h4 class="font-headline font-semibold text-[17px] text-[#f1f5f9]">¿Qué conjuro vas a registrar?</h4>
+            <p class="text-[13px] text-[#94a3b8]">Nombre, nivel, escuela y tiempo de lanzamiento.</p>
+          </div>
+
+          <div>
+            <div class="flex items-center justify-between gap-2 mb-1">
+              <label class={`${lblCls} !mb-0`} for="spell-name-input">Nombre del Truco / Conjuro</label>
+              <button
+                type="button"
+                id="spell-open-compendium-btn"
+                class="text-[12.5px] text-amber-400 hover:text-amber-300 font-bold flex items-center gap-1.5 bg-amber-500/10 hover:bg-amber-500/20 px-2.5 py-1 rounded-lg border border-amber-500/30 transition-all cursor-pointer"
+                title="Buscar en la base de datos oficial del SRD (2024 o 2014)"
+              >
+                <span class="material-symbols-outlined text-[16px]">menu_book</span>
+                <span>Buscar en Compendio SRD</span>
+              </button>
+            </div>
             <input
               type="text"
-              id="spell-damage-dice-input"
-              placeholder="ej: 1d8, 1d10, 2d6, 3d8..."
-              class="w-full p-2 rounded-lg bg-[#18202e] border border-[#222f42] text-[#f1f5f9] focus:border-amber-500 focus:outline-none"
+              id="spell-name-input"
+              autocomplete="off"
+              placeholder="Guía, Curar Heridas, Marca del Cazador, Rayo de Fuego…"
+              class={inputCls}
             />
           </div>
 
-          <div>
-            <label class="text-[#94a3b8] block mb-1">Tipo de Daño o Efecto</label>
-            <select id="spell-damage-type-select" class="w-full p-2 rounded-lg bg-[#18202e] border border-[#222f42] text-[#f1f5f9] focus:border-amber-500 focus:outline-none">
-              <option value="Curación">Curación</option>
-              <option value="Fuego">Fuego</option>
-              <option value="Radiante">Radiante</option>
-              <option value="Fuerza">Fuerza</option>
-              <option value="Necrótico">Necrótico</option>
-              <option value="Frío">Frío</option>
-              <option value="Relámpago">Relámpago</option>
-              <option value="Trueno">Trueno</option>
-              <option value="Veneno">Veneno</option>
-              <option value="Ácido">Ácido</option>
-              <option value="Psíquico">Psíquico</option>
-              <option value="Efecto">Efecto / Utilidad</option>
-            </select>
-          </div>
-        </div>
+          <div class="grid grid-cols-2 gap-3 max-[420px]:grid-cols-1">
+            <div>
+              <label class={lblCls} for="spell-level-select">Nivel de Conjuro</label>
+              <select id="spell-level-select" class={inputCls}>
+                <option value="0">Truco (Nivel 0)</option>
+                <option value="1" selected>Nivel 1</option>
+                <option value="2">Nivel 2</option>
+                <option value="3">Nivel 3</option>
+                <option value="4">Nivel 4</option>
+                <option value="5">Nivel 5</option>
+                <option value="6">Nivel 6</option>
+                <option value="7">Nivel 7</option>
+                <option value="8">Nivel 8</option>
+                <option value="9">Nivel 9</option>
+              </select>
+            </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <label class="flex items-center gap-2 cursor-pointer select-none">
-            <input type="checkbox" id="spell-add-ability-dmg-check" class="w-4 h-4 rounded border-[#222f42] text-amber-500 focus:ring-amber-500/20 bg-[#18202e]" />
-            <span class="text-[#cbd5e1] text-[11px]">Sumar atributo al daño/curación</span>
-          </label>
+            <div>
+              <label class={lblCls} for="spell-school-select">Escuela de Magia</label>
+              <select id="spell-school-select" class={inputCls}>
+                <option value="Evocación">Evocación</option>
+                <option value="Abjuración">Abjuración</option>
+                <option value="Adivinación">Adivinación</option>
+                <option value="Ilusión">Ilusión</option>
+                <option value="Transmutación">Transmutación</option>
+                <option value="Encantamiento">Encantamiento</option>
+                <option value="Nigromancia">Nigromancia</option>
+                <option value="Conjuración">Conjuración</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-3 max-[420px]:grid-cols-1">
+            <div>
+              <label class={lblCls} for="spell-time-input">Tiempo de Lanzamiento</label>
+              <input
+                type="text"
+                id="spell-time-input"
+                value="1 acción"
+                placeholder="ej: 1 acción, 1 acción adicional, 1 reacción"
+                class={inputCls}
+              />
+            </div>
+
+            <div>
+              <label class={lblCls} for="spell-range-input">Alcance</label>
+              <input
+                type="text"
+                id="spell-range-input"
+                value="60 ft"
+                placeholder="ej: Toque, 30 ft, 60 ft, Personal"
+                class={inputCls}
+              />
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-3 max-[420px]:grid-cols-1">
+            <div>
+              <label class={lblCls} for="spell-duration-input">Duración</label>
+              <input
+                type="text"
+                id="spell-duration-input"
+                value="Instantáneo"
+                placeholder="ej: Instantáneo, Concentración hasta 1 min"
+                class={inputCls}
+              />
+            </div>
+
+            <div>
+              <label class={lblCls} for="spell-components-input">Componentes</label>
+              <input
+                type="text"
+                id="spell-components-input"
+                value="V, S"
+                placeholder="ej: V, S, M (una pluma)"
+                class={inputCls}
+              />
+            </div>
+          </div>
+        </section>
+
+        <!-- Paso 2: Tiradas y Daño -->
+        <section data-page="combat" class="hidden space-y-4">
           <div>
+            <h4 class="font-headline font-semibold text-[17px] text-[#f1f5f9]">Tiradas, salvaciones y daño</h4>
+            <p class="text-[13px] text-[#94a3b8]">Configura si requiere tirada de ataque, salvación enemiga o fórmula de daño o curación.</p>
+          </div>
+
+          <div class="p-3 rounded-xl bg-[#10141d] border border-[#222f42] space-y-3">
+            <span class="font-bold text-[#cbd5e1] text-[12px] flex items-center gap-1.5">
+              <span class="material-symbols-outlined text-amber-500 text-[16px]">tune</span>
+              <span>Mecánica de Lanzamiento</span>
+            </span>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <label class="flex items-center gap-2 cursor-pointer select-none">
+                <input type="checkbox" id="spell-is-attack-check" class="w-4 h-4 rounded border-[#222f42] text-amber-500 focus:ring-amber-500/20 bg-[#18202e]" />
+                <span class="text-[#cbd5e1] text-[12.5px]">Tirada de Ataque de Conjuro</span>
+              </label>
+              <label class="flex items-center gap-2 cursor-pointer select-none">
+                <input type="checkbox" id="spell-is-save-check" class="w-4 h-4 rounded border-[#222f42] text-amber-500 focus:ring-amber-500/20 bg-[#18202e]" />
+                <span class="text-[#cbd5e1] text-[12.5px]">Tirada de Salvación enemiga</span>
+              </label>
+            </div>
+
+            <!-- Save attribute selector -->
+            <div id="spell-save-options" class="hidden">
+              <label class={lblCls} for="spell-save-ability-select">Atributo de Salvación Requerido</label>
+              <select id="spell-save-ability-select" class={inputCls}>
+                <option value="dex">Destreza (DEX)</option>
+                <option value="con">Constitución (CON)</option>
+                <option value="wis">Sabiduría (WIS)</option>
+                <option value="str">Fuerza (STR)</option>
+                <option value="int">Inteligencia (INT)</option>
+                <option value="cha">Carisma (CHA)</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Formula and damage section -->
+          <div class="grid grid-cols-2 gap-3 max-[420px]:grid-cols-1">
+            <div>
+              <label class={lblCls} for="spell-damage-dice-input">Dados de Daño / Curación (Opcional)</label>
+              <input
+                type="text"
+                id="spell-damage-dice-input"
+                placeholder="ej: 1d8, 1d10, 2d6, 3d8…"
+                class={inputCls}
+              />
+            </div>
+
+            <div>
+              <label class={lblCls} for="spell-damage-type-select">Tipo de Daño o Efecto</label>
+              <select id="spell-damage-type-select" class={inputCls}>
+                <option value="Curación">Curación</option>
+                <option value="Fuego">Fuego</option>
+                <option value="Radiante">Radiante</option>
+                <option value="Fuerza">Fuerza</option>
+                <option value="Necrótico">Necrótico</option>
+                <option value="Frío">Frío</option>
+                <option value="Relámpago">Relámpago</option>
+                <option value="Trueno">Trueno</option>
+                <option value="Veneno">Veneno</option>
+                <option value="Ácido">Ácido</option>
+                <option value="Psíquico">Psíquico</option>
+                <option value="Efecto">Efecto / Utilidad</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-3 max-[420px]:grid-cols-1">
+            <label class="flex items-center gap-2 cursor-pointer select-none pt-2">
+              <input type="checkbox" id="spell-add-ability-dmg-check" class="w-4 h-4 rounded border-[#222f42] text-amber-500 focus:ring-amber-500/20 bg-[#18202e]" />
+              <span class="text-[#cbd5e1] text-[12px]">Sumar atributo al daño/curación</span>
+            </label>
+            <div>
+              <label class={lblCls} for="spell-damage-bonus-mod-input">Bono plano adicional</label>
+              <input
+                type="number"
+                id="spell-damage-bonus-mod-input"
+                value="0"
+                placeholder="ej: +1, +2"
+                class={inputCls}
+              />
+            </div>
+          </div>
+
+          <!-- Live Preview -->
+          <div class="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-between text-xs">
+            <span class="text-amber-400 font-bold flex items-center gap-1.5">
+              <span class="material-symbols-outlined text-[16px]">auto_fix_normal</span>
+              <span>Previsualización:</span>
+            </span>
+            <div class="flex items-center gap-2 font-headline font-bold" id="spell-preview-box">
+              <span class="text-amber-300 bg-[#18202e] px-2.5 py-1 rounded-lg border border-[#222f42]" id="spell-preview-formula">Efecto de Utilidad</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- Paso 3: Usos y Notas -->
+        <section data-page="details" class="hidden space-y-4">
+          <div>
+            <h4 class="font-headline font-semibold text-[17px] text-[#f1f5f9]">Usos, activación y notas</h4>
+            <p class="text-[13px] text-[#94a3b8]">Magia innata, dotes con usos gratuitos, desencadenantes y descripción.</p>
+          </div>
+
+          <!-- Free Uses / Innate Magic (Recurso vinculado para lanzamientos gratis) -->
+          <div class="p-3.5 rounded-xl bg-[#10141d] border border-[#222f42] space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="font-bold text-[#cbd5e1] text-[12px] flex items-center gap-1.5">
+                <span class="material-symbols-outlined text-amber-500 text-[16px]">stars</span>
+                <span>Usos Gratuitos / Magia Innata</span>
+              </span>
+              <span class="text-[10px] text-[#64748b]">Opcional</span>
+            </div>
+            <p class="text-[11.5px] text-[#94a3b8] leading-relaxed">
+              Si una dote (ej: <em>Tocado por las hadas</em>), raza o rasgo te concede lanzamientos gratis sin gastar espacios de conjuro, vincúlalo a un recurso.
+            </p>
+            <div>
+              <label class={lblCls} for="spell-resource-select">Recurso vinculado</label>
+              <select id="spell-resource-select" class={inputCls}>
+                <option value="">Sin usos gratuitos (consume espacios de nivel)</option>
+                <option value="__new__">+ Crear nuevo recurso (ej: 1 / Descanso largo)…</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Activation Condition -->
+          <div>
+            <label class={`${lblCls} flex items-center justify-between`} for="spell-activation-input">
+              <span class="flex items-center gap-1">
+                <span class="material-symbols-outlined text-amber-500 text-[14px]">timer</span>
+                <span>Condición de Activación / Desencadenante</span>
+              </span>
+              <span class="text-[10px] text-[#64748b] font-normal">Opcional</span>
+            </label>
             <input
-              type="number"
-              id="spell-damage-bonus-mod-input"
-              value="0"
-              placeholder="Bono plano adicional (ej: +1)"
-              class="w-full p-1.5 rounded-lg bg-[#18202e] border border-[#222f42] text-[#f1f5f9] focus:border-amber-500 focus:outline-none text-xs"
+              type="text"
+              id="spell-activation-input"
+              placeholder="ej: Acción adicional al marcar, Reacción al recibir un impacto…"
+              class={inputCls}
             />
           </div>
-        </div>
 
-        <!-- Live Preview -->
-        <div class="p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/30 flex items-center justify-between text-xs">
-          <span class="text-amber-400 font-bold flex items-center gap-1.5">
-            <span class="material-symbols-outlined text-[15px]">auto_fix_normal</span>
-            <span>Previsualización:</span>
-          </span>
-          <div class="flex items-center gap-2 font-headline font-bold" id="spell-preview-box">
-            <span class="text-amber-300 bg-[#18202e] px-2 py-0.5 rounded border border-[#222f42]" id="spell-preview-formula">Utilidad</span>
+          <!-- Notes / Special Effects / Scaling -->
+          <div>
+            <label class={`${lblCls} flex items-center justify-between`} for="spell-notes-input">
+              <span class="flex items-center gap-1">
+                <span class="material-symbols-outlined text-amber-500 text-[14px]">auto_awesome</span>
+                <span>Efectos Especiales, Escalado y Notas</span>
+              </span>
+              <span class="text-[10px] text-[#64748b] font-normal">Opcional</span>
+            </label>
+            <textarea
+              id="spell-notes-input"
+              rows="3"
+              placeholder="ej: Al lanzar con un espacio superior suma 1d8 por nivel. Otorga ventaja en tiradas de Sigilo…"
+              class={`${inputCls} resize-none`}
+            ></textarea>
           </div>
-        </div>
+
+          <!-- Interruptor de Entrada Propia -->
+          <div class="pt-2 border-t border-[#222f42]/60">
+            <CustomEntryToggle prefix="spell" />
+          </div>
+        </section>
+
+        <!-- Paso 4: Imagen y Efectos (Dinámico: data-paged) -->
+        <section id="spell-custom-fields" data-page="custom" data-paged class="hidden space-y-4">
+          <div>
+            <h4 class="font-headline font-semibold text-[17px] text-[#f1f5f9]">Imagen y modificadores</h4>
+            <p class="text-[13px] text-[#94a3b8]">Asigna una imagen y modificadores mecánicos que se aplicarán al activar o lanzar el conjuro.</p>
+          </div>
+          <div>
+            <label class={lblCls} for="spell-image-input">Imagen <span class="font-normal text-[#94a3b8]">(opcional)</span></label>
+            <input type="text" id="spell-image-input" placeholder="https://… o data:image/png;base64,…" class={inputCls} />
+          </div>
+          <div>
+            <label class={lblCls} for="spell-effects-input">
+              Efectos <span class="font-normal text-[#94a3b8]">(uno por línea: objetivo operación valor)</span>
+            </label>
+            <textarea
+              id="spell-effects-input"
+              rows="4"
+              placeholder={"ac add 2\nsave.dex advantage"}
+              class={`${inputCls} font-mono text-[13px] resize-none`}
+            ></textarea>
+            <div class="flex flex-wrap gap-1.5 mt-2">
+              {[
+                ['ac add 2', '+2 a la CA (Escudo)'],
+                ['speed add 10', '+10 pies de velocidad'],
+                ['save.dex advantage', 'Ventaja en salvación de DES'],
+                ['check.wis add 1d4', '+1d4 en pruebas de SAB (Guía)'],
+              ].map(([line, label]) => (
+                <button
+                  type="button"
+                  data-fx={line}
+                  class="px-2.5 py-1 rounded-full text-[12px] font-bold bg-[#18202e] border border-[#222f42] text-[#cbd5e1] hover:border-amber-500/50 hover:text-amber-300 cursor-pointer transition-colors"
+                >{label}</button>
+              ))}
+            </div>
+            <p id="spell-effects-error" class="hidden mt-1.5 text-[13px] text-rose-400"></p>
+          </div>
+        </section>
       </div>
 
-      <!-- Activation Condition -->
-      <div>
-        <label class="text-[#94a3b8] block mb-1 flex items-center justify-between">
-          <span class="flex items-center gap-1">
-            <span class="material-symbols-outlined text-amber-500 text-[14px]">timer</span>
-            <span>Condición de Activación / Desencadenante</span>
-          </span>
-          <span class="text-[10px] text-[#64748b]">Opcional</span>
-        </label>
-        <input
-          type="text"
-          id="spell-activation-input"
-          placeholder="ej: Acción adicional al marcar, Reacción al recibir un impacto..."
-          class="w-full p-2.5 rounded-lg bg-[#18202e] border border-[#222f42] text-[#f1f5f9] focus:border-amber-500 focus:outline-none"
-        />
-      </div>
+      <!-- Mensaje de error general de pasos -->
+      <p data-step-error class="hidden px-5 py-2 text-xs text-rose-400 border-t border-rose-500/20 bg-rose-500/5"></p>
 
-      <!-- Notes / Special Effects / Scaling -->
-      <div>
-        <label class="text-[#94a3b8] block mb-1 flex items-center justify-between">
-          <span class="flex items-center gap-1">
-            <span class="material-symbols-outlined text-amber-500 text-[14px]">auto_awesome</span>
-            <span>Efectos Especiales, Escalado y Notas</span>
-          </span>
-          <span class="text-[10px] text-[#64748b]">Opcional</span>
-        </label>
-        <textarea
-          id="spell-notes-input"
-          rows="3"
-          placeholder="ej: Al lanzar con un espacio superior suma 1d8 por nivel. Otorga ventaja en tiradas de Sigilo..."
-          class="w-full p-2.5 rounded-lg bg-[#18202e] border border-[#222f42] text-[#f1f5f9] focus:border-amber-500 focus:outline-none resize-none"
-        ></textarea>
-      </div>
-
-      <CustomEntryFields prefix="spell" />
-
-      <!-- Footer -->
-      <div class="pt-3 border-t border-[#222f42] flex items-center justify-end gap-2.5 shrink-0">
-        <button type="button" id="add-spell-cancel-btn" class="px-4 py-2 rounded-xl bg-[#121721] border border-[#222f42] text-[#94a3b8] hover:text-[#f1f5f9] cursor-pointer">
+      <!-- Footer de navegación por pasos -->
+      <div class="px-5 py-3 border-t border-[#222f42] bg-[#18202e] flex items-center gap-2.5 shrink-0">
+        <span data-step-count class="mr-auto text-[12.5px] text-[#94a3b8]"></span>
+        <button type="button" id="add-spell-cancel-btn" data-step-cancel class="px-4 py-2 rounded-xl text-[#94a3b8] hover:text-[#f1f5f9] hover:bg-[#121721] font-bold cursor-pointer transition-colors">
           Cancelar
         </button>
-        <button type="submit" id="spell-submit-btn" class="px-5 py-2 rounded-xl bg-gradient-to-r from-amber-600 to-amber-500 text-[#0a0d12] font-bold shadow-[0_0_12px_rgba(245,158,11,0.3)] hover:brightness-110 active:scale-95 transition-all cursor-pointer">
-          Guardar Conjuro
+        <button type="button" data-step-back class="hidden px-4 py-2 rounded-xl text-[#94a3b8] hover:text-[#f1f5f9] hover:bg-[#121721] font-bold cursor-pointer transition-colors">
+          Atrás
+        </button>
+        <button type="button" id="spell-submit-btn" data-step-next class="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-[#1a1204] font-extrabold active:scale-95 transition-all cursor-pointer">
+          Siguiente
         </button>
       </div>
     </form>
@@ -266,7 +372,9 @@ import CustomEntryFields from '../ui/CustomEntryFields.astro';
   import { characterStore } from '../../scripts/state/characterStore';
   import { closeModal, openModal } from '../../scripts/animations/modalAnimations';
   import { initCustomEntry } from '../../scripts/ui/customEntry';
-  import { showAlert } from '../../scripts/ui/notify';
+  import { initSteps } from '../../scripts/ui/modalSteps';
+  import { showAlert, showForm } from '../../scripts/ui/notify';
+  import { escapeHtml } from '../../scripts/dnd/catalog';
 
   const customEntry = initCustomEntry('spell');
 
@@ -277,7 +385,6 @@ import CustomEntryFields from '../ui/CustomEntryFields.astro';
   const cancelBtn = document.getElementById('add-spell-cancel-btn');
   const modalTitle = document.getElementById('spell-modal-title');
   const modalSubtitle = document.getElementById('spell-modal-subtitle');
-  const submitBtn = document.getElementById('spell-submit-btn');
 
   const editIdInp = document.getElementById('spell-edit-id') as HTMLInputElement;
   const nameInp = document.getElementById('spell-name-input') as HTMLInputElement;
@@ -300,7 +407,95 @@ import CustomEntryFields from '../ui/CustomEntryFields.astro';
 
   const previewFormula = document.getElementById('spell-preview-formula');
   const activationInp = document.getElementById('spell-activation-input') as HTMLInputElement;
+  const resSelect = document.getElementById('spell-resource-select') as HTMLSelectElement;
   const notesInp = document.getElementById('spell-notes-input') as HTMLTextAreaElement;
+  const customToggle = document.getElementById('spell-custom-toggle') as HTMLInputElement | null;
+
+  let finalLabel = 'Añadir Conjuro';
+  let previousResId = '';
+
+  const steps = initSteps({
+    form,
+    labels: {
+      basic: 'Lo básico',
+      combat: 'Tiradas',
+      details: 'Usos y notas',
+      custom: 'Imagen y efectos',
+    },
+    pages: () =>
+      ['basic', 'combat', 'details', customEntry.isCustom() ? 'custom' : null]
+        .filter((id): id is string => !!id),
+    finalLabel: () => finalLabel,
+    validate: (id) =>
+      id === 'basic' && !nameInp.value.trim()
+        ? { message: 'Escribe el nombre del conjuro para continuar.', focus: nameInp }
+        : null,
+  });
+
+  customToggle?.addEventListener('change', () => {
+    steps.refresh();
+  });
+
+  function populateResourceOptions(selectedId?: string) {
+    if (!resSelect) return;
+    const resources = characterStore.get()?.resources || [];
+    const currentVal = selectedId !== undefined ? selectedId : (resSelect.value || '');
+    resSelect.innerHTML = `
+      <option value="">Sin usos gratuitos (consume espacios de nivel)</option>
+      ${resources.map((r: any) => `
+        <option value="${escapeHtml(r.id)}" ${currentVal === r.id ? 'selected' : ''}>
+          ${escapeHtml(r.name)} (${Math.max(0, r.max - r.used)}/${r.max})
+        </option>
+      `).join('')}
+      <option value="__new__">+ Crear nuevo recurso (ej: 1 / Descanso largo)…</option>
+    `;
+    if (currentVal && currentVal !== '__new__') {
+      resSelect.value = currentVal;
+    } else {
+      resSelect.value = '';
+    }
+  }
+
+  resSelect?.addEventListener('focus', () => {
+    if (resSelect.value !== '__new__') {
+      previousResId = resSelect.value;
+    }
+  });
+
+  resSelect?.addEventListener('change', async () => {
+    const val = resSelect.value;
+    if (val !== '__new__') {
+      previousResId = val;
+      return;
+    }
+    const spellName = nameInp.value.trim();
+    const defaultName = spellName ? `${spellName} (Gratis)` : 'Uso gratuito de conjuro';
+    const res = await showForm([
+      { name: 'name', label: 'Nombre del recurso', type: 'text', value: defaultName, required: true },
+      { name: 'max', label: 'Usos máximos', type: 'number', value: 1, min: 1, required: true },
+      {
+        name: 'rechargeOn', label: 'Se recupera con', type: 'select', value: 'longRest',
+        options: [
+          { label: 'Descanso largo', value: 'longRest' },
+          { label: 'Descanso corto', value: 'shortRest' },
+          { label: 'Cada turno', value: 'turn' },
+          { label: 'Manual', value: 'manual' },
+        ],
+      },
+    ]);
+    if (res) {
+      const created = characterStore.addResource({
+        name: (res.name || '').trim() || defaultName,
+        max: Math.max(1, parseInt(res.max) || 1),
+        rechargeOn: (res.rechargeOn as any) || 'longRest',
+        source: 'custom',
+      });
+      populateResourceOptions(created.id);
+      previousResId = created.id;
+    } else {
+      resSelect.value = previousResId || '';
+    }
+  });
 
   function updateSaveVisibility() {
     if (isSaveCheck.checked) {
@@ -369,13 +564,15 @@ import CustomEntryFields from '../ui/CustomEntryFields.astro';
     dmgBonusModInp.value = '0';
     activationInp.value = '';
     notesInp.value = '';
+    populateResourceOptions('');
+    previousResId = '';
     customEntry.reset('new');
     updateSaveVisibility();
     updatePreview();
 
+    finalLabel = 'Añadir Conjuro';
     if (modalTitle) modalTitle.textContent = 'Añadir Conjuro al Grimorio';
     if (modalSubtitle) modalSubtitle.textContent = 'Configura trucos, hechizos, modificadores dinámicos y notas';
-    if (submitBtn) submitBtn.textContent = 'Añadir Conjuro';
   }
 
   function loadSpellForEdit(spell: any) {
@@ -397,13 +594,15 @@ import CustomEntryFields from '../ui/CustomEntryFields.astro';
     dmgBonusModInp.value = (spell.damageBonusMod ?? 0).toString();
     activationInp.value = spell.activationCondition || '';
     notesInp.value = spell.notes || '';
+    populateResourceOptions(spell.resourceId || '');
+    previousResId = spell.resourceId || '';
 
     updateSaveVisibility();
     updatePreview();
 
+    finalLabel = 'Guardar Cambios';
     if (modalTitle) modalTitle.textContent = spell.level === 0 ? 'Editar Truco Mágico' : 'Editar Conjuro del Grimorio';
     if (modalSubtitle) modalSubtitle.textContent = `Ajustando propiedades y notas de "${spell.name}"`;
-    if (submitBtn) submitBtn.textContent = 'Guardar Cambios';
   }
 
   window.addEventListener('open-add-spell-modal', ((e: CustomEvent) => {
@@ -414,8 +613,9 @@ import CustomEntryFields from '../ui/CustomEntryFields.astro';
       editIdInp.value = ''; // Ensure it creates a new spell, not editing an existing one
       if (modalTitle) modalTitle.textContent = 'Añadir Conjuro desde Compendio';
       if (modalSubtitle) modalSubtitle.textContent = 'Revisa y ajusta los datos antes de guardarlo en tu grimorio';
-      if (submitBtn) submitBtn.textContent = 'Añadir Conjuro';
+      finalLabel = 'Añadir Conjuro';
     }
+    steps.reset();
     if (modal && backdrop) openModal(modal, backdrop);
   }) as EventListener);
 
@@ -432,6 +632,7 @@ import CustomEntryFields from '../ui/CustomEntryFields.astro';
     if (sp) {
       loadSpellForEdit(sp);
       customEntry.reset('edit', sp);
+      steps.reset();
       if (modal && backdrop) openModal(modal, backdrop);
     }
   }) as EventListener);
@@ -446,14 +647,26 @@ import CustomEntryFields from '../ui/CustomEntryFields.astro';
   form?.addEventListener('submit', (e) => {
     e.preventDefault();
     const name = nameInp.value.trim();
-    if (!name) return;
+    if (!name) {
+      steps.goTo('basic');
+      steps.problem({ message: 'Escribe el nombre del conjuro para continuar.', focus: nameInp });
+      return;
+    }
 
     const editId = editIdInp.value.trim();
     const baseDice = dmgDiceInp.value.trim();
     const dmgFlat = parseInt(dmgBonusModInp.value || '0') || 0;
 
     const custom = customEntry.read();
-    if (!custom.ok) return; // el error ya se muestra en el formulario
+    if (!custom.ok) {
+      if (custom.page === 'custom' || customEntry.isCustom()) {
+        steps.goTo('custom');
+      }
+      steps.problem({ message: custom.error });
+      return;
+    }
+
+    const chosenResourceId = resSelect?.value && resSelect.value !== '__new__' ? resSelect.value : undefined;
 
     const payload = {
       ...custom.patch,
@@ -472,7 +685,8 @@ import CustomEntryFields from '../ui/CustomEntryFields.astro';
       damageBonusMod: dmgFlat,
       addAbilityToDamage: addAbilityDmgCheck.checked,
       activationCondition: activationInp.value.trim() || undefined,
-      notes: notesInp.value.trim() || undefined
+      notes: notesInp.value.trim() || undefined,
+      resourceId: chosenResourceId
     };
 
     if (editId) {
@@ -481,6 +695,7 @@ import CustomEntryFields from '../ui/CustomEntryFields.astro';
       characterStore.addSpell(payload);
     }
 
+    steps.reset();
     form.reset();
     if (modal && backdrop) closeModal(modal, backdrop);
     if (custom.imageRejected) {

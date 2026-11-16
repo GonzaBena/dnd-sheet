@@ -6,6 +6,9 @@ import { itemContributes } from './effects.ts';
 
 export type AbilityKey = 'str' | 'dex' | 'con' | 'int' | 'wis' | 'cha';
 
+export const STAT_MIN_LIMIT = 1;
+export const STAT_MAX_LIMIT = 20;
+
 export const ABILITY_KEYS: AbilityKey[] = ['str', 'dex', 'con', 'int', 'wis', 'cha'];
 
 export const ABILITY_LABELS: Record<AbilityKey, { name: string; abbr: string; icon: string }> = {
@@ -169,9 +172,10 @@ export function computeStat(
 ): StatCalculationResult {
   const meta = ABILITY_LABELS[statKey];
   const statObj = char.stats?.[statKey];
-  const base = typeof statObj?.baseScore === 'number' && Number.isFinite(statObj.baseScore)
+  const rawBase = typeof statObj?.baseScore === 'number' && Number.isFinite(statObj.baseScore)
     ? statObj.baseScore
     : (statObj?.score ?? 10);
+  const base = Math.min(STAT_MAX_LIMIT, Math.max(STAT_MIN_LIMIT, rawBase));
 
   const sources = collectStatSources(char as any, statKey);
   const parts: StatPart[] = [{ label: 'Base', value: base }];
@@ -192,9 +196,12 @@ export function computeStat(
           val = targetStat?.baseScore ?? targetStat?.score ?? 10;
         }
       }
-      if (Number.isFinite(val) && val > topSetValue) {
-        topSetValue = val;
-        topLabel = s.label;
+      if (Number.isFinite(val)) {
+        val = Math.min(STAT_MAX_LIMIT, Math.max(STAT_MIN_LIMIT, val));
+        if (val > topSetValue) {
+          topSetValue = val;
+          topLabel = s.label;
+        }
       }
     }
     if (topSetValue > currentBase) {
@@ -224,9 +231,14 @@ export function computeStat(
     }
   }
 
-  const total = currentBase + addSum;
+  const rawTotal = currentBase + addSum;
+  const total = Math.min(STAT_MAX_LIMIT, Math.max(STAT_MIN_LIMIT, rawTotal));
+  if (rawTotal > STAT_MAX_LIMIT) {
+    parts.push({ label: 'Tope de regla (Máximo 20)', value: STAT_MAX_LIMIT - rawTotal });
+  }
+
   const modifier = calculateModifier(total);
-  const hasModifiers = total !== base;
+  const hasModifiers = total !== base || rawTotal !== total || sources.length > 0;
 
   return {
     statKey,

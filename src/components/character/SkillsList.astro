@@ -44,8 +44,29 @@
     18 habilidades de D&D 5e calculadas con pericias
   </div>
 
-  <div class="section-body grid grid-cols-3 lg:grid-cols-2 gap-2 lg:gap-1.5" id="skills-list-container">
-    <!-- Populated and reactively refreshed via JavaScript -->
+  <div class="section-body space-y-2">
+    <!-- Sentidos Pasivos Bar -->
+    <div class="p-2 rounded-lg bg-[#18202e] border border-[#222f42] flex items-center justify-between text-[11px] font-label">
+      <div class="flex items-center gap-1.5" title="Percepción Pasiva: 10 + bono de percepción">
+        <span class="material-symbols-outlined text-amber-500 text-[14px]">visibility</span>
+        <span class="text-[#94a3b8]">Percepción Pasiva:</span>
+        <strong id="passive-perception-val" class="text-amber-400 font-headline font-bold text-xs">10</strong>
+      </div>
+      <div class="flex items-center gap-1.5 hidden sm:flex" title="Perspicacia Pasiva: 10 + bono de perspicacia">
+        <span class="material-symbols-outlined text-cyan-400 text-[14px]">psychology</span>
+        <span class="text-[#94a3b8]">Perspicacia:</span>
+        <strong id="passive-insight-val" class="text-[#cbd5e1] font-headline font-bold text-xs">10</strong>
+      </div>
+      <div class="flex items-center gap-1.5 hidden sm:flex" title="Investigación Pasiva: 10 + bono de investigación">
+        <span class="material-symbols-outlined text-purple-400 text-[14px]">search</span>
+        <span class="text-[#94a3b8]">Investigación:</span>
+        <strong id="passive-investigation-val" class="text-[#cbd5e1] font-headline font-bold text-xs">10</strong>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-3 lg:grid-cols-2 gap-2 lg:gap-1.5" id="skills-list-container">
+      <!-- Populated and reactively refreshed via JavaScript -->
+    </div>
   </div>
 </div>
 
@@ -80,6 +101,13 @@
   });
 
   function renderSkills(char: any) {
+    const ppVal = document.getElementById('passive-perception-val');
+    const piVal = document.getElementById('passive-insight-val');
+    const pinvVal = document.getElementById('passive-investigation-val');
+    if (ppVal) ppVal.textContent = String(char?.passivePerception ?? 10);
+    if (piVal) piVal.textContent = String(char?.passiveInsight ?? 10);
+    if (pinvVal) pinvVal.textContent = String(char?.passiveInvestigation ?? 10);
+
     if (!listContainer || !char?.skills) return;
     listContainer.innerHTML = '';
 

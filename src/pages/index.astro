@@ -3,6 +3,10 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 import CampaignRosterModal from '../components/campaigns/CampaignRosterModal.astro';
 import CreateCampaignModal from '../components/campaigns/CreateCampaignModal.astro';
+import CreateCharacterModal from '../components/campaigns/CreateCharacterModal.astro';
+import QuickCreatorModal from '../components/campaigns/QuickCreatorModal.astro';
+import ManualCreatorModal from '../components/campaigns/ManualCreatorModal.astro';
+import PremadeCharactersModal from '../components/campaigns/PremadeCharactersModal.astro';
 import CloneCharacterModal from '../components/campaigns/CloneCharacterModal.astro';
 import DmPanelModal from '../components/dm/DmPanelModal.astro';
 import CompendiumModal from '../components/modals/CompendiumModal.astro';
@@ -316,6 +320,10 @@ import SpellDetailModal from '../components/modals/SpellDetailModal.astro';
   <!-- Integrated Modals -->
   <CampaignRosterModal />
   <CreateCampaignModal />
+  <CreateCharacterModal />
+  <QuickCreatorModal />
+  <ManualCreatorModal />
+  <PremadeCharactersModal />
   <CloneCharacterModal />
   <DmPanelModal />
   <CompendiumModal />
@@ -961,9 +969,9 @@ import SpellDetailModal from '../components/modals/SpellDetailModal.astro';
 
   // "+ Nuevo Personaje Independiente"
   document.getElementById('btn-create-standalone-char')?.addEventListener('click', () => {
-    const newChar = campaignStore.createCharacter({ name: 'Nuevo Aventurero Independiente' }, null);
-    renderView();
-    showAlert(`¡Personaje independiente creado para ${userStore.getCurrentUser().name}! ID: [${newChar.id}]`, { kind: 'success', title: 'Personaje creado' });
+    window.dispatchEvent(new CustomEvent('open-create-character-modal', {
+      detail: { targetCampaignId: null }
+    }));
   });
 
   // Sesión en la nube: unirse con código y cerrar sesión

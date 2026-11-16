@@ -19,6 +19,22 @@
   body {
     overscroll-behavior: none;
   }
+
+  html.modal-open,
+  body.modal-open {
+    overflow: hidden !important;
+  }
+
+  dialog:modal {
+    overscroll-behavior: contain;
+  }
+
+  dialog::backdrop {
+    overflow: hidden;
+    overscroll-behavior: contain;
+    background-color: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(4px);
+  }
 }
 
 /* Custom scrollbars hidden or slim */

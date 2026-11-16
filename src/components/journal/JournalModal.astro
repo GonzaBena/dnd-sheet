@@ -247,10 +247,25 @@
 
       let diceBoxHtml = '';
       if (entry.diceRoll?.formula && entry.diceRoll?.result !== undefined) {
+        let outcomeBadge = '';
+        if (entry.diceRoll.hitOutcome === 'crit') {
+          outcomeBadge = '<span class="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[10px] font-bold">¡Crítico!</span>';
+        } else if (entry.diceRoll.hitOutcome === 'hit') {
+          outcomeBadge = `<span class="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[10px] font-bold">Acierto${entry.diceRoll.targetDc ? ` vs CD ${entry.diceRoll.targetDc}` : ''}</span>`;
+        } else if (entry.diceRoll.hitOutcome === 'miss') {
+          outcomeBadge = `<span class="px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/40 text-[10px] font-bold">Fallo${entry.diceRoll.targetDc ? ` vs CD ${entry.diceRoll.targetDc}` : ''}</span>`;
+        } else if (entry.diceRoll.hitOutcome === 'fumble') {
+          outcomeBadge = '<span class="px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/40 text-[10px] font-bold">Pifia</span>';
+        } else if (entry.diceRoll.hitOutcome === 'pending') {
+          outcomeBadge = '<span class="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[10px] font-bold">Pendiente DM</span>';
+        }
         diceBoxHtml = `
-          <div class="p-2 rounded-lg bg-[#10141d] border border-amber-500/30 flex items-center justify-between text-xs my-1">
+          <div class="p-2 rounded-lg bg-[#10141d] border border-amber-500/30 flex items-center justify-between text-xs my-1 gap-2 flex-wrap">
             <span class="text-[#94a3b8]">${entry.diceRoll.formula}</span>
-            <span class="font-headline font-bold text-amber-400 text-sm">Resultado: ${entry.diceRoll.result}</span>
+            <div class="flex items-center gap-2">
+              ${outcomeBadge}
+              <span class="font-headline font-bold text-amber-400 text-sm">Resultado: ${entry.diceRoll.result}</span>
+            </div>
           </div>
         `;
       } else {

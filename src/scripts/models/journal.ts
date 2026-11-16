@@ -32,6 +32,9 @@ export interface JournalEntry {
     formula: string;
     result: number;
     breakdown?: string;
+    targetDc?: number;
+    hitOutcome?: 'hit' | 'miss' | 'crit' | 'fumble' | 'pending';
+    targetName?: string;
   };
   milestone?: {
     bannerText?: string;

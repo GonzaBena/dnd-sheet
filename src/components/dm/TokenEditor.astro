@@ -324,6 +324,7 @@
   import { showConfirm, showAlert, showForm } from '../../scripts/ui/notify.ts';
   import { newTokenId } from '../../scripts/vtt/tokens.ts';
   import type { Token, MapDoc } from '../../scripts/models/map.ts';
+  import { lockBodyScroll, unlockBodyScroll } from '../../scripts/ui/scrollLock.ts';
 
   function initTokenEditor() {
     const root = document.getElementById('dm-token-editor-root');
@@ -541,6 +542,7 @@
       }
 
       modal?.classList.remove('hidden');
+      lockBodyScroll();
     }
 
     function closeModal() {
@@ -550,6 +552,7 @@
         window.dispatchEvent(new CustomEvent('token-placement-mode', { detail: { active: false } }));
       }
       modal?.classList.add('hidden');
+      unlockBodyScroll();
       if (form) form.reset();
     }
 

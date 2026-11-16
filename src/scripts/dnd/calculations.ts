@@ -2,8 +2,9 @@ import type { CharacterData, StatBlock, SkillItem } from '../models/character';
 import { migrateSlots, migrateResources } from './resources.ts';
 import { migrateAttuned } from './equipment.ts';
 import { migrateArmorClass } from './ac.ts';
-import { computeStat, ABILITY_KEYS, resolveModifierValue } from './stats.ts';
+import { computeStat, ABILITY_KEYS, resolveModifierValue, STAT_MAX_LIMIT, STAT_MIN_LIMIT } from './stats.ts';
 import { collectModifiers } from './effects.ts';
+import { getSpellSlotsForClass, getSpellcastingAbilityForClass } from './spellSlots.ts';
 
 export const STANDARD_5E_SKILLS: { id: string; name: string; stat: 'str' | 'dex' | 'con' | 'int' | 'wis' | 'cha' }[] = [
   { id: 'acrobatics', name: 'Acrobacias', stat: 'dex' },
@@ -49,6 +50,91 @@ export function calculateLevelUpHpGain(die: string, conModifier: number, levelsG
   return perLevel * levelsGained;
 }
 
+export function calculatePassivePerception(char: CharacterData): number {
+  const perception = char.skills?.find((s) => s.id === 'perception');
+  const bonus = perception ? (perception.value ?? 0) : (char.stats?.wis?.modifier ?? 0);
+  let passive = 10 + bonus;
+  const mods = [
+    ...collectModifiers(char, 'skill.perception'),
+    ...collectModifiers(char, 'check.wis'),
+  ];
+  const hasAdv = mods.some((m) => m.op === 'advantage');
+  const hasDisadv = mods.some((m) => m.op === 'disadvantage');
+  if (hasAdv && !hasDisadv) passive += 5;
+  if (hasDisadv && !hasAdv) passive -= 5;
+  return passive;
+}
+
+export function calculatePassiveInsight(char: CharacterData): number {
+  const insight = char.skills?.find((s) => s.id === 'insight');
+  const bonus = insight ? (insight.value ?? 0) : (char.stats?.wis?.modifier ?? 0);
+  let passive = 10 + bonus;
+  const mods = [
+    ...collectModifiers(char, 'skill.insight'),
+    ...collectModifiers(char, 'check.wis'),
+  ];
+  const hasAdv = mods.some((m) => m.op === 'advantage');
+  const hasDisadv = mods.some((m) => m.op === 'disadvantage');
+  if (hasAdv && !hasDisadv) passive += 5;
+  if (hasDisadv && !hasAdv) passive -= 5;
+  return passive;
+}
+
+export function calculatePassiveInvestigation(char: CharacterData): number {
+  const inv = char.skills?.find((s) => s.id === 'investigation');
+  const bonus = inv ? (inv.value ?? 0) : (char.stats?.int?.modifier ?? 0);
+  let passive = 10 + bonus;
+  const mods = [
+    ...collectModifiers(char, 'skill.investigation'),
+    ...collectModifiers(char, 'check.int'),
+  ];
+  const hasAdv = mods.some((m) => m.op === 'advantage');
+  const hasDisadv = mods.some((m) => m.op === 'disadvantage');
+  if (hasAdv && !hasDisadv) passive += 5;
+  if (hasDisadv && !hasAdv) passive -= 5;
+  return passive;
+}
+
+export function computeSpeed(char: CharacterData): { speedFt: number; speedNote: string; penalty: number } {
+  const base = typeof char.baseSpeedFt === 'number' && Number.isFinite(char.baseSpeedFt)
+    ? char.baseSpeedFt
+    : (typeof char.speedFt === 'number' && Number.isFinite(char.speedFt) ? char.speedFt : 30);
+
+  let effective = base;
+  let penalty = 0;
+
+  // Regla 5e: armadura pesada requiere Fuerza mínima (strMin). Si no la cumple, reduce velocidad en 10 pies.
+  // Los enanos ignoran esta penalización por rasgo racial.
+  const isDwarf = /enano|dwarf/i.test(char.race ?? '');
+  if (!isDwarf) {
+    const charStr = char.stats?.str?.score ?? 10;
+    const heavyArmor = (char.inventory ?? []).find(
+      (i) => i.equipped && i.armor && i.armor.category === 'heavy' && typeof i.armor.strMin === 'number' && charStr < i.armor.strMin
+    );
+    if (heavyArmor) {
+      penalty += 10;
+      effective = Math.max(5, effective - 10);
+    }
+  }
+
+  // Modificadores de efectos activos a 'speed'
+  for (const m of collectModifiers(char, 'speed')) {
+    if (m.op === 'add') {
+      effective += resolveModifierValue(char, m);
+    } else if (m.op === 'multiply' && typeof m.value === 'number') {
+      effective = Math.round(effective * m.value);
+    }
+  }
+
+  effective = Math.max(0, effective);
+  const squares = Math.floor(effective / 5);
+  const speedNote = penalty > 0
+    ? `${squares} casillas (-10 ft por armadura)`
+    : `${squares} casillas`;
+
+  return { speedFt: effective, speedNote, penalty };
+}
+
 export function recalculateCharacter(char: CharacterData): CharacterData {
   // Migraciones idempotentes (Spec 07, Fase A): slots 1–9 y registro de recursos.
   // wildShape se crea más abajo si falta, por eso migrateResources se repite al final.
@@ -80,11 +166,12 @@ export function recalculateCharacter(char: CharacterData): CharacterData {
   const prof = calculateProficiencyBonus(char.level);
   char.proficiencyBonus = prof;
 
-  // 1. Recalculate dynamic stats and modifiers (Spec: Stats from Items & Effects)
+  // 1. Recalculate dynamic stats and modifiers (Spec: Stats from Items & Effects, max cap 20)
   ABILITY_KEYS.forEach((key) => {
     if (typeof char.stats[key].baseScore !== 'number') {
       char.stats[key].baseScore = char.stats[key].score;
     }
+    char.stats[key].baseScore = Math.min(STAT_MAX_LIMIT, Math.max(STAT_MIN_LIMIT, char.stats[key].baseScore));
     const computed = computeStat(char, key);
     char.stats[key].score = computed.total;
     char.stats[key].modifier = computed.modifier;
@@ -95,6 +182,14 @@ export function recalculateCharacter(char: CharacterData): CharacterData {
   for (const m of collectModifiers(char, 'initiative')) {
     if (m.op === 'add') char.initiativeBonus += resolveModifierValue(char, m);
   }
+
+  // Speed calculation
+  if (typeof char.baseSpeedFt !== 'number') {
+    char.baseSpeedFt = typeof char.speedFt === 'number' && Number.isFinite(char.speedFt) ? char.speedFt : 30;
+  }
+  const speedRes = computeSpeed(char);
+  char.speedFt = speedRes.speedFt;
+  char.speedNote = speedRes.speedNote;
 
   // 3. Ensure all standard skills exist
   if (!char.skills) char.skills = [];
@@ -135,8 +230,30 @@ export function recalculateCharacter(char: CharacterData): CharacterData {
     };
   });
 
+  // Passive senses
+  char.passivePerception = calculatePassivePerception(char);
+  char.passiveInsight = calculatePassiveInsight(char);
+  char.passiveInvestigation = calculatePassiveInvestigation(char);
+
   // 4. Recalculate Spellcasting if present
   if (char.spellcasting) {
+    if (!char.spellcasting.ability) {
+      char.spellcasting.ability = getSpellcastingAbilityForClass(char.className) || 'wis';
+    }
+
+    const expectedSlots = getSpellSlotsForClass(char.className, char.level, char.rulesEdition, char.subclass);
+    if (expectedSlots) {
+      if (!char.spellcasting.slots) char.spellcasting.slots = {} as any;
+      for (let lvl = 1; lvl <= 9; lvl++) {
+        const total = expectedSlots[lvl] ?? 0;
+        const current = char.spellcasting.slots[lvl] ?? { total: 0, used: 0 };
+        char.spellcasting.slots[lvl] = {
+          total,
+          used: Math.min(current.used, total),
+        };
+      }
+    }
+
     const spellStatMod = char.stats[char.spellcasting.ability]?.modifier || 0;
     char.spellcasting.saveDc = 8 + prof + spellStatMod;
     char.spellcasting.attackBonus = prof + spellStatMod;

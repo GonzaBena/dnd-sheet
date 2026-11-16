@@ -8,6 +8,8 @@
 //   const v = await showForm([{ name: 'hp', label: 'PG', type: 'number' }]);    // Record | null
 //   const dmId = await showChoice('Elegí el DM', [{ value: 'u1', label: 'Ana' }]); // string | null
 
+import { lockBodyScroll, unlockBodyScroll } from './scrollLock';
+
 export type AlertKind = 'success' | 'error' | 'warning' | 'info' | 'question';
 
 export interface AlertOptions {
@@ -338,10 +340,12 @@ function showNext() {
       overlay.innerHTML = '';
       previousFocus?.focus?.();
       next.resolve({ value, values });
+      unlockBodyScroll();
       showNext();
     }, 150);
   };
 
+  lockBodyScroll();
   const { card, readValues, firstFocus, inputs } = buildDialog(next.spec, finish);
   overlay.appendChild(card);
 

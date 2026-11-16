@@ -315,6 +315,7 @@
   import { toCatalogEntry } from '../../scripts/dnd/catalog';
   import { characterStore } from '../../scripts/state/characterStore';
   import { showAlert } from '../../scripts/ui/notify';
+  import { lockBodyScroll, unlockBodyScroll } from '../../scripts/ui/scrollLock';
 
   export type ItemRarity = 'common' | 'uncommon' | 'rare' | 'very-rare' | 'legendary';
 
@@ -457,6 +458,7 @@
   export function openParchmentEnvelope(data?: EnvelopeMessageData): boolean {
     if (isAnimating || isOpen || !overlay) return false;
     isAnimating = true;
+    lockBodyScroll();
     let bodyReady: Promise<void> = Promise.resolve();
 
     currentOnCloseCallback = data?.onClose || null;
@@ -785,6 +787,7 @@
         resetElements();
         isAnimating = false;
         isOpen = false;
+        unlockBodyScroll();
 
         // Notificar y resolver promesa
         if (currentOnCloseCallback) {

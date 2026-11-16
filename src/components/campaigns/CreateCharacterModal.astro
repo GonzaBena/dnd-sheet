@@ -1,0 +1,182 @@
+---
+// src/components/campaigns/CreateCharacterModal.astro
+---
+
+<dialog
+  id="create-character-modal"
+  closedby="any"
+  aria-labelledby="create-character-modal-title"
+  class="w-full max-w-4xl rounded-2xl bg-[#121721] border border-amber-500/40 shadow-[0_20px_60px_rgba(0,0,0,0.95)] p-0 text-[#f1f5f9] overflow-hidden m-auto"
+>
+  <div class="flex flex-col max-h-[90vh]">
+    <!-- Header -->
+    <div class="px-5 py-3.5 bg-gradient-to-r from-[#18202e] via-[#1b2434] to-[#18202e] border-b border-[#222f42] flex items-center justify-between gap-3 shrink-0">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center border border-amber-500/40 shadow-[0_0_12px_rgba(245,158,11,0.25)] shrink-0">
+          <span class="material-symbols-outlined text-[20px]">person_add</span>
+        </div>
+        <div>
+          <h3 id="create-character-modal-title" class="font-headline font-bold text-base sm:text-lg text-[#f1f5f9]">
+            Agregar Nuevo Personaje
+          </h3>
+          <p class="text-[11px] sm:text-xs text-[#94a3b8] font-label">
+            Elige el modo de creación para tu próximo aventurero
+          </p>
+        </div>
+      </div>
+      <button
+        type="button"
+        id="create-char-modal-close-btn"
+        class="w-8 h-8 rounded-lg bg-[#10141d] border border-[#222f42] hover:border-amber-500/50 text-[#94a3b8] hover:text-[#f1f5f9] flex items-center justify-center text-xs transition-colors cursor-pointer shrink-0"
+        aria-label="Cerrar modal"
+      >
+        <span class="material-symbols-outlined text-[18px]">close</span>
+      </button>
+    </div>
+
+    <!-- Body: 3 Vertical Cards (Compact to avoid vertical scroll) -->
+    <div class="p-4 sm:p-5 overflow-y-auto custom-scrollbar">
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 items-stretch">
+        <!-- Card 1: Creador rápido -->
+        <article class="create-char-card group rounded-2xl bg-[#18202e] border border-[#222f42] hover:border-amber-500/60 transition-all overflow-hidden flex flex-col shadow-lg">
+          <img
+            src="/characters/ch-1.avif"
+            alt="Retrato de aventurero para Creador rápido"
+            class="w-full aspect-[3/4] max-h-52 object-cover object-top group-hover:scale-105 transition-transform duration-500 bg-[#10141d]"
+            loading="lazy"
+          />
+          <h4 class="px-3.5 pt-3 font-headline font-bold text-sm sm:text-base text-[#f1f5f9] text-center">
+            Creador rápido
+          </h4>
+          <p class="px-3.5 pt-1 text-[11px] text-[#94a3b8] text-center font-label leading-snug line-clamp-2">
+            Genera un héroe listo para la aventura en pocos pasos guiados.
+          </p>
+          <footer class="p-3.5 pt-3 mt-auto">
+            <button
+              type="button"
+              data-creation-mode="quick"
+              autofocus
+              class="w-full py-2 px-3.5 rounded-xl bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-[#0a0d12] font-bold text-xs font-label shadow-[0_0_12px_rgba(245,158,11,0.3)] active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-1.5"
+            >
+              <span class="material-symbols-outlined text-[16px]">bolt</span>
+              <span>Creador rápido</span>
+            </button>
+          </footer>
+        </article>
+
+        <!-- Card 2: Creación manual -->
+        <article class="create-char-card group rounded-2xl bg-[#18202e] border border-[#222f42] hover:border-amber-500/60 transition-all overflow-hidden flex flex-col shadow-lg">
+          <img
+            src="/characters/ch-2.avif"
+            alt="Retrato de aventurero para Creación manual"
+            class="w-full aspect-[3/4] max-h-52 object-cover object-top group-hover:scale-105 transition-transform duration-500 bg-[#10141d]"
+            loading="lazy"
+          />
+          <h4 class="px-3.5 pt-3 font-headline font-bold text-sm sm:text-base text-[#f1f5f9] text-center">
+            Creación manual
+          </h4>
+          <p class="px-3.5 pt-1 text-[11px] text-[#94a3b8] text-center font-label leading-snug line-clamp-2">
+            Personaliza cada atributo, competencia, hechizo y detalle desde cero.
+          </p>
+          <footer class="p-3.5 pt-3 mt-auto">
+            <button
+              type="button"
+              data-creation-mode="manual"
+              class="w-full py-2 px-3.5 rounded-xl bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-[#0a0d12] font-bold text-xs font-label shadow-[0_0_12px_rgba(245,158,11,0.3)] active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-1.5"
+            >
+              <span class="material-symbols-outlined text-[16px]">tune</span>
+              <span>Creación manual</span>
+            </button>
+          </footer>
+        </article>
+
+        <!-- Card 3: Prehechos -->
+        <article class="create-char-card group rounded-2xl bg-[#18202e] border border-[#222f42] hover:border-amber-500/60 transition-all overflow-hidden flex flex-col shadow-lg">
+          <img
+            src="/characters/ch-3.avif"
+            alt="Retrato de aventurero para personajes Prehechos"
+            class="w-full aspect-[3/4] max-h-52 object-cover object-top group-hover:scale-105 transition-transform duration-500 bg-[#10141d]"
+            loading="lazy"
+          />
+          <h4 class="px-3.5 pt-3 font-headline font-bold text-sm sm:text-base text-[#f1f5f9] text-center">
+            Prehechos
+          </h4>
+          <p class="px-3.5 pt-1 text-[11px] text-[#94a3b8] text-center font-label leading-snug line-clamp-2">
+            Elige entre arquetipos clásicos y fichas listas para entrar en partida.
+          </p>
+          <footer class="p-3.5 pt-3 mt-auto">
+            <button
+              type="button"
+              data-creation-mode="premade"
+              class="w-full py-2 px-3.5 rounded-xl bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-[#0a0d12] font-bold text-xs font-label shadow-[0_0_12px_rgba(245,158,11,0.3)] active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-1.5"
+            >
+              <span class="material-symbols-outlined text-[16px]">auto_awesome</span>
+              <span>Ver prehechos</span>
+            </button>
+          </footer>
+        </article>
+      </div>
+    </div>
+  </div>
+</dialog>
+
+<script>
+  const dialog = document.getElementById('create-character-modal') as HTMLDialogElement | null;
+  const closeBtn = document.getElementById('create-char-modal-close-btn');
+
+  let currentTargetCampaignId: string | null = null;
+
+  // Fallback for browsers without closedby="any" support (e.g. Safari)
+  if (dialog && !('closedBy' in HTMLDialogElement.prototype)) {
+    dialog.addEventListener('click', (event) => {
+      if (event.target !== dialog) return;
+      const rect = dialog.getBoundingClientRect();
+      const isDialogContent = (
+        rect.top <= event.clientY &&
+        event.clientY <= rect.top + rect.height &&
+        rect.left <= event.clientX &&
+        event.clientX <= rect.left + rect.width
+      );
+      if (isDialogContent) return;
+      dialog.close();
+    });
+  }
+
+  closeBtn?.addEventListener('click', () => {
+    dialog?.close();
+  });
+
+  window.addEventListener('open-create-character-modal', ((e: CustomEvent<{ targetCampaignId?: string | null }>) => {
+    currentTargetCampaignId = e.detail?.targetCampaignId ?? null;
+    if (dialog && !dialog.open) {
+      dialog.showModal();
+    }
+  }) as EventListener);
+
+  dialog?.querySelectorAll<HTMLButtonElement>('button[data-creation-mode]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const mode = btn.getAttribute('data-creation-mode') as 'quick' | 'manual' | 'premade' | null;
+      if (!mode) return;
+
+      dialog.close();
+
+      window.dispatchEvent(new CustomEvent('select-character-creation-mode', {
+        detail: { mode, targetCampaignId: currentTargetCampaignId }
+      }));
+
+      if (mode === 'manual') {
+        window.dispatchEvent(new CustomEvent('open-manual-creator-modal', {
+          detail: { targetCampaignId: currentTargetCampaignId }
+        }));
+      } else if (mode === 'quick') {
+        window.dispatchEvent(new CustomEvent('open-quick-creator-modal', {
+          detail: { targetCampaignId: currentTargetCampaignId }
+        }));
+      } else if (mode === 'premade') {
+        window.dispatchEvent(new CustomEvent('open-premade-characters-modal', {
+          detail: { targetCampaignId: currentTargetCampaignId }
+        }));
+      }
+    });
+  });
+</script>

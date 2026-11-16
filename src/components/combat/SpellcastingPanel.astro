@@ -126,7 +126,37 @@
       return;
     }
 
-    spells.forEach((sp: any) => {
+    // Agrupar conjuros por nivel: 0 = Trucos, 1, 2, 3...
+    const groupedSpells = new Map<number, any[]>();
+    for (const sp of spells) {
+      const lvl = typeof sp.level === 'number' && Number.isFinite(sp.level) ? sp.level : 0;
+      if (!groupedSpells.has(lvl)) groupedSpells.set(lvl, []);
+      groupedSpells.get(lvl)!.push(sp);
+    }
+
+    // Ordenar los niveles: 0 (Trucos) primero, luego 1, 2, 3...
+    const sortedLevels = Array.from(groupedSpells.keys()).sort((a, b) => a - b);
+
+    sortedLevels.forEach((level) => {
+      const levelSpells = groupedSpells.get(level)!;
+      // Ordenar alfabéticamente dentro de cada nivel
+      levelSpells.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+
+      // Mini título con divisor
+      const isCantripGroup = level === 0;
+      const header = document.createElement('div');
+      header.className = `flex items-center gap-2 ${isCantripGroup ? 'pt-1' : 'pt-3'} pb-1 select-none`;
+      header.innerHTML = `
+        <div class="flex items-center gap-1.5 text-xs font-headline font-bold ${isCantripGroup ? 'text-purple-400' : 'text-amber-400'} uppercase tracking-wider">
+          <span class="material-symbols-outlined text-[15px]">${isCantripGroup ? 'magic_button' : 'auto_awesome'}</span>
+          <span>${isCantripGroup ? 'Trucos (Nivel 0)' : `Conjuros de Nivel ${level}`}</span>
+        </div>
+        <div class="h-px bg-gradient-to-r ${isCantripGroup ? 'from-purple-500/40 via-purple-500/20' : 'from-amber-500/40 via-amber-500/20'} to-transparent flex-1"></div>
+        <span class="text-[10px] text-[#64748b] font-label font-medium">${levelSpells.length} ${isCantripGroup ? (levelSpells.length === 1 ? 'truco' : 'trucos') : (levelSpells.length === 1 ? 'conjuro' : 'conjuros')}</span>
+      `;
+      spellsContainer.appendChild(header);
+
+      levelSpells.forEach((sp: any) => {
       const spellKey = sp.id || sp.name;
       const isExpanded = expandedSpells.has(spellKey);
       const isCantrip = sp.level === 0;
@@ -160,6 +190,14 @@
                 ${customBadgeHtml(sp)}
                 <span class="text-[10px] text-[#64748b]">(${sp.school})</span>
                 ${sp.isSave ? `<span class="px-1.5 py-0.2 rounded bg-purple-500/10 text-purple-300 border border-purple-500/30 text-[9px] font-bold font-mono">CD ${sp.saveDc || char.spellcasting.saveDc} ${sp.saveAbility ? sp.saveAbility.toUpperCase() : ''}</span>` : ''}
+                ${(() => {
+                  if (!sp.resourceId) return '';
+                  const r = (char.resources || []).find((x: any) => x.id === sp.resourceId);
+                  if (!r) return '';
+                  const rem = Math.max(0, r.max - r.used);
+                  const color = rem > 0 ? 'bg-amber-500/15 text-amber-300 border-amber-500/40' : 'bg-rose-500/10 text-rose-300 border-rose-500/30';
+                  return `<span class="px-1.5 py-0.2 rounded ${color} text-[9px] font-bold font-mono border" title="Usos gratuitos: ${rem}/${r.max} (${escapeHtml(r.name)})">Gratis: ${rem}/${r.max}</span>`;
+                })()}
               </div>
             </div>
           </div>
@@ -236,6 +274,41 @@
             ${sp.duration ? `<span class="bg-[#10141d] px-2 py-0.5 rounded border border-[#222f42] text-amber-400/90"><strong>Duración:</strong> ${sp.duration}</span>` : ''}
             ${sp.components ? `<span class="bg-[#10141d] px-2 py-0.5 rounded border border-[#222f42] text-[#94a3b8]"><strong>Comp:</strong> ${sp.components}</span>` : ''}
           </div>
+
+          ${(() => {
+            if (!sp.resourceId) return '';
+            const r = (char.resources || []).find((x: any) => x.id === sp.resourceId);
+            if (!r) return '';
+            const rem = Math.max(0, r.max - r.used);
+            return `
+              <div class="flex items-center justify-between bg-amber-500/10 p-2 rounded-lg border border-amber-500/20 text-[11px]">
+                <div class="flex items-center gap-1.5 truncate mr-2">
+                  <span class="material-symbols-outlined text-[15px] text-amber-400 shrink-0">stars</span>
+                  <span class="truncate"><strong class="text-amber-300">Uso gratuito:</strong> ${escapeHtml(r.name)} (${rem}/${r.max})</span>
+                </div>
+                <div class="flex items-center gap-1 shrink-0">
+                  <button
+                    type="button"
+                    class="panel-spend-resource-btn px-2 py-0.5 rounded bg-amber-600/30 hover:bg-amber-600/50 text-amber-200 border border-amber-500/40 font-bold text-[10px] transition-all cursor-pointer ${rem <= 0 ? 'opacity-40 cursor-not-allowed pointer-events-none' : ''}"
+                    ${rem <= 0 ? 'disabled' : ''}
+                    data-res-id="${escapeHtml(r.id)}"
+                    title="Gastar 1 uso gratuito"
+                  >
+                    Gastar 1
+                  </button>
+                  <button
+                    type="button"
+                    class="panel-recover-resource-btn px-2 py-0.5 rounded bg-[#10141d] hover:bg-[#18202e] text-[#94a3b8] hover:text-[#f1f5f9] border border-[#222f42] font-bold text-[10px] transition-all cursor-pointer ${r.used <= 0 ? 'opacity-40 cursor-not-allowed pointer-events-none' : ''}"
+                    ${r.used <= 0 ? 'disabled' : ''}
+                    data-res-id="${escapeHtml(r.id)}"
+                    title="Recuperar 1 uso"
+                  >
+                    +1
+                  </button>
+                </div>
+              </div>
+            `;
+          })()}
 
           ${sp.activationCondition ? `
             <div class="flex items-start gap-1.5 bg-amber-500/10 p-2 rounded border border-amber-500/20">
@@ -354,6 +427,22 @@
         triggerSpellDelete();
       });
 
+      card.querySelectorAll('.panel-spend-resource-btn').forEach((b: any) => {
+        b.addEventListener('click', (e: Event) => {
+          e.stopPropagation();
+          const resId = b.getAttribute('data-res-id');
+          if (resId) characterStore.spendResource(resId, 1);
+        });
+      });
+
+      card.querySelectorAll('.panel-recover-resource-btn').forEach((b: any) => {
+        b.addEventListener('click', (e: Event) => {
+          e.stopPropagation();
+          const resId = b.getAttribute('data-res-id');
+          if (resId) characterStore.recoverResource(resId, 1);
+        });
+      });
+
       const parseSpellDice = (formulaStr?: string) => {
         if (!formulaStr) return null;
         const match = formulaStr.match(/(\d+)d(\d+)(?:\s*([+-])\s*(\d+))?/);
@@ -392,6 +481,7 @@
             label: isSecret ? `Ataque Secreto de Conjuro: ${sp.name}` : `Ataque de Conjuro: ${sp.name}`,
             tag: isSecret ? '#Privado' : '#Magia',
             isSecret,
+            isAttackRoll: true,
             ...(parsedDmg ? {
               followUpDamage: {
                 count: parsedDmg.count,
@@ -486,6 +576,7 @@
       wrapper.appendChild(card);
       spellsContainer.appendChild(wrapper);
     });
+    });
   }
 
   renderSpellSlots(characterStore.get());
@@ -498,13 +589,20 @@
 
   // Acciones de la ficha de hechizo abierta desde el grimorio (FD-3).
   window.addEventListener('spell-action', (async (e: CustomEvent) => {
-    const { entryId, action, context, entry, level } = e.detail || {};
+    const { entryId, action, context, entry, level, freeCast, resourceId } = e.detail || {};
     if (context !== 'spellbook') return;
     if (action === 'cast') {
-      // Los trucos no traen nivel y no gastan espacio. DECISION (FD-4): sin validar componentes ni estado (H4).
-      if (typeof level === 'number') characterStore.useSpellSlot(level);
+      // Uso gratuito o consumo de espacio de conjuro.
+      if (freeCast) {
+        const targetResId = resourceId || entry?.meta?.resourceId;
+        if (targetResId) {
+          characterStore.spendResource(targetResId, 1);
+        }
+      } else if (typeof level === 'number') {
+        characterStore.useSpellSlot(level);
+      }
       const char = characterStore.get();
-      const sp = (char?.spells || []).find((s: any) => (s.id || s.name) === entryId || s.name === entry?.name);
+      const sp = (char?.spellcasting?.spells || char?.spells || []).find((s: any) => (s.id || s.name) === entryId || s.name === entry?.name);
       // FE-5: un hechizo con efectos y duración no instantánea deja su efecto en el panel.
       if (entry?.effects?.length && !isInstant(entry)) await applyFromEntry(entry);
 

@@ -213,6 +213,7 @@
   import { characterStore } from '../../scripts/state/characterStore';
   import { userStore } from '../../scripts/state/userStore';
   import type { DmEvent } from '../../scripts/models/campaign';
+  import { lockBodyScroll, unlockBodyScroll } from '../../scripts/ui/scrollLock';
 
   const modal = document.getElementById('milestone-celebration-modal');
   const backdrop = document.getElementById('milestone-backdrop');
@@ -306,6 +307,7 @@
     }
 
     // 2. Reveal modal
+    lockBodyScroll();
     modal.classList.remove('hidden');
 
     // 3. Animate card and ribbon entry
@@ -359,6 +361,7 @@
       easing: 'linear',
       complete: () => {
         modal.classList.add('hidden');
+        unlockBodyScroll();
         if (particlesContainer) particlesContainer.innerHTML = '';
         if (onDone) onDone();
       }

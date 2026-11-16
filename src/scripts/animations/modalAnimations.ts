@@ -1,6 +1,10 @@
 import anime from 'animejs';
+import { lockBodyScroll, unlockBodyScroll } from '../ui/scrollLock.ts';
+
+export { lockBodyScroll, unlockBodyScroll };
 
 export function openDrawer(drawerEl: HTMLElement, backdropEl?: HTMLElement) {
+  lockBodyScroll();
   drawerEl.classList.remove('hidden');
   drawerEl.style.bottom = '';
   drawerEl.style.maxHeight = '';
@@ -38,6 +42,7 @@ export function openDrawer(drawerEl: HTMLElement, backdropEl?: HTMLElement) {
 }
 
 export function openSideDrawer(drawerEl: HTMLElement, backdropEl?: HTMLElement) {
+  lockBodyScroll();
   drawerEl.classList.remove('hidden');
   if (backdropEl) { backdropEl.classList.remove('hidden'); backdropEl.style.pointerEvents = ''; }
 
@@ -84,6 +89,7 @@ export function closeSideDrawer(drawerEl: HTMLElement, backdropEl?: HTMLElement,
     complete: () => {
       drawerEl.classList.add('hidden');
       if (onComplete) onComplete();
+      unlockBodyScroll();
     }
   });
 
@@ -116,6 +122,7 @@ export function closeDrawer(drawerEl: HTMLElement, backdropEl?: HTMLElement, onC
       drawerEl.style.maxHeight = '';
       drawerEl.classList.remove('keyboard-open');
       if (onComplete) onComplete();
+      unlockBodyScroll();
     }
   });
 
@@ -133,6 +140,7 @@ export function closeDrawer(drawerEl: HTMLElement, backdropEl?: HTMLElement, onC
 }
 
 export function openModal(modalEl: HTMLElement, backdropEl?: HTMLElement) {
+  lockBodyScroll();
   modalEl.classList.remove('hidden');
   if (backdropEl) {
     backdropEl.classList.remove('hidden');
@@ -192,6 +200,7 @@ export function closeModal(modalEl: HTMLElement, backdropEl?: HTMLElement, onCom
     complete: () => {
       modalEl.classList.add('hidden');
       if (onComplete) onComplete();
+      unlockBodyScroll();
     }
   });
 

@@ -1,0 +1,930 @@
+---
+// src/components/campaigns/QuickCreatorModal.astro
+import StepRail from '../ui/StepRail.astro';
+import { CHARACTER_PRESET_IMAGES } from '../../scripts/data/characterAvatars';
+import { QUICK_RACES, QUICK_CLASSES, QUICK_BACKGROUNDS } from '../../scripts/data/quickCreatorData';
+
+const inputCls =
+  'w-full p-2.5 rounded-lg bg-[#18202e] border border-[#222f42] text-[#f1f5f9] focus:border-amber-500 focus:outline-none text-xs';
+const lblCls = 'text-[#94a3b8] block mb-1 text-xs font-bold';
+---
+
+<dialog
+  id="quick-creator-modal"
+  closedby="any"
+  aria-labelledby="quick-creator-modal-title"
+  class="w-full max-w-4xl rounded-2xl bg-[#121721] border border-amber-500/40 shadow-[0_20px_60px_rgba(0,0,0,0.95)] p-0 text-[#f1f5f9] overflow-hidden m-auto"
+>
+  <div class="flex flex-col max-h-[92vh]">
+    <!-- Header -->
+    <div class="px-5 py-3.5 bg-gradient-to-r from-[#18202e] via-[#1b2434] to-[#18202e] border-b border-[#222f42] flex items-center justify-between gap-3 shrink-0">
+      <div class="flex items-center gap-3 min-w-0">
+        <button
+          type="button"
+          id="quick-creator-back-header-btn"
+          class="w-9 h-9 rounded-xl bg-[#10141d] border border-[#222f42] hover:border-amber-500/50 text-[#cbd5e1] hover:text-amber-300 flex items-center justify-center transition-colors cursor-pointer shrink-0"
+          title="Volver"
+          aria-label="Volver"
+        >
+          <span class="material-symbols-outlined text-[18px]">arrow_back</span>
+        </button>
+        <div class="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center border border-amber-500/40 shadow-[0_0_12px_rgba(245,158,11,0.25)] shrink-0">
+          <span class="material-symbols-outlined text-[20px]" id="quick-creator-header-icon">bolt</span>
+        </div>
+        <div class="min-w-0">
+          <h3 id="quick-creator-modal-title" class="font-headline font-bold text-base sm:text-lg text-[#f1f5f9] truncate">
+            Creador Rápido de Personaje
+          </h3>
+          <p id="quick-creator-modal-subtitle" class="text-[11px] sm:text-xs text-[#94a3b8] font-label truncate">
+            Completa las 3 fases para entrar en aventura al instante
+          </p>
+        </div>
+      </div>
+      <button
+        type="button"
+        id="quick-creator-close-btn"
+        class="w-8 h-8 rounded-lg bg-[#10141d] border border-[#222f42] hover:border-amber-500/50 text-[#94a3b8] hover:text-[#f1f5f9] flex items-center justify-center text-xs transition-colors cursor-pointer shrink-0"
+        aria-label="Cerrar modal"
+      >
+        <span class="material-symbols-outlined text-[18px]">close</span>
+      </button>
+    </div>
+
+    <!-- ===================================================================== -->
+    <!-- VISTA PRINCIPAL: FORMULARIO POR FASES (COMO EL SELECTOR DE ARMAS)     -->
+    <!-- ===================================================================== -->
+    <form id="quick-creator-form" novalidate class="flex flex-col flex-1 min-h-0 font-label">
+      <StepRail />
+
+      <div data-step-body class="flex-1 overflow-y-auto p-4 sm:p-5 custom-scrollbar text-xs">
+        <!-- FASE 1: DATOS BÁSICOS -->
+        <section data-page="datos" class="space-y-4">
+          <div>
+            <h4 class="font-headline font-bold text-base text-[#f1f5f9]">¿Quién es tu aventurero?</h4>
+            <p class="text-xs text-[#94a3b8]">Elige su nombre, nivel inicial y retrato. Raza, clase y trasfondo vienen en el siguiente paso.</p>
+          </div>
+
+          <div>
+            <div class="flex items-center justify-between gap-2 mb-1">
+              <label class={`${lblCls} !mb-0`} for="quick-char-name-input">Nombre del Personaje</label>
+              <button
+                type="button"
+                id="quick-suggest-name-btn"
+                class="text-[11px] text-amber-400 hover:text-amber-300 font-bold flex items-center gap-1 bg-amber-500/10 hover:bg-amber-500/20 px-2.5 py-1 rounded-lg border border-amber-500/30 transition-all cursor-pointer"
+                title="Generar un nombre heroico aleatorio"
+              >
+                <span class="material-symbols-outlined text-[14px]">casino</span>
+                <span>Sugerir nombre</span>
+              </button>
+            </div>
+            <input
+              type="text"
+              id="quick-char-name-input"
+              autocomplete="off"
+              placeholder="Ej: Kaelen Sombraviento, Lyra Hojaplata…"
+              class={inputCls}
+            />
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div>
+              <label class={lblCls} for="quick-char-level-input">Nivel Inicial</label>
+              <input type="number" id="quick-char-level-input" value="1" min="1" max="20" class={inputCls} />
+            </div>
+            <div>
+              <label class={lblCls} for="quick-char-alignment-select">Alineamiento</label>
+              <select id="quick-char-alignment-select" class={inputCls}>
+                <option value="Legal Bueno">Legal Bueno</option>
+                <option value="Neutral Bueno" selected>Neutral Bueno</option>
+                <option value="Caótico Bueno">Caótico Bueno</option>
+                <option value="Legal Neutral">Legal Neutral</option>
+                <option value="Neutral">Neutral Auténtico</option>
+                <option value="Caótico Neutral">Caótico Neutral</option>
+                <option value="Legal Malvado">Legal Malvado</option>
+                <option value="Neutral Malvado">Neutral Malvado</option>
+                <option value="Caótico Malvado">Caótico Malvado</option>
+              </select>
+            </div>
+            <div>
+              <label class={lblCls} for="quick-char-edition-select">Edición de Reglas</label>
+              <select id="quick-char-edition-select" class={inputCls}>
+                <option value="2024" selected>D&D 2024</option>
+                <option value="2014">D&D 2014</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <span class={`${lblCls} text-center`}>Retrato del Personaje</span>
+            <div class="flex flex-wrap items-center justify-center gap-3 pt-1" id="quick-avatar-picker">
+              {CHARACTER_PRESET_IMAGES.map((imgUrl, idx) => (
+                <button
+                  type="button"
+                  data-avatar-url={imgUrl}
+                  aria-label={`Seleccionar retrato ${idx + 1}`}
+                  class={`quick-avatar-btn relative w-24 sm:w-28 aspect-[3/4] rounded-xl overflow-hidden border-2 transition-all cursor-pointer bg-[#10141d] shrink-0 ${idx === 0 ? 'border-amber-500 ring-2 ring-amber-500/40 scale-[1.02]' : 'border-[#222f42] opacity-75 hover:opacity-100 hover:border-amber-500/50'}`}
+                >
+                  <img src={imgUrl} alt={`Retrato ${idx + 1}`} class="w-full h-full object-cover object-top" loading="lazy" />
+                </button>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <!-- FASE 2: RAZA, CLASE Y TRASFONDO (3 CARDS ESTILO BOOKMARK COMPACTAS) -->
+        <section data-page="origen" class="hidden space-y-3">
+          <div class="flex items-center justify-between gap-2">
+            <div>
+              <h4 class="font-headline font-bold text-sm sm:text-base text-[#f1f5f9]">Elige tu Raza, Clase y Trasfondo</h4>
+              <p class="text-[11px] text-[#94a3b8]">Pulsa sobre cualquiera de las 3 cards para abrir su galería y cambiar tu elección.</p>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 items-stretch">
+            <!-- BOOKMARK CARD 1: SELECTOR DE RAZA -->
+            <article
+              id="quick-race-bookmark-card"
+              class="group rounded-2xl bg-[#18202e] border border-[#222f42] hover:border-amber-500/70 transition-all overflow-hidden flex flex-col shadow-lg cursor-pointer"
+            >
+              <img
+                id="quick-race-card-img"
+                src={QUICK_RACES[0].avatarUrl}
+                alt={`Raza seleccionada: ${QUICK_RACES[0].name}`}
+                class="w-full aspect-[3/4] max-h-44 object-cover object-top group-hover:scale-105 transition-transform duration-500 bg-[#10141d]"
+              />
+              <header class="px-3.5 flex flex-col items-center text-center">
+                <div
+                  id="quick-race-card-icon"
+                  class="class-emblem-badge -mt-5 mb-1.5 relative z-10 w-10 h-10 rounded-full bg-[#121721] border-2 border-amber-500/70 shadow-[0_4px_15px_rgba(0,0,0,0.85)] flex items-center justify-center text-amber-400 group-hover:scale-110 group-hover:border-amber-400 transition-all"
+                  set:html={QUICK_RACES[0].raceIconSvg}
+                />
+                <span class="text-[9px] uppercase tracking-wider font-bold text-[#94a3b8]">Raza / Especie</span>
+                <h4 id="quick-race-card-title" class="font-headline font-bold text-sm sm:text-base text-[#f1f5f9] text-center leading-tight">
+                  {QUICK_RACES[0].name}
+                </h4>
+                <span id="quick-race-card-tagline" class="text-[10px] font-bold text-amber-400/90 font-label mt-0.5">
+                  {QUICK_RACES[0].tagline}
+                </span>
+              </header>
+              <p id="quick-race-card-desc" class="px-3.5 pt-1 text-[11px] text-[#94a3b8] text-center font-label leading-snug line-clamp-2">
+                {QUICK_RACES[0].description}
+              </p>
+              <footer class="p-3 pt-2.5 mt-auto">
+                <button
+                  type="button"
+                  id="btn-open-race-picker"
+                  class="w-full py-2 px-3 rounded-xl bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-[#0a0d12] font-bold text-xs font-label shadow-[0_0_12px_rgba(245,158,11,0.3)] active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                >
+                  <span class="material-symbols-outlined text-[15px]">diversity_3</span>
+                  <span>Elegir Raza</span>
+                </button>
+              </footer>
+            </article>
+
+            <!-- BOOKMARK CARD 2: SELECTOR DE CLASE -->
+            <article
+              id="quick-class-bookmark-card"
+              class="group rounded-2xl bg-[#18202e] border border-[#222f42] hover:border-amber-500/70 transition-all overflow-hidden flex flex-col shadow-lg cursor-pointer"
+            >
+              <img
+                id="quick-class-card-img"
+                src={QUICK_CLASSES[0].avatarUrl}
+                alt={`Clase seleccionada: ${QUICK_CLASSES[0].name}`}
+                class="w-full aspect-[3/4] max-h-44 object-cover object-top group-hover:scale-105 transition-transform duration-500 bg-[#10141d]"
+              />
+              <header class="px-3.5 flex flex-col items-center text-center">
+                <div
+                  id="quick-class-card-icon"
+                  class="class-emblem-badge -mt-5 mb-1.5 relative z-10 w-10 h-10 rounded-full bg-[#121721] border-2 border-amber-500/70 shadow-[0_4px_15px_rgba(0,0,0,0.85)] flex items-center justify-center text-amber-400 group-hover:scale-110 group-hover:border-amber-400 transition-all"
+                  set:html={QUICK_CLASSES[0].classIconSvg}
+                />
+                <span class="text-[9px] uppercase tracking-wider font-bold text-[#94a3b8]">Clase</span>
+                <h4 id="quick-class-card-title" class="font-headline font-bold text-sm sm:text-base text-[#f1f5f9] text-center leading-tight">
+                  {QUICK_CLASSES[0].name}
+                </h4>
+                <span id="quick-class-card-tagline" class="text-[10px] font-bold text-amber-400/90 font-label mt-0.5">
+                  {QUICK_CLASSES[0].tagline}
+                </span>
+              </header>
+              <p id="quick-class-card-desc" class="px-3.5 pt-1 text-[11px] text-[#94a3b8] text-center font-label leading-snug line-clamp-2">
+                {QUICK_CLASSES[0].description}
+              </p>
+              <footer class="p-3 pt-2.5 mt-auto">
+                <button
+                  type="button"
+                  id="btn-open-class-picker"
+                  class="w-full py-2 px-3 rounded-xl bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-[#0a0d12] font-bold text-xs font-label shadow-[0_0_12px_rgba(245,158,11,0.3)] active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                >
+                  <span class="material-symbols-outlined text-[15px]">swords</span>
+                  <span>Elegir Clase</span>
+                </button>
+              </footer>
+            </article>
+
+            <!-- BOOKMARK CARD 3: SELECTOR DE TRASFONDO -->
+            <article
+              id="quick-background-bookmark-card"
+              class="group rounded-2xl bg-[#18202e] border border-[#222f42] hover:border-amber-500/70 transition-all overflow-hidden flex flex-col shadow-lg cursor-pointer"
+            >
+              <img
+                id="quick-bg-card-img"
+                src={QUICK_BACKGROUNDS[0].avatarUrl}
+                alt={`Trasfondo seleccionado: ${QUICK_BACKGROUNDS[0].name}`}
+                class="w-full aspect-[3/4] max-h-44 object-cover object-top group-hover:scale-105 transition-transform duration-500 bg-[#10141d]"
+              />
+              <header class="px-3.5 flex flex-col items-center text-center">
+                <div
+                  id="quick-bg-card-icon"
+                  class="class-emblem-badge -mt-5 mb-1.5 relative z-10 w-10 h-10 rounded-full bg-[#121721] border-2 border-amber-500/70 shadow-[0_4px_15px_rgba(0,0,0,0.85)] flex items-center justify-center text-amber-400 group-hover:scale-110 group-hover:border-amber-400 transition-all"
+                  set:html={QUICK_BACKGROUNDS[0].backgroundIconSvg}
+                />
+                <span class="text-[9px] uppercase tracking-wider font-bold text-[#94a3b8]">Trasfondo (2024)</span>
+                <h4 id="quick-bg-card-title" class="font-headline font-bold text-sm sm:text-base text-[#f1f5f9] text-center leading-tight">
+                  {QUICK_BACKGROUNDS[0].name}
+                </h4>
+                <span id="quick-bg-card-tagline" class="text-[10px] font-bold text-amber-400/90 font-label mt-0.5">
+                  {QUICK_BACKGROUNDS[0].tagline}
+                </span>
+              </header>
+              <p id="quick-bg-card-desc" class="px-3.5 pt-1 text-[11px] text-[#94a3b8] text-center font-label leading-snug line-clamp-2">
+                {QUICK_BACKGROUNDS[0].description}
+              </p>
+              <footer class="p-3 pt-2.5 mt-auto">
+                <button
+                  type="button"
+                  id="btn-open-bg-picker"
+                  class="w-full py-2 px-3 rounded-xl bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-[#0a0d12] font-bold text-xs font-label shadow-[0_0_12px_rgba(245,158,11,0.3)] active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                >
+                  <span class="material-symbols-outlined text-[15px]">history_edu</span>
+                  <span>Elegir Trasfondo</span>
+                </button>
+              </footer>
+            </article>
+          </div>
+        </section>
+
+        <!-- FASE 3: ESTILO DE ATRIBUTOS Y RESUMEN LISTO PARA JUGAR -->
+        <section data-page="detalles" class="hidden space-y-4">
+          <div>
+            <h4 class="font-headline font-bold text-base text-[#f1f5f9]">Enfoque y Estadísticas</h4>
+            <p class="text-xs text-[#94a3b8]">Elige cómo repartir automáticamente los atributos para tu clase y revisa el resumen final.</p>
+          </div>
+
+          <!-- Selector de Enfoque en 1 clic -->
+          <div>
+            <span class={lblCls}>Distribución de Atributos</span>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+              <button
+                type="button"
+                data-stat-preset="balanced"
+                class="quick-stat-preset-btn p-3 rounded-xl bg-amber-500/15 border border-amber-500/50 text-left transition-all cursor-pointer"
+              >
+                <div class="flex items-center gap-1.5 font-headline font-bold text-xs text-amber-300">
+                  <span class="material-symbols-outlined text-[16px]">balance</span>
+                  <span>Equilibrado</span>
+                </div>
+                <p class="text-[11px] text-[#94a3b8] mt-1">Reparto recomendado para tu clase.</p>
+              </button>
+
+              <button
+                type="button"
+                data-stat-preset="offensive"
+                class="quick-stat-preset-btn p-3 rounded-xl bg-[#18202e] border border-[#222f42] hover:border-amber-500/40 text-left transition-all cursor-pointer"
+              >
+                <div class="flex items-center gap-1.5 font-headline font-bold text-xs text-[#f1f5f9]">
+                  <span class="material-symbols-outlined text-[16px] text-rose-400">local_fire_department</span>
+                  <span>Ofensivo</span>
+                </div>
+                <p class="text-[11px] text-[#94a3b8] mt-1">Maximiza tu atributo de ataque principal.</p>
+              </button>
+
+              <button
+                type="button"
+                data-stat-preset="resilient"
+                class="quick-stat-preset-btn p-3 rounded-xl bg-[#18202e] border border-[#222f42] hover:border-amber-500/40 text-left transition-all cursor-pointer"
+              >
+                <div class="flex items-center gap-1.5 font-headline font-bold text-xs text-[#f1f5f9]">
+                  <span class="material-symbols-outlined text-[16px] text-emerald-400">shield</span>
+                  <span>Resistente</span>
+                </div>
+                <p class="text-[11px] text-[#94a3b8] mt-1">Prioriza Constitución y Puntos de Golpe.</p>
+              </button>
+            </div>
+          </div>
+
+          <!-- Tarjeta de Resumen del Personaje -->
+          <div class="p-4 rounded-2xl bg-[#18202e] border border-amber-500/30 space-y-3.5">
+            <div class="flex items-center gap-3.5">
+              <img
+                id="quick-summary-avatar"
+                src={CHARACTER_PRESET_IMAGES[0]}
+                alt="Retrato del personaje"
+                class="w-14 h-14 rounded-xl object-cover object-top border border-amber-500/40 bg-[#10141d] shrink-0"
+              />
+              <div class="min-w-0 flex-1">
+                <h5 id="quick-summary-name" class="font-headline font-bold text-base text-[#f1f5f9] truncate">
+                  Nuevo Aventurero
+                </h5>
+                <p id="quick-summary-subtitle" class="text-xs font-bold text-amber-400 truncate">
+                  Humano • Guerrero • Soldado (Nvl. 1)
+                </p>
+                <p id="quick-summary-feat" class="text-[11px] text-[#94a3b8] truncate mt-0.5">
+                  Dote de Origen: Atacante Salvaje
+                </p>
+              </div>
+              <div class="flex items-center gap-2 shrink-0 text-center">
+                <div class="px-3 py-1.5 rounded-xl bg-[#10141d] border border-[#222f42]">
+                  <span class="text-[9px] uppercase text-[#64748b] font-bold block">PG Máx</span>
+                  <strong id="quick-summary-hp" class="font-headline font-bold text-sm text-emerald-400">12</strong>
+                </div>
+                <div class="px-3 py-1.5 rounded-xl bg-[#10141d] border border-[#222f42]">
+                  <span class="text-[9px] uppercase text-[#64748b] font-bold block">Velocidad</span>
+                  <strong id="quick-summary-speed" class="font-headline font-bold text-sm text-amber-300">30 ft</strong>
+                </div>
+              </div>
+            </div>
+
+            <!-- 6 Atributos Calculados -->
+            <div class="grid grid-cols-3 sm:grid-cols-6 gap-2 text-center" id="quick-summary-stats-grid">
+              <!-- Populated via JS -->
+            </div>
+          </div>
+        </section>
+
+        <p data-step-error role="alert" class="hidden mt-3 text-xs font-bold text-rose-400"></p>
+      </div>
+
+      <!-- Footer de Navegación por Pasos -->
+      <div class="px-5 py-3 border-t border-[#222f42] bg-[#18202e] flex items-center gap-2.5 shrink-0">
+        <span data-step-count class="mr-auto text-xs text-[#94a3b8]"></span>
+        <button
+          type="button"
+          id="quick-creator-cancel-btn"
+          data-step-cancel
+          class="px-4 py-2 rounded-xl text-[#94a3b8] hover:text-[#f1f5f9] hover:bg-[#121721] font-bold cursor-pointer transition-colors text-xs"
+        >
+          Cancelar
+        </button>
+        <button
+          type="button"
+          data-step-back
+          class="hidden px-4 py-2 rounded-xl text-[#94a3b8] hover:text-[#f1f5f9] hover:bg-[#121721] font-bold cursor-pointer transition-colors text-xs"
+        >
+          Atrás
+        </button>
+        <button
+          type="button"
+          id="quick-creator-submit-btn"
+          data-step-next
+          class="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-[#1a1204] font-extrabold active:scale-95 transition-all cursor-pointer text-xs"
+        >
+          Siguiente
+        </button>
+      </div>
+    </form>
+
+    <!-- ===================================================================== -->
+    <!-- SUB-VISTA 1: GALERÍA DE RAZAS (CARDS ESTILO BOOKMARK COMPACTAS)       -->
+    <!-- ===================================================================== -->
+    <div id="quick-race-picker-view" class="hidden flex-1 overflow-y-auto p-4 sm:p-5 custom-scrollbar">
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 items-stretch">
+        {QUICK_RACES.map((race) => (
+          <article
+            data-race-option-id={race.id}
+            class="quick-race-option-card group rounded-2xl bg-[#18202e] border border-[#222f42] hover:border-amber-500/60 transition-all overflow-hidden flex flex-col shadow-lg"
+          >
+            <img
+              src={race.avatarUrl}
+              alt={`Retrato de ${race.name}`}
+              class="w-full aspect-[3/4] max-h-44 object-cover object-top group-hover:scale-105 transition-transform duration-500 bg-[#10141d]"
+              loading="lazy"
+            />
+            <header class="px-3.5 flex flex-col items-center text-center">
+              <div
+                class="class-emblem-badge -mt-5 mb-1.5 relative z-10 w-10 h-10 rounded-full bg-[#121721] border-2 border-amber-500/70 shadow-[0_4px_15px_rgba(0,0,0,0.85)] flex items-center justify-center text-amber-400 group-hover:scale-110 group-hover:border-amber-400 transition-all"
+                set:html={race.raceIconSvg}
+              />
+              <h4 class="font-headline font-bold text-sm sm:text-base text-[#f1f5f9] text-center">
+                {race.name}
+              </h4>
+              <span class="text-[10px] font-bold text-amber-400/90 font-label mt-0.5">
+                {race.tagline}
+              </span>
+            </header>
+            <p class="px-3.5 pt-1 text-[11px] text-[#94a3b8] text-center font-label leading-snug line-clamp-2">
+              {race.description}
+            </p>
+            <footer class="p-3 pt-2.5 mt-auto">
+              <button
+                type="button"
+                data-select-race-id={race.id}
+                class="w-full py-2 px-3 rounded-xl bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-[#0a0d12] font-bold text-xs font-label shadow-[0_0_12px_rgba(245,158,11,0.3)] active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-1.5"
+              >
+                <span class="material-symbols-outlined text-[15px]">check_circle</span>
+                <span>Elegir {race.name}</span>
+              </button>
+            </footer>
+          </article>
+        ))}
+      </div>
+    </div>
+
+    <!-- ===================================================================== -->
+    <!-- SUB-VISTA 2: GALERÍA DE CLASES (CARDS ESTILO BOOKMARK COMPACTAS)      -->
+    <!-- ===================================================================== -->
+    <div id="quick-class-picker-view" class="hidden flex-1 overflow-y-auto p-4 sm:p-5 custom-scrollbar">
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 items-stretch">
+        {QUICK_CLASSES.map((cls) => (
+          <article
+            data-class-option-id={cls.id}
+            class="quick-class-option-card group rounded-2xl bg-[#18202e] border border-[#222f42] hover:border-amber-500/60 transition-all overflow-hidden flex flex-col shadow-lg"
+          >
+            <img
+              src={cls.avatarUrl}
+              alt={`Retrato de ${cls.name}`}
+              class="w-full aspect-[3/4] max-h-44 object-cover object-top group-hover:scale-105 transition-transform duration-500 bg-[#10141d]"
+              loading="lazy"
+            />
+            <header class="px-3.5 flex flex-col items-center text-center">
+              <div
+                class="class-emblem-badge -mt-5 mb-1.5 relative z-10 w-10 h-10 rounded-full bg-[#121721] border-2 border-amber-500/70 shadow-[0_4px_15px_rgba(0,0,0,0.85)] flex items-center justify-center text-amber-400 group-hover:scale-110 group-hover:border-amber-400 transition-all"
+                set:html={cls.classIconSvg}
+              />
+              <h4 class="font-headline font-bold text-sm sm:text-base text-[#f1f5f9] text-center">
+                {cls.name}
+              </h4>
+              <span class="text-[10px] font-bold text-amber-400/90 font-label mt-0.5">
+                {cls.tagline}
+              </span>
+            </header>
+            <p class="px-3.5 pt-1 text-[11px] text-[#94a3b8] text-center font-label leading-snug line-clamp-2">
+              {cls.description}
+            </p>
+            <footer class="p-3 pt-2.5 mt-auto">
+              <button
+                type="button"
+                data-select-class-id={cls.id}
+                class="w-full py-2 px-3 rounded-xl bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-[#0a0d12] font-bold text-xs font-label shadow-[0_0_12px_rgba(245,158,11,0.3)] active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-1.5"
+              >
+                <span class="material-symbols-outlined text-[15px]">check_circle</span>
+                <span>Elegir {cls.name}</span>
+              </button>
+            </footer>
+          </article>
+        ))}
+      </div>
+    </div>
+
+    <!-- ===================================================================== -->
+    <!-- SUB-VISTA 3: GALERÍA DE TRASFONDOS (CARDS ESTILO BOOKMARK COMPACTAS)  -->
+    <!-- ===================================================================== -->
+    <div id="quick-background-picker-view" class="hidden flex-1 overflow-y-auto p-4 sm:p-5 custom-scrollbar">
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 items-stretch">
+        {QUICK_BACKGROUNDS.map((bg) => (
+          <article
+            data-bg-option-id={bg.id}
+            class="quick-bg-option-card group rounded-2xl bg-[#18202e] border border-[#222f42] hover:border-amber-500/60 transition-all overflow-hidden flex flex-col shadow-lg"
+          >
+            <img
+              src={bg.avatarUrl}
+              alt={`Retrato de ${bg.name}`}
+              class="w-full aspect-[3/4] max-h-44 object-cover object-top group-hover:scale-105 transition-transform duration-500 bg-[#10141d]"
+              loading="lazy"
+            />
+            <header class="px-3.5 flex flex-col items-center text-center">
+              <div
+                class="class-emblem-badge -mt-5 mb-1.5 relative z-10 w-10 h-10 rounded-full bg-[#121721] border-2 border-amber-500/70 shadow-[0_4px_15px_rgba(0,0,0,0.85)] flex items-center justify-center text-amber-400 group-hover:scale-110 group-hover:border-amber-400 transition-all"
+                set:html={bg.backgroundIconSvg}
+              />
+              <h4 class="font-headline font-bold text-sm sm:text-base text-[#f1f5f9] text-center">
+                {bg.name}
+              </h4>
+              <span class="text-[10px] font-bold text-amber-400/90 font-label mt-0.5">
+                {bg.tagline}
+              </span>
+            </header>
+            <p class="px-3.5 pt-1 text-[11px] text-[#94a3b8] text-center font-label leading-snug line-clamp-2">
+              {bg.description}
+            </p>
+            <footer class="p-3 pt-2.5 mt-auto">
+              <button
+                type="button"
+                data-select-bg-id={bg.id}
+                class="w-full py-2 px-3 rounded-xl bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-[#0a0d12] font-bold text-xs font-label shadow-[0_0_12px_rgba(245,158,11,0.3)] active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-1.5"
+              >
+                <span class="material-symbols-outlined text-[15px]">check_circle</span>
+                <span>Elegir {bg.name}</span>
+              </button>
+            </footer>
+          </article>
+        ))}
+      </div>
+    </div>
+  </div>
+</dialog>
+
+<script>
+  import { showAlert } from '../../scripts/ui/notify';
+  import { campaignStore } from '../../scripts/state/campaignStore';
+  import { initSteps } from '../../scripts/ui/modalSteps';
+  import {
+    QUICK_RACES,
+    QUICK_CLASSES,
+    QUICK_BACKGROUNDS,
+    QUICK_NAME_SUGGESTIONS,
+    buildCharacterFromQuickCreator,
+    type QuickRaceOption,
+    type QuickClassOption,
+    type QuickBackgroundOption,
+    type QuickStatPreset,
+  } from '../../scripts/data/quickCreatorData';
+
+  const dialog = document.getElementById('quick-creator-modal') as HTMLDialogElement | null;
+  const form = document.getElementById('quick-creator-form') as HTMLFormElement | null;
+  const racePickerView = document.getElementById('quick-race-picker-view');
+  const classPickerView = document.getElementById('quick-class-picker-view');
+  const bgPickerView = document.getElementById('quick-background-picker-view');
+
+  const closeBtn = document.getElementById('quick-creator-close-btn');
+  const cancelBtn = document.getElementById('quick-creator-cancel-btn');
+  const backHeaderBtn = document.getElementById('quick-creator-back-header-btn');
+  const modalTitle = document.getElementById('quick-creator-modal-title');
+  const modalSubtitle = document.getElementById('quick-creator-modal-subtitle');
+
+  const nameInp = document.getElementById('quick-char-name-input') as HTMLInputElement;
+  const suggestNameBtn = document.getElementById('quick-suggest-name-btn');
+  const levelInp = document.getElementById('quick-char-level-input') as HTMLInputElement;
+  const alignmentSel = document.getElementById('quick-char-alignment-select') as HTMLSelectElement;
+  const editionSel = document.getElementById('quick-char-edition-select') as HTMLSelectElement;
+
+  // Bookmark Cards in Step 2 (Raza, Clase y Trasfondo)
+  const raceBookmarkCard = document.getElementById('quick-race-bookmark-card');
+  const raceCardImg = document.getElementById('quick-race-card-img') as HTMLImageElement | null;
+  const raceCardIcon = document.getElementById('quick-race-card-icon');
+  const raceCardTitle = document.getElementById('quick-race-card-title');
+  const raceCardTagline = document.getElementById('quick-race-card-tagline');
+  const raceCardDesc = document.getElementById('quick-race-card-desc');
+
+  const classBookmarkCard = document.getElementById('quick-class-bookmark-card');
+  const classCardImg = document.getElementById('quick-class-card-img') as HTMLImageElement | null;
+  const classCardIcon = document.getElementById('quick-class-card-icon');
+  const classCardTitle = document.getElementById('quick-class-card-title');
+  const classCardTagline = document.getElementById('quick-class-card-tagline');
+  const classCardDesc = document.getElementById('quick-class-card-desc');
+
+  const bgBookmarkCard = document.getElementById('quick-background-bookmark-card');
+  const bgCardImg = document.getElementById('quick-bg-card-img') as HTMLImageElement | null;
+  const bgCardIcon = document.getElementById('quick-bg-card-icon');
+  const bgCardTitle = document.getElementById('quick-bg-card-title');
+  const bgCardTagline = document.getElementById('quick-bg-card-tagline');
+  const bgCardDesc = document.getElementById('quick-bg-card-desc');
+
+  // Summary elements in Step 3
+  const summaryAvatar = document.getElementById('quick-summary-avatar') as HTMLImageElement | null;
+  const summaryName = document.getElementById('quick-summary-name');
+  const summarySubtitle = document.getElementById('quick-summary-subtitle');
+  const summaryFeat = document.getElementById('quick-summary-feat');
+  const summaryHp = document.getElementById('quick-summary-hp');
+  const summarySpeed = document.getElementById('quick-summary-speed');
+  const summaryStatsGrid = document.getElementById('quick-summary-stats-grid');
+
+  let currentTargetCampaignId: string | null = null;
+  let activeSubView: 'form' | 'race-picker' | 'class-picker' | 'bg-picker' = 'form';
+  let selectedRace: QuickRaceOption = QUICK_RACES[0];
+  let selectedClass: QuickClassOption = QUICK_CLASSES[0];
+  let selectedBackground: QuickBackgroundOption = QUICK_BACKGROUNDS[0];
+  let selectedAvatarUrl: string = QUICK_RACES[0].avatarUrl;
+  let selectedStatPreset: QuickStatPreset = 'balanced';
+
+  // Fallback for browsers without closedby="any" support
+  if (dialog && !('closedBy' in HTMLDialogElement.prototype)) {
+    dialog.addEventListener('click', (event) => {
+      if (event.target !== dialog) return;
+      const rect = dialog.getBoundingClientRect();
+      const isDialogContent = (
+        rect.top <= event.clientY &&
+        event.clientY <= rect.top + rect.height &&
+        rect.left <= event.clientX &&
+        event.clientX <= rect.left + rect.width
+      );
+      if (isDialogContent) return;
+      dialog.close();
+    });
+  }
+
+  const steps = form
+    ? initSteps({
+        form,
+        labels: {
+          datos: 'Datos básicos',
+          origen: 'Raza, Clase y Trasfondo',
+          detalles: 'Atributos y Crear',
+        },
+        pages: () => ['datos', 'origen', 'detalles'],
+        finalLabel: () => 'Crear Personaje',
+        validate: (id) =>
+          id === 'datos' && !nameInp.value.trim()
+            ? { message: 'Escribe o sugiere un nombre para tu personaje antes de continuar.', focus: nameInp }
+            : null,
+        onRender: ({ id }) => {
+          if (id === 'detalles') {
+            renderSummary();
+          }
+        },
+      })
+    : null;
+
+  function setSubView(view: 'form' | 'race-picker' | 'class-picker' | 'bg-picker') {
+    activeSubView = view;
+    if (!dialog || !form || !racePickerView || !classPickerView || !bgPickerView) return;
+
+    form.classList.toggle('hidden', view !== 'form');
+    racePickerView.classList.toggle('hidden', view !== 'race-picker');
+    classPickerView.classList.toggle('hidden', view !== 'class-picker');
+    bgPickerView.classList.toggle('hidden', view !== 'bg-picker');
+
+    if (view === 'form') {
+      if (modalTitle) modalTitle.textContent = 'Creador Rápido de Personaje';
+      if (modalSubtitle) modalSubtitle.textContent = 'Completa las 3 fases para entrar en aventura al instante';
+    } else if (view === 'race-picker') {
+      if (modalTitle) modalTitle.textContent = 'Selecciona la Raza de tu Personaje';
+      if (modalSubtitle) modalSubtitle.textContent = 'La imagen y el emblema de la card cambiarán a la raza elegida';
+    } else if (view === 'class-picker') {
+      if (modalTitle) modalTitle.textContent = 'Selecciona la Clase de tu Personaje';
+      if (modalSubtitle) modalSubtitle.textContent = 'La imagen y el emblema de la card cambiarán a la clase elegida';
+    } else if (view === 'bg-picker') {
+      if (modalTitle) modalTitle.textContent = 'Selecciona el Trasfondo de tu Personaje';
+      if (modalSubtitle) modalSubtitle.textContent = 'Otorga una Dote de Origen y competencias iniciales';
+    }
+  }
+
+  function updateBookmarkCardsUI() {
+    // Update Race Bookmark Card
+    if (raceCardImg) {
+      raceCardImg.src = selectedRace.avatarUrl;
+      raceCardImg.alt = `Raza seleccionada: ${selectedRace.name}`;
+    }
+    if (raceCardIcon) raceCardIcon.innerHTML = selectedRace.raceIconSvg;
+    if (raceCardTitle) raceCardTitle.textContent = selectedRace.name;
+    if (raceCardTagline) raceCardTagline.textContent = selectedRace.tagline;
+    if (raceCardDesc) raceCardDesc.textContent = selectedRace.description;
+
+    // Update Class Bookmark Card
+    if (classCardImg) {
+      classCardImg.src = selectedClass.avatarUrl;
+      classCardImg.alt = `Clase seleccionada: ${selectedClass.name}`;
+    }
+    if (classCardIcon) classCardIcon.innerHTML = selectedClass.classIconSvg;
+    if (classCardTitle) classCardTitle.textContent = selectedClass.name;
+    if (classCardTagline) classCardTagline.textContent = selectedClass.tagline;
+    if (classCardDesc) classCardDesc.textContent = selectedClass.description;
+
+    // Update Background Bookmark Card
+    if (bgCardImg) {
+      bgCardImg.src = selectedBackground.avatarUrl;
+      bgCardImg.alt = `Trasfondo seleccionado: ${selectedBackground.name}`;
+    }
+    if (bgCardIcon) bgCardIcon.innerHTML = selectedBackground.backgroundIconSvg;
+    if (bgCardTitle) bgCardTitle.textContent = selectedBackground.name;
+    if (bgCardTagline) bgCardTagline.textContent = selectedBackground.tagline;
+    if (bgCardDesc) bgCardDesc.textContent = selectedBackground.description;
+  }
+
+  function updateAvatarSelectionUI(url: string) {
+    selectedAvatarUrl = url;
+    document.querySelectorAll<HTMLButtonElement>('.quick-avatar-btn').forEach((btn) => {
+      const isSelected = btn.getAttribute('data-avatar-url') === url;
+      btn.className = `quick-avatar-btn relative w-24 sm:w-28 aspect-[3/4] rounded-xl overflow-hidden border-2 transition-all cursor-pointer bg-[#10141d] shrink-0 ${
+        isSelected
+          ? 'border-amber-500 ring-2 ring-amber-500/40 scale-[1.02]'
+          : 'border-[#222f42] opacity-75 hover:opacity-100 hover:border-amber-500/50'
+      }`;
+    });
+  }
+
+  function updatePresetButtonsUI() {
+    document.querySelectorAll<HTMLButtonElement>('.quick-stat-preset-btn').forEach((btn) => {
+      const preset = btn.getAttribute('data-stat-preset') as QuickStatPreset;
+      const active = preset === selectedStatPreset;
+      btn.className = active
+        ? 'quick-stat-preset-btn p-3 rounded-xl bg-amber-500/15 border border-amber-500/50 text-left transition-all cursor-pointer'
+        : 'quick-stat-preset-btn p-3 rounded-xl bg-[#18202e] border border-[#222f42] hover:border-amber-500/40 text-left transition-all cursor-pointer';
+    });
+  }
+
+  function renderSummary() {
+    const built = buildCharacterFromQuickCreator({
+      name: nameInp?.value || 'Nuevo Aventurero',
+      level: Number(levelInp?.value) || 1,
+      alignment: alignmentSel?.value || 'Neutral Bueno',
+      rulesEdition: (editionSel?.value as '2024' | '2014') || '2024',
+      avatarUrl: selectedAvatarUrl,
+      raceOption: selectedRace,
+      classOption: selectedClass,
+      backgroundOption: selectedBackground,
+      statPreset: selectedStatPreset,
+    });
+
+    if (summaryAvatar) summaryAvatar.src = built.avatarUrl || selectedAvatarUrl;
+    if (summaryName) summaryName.textContent = built.name || 'Nuevo Aventurero';
+    if (summarySubtitle) {
+      summarySubtitle.textContent = `${selectedRace.name} • ${selectedClass.name} • ${selectedBackground.name} (Nvl. ${built.level})`;
+    }
+    if (summaryFeat) {
+      summaryFeat.textContent = selectedBackground.originFeatTitle;
+    }
+    if (summaryHp) summaryHp.textContent = String(built.hp?.max ?? 10);
+    if (summarySpeed) summarySpeed.textContent = `${built.speedFt ?? 30} ft`;
+
+    if (summaryStatsGrid && built.stats) {
+      const labels: [keyof typeof built.stats, string][] = [
+        ['str', 'FUE'],
+        ['dex', 'DES'],
+        ['con', 'CON'],
+        ['int', 'INT'],
+        ['wis', 'SAB'],
+        ['cha', 'CAR'],
+      ];
+      summaryStatsGrid.innerHTML = labels
+        .map(([key, label]) => {
+          const st = built.stats![key];
+          const modStr = st.modifier >= 0 ? `+${st.modifier}` : String(st.modifier);
+          return `
+            <div class="p-2 rounded-xl bg-[#10141d] border ${st.savingProficient ? 'border-amber-500/50' : 'border-[#222f42]'}">
+              <span class="text-[10px] font-bold text-[#94a3b8] block">${label}</span>
+              <strong class="font-headline font-bold text-sm text-[#f1f5f9] block">${st.score}</strong>
+              <span class="text-[11px] font-bold text-amber-400">${modStr}</span>
+            </div>
+          `;
+        })
+        .join('');
+    }
+  }
+
+  function resetQuickCreator() {
+    if (nameInp) nameInp.value = '';
+    if (levelInp) levelInp.value = '1';
+    if (alignmentSel) alignmentSel.value = 'Neutral Bueno';
+    if (editionSel) editionSel.value = '2024';
+    selectedRace = QUICK_RACES[0];
+    selectedClass = QUICK_CLASSES[0];
+    selectedBackground = QUICK_BACKGROUNDS[0];
+    selectedStatPreset = 'balanced';
+    updateAvatarSelectionUI(QUICK_RACES[0].avatarUrl);
+    updateBookmarkCardsUI();
+    updatePresetButtonsUI();
+    setSubView('form');
+    steps?.reset();
+  }
+
+  // Suggest random heroic name
+  suggestNameBtn?.addEventListener('click', () => {
+    const randomName = QUICK_NAME_SUGGESTIONS[Math.floor(Math.random() * QUICK_NAME_SUGGESTIONS.length)];
+    if (nameInp) {
+      nameInp.value = randomName;
+      nameInp.focus();
+    }
+  });
+
+  // Avatar selection in Step 1
+  document.querySelectorAll<HTMLButtonElement>('.quick-avatar-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const url = btn.getAttribute('data-avatar-url');
+      if (url) updateAvatarSelectionUI(url);
+    });
+  });
+
+  // Open Race Picker when clicking Race Bookmark Card
+  raceBookmarkCard?.addEventListener('click', () => {
+    setSubView('race-picker');
+  });
+
+  // Open Class Picker when clicking Class Bookmark Card
+  classBookmarkCard?.addEventListener('click', () => {
+    setSubView('class-picker');
+  });
+
+  // Open Background Picker when clicking Background Bookmark Card
+  bgBookmarkCard?.addEventListener('click', () => {
+    setSubView('bg-picker');
+  });
+
+  // Select a Race from the Race Picker Grid
+  dialog?.querySelectorAll<HTMLButtonElement>('button[data-select-race-id]').forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const raceId = btn.getAttribute('data-select-race-id');
+      const found = QUICK_RACES.find((r) => r.id === raceId);
+      if (found) {
+        selectedRace = found;
+        updateBookmarkCardsUI();
+      }
+      setSubView('form');
+    });
+  });
+
+  // Select a Class from the Class Picker Grid
+  dialog?.querySelectorAll<HTMLButtonElement>('button[data-select-class-id]').forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const classId = btn.getAttribute('data-select-class-id');
+      const found = QUICK_CLASSES.find((c) => c.id === classId);
+      if (found) {
+        selectedClass = found;
+        updateBookmarkCardsUI();
+      }
+      setSubView('form');
+    });
+  });
+
+  // Select a Background from the Background Picker Grid
+  dialog?.querySelectorAll<HTMLButtonElement>('button[data-select-bg-id]').forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const bgId = btn.getAttribute('data-select-bg-id');
+      const found = QUICK_BACKGROUNDS.find((b) => b.id === bgId);
+      if (found) {
+        selectedBackground = found;
+        updateBookmarkCardsUI();
+      }
+      setSubView('form');
+    });
+  });
+
+  // Stat preset selection in Step 3
+  document.querySelectorAll<HTMLButtonElement>('.quick-stat-preset-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const preset = btn.getAttribute('data-stat-preset') as QuickStatPreset | null;
+      if (preset) {
+        selectedStatPreset = preset;
+        updatePresetButtonsUI();
+        renderSummary();
+      }
+    });
+  });
+
+  [nameInp, levelInp, alignmentSel, editionSel].forEach((el) => {
+    el?.addEventListener('input', () => {
+      if (steps?.current() === 'detalles') renderSummary();
+    });
+  });
+
+  // Header back button: returns from picker sub-view to form, or from form to 3-card CreateCharacterModal
+  backHeaderBtn?.addEventListener('click', () => {
+    if (activeSubView !== 'form') {
+      setSubView('form');
+      return;
+    }
+    dialog?.close();
+    window.dispatchEvent(
+      new CustomEvent('open-create-character-modal', {
+        detail: { targetCampaignId: currentTargetCampaignId },
+      })
+    );
+  });
+
+  closeBtn?.addEventListener('click', () => dialog?.close());
+  cancelBtn?.addEventListener('click', () => dialog?.close());
+
+  window.addEventListener('open-quick-creator-modal', ((e: CustomEvent<{ targetCampaignId?: string | null }>) => {
+    currentTargetCampaignId = e.detail?.targetCampaignId ?? null;
+    resetQuickCreator();
+    if (dialog && !dialog.open) {
+      dialog.showModal();
+    }
+  }) as EventListener);
+
+  form?.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const charName = nameInp?.value.trim();
+    if (!charName) {
+      steps?.goTo('datos');
+      steps?.problem({ message: 'Escribe un nombre para tu personaje.', focus: nameInp });
+      return;
+    }
+
+    const charData = buildCharacterFromQuickCreator({
+      name: charName,
+      level: Number(levelInp?.value) || 1,
+      alignment: alignmentSel?.value || 'Neutral Bueno',
+      rulesEdition: (editionSel?.value as '2024' | '2014') || '2024',
+      avatarUrl: selectedAvatarUrl,
+      raceOption: selectedRace,
+      classOption: selectedClass,
+      backgroundOption: selectedBackground,
+      statPreset: selectedStatPreset,
+    });
+
+    dialog?.close();
+
+    try {
+      const created = campaignStore.createCharacter(charData, currentTargetCampaignId);
+      showAlert(
+        `¡${created.name} (${created.race} • ${created.className} • ${selectedBackground.name} Nvl. ${created.level}) está listo para la aventura!`,
+        { kind: 'success', title: 'Personaje creado' }
+      );
+    } catch (err: any) {
+      showAlert(err?.message || 'Error al crear el personaje.', { kind: 'error' });
+    }
+  });
+</script>

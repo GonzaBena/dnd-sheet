@@ -144,32 +144,32 @@ import { CHARACTER_PRESET_IMAGES } from '../../scripts/data/characterAvatars';
       <div class="space-y-3">
         <h4 class="text-xs font-headline font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1.5 pb-1 border-b border-[#222f42]">
           <span class="material-symbols-outlined text-[16px]">view_in_ar</span>
-          <span>Puntuaciones de Característica (1-30)</span>
+          <span>Puntuaciones de Característica (1-20)</span>
         </h4>
         <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
           <div class="p-2.5 rounded-xl bg-[#18202e] border border-[#222f42] flex items-center justify-between">
             <span class="font-bold text-[#94a3b8]">Fuerza (FUE)</span>
-            <input type="number" id="edit-stat-str" class="w-14 text-center font-bold p-1 rounded bg-[#10141d] border border-[#222f42] text-[#f1f5f9]" min="1" max="30" />
+            <input type="number" id="edit-stat-str" class="w-14 text-center font-bold p-1 rounded bg-[#10141d] border border-[#222f42] text-[#f1f5f9]" min="1" max="20" />
           </div>
           <div class="p-2.5 rounded-xl bg-[#18202e] border border-[#222f42] flex items-center justify-between">
             <span class="font-bold text-[#94a3b8]">Destreza (DES)</span>
-            <input type="number" id="edit-stat-dex" class="w-14 text-center font-bold p-1 rounded bg-[#10141d] border border-[#222f42] text-amber-400" min="1" max="30" />
+            <input type="number" id="edit-stat-dex" class="w-14 text-center font-bold p-1 rounded bg-[#10141d] border border-[#222f42] text-amber-400" min="1" max="20" />
           </div>
           <div class="p-2.5 rounded-xl bg-[#18202e] border border-[#222f42] flex items-center justify-between">
             <span class="font-bold text-[#94a3b8]">Constitución (CON)</span>
-            <input type="number" id="edit-stat-con" class="w-14 text-center font-bold p-1 rounded bg-[#10141d] border border-[#222f42] text-[#f1f5f9]" min="1" max="30" />
+            <input type="number" id="edit-stat-con" class="w-14 text-center font-bold p-1 rounded bg-[#10141d] border border-[#222f42] text-[#f1f5f9]" min="1" max="20" />
           </div>
           <div class="p-2.5 rounded-xl bg-[#18202e] border border-[#222f42] flex items-center justify-between">
             <span class="font-bold text-[#94a3b8]">Inteligencia (INT)</span>
-            <input type="number" id="edit-stat-int" class="w-14 text-center font-bold p-1 rounded bg-[#10141d] border border-[#222f42] text-[#f1f5f9]" min="1" max="30" />
+            <input type="number" id="edit-stat-int" class="w-14 text-center font-bold p-1 rounded bg-[#10141d] border border-[#222f42] text-[#f1f5f9]" min="1" max="20" />
           </div>
           <div class="p-2.5 rounded-xl bg-[#18202e] border border-[#222f42] flex items-center justify-between">
             <span class="font-bold text-[#94a3b8]">Sabiduría (SAB)</span>
-            <input type="number" id="edit-stat-wis" class="w-14 text-center font-bold p-1 rounded bg-[#10141d] border border-[#222f42] text-[#f1f5f9]" min="1" max="30" />
+            <input type="number" id="edit-stat-wis" class="w-14 text-center font-bold p-1 rounded bg-[#10141d] border border-[#222f42] text-[#f1f5f9]" min="1" max="20" />
           </div>
           <div class="p-2.5 rounded-xl bg-[#18202e] border border-[#222f42] flex items-center justify-between">
             <span class="font-bold text-[#94a3b8]">Carisma (CAR)</span>
-            <input type="number" id="edit-stat-cha" class="w-14 text-center font-bold p-1 rounded bg-[#10141d] border border-[#222f42] text-[#f1f5f9]" min="1" max="30" />
+            <input type="number" id="edit-stat-cha" class="w-14 text-center font-bold p-1 rounded bg-[#10141d] border border-[#222f42] text-[#f1f5f9]" min="1" max="20" />
           </div>
         </div>
       </div>
@@ -220,7 +220,8 @@ import { CHARACTER_PRESET_IMAGES } from '../../scripts/data/characterAvatars';
   import { closeModal } from '../../scripts/animations/modalAnimations';
   import { congratulationBanner } from '../../scripts/ui/congratulationBanner';
   import { calculateLevelUpHpGain, calculateModifier } from '../../scripts/dnd/calculations';
-  import { CHARACTER_CLASSES, matchClass } from '../../scripts/dnd/classes';
+  import { CHARACTER_CLASSES, matchClass, getClassDefinition } from '../../scripts/dnd/classes';
+  import { getSpellcastingAbilityForClass } from '../../scripts/dnd/spellSlots';
   import { hitDieForClass } from '../../scripts/dnd/hitDice';
   import { getRandomCharacterAvatar, isBrokenAvatarUrl, sanitizeAvatarUrl } from '../../scripts/data/characterAvatars';
 
@@ -303,7 +304,7 @@ import { CHARACTER_PRESET_IMAGES } from '../../scripts/data/characterAvatars';
     if (maxHpInp) maxHpInp.value = String(char.hp.max);
     if (hpHint) hpHint.classList.add('hidden');
     if (acInp) acInp.value = typeof char.armorClass === 'number' ? String(char.armorClass) : '';
-    if (speedInp) speedInp.value = String(char.speedFt);
+    if (speedInp) speedInp.value = String(char.baseSpeedFt ?? char.speedFt ?? 30);
 
     const baseOrScore = (s: any) => String(s?.baseScore ?? s?.score ?? 10);
     if (strInp) strInp.value = baseOrScore(char.stats.str);
@@ -386,6 +387,7 @@ import { CHARACTER_PRESET_IMAGES } from '../../scripts/data/characterAvatars';
   saveBtn?.addEventListener('click', () => {
     const char = characterStore.get();
     const oldLevel = char.level;
+    const oldClass = char.className;
     const oldMaxHp = char.hp.max;
     const isCurrentlyFull = char.hp.current >= oldMaxHp;
     const oldCurrentHp = char.hp.current;
@@ -438,14 +440,41 @@ import { CHARACTER_PRESET_IMAGES } from '../../scripts/data/characterAvatars';
     const manualAc = parseInt(acInp?.value ?? '', 10);
     if (Number.isFinite(manualAc)) char.armorClass = manualAc;
     else delete char.armorClass;
-    char.speedFt = parseInt(speedInp?.value || '30');
+    const newBaseSpeed = parseInt(speedInp?.value || '30');
+    char.baseSpeedFt = newBaseSpeed;
+    char.speedFt = newBaseSpeed;
 
-    const strVal = parseInt(strInp?.value || '10');
-    const dexVal = parseInt(dexInp?.value || '10');
-    const conVal = parseInt(conInp?.value || '10');
-    const intVal = parseInt(intInp?.value || '10');
-    const wisVal = parseInt(wisInp?.value || '10');
-    const chaVal = parseInt(chaInp?.value || '10');
+    const newClassName = classInp?.value.trim() || char.className;
+    const classDef = getClassDefinition(newClassName);
+    if (classDef) {
+      if (oldClass !== newClassName || (!char.proficiencies?.armor?.length && !char.proficiencies?.weapons?.length)) {
+        if (!char.proficiencies) char.proficiencies = { armor: [], weapons: [] };
+        char.proficiencies.armor = [...classDef.armorProficiencies];
+        char.proficiencies.weapons = [...classDef.weaponProficiencies];
+
+        const keys: ('str' | 'dex' | 'con' | 'int' | 'wis' | 'cha')[] = ['str', 'dex', 'con', 'int', 'wis', 'cha'];
+        for (const k of keys) {
+          if (char.stats[k]) {
+            char.stats[k].savingProficient = classDef.savingThrows.includes(k);
+          }
+        }
+      }
+
+      if (char.spellcasting) {
+        const ability = getSpellcastingAbilityForClass(newClassName);
+        if (ability && (oldClass !== newClassName || !char.spellcasting.ability)) {
+          char.spellcasting.ability = ability;
+        }
+      }
+    }
+
+    const clampStat = (v: number) => Math.min(20, Math.max(1, v));
+    const strVal = clampStat(parseInt(strInp?.value || '10'));
+    const dexVal = clampStat(parseInt(dexInp?.value || '10'));
+    const conVal = clampStat(parseInt(conInp?.value || '10'));
+    const intVal = clampStat(parseInt(intInp?.value || '10'));
+    const wisVal = clampStat(parseInt(wisInp?.value || '10'));
+    const chaVal = clampStat(parseInt(chaInp?.value || '10'));
 
     char.stats.str.baseScore = strVal;
     char.stats.str.score = strVal;

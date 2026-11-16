@@ -313,6 +313,7 @@ import HandoutManager from './HandoutManager.astro';
   import { journalStore, getEntryVisibility } from '../../scripts/state/journalStore';
   import { userStore } from '../../scripts/state/userStore';
   import { getArmorClass } from '../../scripts/dnd/ac.ts';
+  import { calculatePassivePerception } from '../../scripts/dnd/calculations.ts';
   import { congratulationBanner } from '../../scripts/ui/congratulationBanner';
   import { canPerform, normalizeStatus } from '../../scripts/vtt/sessionStatus.ts';
   import { subscribeNotes } from '../../scripts/data/notesService.ts';
@@ -395,7 +396,7 @@ import HandoutManager from './HandoutManager.astro';
           card.className = 'min-w-0 p-3.5 rounded-2xl bg-[#121721] border border-[#222f42] hover:border-amber-500/50 shadow-[0_4px_20px_rgba(0,0,0,0.5)] transition-colors flex flex-col gap-2.5 font-label text-xs';
           if (char.userId) card.dataset.presenceUid = char.userId;
 
-          const passivePerception = 10 + (char.stats?.wis?.modifier || 2) + (char.proficiencyBonus || 3);
+          const passivePerception = char.passivePerception ?? calculatePassivePerception(char);
 
           card.innerHTML = `
             <!-- Identidad y estado -->
@@ -572,10 +573,25 @@ import HandoutManager from './HandoutManager.astro';
 
       let extraHtml = '';
       if (entry.diceRoll?.formula && entry.diceRoll?.result !== undefined) {
+        let outcomeBadge = '';
+        if (entry.diceRoll.hitOutcome === 'crit') {
+          outcomeBadge = '<span class="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[10px] font-bold">¡Crítico!</span>';
+        } else if (entry.diceRoll.hitOutcome === 'hit') {
+          outcomeBadge = `<span class="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[10px] font-bold">Acierto${entry.diceRoll.targetDc ? ` vs CD ${entry.diceRoll.targetDc}` : ''}</span>`;
+        } else if (entry.diceRoll.hitOutcome === 'miss') {
+          outcomeBadge = `<span class="px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/40 text-[10px] font-bold">Fallo${entry.diceRoll.targetDc ? ` vs CD ${entry.diceRoll.targetDc}` : ''}</span>`;
+        } else if (entry.diceRoll.hitOutcome === 'fumble') {
+          outcomeBadge = '<span class="px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/40 text-[10px] font-bold">Pifia</span>';
+        } else if (entry.diceRoll.hitOutcome === 'pending') {
+          outcomeBadge = '<span class="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[10px] font-bold">Pendiente DM</span>';
+        }
         extraHtml = `
-          <div class="p-2 rounded bg-[#10141d] border border-amber-500/30 flex items-center justify-between text-xs my-1">
+          <div class="p-2 rounded bg-[#10141d] border border-amber-500/30 flex items-center justify-between text-xs my-1 gap-2 flex-wrap">
             <span class="text-[#94a3b8]">${entry.diceRoll.formula}</span>
-            <span class="font-headline font-bold text-amber-400 text-xs">Resultado: ${entry.diceRoll.result}</span>
+            <div class="flex items-center gap-2">
+              ${outcomeBadge}
+              <span class="font-headline font-bold text-amber-400 text-xs">Resultado: ${entry.diceRoll.result}</span>
+            </div>
           </div>
         `;
       } else {

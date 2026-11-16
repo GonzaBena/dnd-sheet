@@ -1,0 +1,161 @@
+---
+// src/components/campaigns/PremadeCharactersModal.astro
+import { PREMADE_CHARACTERS } from '../../scripts/data/premadeCharacters';
+---
+
+<dialog
+  id="premade-characters-modal"
+  closedby="any"
+  aria-labelledby="premade-characters-modal-title"
+  class="w-full max-w-4xl rounded-2xl bg-[#121721] border border-amber-500/40 shadow-[0_20px_60px_rgba(0,0,0,0.95)] p-0 text-[#f1f5f9] overflow-hidden m-auto"
+>
+  <div class="flex flex-col max-h-[90vh]">
+    <!-- Header -->
+    <div class="px-5 py-3.5 bg-gradient-to-r from-[#18202e] via-[#1b2434] to-[#18202e] border-b border-[#222f42] flex items-center justify-between gap-3 shrink-0">
+      <div class="flex items-center gap-3 min-w-0">
+        <button
+          type="button"
+          id="premade-char-modal-back-btn"
+          class="w-9 h-9 rounded-xl bg-[#10141d] border border-[#222f42] hover:border-amber-500/50 text-[#cbd5e1] hover:text-amber-300 flex items-center justify-center transition-colors cursor-pointer shrink-0"
+          title="Volver a selección de modo"
+          aria-label="Volver a selección de modo"
+        >
+          <span class="material-symbols-outlined text-[18px]">arrow_back</span>
+        </button>
+        <div class="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center border border-amber-500/40 shadow-[0_0_12px_rgba(245,158,11,0.25)] shrink-0">
+          <span class="material-symbols-outlined text-[20px]">auto_awesome</span>
+        </div>
+        <div class="min-w-0">
+          <h3 id="premade-characters-modal-title" class="font-headline font-bold text-base sm:text-lg text-[#f1f5f9] truncate">
+            Personajes Prehechos por Clase
+          </h3>
+          <p class="text-[11px] sm:text-xs text-[#94a3b8] font-label truncate">
+            Elige uno de los 12 arquetipos clásicos listos para entrar en aventura
+          </p>
+        </div>
+      </div>
+      <button
+        type="button"
+        id="premade-char-modal-close-btn"
+        class="w-8 h-8 rounded-lg bg-[#10141d] border border-[#222f42] hover:border-amber-500/50 text-[#94a3b8] hover:text-[#f1f5f9] flex items-center justify-center text-xs transition-colors cursor-pointer shrink-0"
+        aria-label="Cerrar modal"
+      >
+        <span class="material-symbols-outlined text-[18px]">close</span>
+      </button>
+    </div>
+
+    <!-- Body: Grid of Vertical Class Cards -->
+    <div class="p-4 sm:p-5 overflow-y-auto custom-scrollbar">
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 items-stretch">
+        {PREMADE_CHARACTERS.map((char, index) => (
+          <article
+            data-premade-class={char.className}
+            class="premade-char-card group rounded-2xl bg-[#18202e] border border-[#222f42] hover:border-amber-500/60 transition-all overflow-hidden flex flex-col shadow-lg"
+          >
+            <img
+              src={char.avatarUrl}
+              alt={`Retrato de ${char.name} (${char.className})`}
+              class="w-full aspect-[3/4] max-h-44 object-cover object-top group-hover:scale-105 transition-transform duration-500 bg-[#10141d]"
+              loading="lazy"
+            />
+            <header class="px-3.5 flex flex-col items-center text-center">
+              <!-- Logo de la clase en medio de la foto y arriba del título centrado -->
+              <div
+                class="class-emblem-badge -mt-5 mb-1.5 relative z-10 w-10 h-10 rounded-full bg-[#121721] border-2 border-amber-500/70 shadow-[0_4px_15px_rgba(0,0,0,0.85)] flex items-center justify-center text-amber-400 group-hover:scale-110 group-hover:border-amber-400 group-hover:text-amber-300 transition-all"
+                title={`Emblema de ${char.className}`}
+                set:html={char.classIconSvg}
+              />
+              <h4 class="font-headline font-bold text-sm sm:text-base text-[#f1f5f9] text-center leading-tight">
+                {char.className}
+              </h4>
+              <span class="text-[10px] font-bold text-amber-400/90 font-label mt-0.5">
+                {char.name} • {char.race}
+              </span>
+            </header>
+            <p class="px-3.5 pt-1 text-[11px] text-[#94a3b8] text-center font-label leading-snug line-clamp-2">
+              {char.description}
+            </p>
+            <footer class="p-3 pt-2.5 mt-auto">
+              <button
+                type="button"
+                data-premade-id={char.id}
+                autofocus={index === 0 ? true : undefined}
+                class="w-full py-2 px-3 rounded-xl bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-[#0a0d12] font-bold text-xs font-label shadow-[0_0_12px_rgba(245,158,11,0.3)] active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-1.5"
+              >
+                <span class="material-symbols-outlined text-[15px]">person_check</span>
+                <span>Elegir {char.className}</span>
+              </button>
+            </footer>
+          </article>
+        ))}
+      </div>
+    </div>
+  </div>
+</dialog>
+
+<script>
+  import { showAlert } from '../../scripts/ui/notify';
+  import { campaignStore } from '../../scripts/state/campaignStore';
+  import { PREMADE_CHARACTERS, buildCharacterFromPremade } from '../../scripts/data/premadeCharacters';
+
+  const dialog = document.getElementById('premade-characters-modal') as HTMLDialogElement | null;
+  const closeBtn = document.getElementById('premade-char-modal-close-btn');
+  const backBtn = document.getElementById('premade-char-modal-back-btn');
+
+  let currentTargetCampaignId: string | null = null;
+
+  // Fallback for browsers without closedby="any" support (e.g. Safari)
+  if (dialog && !('closedBy' in HTMLDialogElement.prototype)) {
+    dialog.addEventListener('click', (event) => {
+      if (event.target !== dialog) return;
+      const rect = dialog.getBoundingClientRect();
+      const isDialogContent = (
+        rect.top <= event.clientY &&
+        event.clientY <= rect.top + rect.height &&
+        rect.left <= event.clientX &&
+        event.clientX <= rect.left + rect.width
+      );
+      if (isDialogContent) return;
+      dialog.close();
+    });
+  }
+
+  closeBtn?.addEventListener('click', () => {
+    dialog?.close();
+  });
+
+  backBtn?.addEventListener('click', () => {
+    dialog?.close();
+    window.dispatchEvent(new CustomEvent('open-create-character-modal', {
+      detail: { targetCampaignId: currentTargetCampaignId }
+    }));
+  });
+
+  window.addEventListener('open-premade-characters-modal', ((e: CustomEvent<{ targetCampaignId?: string | null }>) => {
+    currentTargetCampaignId = e.detail?.targetCampaignId ?? null;
+    if (dialog && !dialog.open) {
+      dialog.showModal();
+    }
+  }) as EventListener);
+
+  dialog?.querySelectorAll<HTMLButtonElement>('button[data-premade-id]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const premadeId = btn.getAttribute('data-premade-id');
+      const template = PREMADE_CHARACTERS.find((p) => p.id === premadeId);
+      if (!template) return;
+
+      dialog.close();
+
+      try {
+        const charData = buildCharacterFromPremade(template);
+        const created = campaignStore.createCharacter(charData, currentTargetCampaignId);
+        showAlert(
+          `¡Has incorporado a ${created.name} (${created.className} Nvl. ${created.level})!`,
+          { kind: 'success', title: 'Personaje prehecho creado' }
+        );
+      } catch (err: any) {
+        showAlert(err?.message || 'Error al crear el personaje prehecho.', { kind: 'error' });
+      }
+    });
+  });
+</script>

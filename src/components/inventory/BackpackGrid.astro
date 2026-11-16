@@ -47,19 +47,25 @@
     </div>
 
     <!-- Mobile helper hint -->
-    <div class="flex items-center justify-between text-[10px] text-[#64748b] pt-1 border-t border-[#222f42]/40" id="backpack-footer-hint">
+    <div class="flex flex-wrap items-center justify-between gap-2 text-[10px] text-[#64748b] pt-1.5 border-t border-[#222f42]/40" id="backpack-footer-hint">
       <span class="flex items-center gap-1 text-[#94a3b8]">
         <span class="material-symbols-outlined text-[13px] text-amber-500/80">swipe_left</span>
         <span>Desliza a la izquierda para eliminar. Toca la flecha para ver notas.</span>
       </span>
-      <span id="backpack-item-count" class="text-[10px] text-[#64748b]">0 objetos</span>
+      <div class="flex items-center gap-3 ml-auto">
+        <span id="backpack-weight-display" class="font-bold text-[#94a3b8] flex items-center gap-1" title="Capacidad de Carga D&D 5e: Fuerza × 15 lb">
+          <span class="material-symbols-outlined text-[13px] text-amber-500">fitness_center</span>
+          <span id="backpack-weight-text">0 / 210 lb</span>
+        </span>
+        <span id="backpack-item-count" class="text-[#64748b]">0 objetos</span>
+      </div>
     </div>
   </div>
 </div>
 
 <script>
   import { showAlert } from '../../scripts/ui/notify';
-  import { SLOT_LABELS, validSlotsFor, belongsToDefense } from '../../scripts/dnd/equipment';
+  import { SLOT_LABELS, validSlotsFor, belongsToDefense, computeCarryingCapacity } from '../../scripts/dnd/equipment';
   import type { EquipSlot } from '../../scripts/models/character';
   import { characterStore } from '../../scripts/state/characterStore';
   import { escapeHtml, toCatalogEntry } from '../../scripts/dnd/catalog';
@@ -209,6 +215,22 @@
     const items = (char.inventory || []).filter((i: any) => !belongsToDefense(i));
     const countEl = document.getElementById('backpack-item-count');
     if (countEl) countEl.textContent = `${items.length} ${items.length === 1 ? 'objeto' : 'objetos'}`;
+
+    const cap = computeCarryingCapacity(char);
+    const weightEl = document.getElementById('backpack-weight-text');
+    const weightContainer = document.getElementById('backpack-weight-display');
+    if (weightEl) {
+      weightEl.textContent = `${cap.totalWeightLb} / ${cap.maxCarryLb} lb`;
+    }
+    if (weightContainer) {
+      if (cap.isEncumbered) {
+        weightContainer.className = 'font-bold text-rose-400 bg-rose-500/10 px-1.5 py-0.5 rounded border border-rose-500/30 flex items-center gap-1';
+        weightContainer.title = `¡Sobrecargado! Peso actual (${cap.totalWeightLb} lb) supera la capacidad máxima de ${cap.maxCarryLb} lb (Fuerza × 15 lb)`;
+      } else {
+        weightContainer.className = 'font-bold text-[#94a3b8] flex items-center gap-1';
+        weightContainer.title = `Capacidad de Carga D&D 5e: ${cap.totalWeightLb} lb de ${cap.maxCarryLb} lb (Fuerza × 15 lb). Empujar/arrastrar: ${cap.pushDragLiftLb} lb.`;
+      }
+    }
     if (items.length === 0) {
       gearContainer.innerHTML = `
         <div class="w-full py-6 text-center text-xs text-[#64748b]">

@@ -158,10 +158,10 @@ import CompatWarnings from './CompatWarnings.astro';
   <!-- Avisos de competencia y requisitos del equipo (Spec 08, Fase C) -->
   <CompatWarnings />
 
-  <!-- FILA 3: [ Velocidad | Dados de Golpe y Descansos ] -->
-  <div class="grid grid-cols-2 gap-2.5 w-full">
-    <!-- Speed -->
-    <div class="rounded-xl bg-[#18202e] border border-[#222f42] p-2.5 sm:p-3 flex items-center gap-2.5 shadow-sm hover:border-amber-500/40 transition-colors">
+  <!-- FILA 3: [ Velocidad | Percepción Pasiva | Dados de Golpe y Descansos ] -->
+  <div class="grid grid-cols-2 sm:grid-cols-12 gap-2.5 w-full">
+    <!-- Speed (4 cols on sm) -->
+    <div class="col-span-1 sm:col-span-4 rounded-xl bg-[#18202e] border border-[#222f42] p-2.5 sm:p-3 flex items-center gap-2.5 shadow-sm hover:border-amber-500/40 transition-colors">
       <div class="w-9 h-9 rounded-lg bg-[#121721] border border-[#222f42] flex items-center justify-center shrink-0">
         <span class="material-symbols-outlined text-[#94a3b8] text-[20px]">directions_run</span>
       </div>
@@ -175,8 +175,22 @@ import CompatWarnings from './CompatWarnings.astro';
       </div>
     </div>
 
-    <!-- Hit Dice & Rest Mechanics -->
-    <div class="rounded-xl bg-[#18202e] border border-[#222f42] p-2.5 sm:p-3 flex flex-wrap items-center justify-between gap-2 shadow-sm hover:border-amber-500/40 transition-colors">
+    <!-- Passive Perception / Percepción Pasiva (3 cols on sm) -->
+    <div class="col-span-1 sm:col-span-3 rounded-xl bg-[#18202e] border border-[#222f42] p-2.5 sm:p-3 flex items-center gap-2.5 shadow-sm hover:border-amber-500/40 transition-colors" title="Percepción Pasiva: 10 + bono de percepción">
+      <div class="w-9 h-9 rounded-lg bg-amber-500/10 border border-amber-500/30 flex items-center justify-center shrink-0">
+        <span class="material-symbols-outlined text-amber-400 text-[20px]">visibility</span>
+      </div>
+      <div class="min-w-0 flex-1">
+        <div class="flex items-baseline gap-1.5">
+          <span class="text-xl font-headline font-bold text-[#f1f5f9] leading-none" id="vitals-pp-num">15</span>
+          <span class="text-[10px] uppercase tracking-wider font-label font-bold text-[#94a3b8]">PP</span>
+        </div>
+        <span class="text-[10px] text-[#64748b] font-label block truncate mt-0.5">Percepción Pasiva</span>
+      </div>
+    </div>
+
+    <!-- Hit Dice & Rest Mechanics (5 cols on sm, col-span-2 on mobile) -->
+    <div class="col-span-2 sm:col-span-5 rounded-xl bg-[#18202e] border border-[#222f42] p-2.5 sm:p-3 flex flex-wrap items-center justify-between gap-2 shadow-sm hover:border-amber-500/40 transition-colors">
       <div class="flex items-center gap-2 min-w-0">
         <div class="w-9 h-9 rounded-lg bg-amber-500/10 border border-amber-500/30 flex items-center justify-center shrink-0 hidden sm:flex">
           <span class="material-symbols-outlined text-[18px] text-amber-500">sports_kabaddi</span>
@@ -381,6 +395,8 @@ import CompatWarnings from './CompatWarnings.astro';
     const acNoteEl = document.getElementById('vitals-ac-note');
     const initEl = document.getElementById('vitals-init-num');
     const speedEl = document.getElementById('vitals-speed-num');
+    const speedNoteEl = document.getElementById('vitals-speed-note');
+    const ppEl = document.getElementById('vitals-pp-num');
     const hdDispEl = document.getElementById('vitals-hitdice-display');
     const hdTypeEl = document.getElementById('vitals-hitdice-type');
 
@@ -389,6 +405,8 @@ import CompatWarnings from './CompatWarnings.astro';
     if (acNoteEl) acNoteEl.textContent = char.armorNote || (char.wildShape?.activeForm ? 'Forma salvaje' : computeAc(char).formula);
     if (initEl) initEl.textContent = `${char.initiativeBonus >= 0 ? '+' : ''}${char.initiativeBonus}`;
     if (speedEl) speedEl.textContent = String(char.speedFt);
+    if (speedNoteEl) speedNoteEl.textContent = char.speedNote || `${Math.floor((char.speedFt || 30) / 5)} casillas`;
+    if (ppEl) ppEl.textContent = String(char.passivePerception ?? 10);
     if (hdDispEl) hdDispEl.textContent = `${char.hitDice.remaining} / ${char.hitDice.total}`;
     if (hdTypeEl) hdTypeEl.textContent = char.hitDice.die;
   }

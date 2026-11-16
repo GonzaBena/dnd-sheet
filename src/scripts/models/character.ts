@@ -69,6 +69,8 @@ export interface SpellItem {
   custom?: boolean;
   imageUrl?: string;
   effects?: Modifier[];
+  // Magia innata / Usos gratuitos (vinculado a un recurso de la hoja)
+  resourceId?: string;
 }
 
 // Equipo (Spec 08, Fase A)
@@ -185,8 +187,12 @@ export interface CharacterData {
   armorClass?: number; // override manual (Spec 08, Fase D); ausente = CA calculada
   armorNote: string; // nota libre
   initiativeBonus: number;
-  speedFt: number;
+  baseSpeedFt?: number; // velocidad base del personaje (sin penalizaciones ni conjuros)
+  speedFt: number; // velocidad efectiva calculada
   speedNote: string;
+  passivePerception?: number;
+  passiveInsight?: number;
+  passiveInvestigation?: number;
   
   hitDice: {
     total: number;

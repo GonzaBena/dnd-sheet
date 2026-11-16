@@ -291,6 +291,7 @@ export function toCatalogEntry(kind: CatalogKind, thing: ThingLike): CatalogEntr
       components: thing.components,
       damageDice: thing.damageDice,
       damageType: thing.damageType,
+      resourceId: thing.resourceId,
     };
   } else {
     description = thing.description ?? '';

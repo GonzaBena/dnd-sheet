@@ -226,9 +226,9 @@ test('characterStore: cambiar equipSlot de un objeto equipado lo desequipa de la
 
 test('Glamour Sobrenatural: efecto "check.cha add wis" escala dinámicamente con la Sabiduría', () => {
   const char = JSON.parse(JSON.stringify(defaultCharacter));
-  char.stats.wis.score = 20;
-  char.stats.wis.baseScore = 20;
-  char.stats.wis.modifier = 5;
+  char.stats.wis.score = 16;
+  char.stats.wis.baseScore = 16;
+  char.stats.wis.modifier = 3;
 
   char.stats.cha.score = 8;
   char.stats.cha.baseScore = 8;
@@ -251,18 +251,26 @@ test('Glamour Sobrenatural: efecto "check.cha add wis" escala dinámicamente con
 
   recalculateCharacter(char);
   const persAfter = char.skills.find((s) => s.id === 'persuasion');
-  // -1 (CAR) + 5 (SAB) = +4
-  assert.equal(persAfter.value, 4);
+  // -1 (CAR) + 3 (SAB) = +2
+  assert.equal(persAfter.value, 2);
 
   const deception = char.skills.find((s) => s.id === 'deception');
   // Engaño también se beneficia automáticamente
-  assert.equal(deception.value, 4);
+  assert.equal(deception.value, 2);
 
-  // Si la Sabiduría sube a 22 (mod +6), Persuasión escala automáticamente a +5
-  char.stats.wis.baseScore = 22;
+  // Si la Sabiduría sube a 20 (mod +5), Persuasión escala automáticamente a +4
+  char.stats.wis.baseScore = 20;
   recalculateCharacter(char);
   const persBoosted = char.skills.find((s) => s.id === 'persuasion');
-  assert.equal(persBoosted.value, 5);
+  assert.equal(persBoosted.value, 4);
+
+  // Límite de 20: si se intenta poner 22, se trunca a 20 y el bono no pasa de +5
+  char.stats.wis.baseScore = 22;
+  recalculateCharacter(char);
+  assert.equal(char.stats.wis.score, 20);
+  assert.equal(char.stats.wis.modifier, 5);
+  const persCapped = char.skills.find((s) => s.id === 'persuasion');
+  assert.equal(persCapped.value, 4);
 });
 
 test('Rasgo pasivo en features y efecto "car set sab": Carisma adopta la puntuación de Sabiduría', () => {
@@ -311,6 +319,64 @@ test('Flexibilidad de sintaxis: acepta alias y prefijos como pruebas.car, check.
   assert.equal(targetsMatch('prueba.carisma', 'check.cha'), true);
   assert.equal(targetsMatch('salvacion.des', 'save.dex'), true);
   assert.equal(targetsMatch('salvaciones.con', 'save.con'), true);
+});
+
+test('Límite de regla: stats tienen tope de 20 (base, con/sin modificadores)', () => {
+  // 1. Base score mayor de 20 queda acotado a 20
+  const charBaseOver = {
+    stats: {
+      str: { score: 24, baseScore: 24, modifier: 7 },
+    },
+  };
+  const resBase = computeStat(charBaseOver, 'str');
+  assert.equal(resBase.base, 20);
+  assert.equal(resBase.total, 20);
+  assert.equal(resBase.modifier, 5);
+
+  // 2. Modificadores 'add' que suman más de 20 quedan limitados a 20 con ajuste en parts
+  const charAddOver = {
+    stats: {
+      str: { score: 18, baseScore: 18, modifier: 4 },
+    },
+    inventory: [
+      {
+        id: 'belt-giant',
+        name: 'Cinturón de Fuerza',
+        quantity: 1,
+        category: 'gear',
+        equipped: true,
+        slot: 'belt',
+        effects: [{ target: 'str', op: 'add', value: 5 }], // 18 + 5 = 23 -> cap 20
+      },
+    ],
+  };
+  const resAdd = computeStat(charAddOver, 'str');
+  assert.equal(resAdd.base, 18);
+  assert.equal(resAdd.total, 20);
+  assert.equal(resAdd.modifier, 5);
+  assert.equal(resAdd.hasModifiers, true);
+  // Parts incluye Base (18), Cinturón (+5) y Ajuste de tope de regla (-3)
+  const capPart = resAdd.parts.find((p) => p.label.includes('Tope de regla') || p.label.includes('Máximo 20'));
+  assert.ok(capPart);
+  assert.equal(capPart.value, -3);
+
+  // 3. Efecto 'set' con valor > 20 queda acotado a 20
+  const charSetOver = {
+    stats: {
+      int: { score: 12, baseScore: 12, modifier: 1 },
+    },
+    activeEffects: [
+      {
+        id: 'godly-intellect',
+        name: 'Intelecto Divino',
+        modifiers: [{ target: 'int', op: 'set', value: 25 }],
+      },
+    ],
+  };
+  const resSet = computeStat(charSetOver, 'int');
+  assert.equal(resSet.base, 12);
+  assert.equal(resSet.total, 20);
+  assert.equal(resSet.modifier, 5);
 });
 
 
