@@ -390,7 +390,6 @@ import { CHARACTER_PRESET_IMAGES } from '../../scripts/data/characterAvatars';
     const oldClass = char.className;
     const oldMaxHp = char.hp.max;
     const isCurrentlyFull = char.hp.current >= oldMaxHp;
-    const oldCurrentHp = char.hp.current;
     const newLevel = Math.max(1, Math.min(20, parseInt(levelInp?.value || '1')));
     const newMaxHp = Math.max(1, parseInt(maxHpInp?.value || '1'));
 
@@ -404,18 +403,10 @@ import { CHARACTER_PRESET_IMAGES } from '../../scripts/data/characterAvatars';
     char.race = raceInp?.value.trim() || char.race;
     char.alignment = alignInp?.value.trim() || char.alignment;
     char.avatarUrl = sanitizeAvatarUrl(avatarInp?.value || char.avatarUrl);
-    char.hp.max = newMaxHp;
-
-    // HP calculation according to D&D 5e:
-    if (isCurrentlyFull || wasFullHp) {
-      // If character was at full health, keep health full!
-      char.hp.current = newMaxHp;
-    } else if (newMaxHp > oldMaxHp) {
-      // Current HP increases by the gained max HP
-      const gained = newMaxHp - oldMaxHp;
-      char.hp.current = Math.min(newMaxHp, oldCurrentHp + gained);
-    } else if (char.hp.current > newMaxHp) {
-      char.hp.current = newMaxHp;
+    // PG: si estaba al máximo sigue al máximo; si el máximo sube, los actuales suben lo mismo; si baja,
+    // se recortan (applyHpOp 'setMax'). Va por la vía atómica de PG, no por el guardado general.
+    if (newMaxHp !== oldMaxHp) {
+      characterStore.setMaxHp(newMaxHp, isCurrentlyFull || wasFullHp);
     }
 
     // Hit Dice calculation

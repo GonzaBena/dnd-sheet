@@ -97,6 +97,7 @@ test('Real-Time Cross-Tab Broadcast & Sync Tests', async (t) => {
     });
 
     const currentHp = characterStore.get().hp.current;
+    const currentTemp = characterStore.get().hp.temp || 0;
     characterStore.modifyHp(-5);
 
     const receivedChar = await Promise.race([
@@ -105,10 +106,13 @@ test('Real-Time Cross-Tab Broadcast & Sync Tests', async (t) => {
     ]);
 
     assert.ok(receivedChar, 'Character should have been broadcasted');
-    assert.equal(receivedChar.hp.current, currentHp - 5, 'Modified HP should reflect in broadcast');
+    // El daño consume primero los PG temporales (5e).
+    const absorbed = Math.min(currentTemp, 5);
+    assert.equal(receivedChar.hp.temp, currentTemp - absorbed, 'Los PG temporales absorben el daño primero');
+    assert.equal(receivedChar.hp.current, currentHp - (5 - absorbed), 'Modified HP should reflect in broadcast');
 
     // Restore HP
-    characterStore.modifyHp(5);
+    characterStore.setHp(currentHp, characterStore.get().hp.max, currentTemp);
 
     receiverChannel.close();
   });

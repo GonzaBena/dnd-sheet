@@ -27,10 +27,14 @@ import { normalizeInviteCode } from '../utils/ids.ts';
 import { toPlain, type DocChanges } from './cloudTypes.ts';
 import { migrateLocalData } from './migrateLocalData.ts';
 import { startRoomSync } from './roomService.ts';
+import { runHpTransaction, type HpTransactionResult } from './hpTransaction.ts';
+import type { HpOp } from '../dnd/hp.ts';
 
 export type CloudSessionState = 'local' | 'loading' | 'signed-out' | 'ready';
 
 const CHARACTER_DEBOUNCE_MS = 120;
+/** Sin respuesta del servidor en este tiempo, el cambio de PG se da por fallido y se revierte. */
+const HP_TRANSACTION_TIMEOUT_MS = 10000;
 const DM_EVENT_WINDOW_MS = 45000;
 const JOURNAL_LIMIT = 150;
 const READY_SAFETY_MS = 20000;
@@ -166,6 +170,7 @@ class CloudSession {
         applyCharacterChanges: changes => this.writeCharacterChanges(changes),
         isCharacterPending: id => this.isCharacterWritePending(id),
         sendDmEvent: event => this.writeDmEvent(event),
+        mutateHp: (id, op) => this.mutateCharacterHp(id, op),
       });
       journalStore.attachCloud({
         addEntry: entry => this.writeJournalEntry(entry),
@@ -563,9 +568,9 @@ class CloudSession {
       const isOwner = !known || !known.userId || known.userId === this.uid;
       let effectiveFields = fields;
       let effectiveRemoved = removedKeys;
+      // Sobre fichas ajenas el DM solo puede escribir la inspiración por esta vía (los PG van por mutateHp).
       if (!isOwner && fields.campaignId !== null) {
         effectiveFields = {};
-        if ('hp' in fields) effectiveFields.hp = fields.hp;
         if ('inspiration' in fields) effectiveFields.inspiration = fields.inspiration;
         effectiveRemoved = [];
         if (Object.keys(effectiveFields).length === 0) continue;
@@ -614,6 +619,42 @@ class CloudSession {
 
   private flushCharacters() {
     Array.from(this.pendingCharacters.keys()).forEach(id => this.flushCharacter(id));
+  }
+
+  /**
+   * Cambio de PG atómico (ver hpTransaction.ts). Si falla, avisa con un mensaje específico de PG
+   * (el genérico de "sin conexión" promete reintentar, y una transacción no se encola offline).
+   */
+  private async mutateCharacterHp(id: string, op: HpOp): Promise<HpTransactionResult> {
+    if (!this.fs || !this.db) {
+      const err = new Error('La sincronización en la nube no está lista.');
+      this.reportHpError(err);
+      throw err;
+    }
+    try {
+      // Sin red una transacción no se encola (a diferencia de updateDoc): se rechaza enseguida
+      // para no dejar un valor optimista que nunca se va a guardar.
+      if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+        throw Object.assign(new Error('Sin conexión.'), { code: 'unavailable' });
+      }
+      return await withTimeout(runHpTransaction(this.fs, this.db, id, op), HP_TRANSACTION_TIMEOUT_MS);
+    } catch (err) {
+      console.error('[CloudSync] Cambio de PG rechazado', err);
+      this.reportHpError(err);
+      throw err;
+    }
+  }
+
+  private reportHpError(err: any) {
+    let message: string;
+    if (err?.code === 'permission-denied') {
+      message = 'No tenés permiso para cambiar estos PG (¿la partida está en pausa?). Se restauró el valor anterior.';
+    } else if (err?.code === 'unavailable' || err?.code === 'failed-precondition' || err?.code === 'deadline-exceeded') {
+      message = 'Sin conexión: el cambio de PG no se guardó y se restauró el valor anterior.';
+    } else {
+      message = `No se pudo guardar el cambio de PG (${err?.message || err}). Se restauró el valor anterior.`;
+    }
+    window.dispatchEvent(new CustomEvent('cloud-error', { detail: { message, code: err?.code } }));
   }
 
   private writeDmEvent(event: DmEvent) {
@@ -705,8 +746,20 @@ class CloudSession {
 
 /** La configuración de paneles es por dispositivo: no fuerza recargar la ficha. */
 function stripVolatile(char: any) {
-  const { updatedAt, layoutConfig, ...rest } = char || {};
+  const { updatedAt, layoutConfig, hpRev, ...rest } = char || {};
   return rest;
+}
+
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      reject(Object.assign(new Error('El servidor no respondió a tiempo.'), { code: 'deadline-exceeded' }));
+    }, ms);
+    promise.then(
+      v => { clearTimeout(timer); resolve(v); },
+      e => { clearTimeout(timer); reject(e); }
+    );
+  });
 }
 
 function waitFor(check: () => boolean, eventName: string, timeoutMs: number): Promise<void> {

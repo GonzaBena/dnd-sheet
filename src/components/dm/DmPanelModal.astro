@@ -128,7 +128,7 @@ import SessionStatusControls from './SessionStatusControls.astro';
   import { journalStore } from '../../scripts/state/journalStore';
   import { userStore } from '../../scripts/state/userStore';
   import { getArmorClass } from '../../scripts/dnd/ac.ts';
-  import { syncCombatWithLiveCharacters } from '../../scripts/data/combatService.ts';
+  import { applyHpAction } from '../../scripts/ui/hpActions.ts';
   import { congratulationBanner } from '../../scripts/ui/congratulationBanner';
   import { openModal, closeModal } from '../../scripts/animations/modalAnimations';
 
@@ -260,14 +260,7 @@ import SessionStatusControls from './SessionStatusControls.astro';
       card.querySelectorAll('.hp-mod-btn').forEach(btn => {
         btn.addEventListener('click', () => {
           const delta = parseInt(btn.getAttribute('data-delta') || '0');
-          const fresh = campaignStore.getCharacter(char.id) || char;
-          const updated = JSON.parse(JSON.stringify(fresh));
-          updated.hp.current = Math.max(0, Math.min(updated.hp.max, updated.hp.current + delta));
-          campaignStore.saveCharacter(updated);
-          if (characterStore.get()?.id === updated.id) {
-            characterStore.loadCharacter(updated, true);
-          }
-          void syncCombatWithLiveCharacters(campaignId).catch(() => {});
+          applyHpAction(char.id, { kind: 'delta', amount: delta }, { actor: 'dm', campaignId });
           renderDmPanel(campaignId);
         });
       });
@@ -382,15 +375,10 @@ import SessionStatusControls from './SessionStatusControls.astro';
     if (!activeDmCampaignId) return;
     if (await showConfirm('Cada personaje de la campaña recupera +8 PG.', { title: '¿Descanso Corto para todo el grupo?', confirmText: 'Aplicar' })) {
       const chars = campaignStore.getCharactersForCampaign(activeDmCampaignId);
+      const campId = activeDmCampaignId;
       chars.forEach(c => {
-        const updated = JSON.parse(JSON.stringify(c));
-        updated.hp.current = Math.min(updated.hp.max, updated.hp.current + 8);
-        campaignStore.saveCharacter(updated);
-        if (characterStore.get()?.id === updated.id) {
-          characterStore.loadCharacter(updated, true);
-        }
+        applyHpAction(c.id, { kind: 'delta', amount: 8 }, { actor: 'dm', log: false, campaignId: campId });
       });
-      void syncCombatWithLiveCharacters(activeDmCampaignId).catch(() => {});
       journalStore.log(
         'Descanso Corto de Grupo',
         'El Dungeon Master decretó un descanso corto para todos los aventureros (+8 PG recuperados).',

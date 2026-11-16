@@ -2,6 +2,7 @@
 // Contratos entre los stores (que no conocen Firebase) y la capa de nube (cloudSync.ts).
 import type { DmEvent } from '../models/campaign.ts';
 import type { JournalEntry } from '../models/journal.ts';
+import type { HitPoints, HpOp } from '../dnd/hp.ts';
 
 export interface DocChanges {
   /** Documentos nuevos: se escriben completos. */
@@ -16,6 +17,11 @@ export interface CampaignCloudWriter {
   applyCharacterChanges(changes: DocChanges): void;
   isCharacterPending(id: string): boolean;
   sendDmEvent(event: DmEvent): void;
+  /**
+   * Cambio atómico de PG (transacción sobre el valor del servidor). Si el escritor lo implementa,
+   * `hp` deja de viajar en los guardados generales de la ficha. Rechaza si la escritura falla.
+   */
+  mutateHp?(characterId: string, op: HpOp): Promise<{ before: HitPoints; after: HitPoints; rev: number }>;
 }
 
 export interface JournalCloudWriter {

@@ -201,7 +201,7 @@ test('no se puede crear una ficha a nombre de otro ni en una campaña ajena', as
 });
 
 test('el DM ajusta PG e inspiración pero no el resto de la ficha', async () => {
-  await assertSucceeds(updateDoc(doc(db(DM), 'characters', 'char-player'), { hp: { current: 20, max: 20, temp: 0 }, inspiration: true, updatedAt: 2 }));
+  await assertSucceeds(updateDoc(doc(db(DM), 'characters', 'char-player'), { hp: { current: 20, max: 20, temp: 0 }, hpRev: 1, inspiration: true, updatedAt: 2 }));
   await assertFails(updateDoc(doc(db(DM), 'characters', 'char-player'), { level: 20 }));
   await assertFails(updateDoc(doc(db(DM), 'characters', 'char-stranger'), { inspiration: true }));
 });
@@ -217,7 +217,7 @@ test('el dueño escribe recursos, efectos e imagen de objetos; el DM no (Spec 07
   await assertFails(updateDoc(doc(db(DM), 'characters', 'char-player'), { activeEffects: [] }));
   await assertFails(updateDoc(doc(db(DM), 'characters', 'char-player'), { resources: [] }));
   // Regresión: el DM sigue pudiendo escribir PG e inspiración.
-  await assertSucceeds(updateDoc(doc(db(DM), 'characters', 'char-player'), { hp: { current: 5, max: 20, temp: 0 }, inspiration: true, updatedAt: 4 }));
+  await assertSucceeds(updateDoc(doc(db(DM), 'characters', 'char-player'), { hp: { current: 5, max: 20, temp: 0 }, hpRev: 1, inspiration: true, updatedAt: 4 }));
 });
 
 test('el dueño escribe inventario, competencias y CA; el DM no (Spec 08)', async () => {
@@ -231,7 +231,23 @@ test('el dueño escribe inventario, competencias y CA; el DM no (Spec 08)', asyn
   await assertFails(updateDoc(ref(dm), { proficiencies: { armor: [], weapons: [] } }));
   await assertFails(updateDoc(ref(dm), { armorClass: 30 }));
   // Regresión: el DM sigue pudiendo escribir PG, inspiración y updatedAt.
-  await assertSucceeds(updateDoc(ref(dm), { hp: { current: 7, max: 20, temp: 0 }, inspiration: false, updatedAt: 5 }));
+  await assertSucceeds(updateDoc(ref(dm), { hp: { current: 7, max: 20, temp: 0 }, hpRev: 1, inspiration: false, updatedAt: 5 }));
+});
+
+test('el DM solo escribe PG válidos y con hpRev creciente (transacción de PG)', async () => {
+  const ref = doc(db(DM), 'characters', 'char-player');
+  // Sin hpRev: es un guardado general con un valor calculado en el cliente, se rechaza.
+  await assertFails(updateDoc(ref, { hp: { current: 3, max: 20, temp: 0 }, updatedAt: 6 }));
+  // Valores fuera de rango.
+  await assertFails(updateDoc(ref, { hp: { current: -1, max: 20, temp: 0 }, hpRev: 1 }));
+  await assertFails(updateDoc(ref, { hp: { current: 21, max: 20, temp: 0 }, hpRev: 1 }));
+  await assertFails(updateDoc(ref, { hp: { current: 5, max: 20, temp: -2 }, hpRev: 1 }));
+  await assertSucceeds(updateDoc(ref, { hp: { current: 5, max: 20, temp: 2 }, hpRev: 1 }));
+  // hpRev no puede repetirse ni retroceder.
+  await assertFails(updateDoc(ref, { hp: { current: 6, max: 20, temp: 2 }, hpRev: 1 }));
+  await assertSucceeds(updateDoc(ref, { hp: { current: 6, max: 20, temp: 2 }, hpRev: 2 }));
+  // La inspiración sola no exige hpRev.
+  await assertSucceeds(updateDoc(ref, { inspiration: true }));
 });
 
 test('DM o creador pueden desvincular la ficha de un jugador (campaignId → null)', async () => {

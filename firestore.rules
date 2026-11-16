@@ -309,13 +309,24 @@ service cloud.firestore {
         && request.resource.data.userId == uid()
         && attachable(request.resource.data);
 
+      // PG válidos y escritos por transacción (src/scripts/data/hpTransaction.ts): hpRev siempre crece.
+      function validHpWrite() {
+        let hp = request.resource.data.hp;
+        return !changedKeys().hasAny(['hp', 'hpRev'])
+          || (hp.current is int && hp.max is int && hp.temp is int
+              && hp.max >= 1 && hp.current >= 0 && hp.current <= hp.max && hp.temp >= 0
+              && request.resource.data.hpRev is int
+              && request.resource.data.hpRev > resource.data.get('hpRev', 0));
+      }
+
       // DM de la campaña: PG e inspiración en vivo (descansos, daño, recompensas). Solo con la partida active.
       allow update: if signedIn()
         && resource.data.campaignId != null
         && isDm(resource.data.campaignId)
         && isActive(resource.data.campaignId)
         && request.resource.data.campaignId == resource.data.campaignId
-        && changedKeys().hasOnly(['hp', 'inspiration', 'updatedAt']);
+        && changedKeys().hasOnly(['hp', 'hpRev', 'inspiration', 'updatedAt'])
+        && validHpWrite();
 
       // DM o creador: desvincular la ficha al quitar a un jugador o cerrar la campaña.
       allow update: if signedIn()

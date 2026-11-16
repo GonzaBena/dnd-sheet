@@ -23,8 +23,8 @@ import {
   canEndTurn,
 } from '../vtt/initiative.ts';
 import { campaignStore } from '../state/campaignStore.ts';
-import { characterStore } from '../state/characterStore.ts';
 import { journalStore } from '../state/journalStore.ts';
+import { describeHpChange, sameHp } from '../dnd/hp.ts';
 import { userStore } from '../state/userStore.ts';
 import { normalizeStatus, canPerform } from '../vtt/sessionStatus.ts';
 import { getFirebase, isFirebaseConfigured } from '../firebase/client.ts';
@@ -408,25 +408,32 @@ export async function applyDamageToCombatant(
     : target;
 
   const updatedTarget = applyDamage(effectiveTarget, delta);
+  let finalHp = updatedTarget.hp;
+  let finalMaxHp = effectiveTarget.maxHp;
 
-  // Sincronizar PG con la ficha del personaje ANTES de actualizar el combate,
-  // para que cualquier re-render inmediato del CombatTracker lea los PG actualizados.
+  // Personaje jugador: el cambio va a la ficha por la vía atómica de PG (respeta PG temporales y
+  // cambios simultáneos de otros clientes); el combate se actualiza con el valor confirmado.
   if (target.isPlayer && target.characterId && liveChar && liveChar.hp) {
-    try {
-      const updatedChar = JSON.parse(JSON.stringify(liveChar));
-      updatedChar.hp.current = updatedTarget.hp;
-      campaignStore.saveCharacter(updatedChar);
-      if (characterStore.get()?.id === updatedChar.id) {
-        characterStore.loadCharacter(updatedChar, true);
+    const op = { kind: 'delta', amount: delta } as const;
+    const mutation = campaignStore.mutateHp(target.characterId, op);
+    const change = await mutation.done;
+    if (change) {
+      finalHp = change.after.current;
+      finalMaxHp = change.after.max;
+      if (!sameHp(change.before, change.after)) {
+        const entry = describeHpChange(liveChar.name, op, change, campaignStore.isCurrentUserDm(cid) ? 'dm' : 'self');
+        journalStore.log(entry.title, entry.content, ['#Combate']);
       }
-    } catch (err) {
-      console.warn('[combatService] Error sincronizando PG con la ficha:', err);
+    } else {
+      // Rechazado: el combate queda con el valor vigente de la ficha (ya revertido).
+      const fresh = campaignStore.getCharacter(target.characterId);
+      finalHp = fresh?.hp?.current ?? target.hp;
     }
   }
 
   await updateCombatant(cid, combatantId, {
-    hp: updatedTarget.hp,
-    maxHp: effectiveTarget.maxHp,
+    hp: finalHp,
+    maxHp: finalMaxHp,
   });
 }
 

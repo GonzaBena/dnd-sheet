@@ -352,6 +352,7 @@ import HandoutManager from '../dm/HandoutManager.astro';
   import { userStore } from '../../scripts/state/userStore.ts';
   import { showAlert, showConfirm, showForm } from '../../scripts/ui/notify.ts';
   import { syncCombatWithLiveCharacters } from '../../scripts/data/combatService.ts';
+  import { applyHpAction } from '../../scripts/ui/hpActions.ts';
   import { initTabs } from '../../scripts/ui/tabs.ts';
 
   const root = document.getElementById('party-view-root');
@@ -469,15 +470,10 @@ import HandoutManager from '../dm/HandoutManager.astro';
       if (!currentCampaignId) return;
       if (await showConfirm('Cada personaje de la campaña recupera +8 PG.', { title: '¿Descanso Corto para todo el grupo?', confirmText: 'Aplicar' })) {
         const chars = campaignStore.getCharactersForCampaign(currentCampaignId);
+        const campId = currentCampaignId;
         chars.forEach(c => {
-          const updated = JSON.parse(JSON.stringify(c));
-          updated.hp.current = Math.min(updated.hp.max, updated.hp.current + 8);
-          campaignStore.saveCharacter(updated);
-          if (characterStore.get().id === updated.id) {
-            characterStore.loadCharacter(updated, true);
-          }
+          applyHpAction(c.id, { kind: 'delta', amount: 8 }, { actor: 'dm', log: false, campaignId: campId });
         });
-        void syncCombatWithLiveCharacters(currentCampaignId).catch(() => {});
         journalStore.log(
           'Descanso Corto de Grupo',
           'El Dungeon Master decretó un descanso corto para todos los aventureros (+8 PG recuperados).',
@@ -494,14 +490,9 @@ import HandoutManager from '../dm/HandoutManager.astro';
       if (!currentCampaignId) return;
       if (await showConfirm('Todos los personajes recuperan sus PG al máximo.', { title: '¿Descanso Largo para toda la mesa?', confirmText: 'Aplicar' })) {
         const chars = campaignStore.getCharactersForCampaign(currentCampaignId);
+        const campId = currentCampaignId;
         chars.forEach(c => {
-          const updated = JSON.parse(JSON.stringify(c));
-          updated.hp.current = updated.hp.max;
-          if (updated.hp.temp) updated.hp.temp = 0;
-          campaignStore.saveCharacter(updated);
-          if (characterStore.get().id === updated.id) {
-            characterStore.loadCharacter(updated, true);
-          }
+          applyHpAction(c.id, { kind: 'full' }, { actor: 'dm', log: false, campaignId: campId });
         });
         void syncCombatWithLiveCharacters(currentCampaignId).catch(() => {});
         journalStore.log(
@@ -588,20 +579,14 @@ import HandoutManager from '../dm/HandoutManager.astro';
         return;
       }
       if (await showConfirm(`Recuperas +8 Puntos de Golpe en ${myChar.name}.`, { title: '¿Descanso Corto?', confirmText: 'Descansar (+8 PG)' })) {
-        const updated = JSON.parse(JSON.stringify(myChar));
-        updated.hp.current = Math.min(updated.hp.max, (updated.hp.current || 0) + 8);
-        campaignStore.saveCharacter(updated);
-        if (characterStore.get().id === updated.id) {
-          characterStore.loadCharacter(updated, true);
-        }
-        if (currentCampaignId) void syncCombatWithLiveCharacters(currentCampaignId).catch(() => {});
+        const { optimistic } = applyHpAction(myChar.id, { kind: 'delta', amount: 8 }, { log: false, campaignId: currentCampaignId });
         journalStore.log(
-          `Descanso Corto de ${updated.name}`,
-          `${updated.name} ha tomado un descanso corto (+8 PG recuperados).`,
+          `Descanso Corto de ${myChar.name}`,
+          `${myChar.name} ha tomado un descanso corto (+8 PG recuperados).`,
           ['#Descanso']
         );
         render();
-        showAlert(`¡Descanso corto aplicado! ${updated.name} recuperó +8 PG (${updated.hp.current}/${updated.hp.max}).`, { kind: 'success', title: 'Descanso corto' });
+        showAlert(`¡Descanso corto aplicado! ${myChar.name} recuperó +8 PG (${optimistic.current}/${optimistic.max}).`, { kind: 'success', title: 'Descanso corto' });
       }
     });
 
@@ -614,23 +599,20 @@ import HandoutManager from '../dm/HandoutManager.astro';
         return;
       }
       if (await showConfirm(`Tus Puntos de Golpe se restauran al máximo (${myChar.hp.max} PG) y se limpian PG temporales.`, { title: '¿Descanso Largo?', confirmText: 'Descansar al Máximo' })) {
-        const updated = JSON.parse(JSON.stringify(myChar));
-        updated.hp.current = updated.hp.max;
-        if (updated.hp.temp) updated.hp.temp = 0;
-        campaignStore.saveCharacter(updated);
-        if (characterStore.get().id === updated.id) {
+        if (characterStore.get().id === myChar.id) {
           // longRest() restaura PG, espacios, recursos y quita efectos "hasta descanso largo" (y registra el diario).
           characterStore.longRest();
+          if (currentCampaignId) void syncCombatWithLiveCharacters(currentCampaignId).catch(() => {});
         } else {
+          applyHpAction(myChar.id, { kind: 'full' }, { log: false, campaignId: currentCampaignId });
           journalStore.log(
-            `Descanso Largo de ${updated.name}`,
-            `${updated.name} completó un descanso largo. Puntos de Golpe restaurados al máximo.`,
+            `Descanso Largo de ${myChar.name}`,
+            `${myChar.name} completó un descanso largo. Puntos de Golpe restaurados al máximo.`,
             ['#Descanso']
           );
         }
-        if (currentCampaignId) void syncCombatWithLiveCharacters(currentCampaignId).catch(() => {});
         render();
-        showAlert(`¡Descanso largo completado! ${updated.name} tiene ${updated.hp.max} PG.`, { kind: 'success', title: 'Descanso largo' });
+        showAlert(`¡Descanso largo completado! ${myChar.name} tiene ${myChar.hp.max} PG.`, { kind: 'success', title: 'Descanso largo' });
       }
     });
 

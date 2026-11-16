@@ -183,7 +183,9 @@ export interface CharacterData {
     max: number;
     temp: number;
   };
-  
+  /** Revisión de `hp` en la nube (la incrementa cada transacción de PG). Ver data/hpTransaction.ts. */
+  hpRev?: number;
+
   armorClass?: number; // override manual (Spec 08, Fase D); ausente = CA calculada
   armorNote: string; // nota libre
   initiativeBonus: number;

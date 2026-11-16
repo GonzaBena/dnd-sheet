@@ -14,6 +14,7 @@ import { journalStore } from './journalStore.ts';
 import { campaignStore } from './campaignStore.ts';
 import { userStore } from './userStore.ts';
 import { generateCharacterSyncId } from '../utils/ids.ts';
+import { applyHpOp, describeHpChange, normalizeHp, sameHp, type HitPoints, type HpOp } from '../dnd/hp.ts';
 
 const STORAGE_KEY = 'dnd_active_character_v1';
 
@@ -32,13 +33,21 @@ class CharacterStoreManager {
       if (!updated) return;
       const next = recalculateCharacter(JSON.parse(JSON.stringify(updated)));
       const strip = (c: any) => {
-        const { updatedAt, layoutConfig, ...rest } = c || {};
+        const { updatedAt, layoutConfig, hpRev, ...rest } = c || {};
         return rest;
       };
       if (JSON.stringify(strip(next)) !== JSON.stringify(strip(this.character))) {
         this.loadCharacter(next, true);
       }
     });
+    // PG confirmados por el servidor, cambios de otro cliente (DM) o reversión de un cambio rechazado.
+    window.addEventListener('character-hp-changed', ((e: CustomEvent<{ id: string; hp: HitPoints }>) => {
+      const { id, hp } = e.detail || ({} as any);
+      if (!id || !hp || id !== this.character?.id) return;
+      if (sameHp(this.character.hp, hp)) return;
+      this.character.hp = { ...hp };
+      this.saveAndNotify(false, true);
+    }) as EventListener);
     setTimeout(() => {
       window.dispatchEvent(new CustomEvent('character-updated', {
         detail: { character: this.character, fromHydration: true }
@@ -134,43 +143,56 @@ class CharacterStoreManager {
     this.saveAndNotify(!fromRemote, fromRemote);
   }
 
-  public modifyHp(delta: number, silent: boolean = false): { current: number; max: number; old: number } {
-    const old = this.character.hp.current;
-    let next = this.character.hp.current + delta;
-    if (next < 0) next = 0;
-    if (next > this.character.hp.max) next = this.character.hp.max;
-    this.character.hp.current = next;
-    this.saveAndNotify();
+  /**
+   * Único camino para cambiar los PG del personaje activo. Si la ficha existe en campaignStore pasa por
+   * campaignStore.mutateHp (en la nube: transacción sobre el valor del servidor, con valor optimista y
+   * reversión si falla). La bitácora se escribe una sola vez, al confirmarse, con los valores reales.
+   * Devuelve los valores optimistas para animar la UI.
+   */
+  private changeHp(op: HpOp, journal: boolean = true): { before: HitPoints; after: HitPoints } {
+    const id = this.character.id;
+    const name = this.character.name;
+    const log = (change: { before: HitPoints; after: HitPoints }) => {
+      if (!journal || sameHp(change.before, change.after)) return;
+      const entry = describeHpChange(name, op, change);
+      journalStore.log(entry.title, entry.content, ['#Combate']);
+    };
 
-    if (!silent) {
-      if (delta < 0) {
-        journalStore.log(
-          `Daño recibido: ${Math.abs(delta)} PG`,
-          `Puntos de Golpe reducidos a ${next}/${this.character.hp.max} PG.`,
-          ['#Combate']
-        );
-      } else if (delta > 0) {
-        journalStore.log(
-          `Curación recibida: +${delta} PG`,
-          `Puntos de Golpe restaurados a ${next}/${this.character.hp.max} PG.`,
-          ['#Combate']
-        );
+    if (id && campaignStore.usesAtomicHp() && campaignStore.getCharacter(id)) {
+      const mutation = campaignStore.mutateHp(id, op);
+      // campaignStore ya avisó con 'character-hp-changed'; esto cubre el caso en que la ficha activa
+      // tenía otro valor que la de campaignStore.
+      if (!sameHp(this.character.hp, mutation.optimistic)) {
+        this.character.hp = { ...mutation.optimistic };
+        this.saveAndNotify(false, true);
       }
+      void mutation.done.then(change => { if (change) log(change); });
+      return { before: mutation.before, after: mutation.optimistic };
     }
 
-    return { current: next, max: this.character.hp.max, old };
+    // Sin nube (o ficha que todavía no existe en la nube): se aplica a la ficha activa y el guardado
+    // normal la propaga a campaignStore. No se usa campaignStore.mutateHp porque su copia puede no
+    // tener cambios de la ficha activa que aún no se guardaron (p. ej. dados de golpe en shortRest).
+    const before = normalizeHp(this.character.hp);
+    const after = applyHpOp(before, op);
+    this.character.hp = after;
+    this.saveAndNotify();
+    log({ before, after });
+    return { before, after };
+  }
+
+  public modifyHp(delta: number, silent: boolean = false): { current: number; max: number; old: number } {
+    const { before, after } = this.changeHp({ kind: 'delta', amount: delta }, !silent);
+    return { current: after.current, max: after.max, old: before.current };
   }
 
   public setHp(current: number, max: number, temp: number) {
-    this.character.hp.current = Math.max(0, current);
-    this.character.hp.max = Math.max(1, max);
-    this.character.hp.temp = Math.max(0, temp);
-    this.saveAndNotify();
-    journalStore.log(
-      'Puntos de Golpe ajustados',
-      `Salud fijada en ${this.character.hp.current}/${this.character.hp.max} PG${temp > 0 ? ` (+${temp} PG Temp)` : ''}.`,
-      ['#Combate']
-    );
+    this.changeHp({ kind: 'set', current, max, temp });
+  }
+
+  /** Cambia los PG máximos (edición de la ficha); si estaba al máximo, o keepFull, queda al máximo. */
+  public setMaxHp(max: number, keepFull = false) {
+    this.changeHp({ kind: 'setMax', max, keepFull }, false);
   }
 
   public toggleInspiration(): boolean {
@@ -205,28 +227,14 @@ class CharacterStoreManager {
     if (boundedLevel === oldLevel) return;
 
     const oldMaxHp = this.character.hp.max;
-    const wasFullHp = this.character.hp.current >= oldMaxHp;
-    const oldCurrentHp = this.character.hp.current;
     const levelDiff = boundedLevel - oldLevel;
 
-    // HP adjustments according to 5e rules
-    if (levelDiff > 0) {
-      const die = this.character.hitDice?.die || 'd10';
-      const conMod = this.character.stats.con.modifier;
-      const hpGain = calculateLevelUpHpGain(die, conMod, levelDiff);
-      this.character.hp.max = oldMaxHp + hpGain;
-      if (wasFullHp) {
-        this.character.hp.current = this.character.hp.max;
-      } else {
-        this.character.hp.current = Math.min(this.character.hp.max, oldCurrentHp + hpGain);
-      }
-    } else if (levelDiff < 0) {
-      const die = this.character.hitDice?.die || 'd10';
-      const conMod = this.character.stats.con.modifier;
-      const hpLoss = calculateLevelUpHpGain(die, conMod, Math.abs(levelDiff));
-      this.character.hp.max = Math.max(1, oldMaxHp - hpLoss);
-      this.character.hp.current = Math.min(this.character.hp.max, oldCurrentHp);
-    }
+    // PG según 5e: el máximo sube (o baja) por los dados de golpe; ver applyHpOp 'setMax'.
+    const die = this.character.hitDice?.die || 'd10';
+    const conMod = this.character.stats.con.modifier;
+    const hpChange = calculateLevelUpHpGain(die, conMod, Math.abs(levelDiff));
+    const newMaxHp = levelDiff > 0 ? oldMaxHp + hpChange : Math.max(1, oldMaxHp - hpChange);
+    this.setMaxHp(newMaxHp);
 
     // Hit Dice adjustments
     if (!this.character.hitDice) {
@@ -935,8 +943,7 @@ class CharacterStoreManager {
   }
 
   public longRest() {
-    this.character.hp.current = this.character.hp.max;
-    this.character.hp.temp = 0;
+    this.changeHp({ kind: 'full' }, false);
     // Restore half hit dice (min 1)
     const restoreDice = Math.max(1, Math.floor(this.character.hitDice.total / 2));
     this.character.hitDice.remaining = Math.min(this.character.hitDice.total, this.character.hitDice.remaining + restoreDice);

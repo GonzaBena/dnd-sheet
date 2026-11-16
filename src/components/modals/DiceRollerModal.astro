@@ -345,7 +345,8 @@
   import { journalStore } from '../../scripts/state/journalStore';
   import { campaignStore } from '../../scripts/state/campaignStore';
   import { characterStore } from '../../scripts/state/characterStore';
-  import { applyDamageToCombatant, getCurrentCombat, syncCombatWithLiveCharacters } from '../../scripts/data/combatService';
+  import { applyDamageToCombatant, getCurrentCombat } from '../../scripts/data/combatService';
+  import { applyHpAction } from '../../scripts/ui/hpActions.ts';
 
   const modal = document.getElementById('dice-roller-modal');
   const backdrop = document.getElementById('modal-backdrop');
@@ -1203,13 +1204,7 @@
         const chars = campaignStore.getCharactersForCampaign(activeCampId);
         const targetChar = chars.find((c) => c.name.trim().toLowerCase() === targetName.trim().toLowerCase());
         if (targetChar && targetChar.hp) {
-          const updated = JSON.parse(JSON.stringify(targetChar));
-          updated.hp.current = Math.max(0, updated.hp.current - res.total);
-          campaignStore.saveCharacter(updated);
-          if (characterStore.get()?.id === updated.id) {
-            characterStore.loadCharacter(updated, true);
-          }
-          void syncCombatWithLiveCharacters(activeCampId).catch(() => {});
+          applyHpAction(targetChar.id, { kind: 'delta', amount: -res.total }, { actor: 'dm', campaignId: activeCampId });
         }
       }
     }

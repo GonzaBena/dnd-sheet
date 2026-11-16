@@ -5,7 +5,8 @@ import { defaultCharacter } from '../data/defaultCharacter.ts';
 import { getRandomCharacterAvatar, isBrokenAvatarUrl, sanitizeAvatarUrl, CHARACTER_PRESET_IMAGES } from '../data/characterAvatars.ts';
 import { generateInviteCode } from '../utils/ids.ts';
 import { isFirebaseConfigured } from '../firebase/client.ts';
-import { diffDocs, hasChanges, toPlain, type CampaignCloudWriter } from '../data/cloudTypes.ts';
+import { diffDocs, hasChanges, toPlain, type CampaignCloudWriter, type DocChanges } from '../data/cloudTypes.ts';
+import { applyHpOp, normalizeHp, sameHp, type HitPoints, type HpChange, type HpOp } from '../dnd/hp.ts';
 import { normalizeStatus } from '../vtt/sessionStatus.ts';
 import { userStore } from './userStore.ts';
 
@@ -283,6 +284,31 @@ function serializeCharacter(c: CharacterData): Record<string, any> {
   return toPlain(rest);
 }
 
+/**
+ * Con PG atómicos, `hp` y `hpRev` solo se escriben por transacción (mutateHp): un guardado general
+ * de la ficha nunca debe reescribirlos con el valor de una copia vieja.
+ */
+function stripHpFromUpdates(changes: DocChanges) {
+  changes.updates = changes.updates
+    .map(u => {
+      const { hp: _hp, hpRev: _rev, ...fields } = u.fields;
+      return { ...u, fields, removedKeys: u.removedKeys.filter(k => k !== 'hp' && k !== 'hpRev') };
+    })
+    .filter(u => Object.keys(u.fields).length > 0 || u.removedKeys.length > 0);
+}
+
+export interface HpMutation {
+  /** PG antes del cambio, según este cliente. */
+  before: HitPoints;
+  /** Valor optimista que ya se está mostrando. */
+  optimistic: HitPoints;
+  /**
+   * Se resuelve con los valores confirmados por el servidor (antes/después reales), o con null si la
+   * escritura falló: en ese caso la UI ya volvió al último valor confirmado y cloudSync mostró el aviso.
+   */
+  done: Promise<HpChange | null>;
+}
+
 class CampaignStoreManager {
   private campaigns: Campaign[] = [];
   private characters: CharacterData[] = [];
@@ -294,6 +320,15 @@ class CampaignStoreManager {
   private syncedCampaigns = new Map<string, string>();
   private syncedCharacters = new Map<string, string>();
   private remoteCharacterScopes = new Map<string, CharacterData[]>();
+  // ---- PG atómicos (modo nube) ----
+  // PG mostrados = último valor confirmado por el servidor (hpBase, con su hpRev) + operaciones propias
+  // todavía sin confirmar (hpPendingOps), reaplicadas en orden. Un snapshot con hpRev menor al
+  // confirmado se descarta; uno nuevo reemplaza la base y las operaciones pendientes se reaplican encima.
+  private hpBase = new Map<string, { hp: HitPoints; rev: number }>();
+  private hpPendingOps = new Map<string, { seq: number; op: HpOp }[]>();
+  /** Las transacciones de un mismo personaje se envían en orden desde este cliente. */
+  private hpQueues = new Map<string, Promise<unknown>>();
+  private hpSeq = 0;
   private campaignsLoaded = false;
   private charactersLoaded = false;
   /** Campaña activa guardada en localStorage, que se valida cuando llegan las campañas de la nube. */
@@ -489,6 +524,9 @@ class CampaignStoreManager {
     this.syncedCampaigns.clear();
     this.syncedCharacters.clear();
     this.remoteCharacterScopes.clear();
+    this.hpBase.clear();
+    this.hpPendingOps.clear();
+    this.hpQueues.clear();
     this.campaignsLoaded = false;
     this.charactersLoaded = false;
     this.campaigns = [];
@@ -604,9 +642,133 @@ class CampaignStoreManager {
     for (const id of Array.from(this.syncedCharacters.keys())) {
       if (!merged.has(id)) this.syncedCharacters.delete(id);
     }
+
+    // PG: nunca se toman de la copia local pendiente ni de un snapshot más viejo que el último confirmado.
+    const hpChanged: [string, HitPoints][] = [];
+    if (this.usesAtomicHp()) {
+      for (const [id, c] of merged.entries()) {
+        const remote = bestRemote.get(id)!;
+        this.acceptHpBase(id, remote.hp, Number((remote as any).hpRev) || 0);
+        const base = this.hpBase.get(id)!;
+        const shown = this.displayedHp(id, base.hp);
+        merged.set(id, { ...c, hp: shown, hpRev: base.rev });
+        const prev = local.get(id);
+        if (prev && !sameHp(prev.hp, shown)) hpChanged.push([id, shown]);
+      }
+    }
+
     this.characters = Array.from(merged.values());
     this.refreshCharacterIds();
+    hpChanged.forEach(([id, hp]) => this.emitHpChanged(id, hp));
     this.scheduleRemoteEmit(true, true);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Puntos de Golpe
+  // ---------------------------------------------------------------------------
+
+  /** true en la nube: los PG se escriben por transacción y nunca en el guardado general. */
+  public usesAtomicHp(): boolean {
+    return Boolean(this.cloud?.mutateHp);
+  }
+
+  /**
+   * Único punto de entrada para cambiar PG (ficha, DM, combate, descansos, pociones…).
+   * En la nube aplica la operación de forma optimista y la confirma con una transacción sobre el
+   * valor del servidor; sin nube la aplica y guarda al instante.
+   */
+  public mutateHp(characterId: string, op: HpOp): HpMutation {
+    const char = this.getCharacter(characterId);
+    if (!char) {
+      const hp = normalizeHp(undefined);
+      return { before: hp, optimistic: hp, done: Promise.resolve(null) };
+    }
+    const before = normalizeHp(char.hp);
+
+    if (!this.usesAtomicHp()) {
+      const after = applyHpOp(before, op);
+      const updated = toPlain(char);
+      updated.hp = after;
+      this.saveCharacter(updated);
+      this.emitHpChanged(characterId, after);
+      return { before, optimistic: after, done: Promise.resolve({ before, after }) };
+    }
+
+    if (!this.hpBase.has(characterId)) {
+      this.hpBase.set(characterId, { hp: before, rev: Number(char.hpRev) || 0 });
+    }
+    const seq = ++this.hpSeq;
+    const ops = this.hpPendingOps.get(characterId) || [];
+    ops.push({ seq, op });
+    this.hpPendingOps.set(characterId, ops);
+    const optimistic = this.refreshHp(characterId) || applyHpOp(before, op);
+
+    const writer = this.cloud!;
+    const previous = this.hpQueues.get(characterId);
+    const run = previous
+      ? previous.then(() => writer.mutateHp!(characterId, op))
+      : writer.mutateHp!(characterId, op);
+    const tail = run.then(() => {}, () => {});
+    this.hpQueues.set(characterId, tail);
+    void tail.then(() => {
+      if (this.hpQueues.get(characterId) === tail) this.hpQueues.delete(characterId);
+    });
+
+    const done = run.then(
+      (res): HpChange => {
+        this.removeHpOp(characterId, seq);
+        this.acceptHpBase(characterId, res.after, res.rev);
+        this.refreshHp(characterId);
+        return { before: res.before, after: res.after };
+      },
+      (err): null => {
+        // Rechazo (reglas, red): se descarta la operación y se vuelve al último valor confirmado.
+        console.warn('[CampaignStore] Cambio de PG rechazado, se revierte', err);
+        this.removeHpOp(characterId, seq);
+        this.refreshHp(characterId);
+        return null;
+      }
+    );
+    return { before, optimistic, done };
+  }
+
+  /** PG que se muestran: base confirmada + operaciones propias pendientes, en orden. */
+  private displayedHp(id: string, base: HitPoints): HitPoints {
+    return (this.hpPendingOps.get(id) || []).reduce((hp, entry) => applyHpOp(hp, entry.op), normalizeHp(base));
+  }
+
+  private acceptHpBase(id: string, hp: Partial<HitPoints> | undefined, rev: number) {
+    const known = this.hpBase.get(id);
+    if (!known || rev >= known.rev) {
+      this.hpBase.set(id, { hp: normalizeHp(hp), rev });
+    }
+  }
+
+  private removeHpOp(id: string, seq: number) {
+    const ops = (this.hpPendingOps.get(id) || []).filter(e => e.seq !== seq);
+    if (ops.length) this.hpPendingOps.set(id, ops);
+    else this.hpPendingOps.delete(id);
+  }
+
+  /** Recalcula los PG mostrados de un personaje y avisa si cambiaron. */
+  private refreshHp(id: string): HitPoints | null {
+    const idx = this.characters.findIndex(c => c.id === id);
+    if (idx < 0) return null;
+    const char = this.characters[idx];
+    const base = this.hpBase.get(id);
+    const shown = this.displayedHp(id, base ? base.hp : normalizeHp(char.hp));
+    if (!sameHp(char.hp, shown)) {
+      this.characters[idx] = { ...char, hp: shown, ...(base ? { hpRev: base.rev } : {}) };
+      this.emitHpChanged(id, shown);
+      this.scheduleRemoteEmit(false, true);
+    }
+    return shown;
+  }
+
+  private emitHpChanged(id: string, hp: HitPoints) {
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('character-hp-changed', { detail: { id, hp: { ...hp } } }));
+    }
   }
 
   private pendingEmit: { campaigns: boolean; characters: boolean } | null = null;
@@ -695,6 +857,7 @@ class CampaignStoreManager {
     this.characters = chars;
     if (this.cloud) {
       const changes = diffDocs(this.syncedCharacters, chars, serializeCharacter);
+      if (this.usesAtomicHp()) stripHpFromUpdates(changes);
       if (hasChanges(changes)) {
         for (const c of changes.creates) this.syncedCharacters.set(c.id, JSON.stringify(c.data));
         for (const u of changes.updates) {
@@ -1012,6 +1175,12 @@ class CampaignStoreManager {
 
     const copy = toPlain(char);
     (copy as any).updatedAt = Date.now();
+    // Con PG atómicos la copia que llega puede traer PG viejos: se conservan los mostrados.
+    const hpBase = this.usesAtomicHp() ? this.hpBase.get(copy.id) : undefined;
+    if (hpBase) {
+      copy.hp = this.displayedHp(copy.id, hpBase.hp);
+      copy.hpRev = hpBase.rev;
+    }
     const index = this.characters.findIndex(c => c.id === copy.id);
     if (index >= 0) {
       this.characters[index] = copy;

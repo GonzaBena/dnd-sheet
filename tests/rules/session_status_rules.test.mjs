@@ -179,7 +179,7 @@ test('jugador nunca edita la ficha de otro jugador', async () => {
 // ------------------------------------------------------------------ Acciones de DM
 
 test('DM modifica hp de personaje solo en active', async () => {
-  const hpMod = { hp: { current: 15, max: 20, temp: 0 }, updatedAt: 5 };
+  const hpMod = { hp: { current: 15, max: 20, temp: 0 }, hpRev: 1, updatedAt: 5 };
   await assertSucceeds(updateDoc(doc(db(DM), 'characters', 'char-active'), hpMod));
   await assertFails(updateDoc(doc(db(DM), 'characters', 'char-paused'), hpMod));
   await assertFails(updateDoc(doc(db(DM), 'characters', 'char-ended'), hpMod));

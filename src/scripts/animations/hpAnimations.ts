@@ -17,18 +17,10 @@ export function animateHpBar(
     easing: 'easeOutElastic(1, .8)'
   });
 
-  // 2. Number counter animation
-  const counterObj = { value: fromHp };
-  anime({
-    targets: counterObj,
-    value: toHp,
-    round: 1,
-    duration: 400,
-    easing: 'easeOutQuad',
-    update: () => {
-      numberElement.textContent = String(counterObj.value);
-    }
-  });
+  // 2. Número: se muestra el valor nuevo directamente. Antes un contador animado partía de fromHp y
+  // volvía a mostrar el valor anterior después de que la ficha ya había renderizado el nuevo
+  // (se veía como 2 → 3 → 2). Además, si llegaba otro cambio durante la animación, la pisaba.
+  numberElement.textContent = String(toHp);
 
   // 3. Pulse effect
   const isHeal = toHp > fromHp;
