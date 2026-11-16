@@ -233,6 +233,16 @@ service cloud.firestore {
               && request.resource.data.round == resource.data.round + 1)
           );
 
+        // Cualquier miembro en partida activa puede actualizar PG/estado de combatientes (daño en combate)
+        // sin alterar el turno, la ronda ni la cantidad de combatientes.
+        allow update: if signedIn() && isMember(campaignId) && canPlay()
+          && docId == 'current'
+          && resource.data.active == true
+          && request.resource.data.diff(resource.data).affectedKeys()
+               .hasOnly(['combatants', 'updatedAt'])
+          && request.resource.data.combatants is list
+          && request.resource.data.combatants.size() == resource.data.combatants.size();
+
         allow delete: if signedIn() && isDm(campaignId) && canPlay();
       }
 

@@ -25,9 +25,23 @@ class CharacterStoreManager {
     this.character = this.loadFromStorage();
     this.initBroadcastChannel();
     if (typeof window === 'undefined') return;
+    window.addEventListener('all-characters-updated', () => {
+      if (campaignStore.isCloudMode()) return;
+      if (!this.character?.id) return;
+      const updated = campaignStore.getCharacter(this.character.id);
+      if (!updated) return;
+      const next = recalculateCharacter(JSON.parse(JSON.stringify(updated)));
+      const strip = (c: any) => {
+        const { updatedAt, layoutConfig, ...rest } = c || {};
+        return rest;
+      };
+      if (JSON.stringify(strip(next)) !== JSON.stringify(strip(this.character))) {
+        this.loadCharacter(next, true);
+      }
+    });
     setTimeout(() => {
       window.dispatchEvent(new CustomEvent('character-updated', {
-        detail: { character: this.character }
+        detail: { character: this.character, fromHydration: true }
       }));
     }, 0);
   }
@@ -43,10 +57,11 @@ class CharacterStoreManager {
           if (event.data?.type === 'character-sync' && event.data.character) {
             const incoming = event.data.character;
             if (this.character && this.character.id === incoming.id) {
-              this.character = recalculateCharacter(incoming);
+              this.character = recalculateCharacter(JSON.parse(JSON.stringify(incoming)));
               if (typeof window !== 'undefined') {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(this.character));
                 window.dispatchEvent(new CustomEvent('character-updated', {
-                  detail: { character: this.character }
+                  detail: { character: this.character, fromRemote: true }
                 }));
               }
             }
@@ -63,7 +78,7 @@ class CharacterStoreManager {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
-        const parsed = JSON.parse(saved);
+        let parsed = JSON.parse(saved);
         if (parsed.id === 'elysian-ventosombra' || parsed.name === 'Elysian Ventosombra') {
           parsed.id = 'atlas';
           parsed.name = 'Atlas';
@@ -72,6 +87,14 @@ class CharacterStoreManager {
             parsed.sessionContext.sessionNumber = 1;
             parsed.sessionContext.location = 'Tierras Salvajes';
           }
+        }
+        // En modo local, si el personaje también existe en dnd_all_characters_v1 (campaignStore),
+        // priorizamos la versión de campaignStore por si el DM o el combate modificó sus PG.
+        const fromCampaignStore = !campaignStore.isCloudMode() && parsed.id
+          ? campaignStore.getCharacter(parsed.id)
+          : undefined;
+        if (fromCampaignStore) {
+          parsed = JSON.parse(JSON.stringify(fromCampaignStore));
         }
         if (isBrokenAvatarUrl(parsed.avatarUrl)) {
           parsed.avatarUrl = getRandomCharacterAvatar();
@@ -88,12 +111,15 @@ class CharacterStoreManager {
     return this.character;
   }
 
-  private saveAndNotify(broadcast = true) {
+  private saveAndNotify(broadcast = true, fromRemote = false) {
     this.character = recalculateCharacter(this.character);
+    if (!fromRemote) {
+      (this.character as any).updatedAt = Date.now();
+    }
     if (typeof window !== 'undefined') {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(this.character));
       window.dispatchEvent(new CustomEvent('character-updated', {
-        detail: { character: this.character }
+        detail: { character: this.character, fromRemote }
       }));
     }
     if (broadcast && this.channel) {
@@ -103,9 +129,9 @@ class CharacterStoreManager {
     }
   }
 
-  public loadCharacter(newChar: CharacterData) {
-    this.character = recalculateCharacter(newChar);
-    this.saveAndNotify();
+  public loadCharacter(newChar: CharacterData, fromRemote = false) {
+    this.character = recalculateCharacter(JSON.parse(JSON.stringify(newChar)));
+    this.saveAndNotify(!fromRemote, fromRemote);
   }
 
   public modifyHp(delta: number, silent: boolean = false): { current: number; max: number; old: number } {

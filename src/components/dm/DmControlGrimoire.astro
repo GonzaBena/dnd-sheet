@@ -317,6 +317,7 @@ import HandoutManager from './HandoutManager.astro';
   import { congratulationBanner } from '../../scripts/ui/congratulationBanner';
   import { canPerform, normalizeStatus } from '../../scripts/vtt/sessionStatus.ts';
   import { subscribeNotes } from '../../scripts/data/notesService.ts';
+  import { syncCombatWithLiveCharacters } from '../../scripts/data/combatService.ts';
   import { initTabs } from '../../scripts/ui/tabs.ts';
 
   /** Valida que se pueda actuar como DM y avisa en vez de fallar en silencio. */
@@ -459,8 +460,14 @@ import HandoutManager from './HandoutManager.astro';
               if (!guardDmPlay(camp)) return;
 
               const delta = parseInt(btn.getAttribute('data-delta') || '0');
-              char.hp.current = Math.max(0, Math.min(char.hp.max, char.hp.current + delta));
-              campaignStore.saveCharacter(char);
+              const fresh = campaignStore.getCharacter(char.id) || char;
+              const updated = JSON.parse(JSON.stringify(fresh));
+              updated.hp.current = Math.max(0, Math.min(updated.hp.max, updated.hp.current + delta));
+              campaignStore.saveCharacter(updated);
+              if (characterStore.get()?.id === updated.id) {
+                characterStore.loadCharacter(updated, true);
+              }
+              void syncCombatWithLiveCharacters(camp.id).catch(() => {});
               renderGrimoire();
             });
           });
@@ -469,11 +476,16 @@ import HandoutManager from './HandoutManager.astro';
           card.querySelector('.inspire-btn')?.addEventListener('click', () => {
             if (!guardDmPlay(camp)) return;
 
-            char.inspiration = !char.inspiration;
-            campaignStore.saveCharacter(char);
+            const fresh = campaignStore.getCharacter(char.id) || char;
+            const updated = JSON.parse(JSON.stringify(fresh));
+            updated.inspiration = !updated.inspiration;
+            campaignStore.saveCharacter(updated);
+            if (characterStore.get()?.id === updated.id) {
+              characterStore.loadCharacter(updated, true);
+            }
             journalStore.log(
               `Inspiración concedida por el DM`,
-              `El Dungeon Master ha ${char.inspiration ? 'otorgado Inspiración ✨' : 'retirado la Inspiración'} a "${char.name}".`,
+              `El Dungeon Master ha ${updated.inspiration ? 'otorgado Inspiración ✨' : 'retirado la Inspiración'} a "${updated.name}".`,
               ['#Combate']
             );
             renderGrimoire();
@@ -723,9 +735,14 @@ import HandoutManager from './HandoutManager.astro';
     if (await showConfirm('Cada personaje de la campaña recupera +8 PG.', { title: '¿Descanso Corto para todo el grupo?', confirmText: 'Aplicar' })) {
       const chars = campaignStore.getCharactersForCampaign(activeCampId);
       chars.forEach(c => {
-        c.hp.current = Math.min(c.hp.max, c.hp.current + 8);
-        campaignStore.saveCharacter(c);
+        const updated = JSON.parse(JSON.stringify(c));
+        updated.hp.current = Math.min(updated.hp.max, updated.hp.current + 8);
+        campaignStore.saveCharacter(updated);
+        if (characterStore.get()?.id === updated.id) {
+          characterStore.loadCharacter(updated, true);
+        }
       });
+      void syncCombatWithLiveCharacters(activeCampId).catch(() => {});
       journalStore.log(
         'Descanso Corto de Grupo',
         'El Dungeon Master decretó un descanso corto para todos los aventureros (+8 PG recuperados).',
@@ -746,10 +763,15 @@ import HandoutManager from './HandoutManager.astro';
     if (await showConfirm('Todos los personajes recuperan sus PG al máximo.', { title: '¿Descanso Largo para toda la mesa?', confirmText: 'Aplicar' })) {
       const chars = campaignStore.getCharactersForCampaign(activeCampId);
       chars.forEach(c => {
-        c.hp.current = c.hp.max;
-        if (c.hp.temp) c.hp.temp = 0;
-        campaignStore.saveCharacter(c);
+        const updated = JSON.parse(JSON.stringify(c));
+        updated.hp.current = updated.hp.max;
+        if (updated.hp.temp) updated.hp.temp = 0;
+        campaignStore.saveCharacter(updated);
+        if (characterStore.get()?.id === updated.id) {
+          characterStore.loadCharacter(updated, true);
+        }
       });
+      void syncCombatWithLiveCharacters(activeCampId).catch(() => {});
       journalStore.log(
         'Descanso Largo de Grupo',
         'El Dungeon Master concedió un descanso largo completo. Todos los aventureros han restablecido sus Puntos de Golpe al máximo.',

@@ -345,7 +345,7 @@
   import { journalStore } from '../../scripts/state/journalStore';
   import { campaignStore } from '../../scripts/state/campaignStore';
   import { characterStore } from '../../scripts/state/characterStore';
-  import { getCurrentCombat } from '../../scripts/data/combatService';
+  import { applyDamageToCombatant, getCurrentCombat, syncCombatWithLiveCharacters } from '../../scripts/data/combatService';
 
   const modal = document.getElementById('dice-roller-modal');
   const backdrop = document.getElementById('modal-backdrop');
@@ -397,8 +397,9 @@
     count: number;
     die: number;
     modifier: number;
-    damageType: string;
-    weaponOrSpellName: string;
+    damageType?: string;
+    weaponOrSpellName?: string;
+    label?: string;
   }
 
   interface SaveInfoSpec {
@@ -421,6 +422,7 @@
     tag: string;
     isDmRoll?: boolean;
     isSecret?: boolean;
+    targetId?: string;
     targetName?: string;
     targetAc?: number;
     authorName?: string;
@@ -430,6 +432,7 @@
     characterId?: string;
     campaignId?: string;
     isAttackRoll?: boolean;
+    isDamageRoll?: boolean;
     followUpDamage?: FollowUpDamageSpec;
     saveInfo?: SaveInfoSpec;
   } = { label: 'Tirada de dados', tag: '#Tirada', isDmRoll: false, isSecret: false };
@@ -525,6 +528,7 @@
   });
 
   function getEffectiveTargetAndDc(): {
+    targetId?: string;
     targetName: string;
     targetDc: number | null;
     isPendingDm: boolean;
@@ -534,6 +538,9 @@
     const selectedOpt = targetSelect?.selectedOptions[0];
     const selectName = targetSelect?.value.trim();
     const targetName = customName || selectName || rollContext.targetName || '';
+    const targetId = !customName
+      ? (selectedOpt?.dataset.id || rollContext.targetId || undefined)
+      : undefined;
 
     let targetDc: number | null = null;
     if (!isPendingDm) {
@@ -546,7 +553,7 @@
         targetDc = rollContext.targetAc;
       }
     }
-    return { targetName, targetDc, isPendingDm };
+    return { targetId, targetName, targetDc, isPendingDm };
   }
 
   function updatePhysicalCalculations() {
@@ -606,10 +613,10 @@
   physicalInput?.addEventListener('input', updatePhysicalCalculations);
   modInput?.addEventListener('input', updatePhysicalCalculations);
 
-  function refreshCombatTargets(preselectedName?: string) {
+  function refreshCombatTargets(preselectedName?: string, preselectedId?: string) {
     const activeCampId = campaignStore.getActiveCampaignId();
     const combat = activeCampId ? getCurrentCombat(activeCampId) : null;
-    const isAtk = Boolean(rollContext.isAttackRoll || rollContext.followUpDamage || selectedDie === 20);
+    const isAtk = Boolean(rollContext.isAttackRoll || rollContext.isDamageRoll || rollContext.followUpDamage || selectedDie === 20);
 
     if (!targetSelect || !targetContainer) return;
 
@@ -633,15 +640,28 @@
     const currentChar = characterStore.get();
     const myName = currentChar?.name?.trim().toLowerCase();
 
+    let effectivePreselectedId = preselectedId;
+    if (!effectivePreselectedId && !preselectedName && (rollContext.isAttackRoll || rollContext.isDamageRoll || rollContext.followUpDamage)) {
+      const firstOpponent = rollContext.isDmRoll
+        ? combat.combatants.find((c) => c.isPlayer && c.hp > 0) || combat.combatants.find((c) => c.isPlayer)
+        : combat.combatants.find((c) => !c.isPlayer && c.hp > 0) || combat.combatants.find((c) => !c.isPlayer);
+      if (firstOpponent) {
+        effectivePreselectedId = firstOpponent.id;
+      }
+    }
+
     let optionsHtml = '<option value="">Sin objetivo específico (Tirada general)</option>';
 
     combat.combatants.forEach((c) => {
       // No seleccionarse a uno mismo por defecto
-      if (myName && c.name.trim().toLowerCase() === myName) return;
-      const isSelected = Boolean(preselectedName && c.name.trim().toLowerCase() === preselectedName.trim().toLowerCase());
+      if (!rollContext.isDmRoll && myName && c.name.trim().toLowerCase() === myName) return;
+      const isSelected = Boolean(
+        (effectivePreselectedId && c.id === effectivePreselectedId) ||
+        (preselectedName && c.name.trim().toLowerCase() === preselectedName.trim().toLowerCase())
+      );
 
       optionsHtml += `
-        <option value="${c.name}" data-ac="${c.ac || ''}" ${isSelected ? 'selected' : ''}>
+        <option value="${c.name}" data-id="${c.id}" data-ac="${c.ac || ''}" ${isSelected ? 'selected' : ''}>
           ${c.isPlayer ? '🛡️ PJ: ' : '💀 '}${c.name} ${c.ac ? `(CA ${c.ac})` : ''}
         </option>
       `;
@@ -830,7 +850,9 @@
 
     rollContext.lockDie = false;
     rollContext.lockCount = false;
-    rollContext.label = `${isCritical ? 'Daño Crítico' : 'Daño'}: ${f.weaponOrSpellName} (${f.damageType})`;
+    rollContext.isAttackRoll = false;
+    rollContext.isDamageRoll = true;
+    rollContext.label = f.label || `${isCritical ? 'Daño Crítico' : 'Daño'}: ${f.weaponOrSpellName || 'Ataque'} (${f.damageType || 'Físico'})`;
     rollContext.followUpDamage = undefined;
 
     applyLockState(false, false);
@@ -1158,6 +1180,40 @@
     const sessionNum = activeCamp?.sessionNumber || 1;
     const currentChar = characterStore.get();
 
+    // Aplicar daño automáticamente al combatiente u objetivo cuando es tirada de daño
+    const isHealingRoll = /curaci[oó]n|curar/i.test(rollContext.label);
+    const isDmgRoll = !isHealingRoll && (
+      Boolean(rollContext.isDamageRoll) ||
+      (res.dieType !== 20 && !rollContext.isInitiative && /\bdaño\b/i.test(rollContext.label))
+    );
+    if (isDmgRoll && res.total > 0 && activeCampId) {
+      const combat = getCurrentCombat(activeCampId);
+      if (combat && combat.combatants && combat.combatants.length > 0) {
+        const targetCombatant =
+          (targetInfo.targetId ? combat.combatants.find((c) => c.id === targetInfo.targetId) : undefined) ||
+          (targetName
+            ? combat.combatants.find((c) => c.name.trim().toLowerCase() === targetName.trim().toLowerCase())
+            : undefined);
+        if (targetCombatant) {
+          void applyDamageToCombatant(activeCampId, targetCombatant.id, -res.total).catch((err) => {
+            console.warn('[DiceRollerModal] Error aplicando daño al combatiente:', err);
+          });
+        }
+      } else if (targetName) {
+        const chars = campaignStore.getCharactersForCampaign(activeCampId);
+        const targetChar = chars.find((c) => c.name.trim().toLowerCase() === targetName.trim().toLowerCase());
+        if (targetChar && targetChar.hp) {
+          const updated = JSON.parse(JSON.stringify(targetChar));
+          updated.hp.current = Math.max(0, updated.hp.current - res.total);
+          campaignStore.saveCharacter(updated);
+          if (characterStore.get()?.id === updated.id) {
+            characterStore.loadCharacter(updated, true);
+          }
+          void syncCombatWithLiveCharacters(activeCampId).catch(() => {});
+        }
+      }
+    }
+
     let targetLogText = '';
     if (saveInfo) {
       if (saveInfo.isRollingEnemySave && res.dieType === 20) {
@@ -1307,6 +1363,8 @@
     selectedCount = s.damageCount;
     if (modInput) modInput.value = String(s.damageMod ?? 0);
     if (countDisplay) countDisplay.textContent = String(selectedCount);
+    rollContext.isAttackRoll = false;
+    rollContext.isDamageRoll = !/curaci[oó]n|curar/i.test(s.damageType || '');
     rollContext.label = `Daño de Conjuro: ${s.spellName} (${s.damageType || 'Mágico'})`;
     updateActiveDieButtons();
     renderReelPlaceholders();
@@ -1326,12 +1384,17 @@
     const isSecretVal = Boolean(detail.isSecret);
 
     const isAtk = Boolean(detail.isAttackRoll || detail.followUpDamage);
+    const isDmg = Boolean(
+      detail.isDamageRoll ||
+      (!isAtk && selectedDie !== 20 && /\bdaño\b/i.test(detail.label || '') && !/curaci[oó]n|curar/i.test(detail.label || ''))
+    );
 
     rollContext = {
       label: detail.label || 'Tirada de dados',
       tag: detail.tag || '#Tirada',
       isDmRoll: detail.isDmRoll || false,
       isSecret: isSecretVal,
+      targetId: detail.targetId,
       targetName: detail.targetName || detail.target,
       targetAc: detail.targetAc,
       authorName: detail.authorName,
@@ -1341,6 +1404,7 @@
       characterId: detail.characterId,
       campaignId: detail.campaignId,
       isAttackRoll: isAtk,
+      isDamageRoll: isDmg,
       followUpDamage: detail.followUpDamage,
       saveInfo: detail.saveInfo ? { ...detail.saveInfo } : undefined,
     };
@@ -1397,7 +1461,7 @@
     updateSecretUi(isSecretVal);
 
     // Actualizar objetivos del combate
-    refreshCombatTargets(rollContext.targetName);
+    refreshCombatTargets(rollContext.targetName, rollContext.targetId);
 
     // Restablecer a modo virtual por defecto a menos que se indique físico
     setRollMode(Boolean(detail.isPhysical));

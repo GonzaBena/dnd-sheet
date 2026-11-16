@@ -582,6 +582,7 @@
 
   function autoLinkTokens(combat: Combat | null) {
     if (!currentCampaignId || !combat || !checkCanPlay(currentCampaignId)) return;
+    if (!campaignStore.isCurrentUserDm(currentCampaignId)) return;
     const cid = currentCampaignId;
     computeAutoLinks(combat, activeTokens).forEach((l) => {
       void updateCombatant(cid, l.combatantId, { tokenId: l.tokenId });
@@ -1197,7 +1198,7 @@
       if (enemyTargetAcBadge) enemyTargetAcBadge.textContent = 'CA --';
     } else {
       enemyTargetPlayerSelect.innerHTML = players
-        .map((p) => `<option value="${p.name}" data-ac="${p.ac || 10}" ${defaultTargetName === p.name ? 'selected' : ''}>${p.name} (CA ${p.ac || 10})</option>`)
+        .map((p) => `<option value="${p.name}" data-id="${p.id}" data-ac="${p.ac || 10}" ${defaultTargetName === p.name ? 'selected' : ''}>${p.name} (CA ${p.ac || 10})</option>`)
         .join('');
       if (defaultTargetName) {
         enemyTargetPlayerSelect.value = defaultTargetName;
@@ -1237,10 +1238,18 @@
     const enemy = activeEnemyAttacker;
     const targetPlayerName = enemyTargetPlayerSelect?.value || 'Aventurero';
     const targetOpt = enemyTargetPlayerSelect?.selectedOptions[0];
+    const targetId = targetOpt?.dataset.id || undefined;
     const targetAc = targetOpt?.dataset.ac ? parseInt(targetOpt.dataset.ac) : undefined;
 
     const atkName = enemyAttackNameInput?.value.trim() || 'Ataque';
     const bonus = parseInt(enemyAttackBonusInput?.value || '0') || 0;
+    const dmgFormula = enemyAttackDamageInput?.value.trim() || '1d6 + 2';
+    const match = dmgFormula.match(/(\d+)d(\d+)(?:\s*([+-])\s*(\d+))?/);
+    const dmgCount = match ? parseInt(match[1]) || 1 : 1;
+    const dmgDie = match ? parseInt(match[2]) || 6 : 6;
+    const dmgSign = match && match[3] === '-' ? -1 : 1;
+    const dmgMod = match && match[4] ? dmgSign * parseInt(match[4]) : 0;
+
     const isSecret = Boolean(enemyAttackSecretCheck?.checked);
     const isPhysical = Boolean(enemyAttackPhysicalCheck?.checked);
 
@@ -1254,13 +1263,21 @@
           modifier: bonus,
           label: `Ataque de ${enemy.name} (${atkName})`,
           tag: '#Combate',
+          targetId,
           targetName: targetPlayerName,
           targetAc,
+          isAttackRoll: true,
           isDmRoll: true,
           isSecret,
           isPhysical,
           authorName: `${enemy.name} (DM)`,
           autoroll: !isPhysical,
+          followUpDamage: {
+            die: dmgDie,
+            count: dmgCount,
+            modifier: dmgMod,
+            label: `Daño de ${enemy.name} (${atkName})`,
+          },
         },
       })
     );
@@ -1272,6 +1289,7 @@
     const enemy = activeEnemyAttacker;
     const targetPlayerName = enemyTargetPlayerSelect?.value || 'Aventurero';
     const targetOpt = enemyTargetPlayerSelect?.selectedOptions[0];
+    const targetId = targetOpt?.dataset.id || undefined;
     const targetAc = targetOpt?.dataset.ac ? parseInt(targetOpt.dataset.ac) : undefined;
 
     const atkName = enemyAttackNameInput?.value.trim() || 'Ataque';
@@ -1295,8 +1313,10 @@
           modifier: mod,
           label: `Daño de ${enemy.name} (${atkName})`,
           tag: '#Combate',
+          targetId,
           targetName: targetPlayerName,
           targetAc,
+          isDamageRoll: true,
           isDmRoll: true,
           isSecret,
           isPhysical,
@@ -1770,16 +1790,17 @@
   }
 
   // Sincronización en vivo cuando los personajes cambian
-  window.addEventListener('character-updated', async () => {
+  const handleCharacterSync = async () => {
     if (currentCampaignId) {
-      await syncCombatWithLiveCharacters(currentCampaignId);
+      try {
+        await syncCombatWithLiveCharacters(currentCampaignId);
+      } catch (_) {}
+      render(getCurrentCombat(currentCampaignId));
     }
-  });
-  window.addEventListener('characters-updated', async () => {
-    if (currentCampaignId) {
-      await syncCombatWithLiveCharacters(currentCampaignId);
-    }
-  });
+  };
+  window.addEventListener('character-updated', handleCharacterSync);
+  window.addEventListener('characters-updated', handleCharacterSync);
+  window.addEventListener('all-characters-updated', handleCharacterSync);
 
   // Escuchar eventos globales
   window.addEventListener('DOMContentLoaded', init);
@@ -1787,11 +1808,6 @@
   window.addEventListener('campaign-activated', init);
   window.addEventListener('campaigns-updated', () => {
     init();
-    if (currentCampaignId) {
-      render(getCurrentCombat(currentCampaignId));
-    }
-  });
-  window.addEventListener('characters-updated', () => {
     if (currentCampaignId) {
       render(getCurrentCombat(currentCampaignId));
     }

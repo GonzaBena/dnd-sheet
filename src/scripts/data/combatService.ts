@@ -23,6 +23,7 @@ import {
   canEndTurn,
 } from '../vtt/initiative.ts';
 import { campaignStore } from '../state/campaignStore.ts';
+import { characterStore } from '../state/characterStore.ts';
 import { journalStore } from '../state/journalStore.ts';
 import { userStore } from '../state/userStore.ts';
 import { normalizeStatus, canPerform } from '../vtt/sessionStatus.ts';
@@ -222,7 +223,14 @@ export async function saveCombat(cid: string, combat: Combat): Promise<void> {
     const { db } = await getFirebase();
     const fs = await import('firebase/firestore');
     const docRef = fs.doc(db, 'campaigns', cid, 'combat', 'current');
-    await fs.setDoc(docRef, payload);
+    if (campaignStore.isCurrentUserDm(cid)) {
+      await fs.setDoc(docRef, payload);
+    } else {
+      await fs.updateDoc(docRef, {
+        combatants: payload.combatants,
+        updatedAt: payload.updatedAt,
+      });
+    }
   } else {
     setLocalCombat(cid, payload);
   }
@@ -388,21 +396,38 @@ export async function applyDamageToCombatant(
   const target = current.combatants.find((c) => c.id === combatantId);
   if (!target) return;
 
-  const updatedTarget = applyDamage(target, delta);
-  await updateCombatant(cid, combatantId, { hp: updatedTarget.hp });
-
-  // Sincronizar PG con la ficha del personaje si es un jugador
-  if (target.isPlayer && target.characterId) {
-    const char = campaignStore.getCharacter(target.characterId);
-    if (char && char.hp) {
-      char.hp.current = updatedTarget.hp;
-      try {
-        campaignStore.saveCharacter(char);
-      } catch (err) {
-        console.warn('[combatService] Error sincronizando PG con la ficha:', err);
+  const liveChar = target.isPlayer && target.characterId
+    ? campaignStore.getCharacter(target.characterId)
+    : undefined;
+  const effectiveTarget: Combatant = liveChar && liveChar.hp
+    ? {
+        ...target,
+        hp: typeof liveChar.hp.current === 'number' ? liveChar.hp.current : target.hp,
+        maxHp: typeof liveChar.hp.max === 'number' && liveChar.hp.max > 0 ? liveChar.hp.max : target.maxHp,
       }
+    : target;
+
+  const updatedTarget = applyDamage(effectiveTarget, delta);
+
+  // Sincronizar PG con la ficha del personaje ANTES de actualizar el combate,
+  // para que cualquier re-render inmediato del CombatTracker lea los PG actualizados.
+  if (target.isPlayer && target.characterId && liveChar && liveChar.hp) {
+    try {
+      const updatedChar = JSON.parse(JSON.stringify(liveChar));
+      updatedChar.hp.current = updatedTarget.hp;
+      campaignStore.saveCharacter(updatedChar);
+      if (characterStore.get()?.id === updatedChar.id) {
+        characterStore.loadCharacter(updatedChar, true);
+      }
+    } catch (err) {
+      console.warn('[combatService] Error sincronizando PG con la ficha:', err);
     }
   }
+
+  await updateCombatant(cid, combatantId, {
+    hp: updatedTarget.hp,
+    maxHp: effectiveTarget.maxHp,
+  });
 }
 
 /**

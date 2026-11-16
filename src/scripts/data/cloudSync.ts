@@ -30,7 +30,7 @@ import { startRoomSync } from './roomService.ts';
 
 export type CloudSessionState = 'local' | 'loading' | 'signed-out' | 'ready';
 
-const CHARACTER_DEBOUNCE_MS = 400;
+const CHARACTER_DEBOUNCE_MS = 120;
 const DM_EVENT_WINDOW_MS = 45000;
 const JOURNAL_LIMIT = 150;
 const READY_SAFETY_MS = 20000;
@@ -61,7 +61,15 @@ class CloudSession {
   private inviteCodes = new Map<string, string>();
   private knownProfiles = new Set<string>();
   private pendingCharacters = new Map<string, PendingCharacterWrite>();
+  private inFlightCharacters = new Map<string, number>();
+  private lastLocalWriteAt = new Map<string, number>();
   private seenDmEvents = new Set<string>();
+
+  private isCharacterWritePending(id: string): boolean {
+    if (this.pendingCharacters.has(id)) return true;
+    if ((this.inFlightCharacters.get(id) || 0) > 0) return true;
+    return false;
+  }
 
   constructor() {
     this.readyPromise = new Promise(resolve => {
@@ -156,7 +164,7 @@ class CloudSession {
       campaignStore.attachCloud({
         applyCampaignChanges: changes => this.writeCampaignChanges(changes),
         applyCharacterChanges: changes => this.writeCharacterChanges(changes),
-        isCharacterPending: id => this.pendingCharacters.has(id),
+        isCharacterPending: id => this.isCharacterWritePending(id),
         sendDmEvent: event => this.writeDmEvent(event),
       });
       journalStore.attachCloud({
@@ -170,13 +178,24 @@ class CloudSession {
         return null;
       });
 
-      await this.subscribeBase();
       this.bindStoreEvents();
+      await this.subscribeBase();
       // Sala RTDB del VTT (/rooms/{liveRoomId}) de cada campaña donde el usuario es DM.
       startRoomSync(() => this.uid);
 
       if (migration?.activeCharacter) {
-        characterStore.loadCharacter(migration.activeCharacter);
+        characterStore.loadCharacter(migration.activeCharacter, true);
+      } else {
+        const active = characterStore.get();
+        if (active?.id && !this.isCharacterWritePending(active.id)) {
+          const remote = campaignStore.getCharacter(active.id);
+          if (remote && campaignStore.isCharacterOwner(remote)) {
+            const next = recalculateCharacter(toPlain(remote));
+            if (JSON.stringify(stripVolatile(next)) !== JSON.stringify(stripVolatile(active))) {
+              characterStore.loadCharacter(next, true);
+            }
+          }
+        }
       }
       if (migration && (migration.campaigns || migration.characters || migration.entries)) {
         window.dispatchEvent(new CustomEvent('cloud-migration-done', { detail: migration }));
@@ -454,12 +473,12 @@ class CloudSession {
     // Si la ficha activa cambió en otro dispositivo (o el DM le ajustó los PG), se recarga.
     window.addEventListener('all-characters-updated', () => {
       const active = characterStore.get();
-      if (!active?.id || this.pendingCharacters.has(active.id)) return;
+      if (!active?.id || this.isCharacterWritePending(active.id)) return;
       const remote = campaignStore.getCharacter(active.id);
       if (!remote || !campaignStore.isCharacterOwner(remote)) return;
       const next = recalculateCharacter(toPlain(remote));
       if (JSON.stringify(stripVolatile(next)) !== JSON.stringify(stripVolatile(active))) {
-        characterStore.loadCharacter(next);
+        characterStore.loadCharacter(next, true);
       }
     });
 
@@ -471,7 +490,6 @@ class CloudSession {
 
   private toCharacter(d: any): CharacterData {
     const data = d.data() as any;
-    delete data.updatedAt;
     return { ...data, id: d.id } as CharacterData;
   }
 
@@ -541,12 +559,24 @@ class CloudSession {
 
     // Los cambios de la ficha (cada click de PG, etc.) se agrupan con debounce por personaje.
     for (const { id, fields, removedKeys } of changes.updates) {
+      const known = campaignStore.getCharacter(id);
+      const isOwner = !known || !known.userId || known.userId === this.uid;
+      let effectiveFields = fields;
+      let effectiveRemoved = removedKeys;
+      if (!isOwner && fields.campaignId !== null) {
+        effectiveFields = {};
+        if ('hp' in fields) effectiveFields.hp = fields.hp;
+        if ('inspiration' in fields) effectiveFields.inspiration = fields.inspiration;
+        effectiveRemoved = [];
+        if (Object.keys(effectiveFields).length === 0) continue;
+      }
+
       const pending = this.pendingCharacters.get(id);
       if (pending) clearTimeout(pending.timer);
       const merged: PendingCharacterWrite = pending || { fields: {}, removedKeys: new Set(), timer: undefined as any };
-      Object.assign(merged.fields, fields);
-      Object.keys(fields).forEach(k => merged.removedKeys.delete(k));
-      removedKeys.forEach(k => {
+      Object.assign(merged.fields, effectiveFields);
+      Object.keys(effectiveFields).forEach(k => merged.removedKeys.delete(k));
+      effectiveRemoved.forEach(k => {
         merged.removedKeys.add(k);
         delete merged.fields[k];
       });
@@ -568,9 +598,18 @@ class CloudSession {
     clearTimeout(pending.timer);
     this.pendingCharacters.delete(id);
     const fs = this.fs;
-    const payload: Record<string, any> = { ...pending.fields, updatedAt: Date.now() };
+    const now = Date.now();
+    this.lastLocalWriteAt.set(id, now);
+    this.inFlightCharacters.set(id, (this.inFlightCharacters.get(id) || 0) + 1);
+    const payload: Record<string, any> = { ...pending.fields, updatedAt: now };
     pending.removedKeys.forEach(k => { payload[k] = fs.deleteField(); });
-    fs.updateDoc(fs.doc(this.db, 'characters', id), payload).catch(err => this.onWriteError(err));
+    fs.updateDoc(fs.doc(this.db, 'characters', id), payload)
+      .catch(err => this.onWriteError(err))
+      .finally(() => {
+        const cur = (this.inFlightCharacters.get(id) || 1) - 1;
+        if (cur <= 0) this.inFlightCharacters.delete(id);
+        else this.inFlightCharacters.set(id, cur);
+      });
   }
 
   private flushCharacters() {

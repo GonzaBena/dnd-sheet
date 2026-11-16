@@ -310,7 +310,8 @@ class CampaignStoreManager {
     this.activeCampaignId = this.loadActiveCampaignId();
     this.initBroadcastChannel();
     if (typeof window !== 'undefined') {
-      window.addEventListener('character-updated', ((e: CustomEvent<{ character: CharacterData }>) => {
+      window.addEventListener('character-updated', ((e: CustomEvent<{ character: CharacterData; fromRemote?: boolean; fromHydration?: boolean }>) => {
+        if (e.detail?.fromRemote || e.detail?.fromHydration) return;
         const char = e.detail?.character;
         if (!char) return;
         // En la nube la ficha activa solo se guarda si es un personaje propio ya existente:
@@ -561,17 +562,43 @@ class CampaignStoreManager {
     if (remote === null) {
       this.remoteCharacterScopes.delete(scope);
     } else {
-      this.remoteCharacterScopes.set(scope, remote);
+      const clonedRemote = remote.map(c => toPlain(c));
+      this.remoteCharacterScopes.set(scope, clonedRemote);
+      // Sincronizar otros scopes ('mine' vs 'campaign:{id}') que contengan el mismo personaje
+      // para que un scope que aún no disparó su snapshot no pise el valor recién recibido.
+      const incomingById = new Map(clonedRemote.map(c => [c.id, c]));
+      for (const [otherScope, list] of this.remoteCharacterScopes.entries()) {
+        if (otherScope === scope) continue;
+        for (let i = 0; i < list.length; i++) {
+          const inc = incomingById.get(list[i].id);
+          if (inc && ((inc as any).updatedAt || 0) >= ((list[i] as any).updatedAt || 0)) {
+            list[i] = toPlain(inc);
+          }
+        }
+      }
     }
 
     const local = new Map(this.characters.map(c => [c.id, c]));
-    const merged = new Map<string, CharacterData>();
+    const bestRemote = new Map<string, CharacterData>();
     for (const list of this.remoteCharacterScopes.values()) {
       for (const c of list) {
-        this.syncedCharacters.set(c.id, JSON.stringify(serializeCharacter(c)));
-        // Si hay una escritura local pendiente (debounce), la versión local manda.
-        const pendingLocal = this.cloud.isCharacterPending(c.id) ? local.get(c.id) : undefined;
-        merged.set(c.id, pendingLocal || c);
+        const prev = bestRemote.get(c.id);
+        if (!prev || ((c as any).updatedAt || 0) >= ((prev as any).updatedAt || 0)) {
+          bestRemote.set(c.id, c);
+        }
+      }
+    }
+
+    const merged = new Map<string, CharacterData>();
+    for (const [id, c] of bestRemote.entries()) {
+      const pendingLocal = this.cloud.isCharacterPending(id) ? local.get(id) : undefined;
+      if (pendingLocal) {
+        // Si hay una escritura local pendiente o en vuelo, conservamos la versión local
+        // y no pisamos syncedCharacters con el snapshot viejo.
+        merged.set(id, toPlain(pendingLocal));
+      } else {
+        this.syncedCharacters.set(id, JSON.stringify(serializeCharacter(c)));
+        merged.set(id, toPlain(c));
       }
     }
     for (const id of Array.from(this.syncedCharacters.keys())) {
@@ -983,11 +1010,13 @@ class CampaignStoreManager {
       }
     }
 
-    const index = this.characters.findIndex(c => c.id === char.id);
+    const copy = toPlain(char);
+    (copy as any).updatedAt = Date.now();
+    const index = this.characters.findIndex(c => c.id === copy.id);
     if (index >= 0) {
-      this.characters[index] = { ...char };
+      this.characters[index] = copy;
     } else {
-      this.characters.push({ ...char });
+      this.characters.push(copy);
     }
     // Update characterIds and memberUserIds in campaign if attached
     if (char.campaignId) {

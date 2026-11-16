@@ -242,6 +242,9 @@
   window.addEventListener('characters-updated', () => {
     if (currentCid && latestCombat) handleCombatUpdate(latestCombat);
   });
+  window.addEventListener('all-characters-updated', () => {
+    if (currentCid && latestCombat) handleCombatUpdate(latestCombat);
+  });
   window.addEventListener('character-updated', () => {
     if (currentCid && latestCombat) handleCombatUpdate(latestCombat);
   });

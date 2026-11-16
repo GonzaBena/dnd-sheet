@@ -28,6 +28,11 @@ const useEmulators = String(env.PUBLIC_USE_EMULATORS || '') === 'true';
  */
 export function isFirebaseConfigured(): boolean {
   if (typeof window === 'undefined') return false;
+  try {
+    if ((window as any).__DND_FORCE_LOCAL__ || localStorage.getItem('dnd_force_local') === '1') {
+      return false;
+    }
+  } catch (_) {}
   return Boolean(firebaseConfig.apiKey && firebaseConfig.projectId && (firebaseConfig.authDomain || useEmulators));
 }
 

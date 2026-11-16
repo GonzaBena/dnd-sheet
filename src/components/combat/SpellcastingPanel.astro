@@ -513,6 +513,7 @@
       const triggerSpellSave = (isSecret = false) => {
         const saveInfo = buildSaveInfo();
         const parsedDmg = parseSpellDice(sp.damageFormula || sp.damageDice);
+        const isHealing = /curaci[oó]n|curar/i.test(sp.damageType || '');
         window.dispatchEvent(new CustomEvent('open-dice-roller', {
           detail: {
             die: parsedDmg ? parsedDmg.die : 20,
@@ -523,6 +524,7 @@
               : `Salvación de ${saveInfo?.ability} contra ${sp.name} (CD ${saveInfo?.dc})`,
             tag: isSecret ? '#Privado' : '#Magia',
             isSecret,
+            isDamageRoll: Boolean(parsedDmg && !isHealing),
             saveInfo: saveInfo ? { ...saveInfo, isRollingEnemySave: !parsedDmg } : undefined,
           }
         }));
@@ -545,15 +547,17 @@
       const triggerSpellDmg = (isSecret = false) => {
         const parsed = parseSpellDice(sp.damageFormula || sp.damageDice || '1d8') || { count: 1, die: 8, mod: 0 };
         const saveInfo = buildSaveInfo();
+        const isHealing = /curaci[oó]n|curar/i.test(sp.damageType || '');
 
         window.dispatchEvent(new CustomEvent('open-dice-roller', {
           detail: {
             die: parsed.die,
             count: parsed.count,
             modifier: parsed.mod,
-            label: isSecret ? `Daño/Efecto Secreto de ${sp.name} (${sp.damageType || 'Efecto'})` : `${sp.damageType || 'Efecto'} de ${sp.name}`,
+            label: isSecret ? `Daño/Efecto Secreto de ${sp.name} (${sp.damageType || 'Efecto'})` : `Daño: ${sp.damageType || 'Efecto'} de ${sp.name}`,
             tag: isSecret ? '#Privado' : '#Magia',
             isSecret,
+            isDamageRoll: !isHealing,
             ...(saveInfo ? { saveInfo: { ...saveInfo, isRollingEnemySave: false } } : {}),
           }
         }));

@@ -351,6 +351,7 @@ import HandoutManager from '../dm/HandoutManager.astro';
   import { characterStore } from '../../scripts/state/characterStore.ts';
   import { userStore } from '../../scripts/state/userStore.ts';
   import { showAlert, showConfirm, showForm } from '../../scripts/ui/notify.ts';
+  import { syncCombatWithLiveCharacters } from '../../scripts/data/combatService.ts';
   import { initTabs } from '../../scripts/ui/tabs.ts';
 
   const root = document.getElementById('party-view-root');
@@ -397,8 +398,9 @@ import HandoutManager from '../dm/HandoutManager.astro';
   }
 
   async function initPartyView() {
-    // 1. Modo local sin Firebase configurado (D10)
-    if (!isFirebaseConfigured()) {
+    // 1. Modo local sin Firebase configurado (D10) — salvo que se fuerce con ?local=1 para tests
+    const urlParams = new URLSearchParams(window.location.search);
+    if (!isFirebaseConfigured() && urlParams.get('local') !== '1') {
       loadingEl?.classList.add('hidden');
       localNotice?.classList.remove('hidden');
       return;
@@ -434,8 +436,8 @@ import HandoutManager from '../dm/HandoutManager.astro';
     // Cargar ficha del jugador si pertenece a la campaña
     const currentUser = userStore.getCurrentUser();
     const myChar = campaignStore.getMyCharacterForCampaign(currentCampaignId, currentUser.id);
-    if (myChar && characterStore.get().id !== myChar.id) {
-      characterStore.loadCharacter(myChar);
+    if (myChar) {
+      characterStore.loadCharacter(myChar, true);
     }
 
     // Dados DM en PartyView
@@ -468,9 +470,14 @@ import HandoutManager from '../dm/HandoutManager.astro';
       if (await showConfirm('Cada personaje de la campaña recupera +8 PG.', { title: '¿Descanso Corto para todo el grupo?', confirmText: 'Aplicar' })) {
         const chars = campaignStore.getCharactersForCampaign(currentCampaignId);
         chars.forEach(c => {
-          c.hp.current = Math.min(c.hp.max, c.hp.current + 8);
-          campaignStore.saveCharacter(c);
+          const updated = JSON.parse(JSON.stringify(c));
+          updated.hp.current = Math.min(updated.hp.max, updated.hp.current + 8);
+          campaignStore.saveCharacter(updated);
+          if (characterStore.get().id === updated.id) {
+            characterStore.loadCharacter(updated, true);
+          }
         });
+        void syncCombatWithLiveCharacters(currentCampaignId).catch(() => {});
         journalStore.log(
           'Descanso Corto de Grupo',
           'El Dungeon Master decretó un descanso corto para todos los aventureros (+8 PG recuperados).',
@@ -488,10 +495,15 @@ import HandoutManager from '../dm/HandoutManager.astro';
       if (await showConfirm('Todos los personajes recuperan sus PG al máximo.', { title: '¿Descanso Largo para toda la mesa?', confirmText: 'Aplicar' })) {
         const chars = campaignStore.getCharactersForCampaign(currentCampaignId);
         chars.forEach(c => {
-          c.hp.current = c.hp.max;
-          if (c.hp.temp) c.hp.temp = 0;
-          campaignStore.saveCharacter(c);
+          const updated = JSON.parse(JSON.stringify(c));
+          updated.hp.current = updated.hp.max;
+          if (updated.hp.temp) updated.hp.temp = 0;
+          campaignStore.saveCharacter(updated);
+          if (characterStore.get().id === updated.id) {
+            characterStore.loadCharacter(updated, true);
+          }
         });
+        void syncCombatWithLiveCharacters(currentCampaignId).catch(() => {});
         journalStore.log(
           'Descanso Largo de Grupo',
           'El Dungeon Master concedió un descanso largo completo. Todos los aventureros han restablecido sus Puntos de Golpe al máximo.',
@@ -576,18 +588,20 @@ import HandoutManager from '../dm/HandoutManager.astro';
         return;
       }
       if (await showConfirm(`Recuperas +8 Puntos de Golpe en ${myChar.name}.`, { title: '¿Descanso Corto?', confirmText: 'Descansar (+8 PG)' })) {
-        myChar.hp.current = Math.min(myChar.hp.max, (myChar.hp.current || 0) + 8);
-        campaignStore.saveCharacter(myChar);
-        if (characterStore.get().id === myChar.id) {
-          characterStore.updateHp(myChar.hp.current);
+        const updated = JSON.parse(JSON.stringify(myChar));
+        updated.hp.current = Math.min(updated.hp.max, (updated.hp.current || 0) + 8);
+        campaignStore.saveCharacter(updated);
+        if (characterStore.get().id === updated.id) {
+          characterStore.loadCharacter(updated, true);
         }
+        if (currentCampaignId) void syncCombatWithLiveCharacters(currentCampaignId).catch(() => {});
         journalStore.log(
-          `Descanso Corto de ${myChar.name}`,
-          `${myChar.name} ha tomado un descanso corto (+8 PG recuperados).`,
+          `Descanso Corto de ${updated.name}`,
+          `${updated.name} ha tomado un descanso corto (+8 PG recuperados).`,
           ['#Descanso']
         );
         render();
-        showAlert(`¡Descanso corto aplicado! ${myChar.name} recuperó +8 PG (${myChar.hp.current}/${myChar.hp.max}).`, { kind: 'success', title: 'Descanso corto' });
+        showAlert(`¡Descanso corto aplicado! ${updated.name} recuperó +8 PG (${updated.hp.current}/${updated.hp.max}).`, { kind: 'success', title: 'Descanso corto' });
       }
     });
 
@@ -600,21 +614,23 @@ import HandoutManager from '../dm/HandoutManager.astro';
         return;
       }
       if (await showConfirm(`Tus Puntos de Golpe se restauran al máximo (${myChar.hp.max} PG) y se limpian PG temporales.`, { title: '¿Descanso Largo?', confirmText: 'Descansar al Máximo' })) {
-        myChar.hp.current = myChar.hp.max;
-        if (myChar.hp.temp) myChar.hp.temp = 0;
-        campaignStore.saveCharacter(myChar);
-        if (characterStore.get().id === myChar.id) {
+        const updated = JSON.parse(JSON.stringify(myChar));
+        updated.hp.current = updated.hp.max;
+        if (updated.hp.temp) updated.hp.temp = 0;
+        campaignStore.saveCharacter(updated);
+        if (characterStore.get().id === updated.id) {
           // longRest() restaura PG, espacios, recursos y quita efectos "hasta descanso largo" (y registra el diario).
           characterStore.longRest();
         } else {
           journalStore.log(
-            `Descanso Largo de ${myChar.name}`,
-            `${myChar.name} completó un descanso largo. Puntos de Golpe restaurados al máximo.`,
+            `Descanso Largo de ${updated.name}`,
+            `${updated.name} completó un descanso largo. Puntos de Golpe restaurados al máximo.`,
             ['#Descanso']
           );
         }
+        if (currentCampaignId) void syncCombatWithLiveCharacters(currentCampaignId).catch(() => {});
         render();
-        showAlert(`¡Descanso largo completado! ${myChar.name} tiene ${myChar.hp.max} PG.`, { kind: 'success', title: 'Descanso largo' });
+        showAlert(`¡Descanso largo completado! ${updated.name} tiene ${updated.hp.max} PG.`, { kind: 'success', title: 'Descanso largo' });
       }
     });
 
@@ -623,13 +639,14 @@ import HandoutManager from '../dm/HandoutManager.astro';
       const currentUser = userStore.getCurrentUser();
       const myChar = currentCampaignId ? campaignStore.getMyCharacterForCampaign(currentCampaignId, currentUser.id) : characterStore.get();
       if (!myChar) return;
-      myChar.inspiration = !myChar.inspiration;
-      campaignStore.saveCharacter(myChar);
-      if (characterStore.get().id === myChar.id) {
-        characterStore.toggleInspiration();
+      const updated = JSON.parse(JSON.stringify(myChar));
+      updated.inspiration = !updated.inspiration;
+      campaignStore.saveCharacter(updated);
+      if (characterStore.get().id === updated.id) {
+        characterStore.loadCharacter(updated, true);
       }
-      updatePlayerInspirationBadge(Boolean(myChar.inspiration));
-      showAlert(myChar.inspiration ? `¡${myChar.name} ahora está Inspirado!` : `Inspiración consumida en ${myChar.name}.`, { kind: 'info', title: 'Inspiración' });
+      updatePlayerInspirationBadge(Boolean(updated.inspiration));
+      showAlert(updated.inspiration ? `¡${updated.name} ahora está Inspirado!` : `Inspiración consumida en ${updated.name}.`, { kind: 'info', title: 'Inspiración' });
     });
 
     // Tirar Iniciativa Jugador

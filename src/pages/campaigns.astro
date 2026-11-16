@@ -234,7 +234,7 @@ import TurnNotifier from '../components/party/TurnNotifier.astro';
       const char = campaignStore.getCharacter(targetChar);
       if (char) {
         if (campaignStore.isCharacterOwner(char, currentUser.id)) {
-          characterStore.loadCharacter(char);
+          characterStore.loadCharacter(char, true);
         } else {
           console.warn(`[Security] Usuario ${currentUser.name} (${currentUser.id}) intentó abrir personaje protegido ${char.name} (${char.id})`);
           showAlert(`La ficha de "${char.name}" pertenece a ${char.playerName || 'otro jugador'} y solo puede ser modificada por su propietario.`, { kind: 'error', title: 'Acceso denegado' })
@@ -245,14 +245,14 @@ import TurnNotifier from '../components/party/TurnNotifier.astro';
       // If no character explicitly in URL, load character corresponding to the active campaign (if player)
       if (activeCampId && !isDm) {
         const myChar = campaignStore.getMyCharacterForCampaign(activeCampId, currentUser.id);
-        if (myChar && characterStore.get().id !== myChar.id) {
-          characterStore.loadCharacter(myChar);
+        if (myChar) {
+          characterStore.loadCharacter(myChar, true);
         }
       } else if (!activeCampId && !isDm) {
         // Standalone character fallback
         const standalone = campaignStore.getMyStandaloneCharacters(currentUser.id);
-        if (standalone.length > 0 && characterStore.get().id !== standalone[0].id) {
-          characterStore.loadCharacter(standalone[0]);
+        if (standalone.length > 0) {
+          characterStore.loadCharacter(standalone[0], true);
         }
       }
     }
@@ -298,8 +298,8 @@ import TurnNotifier from '../components/party/TurnNotifier.astro';
       const isDm = campaignStore.isCurrentUserDm(activeCampId || undefined);
       if (activeCampId && !isDm) {
         const myChar = campaignStore.getMyCharacterForCampaign(activeCampId, currentUser.id);
-        if (myChar && characterStore.get().id !== myChar.id) {
-          characterStore.loadCharacter(myChar);
+        if (myChar) {
+          characterStore.loadCharacter(myChar, true);
         }
       }
     };

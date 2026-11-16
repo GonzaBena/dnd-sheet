@@ -629,8 +629,17 @@ import { isOwnedBy } from '../../scripts/vtt/initiative';
                   modifier: bonusNum,
                   label: `Ataque con ${act.name} (${currentDistance} pies)`,
                   tag: '#Combate',
+                  targetId: target.id,
                   targetName: target.name,
                   targetAc: target.ac,
+                  isAttackRoll: true,
+                  followUpDamage: {
+                    count: dmgCount,
+                    die: dmgDie,
+                    modifier: dmgMod,
+                    damageType: act.damageType || 'Físico',
+                    weaponOrSpellName: act.name,
+                  },
                 },
               })
             );
@@ -647,8 +656,10 @@ import { isOwnedBy } from '../../scripts/vtt/initiative';
                   modifier: dmgMod,
                   label: `Daño de ${act.name} (${act.damageType || 'Daño'})`,
                   tag: '#Combate',
+                  targetId: target.id,
                   targetName: target.name,
                   targetAc: target.ac,
+                  isDamageRoll: true,
                 },
               })
             );
@@ -743,8 +754,17 @@ import { isOwnedBy } from '../../scripts/vtt/initiative';
                   modifier: atkBonus,
                   label: `Ataque de Conjuro: ${sp.name} (${currentDistance} pies)`,
                   tag: '#Magia',
+                  targetId: target.id,
                   targetName: target.name,
                   targetAc: target.ac,
+                  isAttackRoll: true,
+                  followUpDamage: {
+                    count: dmgCount,
+                    die: dmgDie,
+                    modifier: dmgMod,
+                    damageType: sp.damageType || 'Magia',
+                    weaponOrSpellName: sp.name,
+                  },
                 },
               })
             );
@@ -761,8 +781,10 @@ import { isOwnedBy } from '../../scripts/vtt/initiative';
                   modifier: dmgMod,
                   label: `Daño/Efecto de ${sp.name} (${sp.damageType || 'Magia'})`,
                   tag: '#Magia',
+                  targetId: target.id,
                   targetName: target.name,
                   targetAc: target.ac,
+                  isDamageRoll: !/curaci[oó]n|curar/i.test(sp.damageType || ''),
                 },
               })
             );
@@ -868,8 +890,10 @@ import { isOwnedBy } from '../../scripts/vtt/initiative';
           modifier: 0,
           label: `Ataque contra ${target.name} (${currentTargetDistanceFeet} pies)`,
           tag: '#Combate',
+          targetId: target.id,
           targetName: target.name,
           targetAc: target.ac,
+          isAttackRoll: true,
         },
       })
     );
@@ -884,6 +908,9 @@ import { isOwnedBy } from '../../scripts/vtt/initiative';
     if (currentCampaignId) renderCombat(getCurrentCombat(currentCampaignId));
   });
   window.addEventListener('characters-updated', () => {
+    if (currentCampaignId) renderCombat(getCurrentCombat(currentCampaignId));
+  });
+  window.addEventListener('all-characters-updated', () => {
     if (currentCampaignId) renderCombat(getCurrentCombat(currentCampaignId));
   });
 
