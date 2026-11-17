@@ -1,6 +1,6 @@
 # Spec 12: Reacciones en Vivo — dnd.gonzabena.com.ar
 
-Nov 17, 2026 · @Gonzalo Benavente · **Estado: En curso**
+Nov 17, 2026 · @Gonzalo Benavente · **Estado: Cerrada**
 
 Etapa H5 del [roadmap](../ROADMAP.md). Depende de H1 ([Spec 07](07-cimientos-de-la-hoja.spec.md), efectos activos y recursos), H2 ([Spec 08](08-equipo.spec.md), armaduras y armas), H3 ([Spec 10](10-descansos-y-recursos.spec.md), descansos) y H4 ([Spec 11](11-combate-en-la-hoja.spec.md), combate en la hoja y concentración).
 

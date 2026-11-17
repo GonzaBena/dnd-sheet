@@ -465,6 +465,7 @@
     buildPlayerCombatants,
     checkCanPlay,
     syncCombatWithLiveCharacters,
+    toggleCombatantReaction,
   } from '../../scripts/data/combatService.ts';
   import { DND_CONDITIONS, getConditionInfo } from '../../scripts/vtt/conditions.ts';
   import { areAllPlayersInInitiative, computeAutoLinks } from '../../scripts/vtt/initiative.ts';
@@ -834,6 +835,22 @@
                     CA ${c.ac || 10}
                   </span>
 
+                  <!-- Indicador y Toggle de Reacción (Spec 12, H5) -->
+                  <button
+                    type="button"
+                    class="dm-toggle-reaction-btn px-1.5 py-0.5 rounded text-[10px] font-bold font-mono transition-all cursor-pointer whitespace-nowrap shrink-0 inline-flex items-center gap-1 border ${
+                      c.reactionUsed
+                        ? 'bg-[#10141d] border-[#222f42] text-[#64748b] hover:text-[#94a3b8]'
+                        : 'bg-amber-500/15 border-amber-500/40 text-amber-300 hover:bg-amber-500/25 shadow-[0_0_8px_rgba(245,158,11,0.2)]'
+                    }"
+                    data-id="${c.id}"
+                    data-used="${Boolean(c.reactionUsed)}"
+                    title="${c.reactionUsed ? 'Reacción gastada este asalto (clic para recargar)' : 'Reacción disponible (clic para gastar)'}"
+                  >
+                    <span class="material-symbols-outlined text-[13px] ${c.reactionUsed ? 'text-[#64748b]' : 'text-amber-400'}">bolt</span>
+                    <span>${c.reactionUsed ? 'R. Gastada' : 'R. Lista'}</span>
+                  </button>
+
                   <!-- Token enlazado del mapa (T-55) -->
                   <select
                     class="dm-token-select min-w-0 max-w-[9rem] px-1.5 py-0.5 rounded bg-[#10141d] border border-[#222f42] text-[#cbd5e1] text-[10px] cursor-pointer focus:border-amber-500/40 focus:outline-none"
@@ -1135,6 +1152,17 @@
         const id = target.dataset.id;
         if (!id) return;
         await duplicateCombatantInCombat(cid, id, 1);
+      });
+    });
+
+    // Alternar Reacción (Spec 12, H5)
+    rootEl?.querySelectorAll('.dm-toggle-reaction-btn').forEach((btn) => {
+      btn.addEventListener('click', async (e) => {
+        const target = e.currentTarget as HTMLElement;
+        const id = target.dataset.id;
+        const used = target.dataset.used === 'true';
+        if (!id || !currentCampaignId) return;
+        await toggleCombatantReaction(currentCampaignId, id, !used);
       });
     });
 

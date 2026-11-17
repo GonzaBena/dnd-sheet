@@ -9,7 +9,7 @@ import type { Resource } from '../models/resource.ts';
 import type { ActiveEffect } from '../models/effect.ts';
 import { buildAttackFromWeapon, upsertAttack } from '../dnd/weaponAttack.ts';
 import { getArmorClass } from '../dnd/ac.ts';
-import { addEffect, removeEffect, tickRounds, expireOnRest, roundDelta, type AddResult } from '../dnd/effects.ts';
+import { addEffect, removeEffect, tickRounds, expireOnRest, expireUntilNextTurn, roundDelta, type AddResult } from '../dnd/effects.ts';
 import {
   executeShortRestLogic,
   executeLongRestLogic,
@@ -24,6 +24,8 @@ import { userStore } from './userStore.ts';
 import { generateCharacterSyncId } from '../utils/ids.ts';
 import { applyHpOp, describeHpChange, normalizeHp, sameHp, type HitPoints, type HpOp } from '../dnd/hp.ts';
 import { evaluateConcentrationOnDamage } from '../dnd/concentration.ts';
+import { executeReaction, findAvailableReactions } from '../dnd/reactions.ts';
+import type { ReactionExecutionResult, ReactionTriggerPayload } from '../models/reaction.ts';
 
 const STORAGE_KEY = 'dnd_active_character_v1';
 
@@ -57,7 +59,9 @@ class CharacterStoreManager {
       const prevCurrent = this.character.hp.current;
       this.character.hp = { ...hp };
       if (prevCurrent > hp.current) {
-        this.checkConcentrationOnDamage(prevCurrent - hp.current);
+        const dmg = prevCurrent - hp.current;
+        this.checkConcentrationOnDamage(dmg);
+        this.checkReactionsOnDamage(dmg);
       }
       this.saveAndNotify(false, true);
     }) as EventListener);
@@ -180,7 +184,9 @@ class CharacterStoreManager {
         this.saveAndNotify(false, true);
       }
       if (mutation.before.current > mutation.optimistic.current) {
-        this.checkConcentrationOnDamage(mutation.before.current - mutation.optimistic.current);
+        const dmg = mutation.before.current - mutation.optimistic.current;
+        this.checkConcentrationOnDamage(dmg);
+        this.checkReactionsOnDamage(dmg);
       }
       void mutation.done.then(change => { if (change) log(change); });
       return { before: mutation.before, after: mutation.optimistic };
@@ -193,7 +199,9 @@ class CharacterStoreManager {
     const after = applyHpOp(before, op);
     this.character.hp = after;
     if (before.current > after.current) {
-      this.checkConcentrationOnDamage(before.current - after.current);
+      const dmg = before.current - after.current;
+      this.checkConcentrationOnDamage(dmg);
+      this.checkReactionsOnDamage(dmg);
     }
     this.saveAndNotify();
     log({ before, after });
@@ -204,6 +212,24 @@ class CharacterStoreManager {
     const check = evaluateConcentrationOnDamage(this.character, damageTaken);
     if (check && typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('concentration-check-required', { detail: check }));
+    }
+  }
+
+  public checkReactionsOnDamage(damageTaken: number, damageType?: string): void {
+    if (damageTaken <= 0 || !this.isReactionAvailable()) return;
+    const trigger: ReactionTriggerPayload = {
+      triggerType: 'damage_taken',
+      targetCharacterId: this.character.id,
+      damageAmount: damageTaken,
+      damageType,
+    };
+    const reactions = findAvailableReactions(this.character, trigger).filter((r) => r.canExecute);
+    if (reactions.length > 0 && typeof window !== 'undefined') {
+      window.dispatchEvent(
+        new CustomEvent('show-reaction-prompt', {
+          detail: { trigger, reactions },
+        })
+      );
     }
   }
 
@@ -651,11 +677,21 @@ class CharacterStoreManager {
     this.saveAndNotify();
   }
 
-  // ---- Combate en la Hoja: Turnos y Modificadores (Spec 11, H4) ----
+  // ---- Combate en la Hoja: Turnos, Modificadores y Reacciones (Spec 11, H4 & Spec 12, H5) ----
 
   public resetTurn(): void {
-    this.character.turnState = { usedModifiers: [] };
+    if (!this.character.turnState) this.character.turnState = {};
+    this.character.turnState.usedModifiers = [];
+    this.character.turnState.reactionUsed = false;
+    const { effects, expired } = expireUntilNextTurn(this.character.activeEffects);
+    this.character.activeEffects = effects;
     this.saveAndNotify();
+    this.emitEffectsExpired(expired);
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('character-reaction-changed', {
+        detail: { characterId: this.character.id, reactionUsed: false }
+      }));
+    }
   }
 
   public markTurnModifierUsed(id: string): void {
@@ -669,6 +705,52 @@ class CharacterStoreManager {
 
   public isTurnModifierUsed(id: string): boolean {
     return Boolean(this.character.turnState?.usedModifiers?.includes(id));
+  }
+
+  public isReactionAvailable(): boolean {
+    return !Boolean(this.character.turnState?.reactionUsed);
+  }
+
+  public useReaction(name?: string): boolean {
+    if (!this.character.turnState) this.character.turnState = {};
+    this.character.turnState.reactionUsed = true;
+    this.saveAndNotify();
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('character-reaction-changed', {
+        detail: { characterId: this.character.id, reactionUsed: true, name }
+      }));
+    }
+    return true;
+  }
+
+  public resetReaction(): void {
+    if (!this.character.turnState) this.character.turnState = {};
+    this.character.turnState.reactionUsed = false;
+    const { effects, expired } = expireUntilNextTurn(this.character.activeEffects);
+    this.character.activeEffects = effects;
+    this.saveAndNotify();
+    this.emitEffectsExpired(expired);
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('character-reaction-changed', {
+        detail: { characterId: this.character.id, reactionUsed: false }
+      }));
+    }
+  }
+
+  public executeReaction(
+    reactionId: string,
+    options?: { spellSlotLevel?: number; damageTaken?: number; triggerPayload?: any }
+  ): ReactionExecutionResult {
+    const { updatedCharacter, result } = executeReaction(this.character, reactionId, options);
+    this.character = updatedCharacter;
+    this.saveAndNotify();
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('character-reaction-changed', {
+        detail: { characterId: this.character.id, reactionUsed: true, reactionName: result.reactionName }
+      }));
+    }
+    journalStore.log(result.reactionName, result.logMessage, ['#Combate', '#Reacción']);
+    return result;
   }
 
   // ---- Efectos activos (Spec 07, Fase B) ----
@@ -725,6 +807,19 @@ class CharacterStoreManager {
     this.saveAndNotify();
     this.emitEffectsExpired(expired);
     return expired;
+  }
+
+  /**
+   * Sincroniza el turno de combate con el personaje: si es su turno, restablece su reacción y modificadores.
+   */
+  public syncCombatTurn(combat: { active: boolean; turnIndex: number; combatants: { characterId?: string }[] }): void {
+    if (!combat || !combat.active || !this.character?.id) return;
+    const currentCombatant = combat.combatants[combat.turnIndex];
+    if (currentCombatant && currentCombatant.characterId === this.character.id) {
+      if (this.character.turnState?.reactionUsed) {
+        this.resetTurn();
+      }
+    }
   }
 
   private expireEffectsOnRest(rest: 'short' | 'long'): ActiveEffect[] {

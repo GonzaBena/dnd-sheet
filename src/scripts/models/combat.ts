@@ -17,6 +17,8 @@ export interface Combatant {
   ownerUid?: string;
   characterId?: string;
   avatarUrl?: string;
+  /** Indica si el combatiente ya gastó su reacción en el asalto actual (Spec 12, H5). */
+  reactionUsed?: boolean;
 }
 
 export interface Combat {

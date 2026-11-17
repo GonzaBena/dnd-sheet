@@ -1,0 +1,54 @@
+// src/scripts/models/reaction.ts
+// Tipos para el sistema de Reacciones en Vivo (Spec 12, H5).
+
+export type ReactionTriggerType =
+  | 'attack_hits'         // Un ataque iguala o supera la CA
+  | 'damage_taken'        // Recibe daño de cualquier tipo o elemental
+  | 'opportunity_attack'  // Criatura hostil abandona alcance cuerpo a cuerpo
+  | 'spell_cast'          // Criatura a la vista lanza un conjuro
+  | 'ally_attacked'       // Aliado adyacente es atacado
+  | 'manual';             // Activación a demanda por el usuario
+
+export interface ReactionTriggerPayload {
+  triggerType: ReactionTriggerType;
+  sourceCombatantName?: string;
+  targetCharacterId: string;
+  attackRoll?: number;
+  targetAc?: number;
+  damageAmount?: number;
+  damageType?: string; // 'fire', 'cold', 'lightning', 'acid', 'thunder', etc.
+  spellName?: string;
+  isOpportunityLeaving?: boolean;
+}
+
+export interface ReactionCost {
+  spellSlotLevel?: number;
+  resourceId?: string;
+  amount?: number;
+}
+
+export interface AvailableReaction {
+  id: string;
+  name: string;
+  sourceType: 'spell' | 'feature' | 'action';
+  description: string;
+  triggerDescription: string;
+  cost?: ReactionCost;
+  effectSummary: string;
+  canExecute: boolean;
+  reasonDisabled?: string;
+  /** Nivel de ranura mínimo sugerido para conjuros */
+  minSlotLevel?: number;
+  /** Niveles de ranura disponibles si es conjuro escalable */
+  availableSlots?: number[];
+}
+
+export interface ReactionExecutionResult {
+  success: boolean;
+  reactionName: string;
+  logMessage: string;
+  appliedEffectName?: string;
+  consumedSlotLevel?: number;
+  damageMitigated?: number;
+  newAc?: number;
+}

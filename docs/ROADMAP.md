@@ -31,15 +31,19 @@ Orden estratégico de implementación: combina las etapas mecánicas de la hoja 
   ├─ Canal de feedback y métricas de embudo               └─ Resumen interactivo
   └─ Verificación de cuotas y producción (Google OAuth)                │
                                                                        ▼
-                                                        [H4] Spec 11: Combate en la Hoja (Siguiente)
+                                                        [H4] Spec 11: Combate en la Hoja (Cerrada)
                                                           ├─ Consumo 1 vez por turno
                                                           ├─ Validación de espacios y conjuros
                                                           ├─ Concentración automática y salvaciones
                                                           └─ Ventaja/desventaja explicadas
                                                                        │
-                                                        [H5] Spec 12: Reacciones en vivo
+                                                        [H5] Spec 12: Reacciones en vivo (Cerrada)
+                                                          ├─ Recurso Reacción 1/ronda (reset al inicio de turno)
+                                                          ├─ Escudo (+5 CA hasta próximo turno) y Absorber Elementos
+                                                          ├─ Esquiva Asombrosa (½ daño) y Ataque de Oportunidad
+                                                          └─ Banner flotante ReactionPromptBanner y control DM
                                                                        │
-                                                        [H6] Spec 13: Alcance y Tokens
+                                                        [H6] Spec 13: Alcance y Tokens (Siguiente)
                                                                        │
                                                         [H7] Spec 14: Layouts DM / Jugador
                                                                        │
@@ -111,7 +115,7 @@ Orden estratégico de implementación: combina las etapas mecánicas de la hoja 
 
 ---
 
-### H5 · Reacciones en Vivo *(En curso)*
+### H5 · Reacciones en Vivo *(Cerrada)*
 * **Objetivo:** Ofrecer y ejecutar reacciones en tiempo real durante el turno del adversario (Escudo, Absorber Elementos, Esquiva Asombrosa, Ataque de Oportunidad, etc.).
 * **Spec:** [`docs/Specs/12-reacciones.spec.md`](Specs/12-reacciones.spec.md).
 * **Planes por fase:** [`docs/Plans/12-reacciones/`](Plans/12-reacciones/).
@@ -162,8 +166,8 @@ Orden estratégico de implementación: combina las etapas mecánicas de la hoja 
 | 09 | M1 | [`Specs/09-lanzamiento-y-onboarding.spec.md`](Specs/09-lanzamiento-y-onboarding.spec.md) | Cerrada (M1 cerrada) |
 | 10 | H3 | [`Specs/10-descansos-y-recursos.spec.md`](Specs/10-descansos-y-recursos.spec.md) | Cerrada (H3 cerrada) |
 | 11 | H4 | [`Specs/11-combate-en-la-hoja.spec.md`](Specs/11-combate-en-la-hoja.spec.md) | Cerrada (H4 cerrada) |
-| 12 | H5 | [`Specs/12-reacciones.spec.md`](Specs/12-reacciones.spec.md) | **En curso** (Spec y planes redactados) |
-| 13 | H6 | `Specs/13-alcance-y-tokens.spec.md` | Siguiente (por escribir) |
+| 12 | H5 | [`Specs/12-reacciones.spec.md`](Specs/12-reacciones.spec.md) | Cerrada (H5 cerrada) |
+| 13 | H6 | `Specs/13-alcance-y-tokens.spec.md` | **Siguiente** (por escribir) |
 | 14 | H7 | `Specs/14-layouts.spec.md` | Por escribir |
 | 15 | H8 | [`Specs/15-zonas-de-hechizo.spec.md`](Specs/15-zonas-de-hechizo.spec.md) | Borrador (para después) |
 | 16 | Pulido | [`Specs/16-pantalla-de-carga.spec.md`](Specs/16-pantalla-de-carga.spec.md) | Borrador (transversal, puede entrar entre H4 y H5) |
@@ -172,8 +176,8 @@ Orden estratégico de implementación: combina las etapas mecánicas de la hoja 
 
 ## Próximo Paso Inmediato
 
-Ejecutar la **Fase A de la Spec 12 (H5 · Reacciones en Vivo)**:
-1. Crear el modelo de tipos en `src/scripts/models/reaction.ts`.
-2. Añadir la duración `untilNextTurn` a `EffectDuration` y lógica de expiración en `effects.ts`.
-3. Incorporar `reactionUsed` en `CharacterData.turnState` y `Combatant`.
-4. Implementar el ciclo de recuperación automática de reacción al tomar el turno en `src/scripts/vtt/initiative.ts`.
+Iniciar la **Spec 13 (H6 · Alcance y Tokens Propios)**:
+1. Redactar la spec técnica en `docs/Specs/13-alcance-y-tokens.spec.md`.
+2. Crear los planes por fase (`docs/Plans/13-alcance-y-tokens/`).
+3. Detección y validación de distancias tácticas de armas y conjuros según el mapa.
+4. Soporte para control de tokens de compañeros, monturas e invocaciones vinculadas al personaje.

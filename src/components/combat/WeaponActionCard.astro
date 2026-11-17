@@ -13,6 +13,15 @@
     <div class="flex items-center gap-2">
       <button
         type="button"
+        id="toggle-reaction-btn"
+        class="text-[10px] font-bold px-2.5 py-1 rounded-lg border flex items-center gap-1 cursor-pointer transition-colors"
+        title="Alternar estado de reacción en este asalto"
+      >
+        <span class="material-symbols-outlined text-[13px]" id="reaction-badge-icon">bolt</span>
+        <span id="reaction-badge-text">Reacción</span>
+      </button>
+      <button
+        type="button"
         id="reset-combat-turn-btn"
         class="text-[10px] text-sky-400 hover:text-sky-300 font-bold bg-sky-500/10 hover:bg-sky-500/20 px-2.5 py-1 rounded-lg border border-sky-500/30 flex items-center gap-1 cursor-pointer transition-colors"
         title="Reiniciar facultades de 1 vez por turno (Ataque Furtivo, etc.)"
@@ -48,8 +57,24 @@
   <!-- Slot para barra de turno activo (TurnNotifier) -->
   <div data-turn-bar-slot class="hidden mb-3"></div>
 
-  <div class="section-body grid grid-cols-1 gap-3 items-start" id="weapon-actions-container">
-    <!-- Populated by JavaScript -->
+  <div class="section-body space-y-4">
+    <div class="grid grid-cols-1 gap-3 items-start" id="weapon-actions-container">
+      <!-- Populated by JavaScript -->
+    </div>
+
+    <!-- Subsección de Reacciones de Combate (Spec 12, H5) -->
+    <div class="pt-3 border-t border-[#222f42]/60" id="combat-reactions-section">
+      <div class="flex items-center justify-between mb-2.5">
+        <h4 class="text-xs font-headline font-bold text-amber-300 uppercase tracking-wider flex items-center gap-1.5">
+          <span class="material-symbols-outlined text-amber-400 text-[16px]">bolt</span>
+          <span>Reacciones de Combate</span>
+        </h4>
+        <span class="text-[10px] text-[#94a3b8] font-mono" id="reactions-count-badge">0 disponibles</span>
+      </div>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-2" id="combat-reactions-list">
+        <!-- Poblado dinámicamente -->
+      </div>
+    </div>
   </div>
 </div>
 
@@ -61,12 +86,28 @@
   import { showAlert } from '../../scripts/ui/notify';
   import { getAvailableCombatModifiers, combineDamageModifiers, parseFormulaDice } from '../../scripts/dnd/combat';
   import { evaluateAdvantage } from '../../scripts/dnd/advantage';
+  import { findAvailableReactions } from '../../scripts/dnd/reactions';
   import type { EquipSlot } from '../../scripts/models/character';
 
   const container = document.getElementById('weapon-actions-container');
   const addWeaponBtn = document.getElementById('open-add-weapon-btn');
   const resetTurnBtn = document.getElementById('reset-combat-turn-btn');
   const turnBadge = document.getElementById('turn-used-badge');
+  const toggleReactionBtn = document.getElementById('toggle-reaction-btn');
+  const reactionBadgeIcon = document.getElementById('reaction-badge-icon');
+  const reactionBadgeText = document.getElementById('reaction-badge-text');
+  const reactionsList = document.getElementById('combat-reactions-list');
+  const reactionsCountBadge = document.getElementById('reactions-count-badge');
+
+  toggleReactionBtn?.addEventListener('click', () => {
+    if (characterStore.isReactionAvailable()) {
+      characterStore.useReaction('Manual');
+      showAlert('Reacción marcada como gastada en este asalto.', { kind: 'info' });
+    } else {
+      characterStore.resetReaction();
+      showAlert('Reacción restablecida (disponible).', { kind: 'info' });
+    }
+  });
 
   addWeaponBtn?.addEventListener('click', () => {
     window.dispatchEvent(new CustomEvent('open-add-weapon-modal'));
@@ -387,11 +428,88 @@
       wrapper.appendChild(card);
       container.appendChild(wrapper);
     });
+
+    renderReactions(char);
+  }
+
+  function renderReactions(char: any) {
+    const isAvail = !char.turnState?.reactionUsed;
+    if (toggleReactionBtn) {
+      if (isAvail) {
+        toggleReactionBtn.className = 'text-[10px] text-amber-300 hover:text-amber-200 font-bold bg-amber-500/15 hover:bg-amber-500/25 px-2.5 py-1 rounded-lg border border-amber-500/40 flex items-center gap-1 cursor-pointer transition-colors shadow-xs';
+        if (reactionBadgeText) reactionBadgeText.textContent = 'R. Lista';
+        if (reactionBadgeIcon) reactionBadgeIcon.className = 'material-symbols-outlined text-[13px] text-amber-400';
+      } else {
+        toggleReactionBtn.className = 'text-[10px] text-[#64748b] hover:text-[#94a3b8] font-bold bg-[#18202e] hover:bg-[#222f42] px-2.5 py-1 rounded-lg border border-[#222f42] flex items-center gap-1 cursor-pointer transition-colors';
+        if (reactionBadgeText) reactionBadgeText.textContent = 'R. Gastada';
+        if (reactionBadgeIcon) reactionBadgeIcon.className = 'material-symbols-outlined text-[13px] text-[#64748b]';
+      }
+    }
+
+    if (!reactionsList) return;
+    reactionsList.innerHTML = '';
+
+    const available = findAvailableReactions(char, { triggerType: 'manual', targetCharacterId: char.id });
+    if (reactionsCountBadge) {
+      const viableCount = available.filter(r => r.canExecute).length;
+      reactionsCountBadge.textContent = `${viableCount} ${viableCount === 1 ? 'disponible' : 'disponibles'}`;
+    }
+
+    if (available.length === 0) {
+      reactionsList.innerHTML = '<div class="text-[11px] text-[#64748b] italic py-1 col-span-2">No hay conjuros o rasgos de reacción configurados.</div>';
+      return;
+    }
+
+    available.forEach(r => {
+      const card = document.createElement('div');
+      card.className = `p-2.5 rounded-xl border text-xs flex flex-col justify-between gap-1.5 transition-all ${
+        r.canExecute
+          ? 'bg-[#18202e] border-[#222f42] hover:border-amber-500/40'
+          : 'bg-[#10141d]/70 border-[#222f42]/40 opacity-75'
+      }`;
+
+      card.innerHTML = `
+        <div>
+          <div class="flex items-center justify-between gap-1.5">
+            <span class="font-bold font-headline text-[#f1f5f9] truncate">${r.name}</span>
+            <span class="text-[9px] px-1.5 py-0.2 rounded font-mono ${
+              r.canExecute ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' : 'bg-[#18202e] text-[#64748b]'
+            }">${r.sourceType === 'spell' ? 'Conjuro' : r.sourceType === 'feature' ? 'Rasgo' : 'Acción'}</span>
+          </div>
+          <p class="text-[10px] text-amber-200/80 mt-0.5 line-clamp-1 italic">${r.triggerDescription}</p>
+          <p class="text-[11px] text-[#94a3b8] mt-1 line-clamp-2">${r.description}</p>
+        </div>
+        <div class="flex items-center justify-between gap-2 mt-1 pt-1.5 border-t border-[#222f42]/40">
+          <span class="text-[10px] text-[#cbd5e1] font-mono truncate">${r.effectSummary}</span>
+          <button
+            type="button"
+            class="reaction-activate-btn px-2 py-1 rounded bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 text-[10px] font-bold border border-amber-500/40 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed shrink-0 transition-colors"
+            ${!r.canExecute ? 'disabled' : ''}
+            title="${r.canExecute ? 'Activar esta reacción' : (r.reasonDisabled || 'No disponible')}"
+          >
+            ⚡ Usar
+          </button>
+        </div>
+      `;
+
+      card.querySelector('.reaction-activate-btn')?.addEventListener('click', () => {
+        characterStore.executeReaction(r.id, {
+          spellSlotLevel: r.cost?.spellSlotLevel,
+        });
+        showAlert(`⚡ Reacción ${r.name} ejecutada.`, { kind: 'success' });
+      });
+
+      reactionsList.appendChild(card);
+    });
   }
 
   renderWeapons(characterStore.get());
 
   window.addEventListener('character-updated', ((e: CustomEvent) => {
     renderWeapons(e.detail.character);
+  }) as EventListener);
+
+  window.addEventListener('character-reaction-changed', (() => {
+    renderReactions(characterStore.get());
   }) as EventListener);
 </script>

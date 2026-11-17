@@ -266,9 +266,11 @@ export interface CharacterData {
   
   quickSlotItemId?: string | null;
 
-  /** Estado del turno en combate (Spec 11, H4): modificadores o facultades usadas este turno. */
+  /** Estado del turno en combate (Spec 11, H4 & Spec 12, H5): modificadores y reacción. */
   turnState?: {
     usedModifiers?: string[];
+    /** Indica si la única reacción del asalto fue consumida */
+    reactionUsed?: boolean;
   };
 
   features: {

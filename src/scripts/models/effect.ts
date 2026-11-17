@@ -6,6 +6,7 @@ export type EffectDuration =
   | { kind: 'untilRest'; rest: 'short' | 'long' }
   | { kind: 'concentration' }
   | { kind: 'untilUsed' }
+  | { kind: 'untilNextTurn' }
   | { kind: 'indefinite' };
 
 export interface Modifier {
