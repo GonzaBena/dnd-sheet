@@ -1128,11 +1128,17 @@ import DeleteAccountModal from '../components/modals/DeleteAccountModal.astro';
   const drawerDeleteAccountBtn = document.getElementById('drawer-item-delete-account');
 
   function syncLandingVsDashboard(state: string) {
-    const forceLanding = new URLSearchParams(window.location.search).get('landing') === '1';
+    const params = new URLSearchParams(window.location.search);
+    const forceLanding = params.get('landing') === '1';
+    const isDemoParam = params.get('demo') === '1';
+    if (isDemoParam) {
+      try { localStorage.setItem('dnd_demo_mode', '1'); } catch (_) {}
+    }
+    const isDemo = isDemoParam || (typeof localStorage !== 'undefined' && localStorage.getItem('dnd_demo_mode') === '1');
     const wasAuthed = typeof localStorage !== 'undefined' && localStorage.getItem('dnd_cloud_authed') === '1';
     const isAuthed = cloudSession.isCloud()
       ? (((state === 'ready') || (state === 'loading' && wasAuthed)) && !forceLanding)
-      : (!forceLanding && (campaignStore.getAllCampaigns().length > 0 || (typeof window !== 'undefined' && localStorage.getItem('dnd_demo_mode') === '1')));
+      : (!forceLanding && (campaignStore.getCampaigns().length > 0 || isDemo));
 
     if (landingView) {
       landingView.classList.toggle('hidden', isAuthed);

@@ -77,7 +77,7 @@ with sync_playwright() as p:
     # 1. PÁGINA PRINCIPAL (/) - GESTOR DE CAMPAÑAS Y PERSONAJES
     # -------------------------------------------------------------------------
     def test_index_buttons():
-        page.goto(f"{BASE}/", wait_until="domcontentloaded")
+        page.goto(f"{BASE}/?demo=1", wait_until="domcontentloaded")
         page.wait_for_selector("#btn-create-campaign-top", timeout=8000)
 
         # Abrir y cerrar modal Crear Campaña
@@ -108,6 +108,7 @@ with sync_playwright() as p:
         page.click("#btn-nav-compendium-top")
         page.wait_for_selector("#compendium-modal:not(.hidden)", timeout=5000)
         page.click("#compendium-close-btn")
+        page.evaluate("try { localStorage.removeItem('dnd_demo_mode'); } catch(e) {}")
         return "Index buttons OK"
 
     record("E2E Browser [/]: Botones de Crear Campaña, Crear Personaje (Rápido/Manual) y Compendio", test_index_buttons)
