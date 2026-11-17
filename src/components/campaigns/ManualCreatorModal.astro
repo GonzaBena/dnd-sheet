@@ -903,6 +903,7 @@ const lblCls = 'text-[#94a3b8] block mb-1 text-xs font-bold';
   import { showAlert } from '../../scripts/ui/notify';
   import { campaignStore } from '../../scripts/state/campaignStore';
   import { initSteps } from '../../scripts/ui/modalSteps';
+  import { telemetry } from '../../scripts/analytics/telemetry';
   import { CLASS_DEFINITIONS, type AbilityKeyType } from '../../scripts/dnd/classes';
   import { calculateModifier, calculateProficiencyBonus } from '../../scripts/dnd/calculations';
   import {
@@ -1091,6 +1092,10 @@ const lblCls = 'text-[#94a3b8] block mb-1 text-xs font-bold';
     });
   }
 
+  let currentStepName = 'identidad';
+  let currentStepIndex = 1;
+  let characterCreated = false;
+
   const steps = form
     ? initSteps({
         form,
@@ -1113,6 +1118,12 @@ const lblCls = 'text-[#94a3b8] block mb-1 text-xs font-bold';
           return null;
         },
         onRender: ({ id }) => {
+          const stepPages = ['identidad', 'origen', 'atributos', 'habilidades', 'equipo'];
+          const idx = stepPages.indexOf(id);
+          currentStepName = id;
+          currentStepIndex = idx >= 0 ? idx + 1 : 1;
+          telemetry.trackStep('manual', id, currentStepIndex);
+
           if (id === 'atributos') {
             renderStatsStep();
           } else if (id === 'habilidades') {
@@ -1916,11 +1927,25 @@ const lblCls = 'text-[#94a3b8] block mb-1 text-xs font-bold';
   closeBtn?.addEventListener('click', () => dialog?.close());
   cancelBtn?.addEventListener('click', () => dialog?.close());
 
+  dialog?.addEventListener('close', () => {
+    if (!characterCreated) {
+      telemetry.track('character_creator_abandon', {
+        creatorType: 'manual',
+        step: currentStepIndex,
+        stepName: currentStepName,
+      });
+    }
+  });
+
   window.addEventListener('open-manual-creator-modal', ((
     e: CustomEvent<{ targetCampaignId?: string | null }>
   ) => {
     currentTargetCampaignId = e.detail?.targetCampaignId ?? null;
+    characterCreated = false;
+    currentStepName = 'identidad';
+    currentStepIndex = 1;
     resetManualCreator();
+    telemetry.track('character_creator_open', { creatorType: 'manual' });
     if (dialog && !dialog.open) {
       dialog.showModal();
     }
@@ -1936,10 +1961,16 @@ const lblCls = 'text-[#94a3b8] block mb-1 text-xs font-bold';
     }
 
     const charData = collectBuiltCharacter();
+    characterCreated = true;
     dialog?.close();
 
     try {
       const created = campaignStore.createCharacter(charData, currentTargetCampaignId);
+      telemetry.track('character_creator_complete', {
+        creatorType: 'manual',
+        race: created.race,
+        className: created.className,
+      });
       showAlert(
         `¡${created.name} (${created.race} • ${created.className} Nvl. ${created.level}) ha sido creado con tu configuración manual!`,
         { kind: 'success', title: 'Personaje creado manualmente' }

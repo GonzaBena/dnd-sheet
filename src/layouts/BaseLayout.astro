@@ -74,10 +74,14 @@ const {
   import { characterStore } from '../scripts/state/characterStore.ts';
   import { userStore } from '../scripts/state/userStore.ts';
   import type { DmEvent } from '../scripts/models/campaign.ts';
+  import { telemetry } from '../scripts/analytics/telemetry.ts';
 
   import { startGroupRestSync } from '../scripts/state/groupRestSync.ts';
   import { startEffectsRoundSync } from '../scripts/state/effectsRoundSync.ts';
   import { cloudSession } from '../scripts/data/cloudSync.ts';
+
+  // Inicializar telemetría de producto y capturas de error
+  telemetry.init();
   startGroupRestSync();
 
   // Descuento de rondas de los efectos: en todas las páginas, no solo en la hoja.

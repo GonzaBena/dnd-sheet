@@ -126,6 +126,16 @@ import DeleteAccountModal from '../components/modals/DeleteAccountModal.astro';
               <span id="nav-settings-user-email" class="text-[10px] text-[#94a3b8] truncate block"></span>
             </div>
 
+            <!-- Option Admin (solo visible para elgonzatron@gmail.com) -->
+            <a
+              href="/admin"
+              id="btn-admin-link-top"
+              class="hidden w-full text-left px-3.5 py-2 text-amber-400 hover:bg-[#18202e] hover:text-amber-300 items-center gap-2.5 transition-colors cursor-pointer"
+            >
+              <span class="material-symbols-outlined text-[16px] text-amber-400">admin_panel_settings</span>
+              <span>Panel de Analíticas</span>
+            </a>
+
             <!-- Option 1: Cerrar Sesión -->
             <button
               type="button"
@@ -416,6 +426,16 @@ import DeleteAccountModal from '../components/modals/DeleteAccountModal.astro';
 
     <!-- Drawer Footer -->
     <div class="p-3.5 border-t border-[#222f42] space-y-2.5 bg-[#10141d]">
+      <!-- Panel Admin (Mobile) -->
+      <a
+        href="/admin"
+        id="drawer-item-admin"
+        class="hidden w-full p-2.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-300 items-center justify-center gap-2 text-xs font-bold transition-colors cursor-pointer"
+      >
+        <span class="material-symbols-outlined text-[16px]">admin_panel_settings</span>
+        <span>Panel de Analíticas</span>
+      </a>
+
       <!-- Cerrar Sesión (Cloud) -->
       <button
         type="button"
@@ -471,6 +491,7 @@ import DeleteAccountModal from '../components/modals/DeleteAccountModal.astro';
   import { characterStore } from '../scripts/state/characterStore';
   import { userStore } from '../scripts/state/userStore';
   import { cloudSession } from '../scripts/data/cloudSync';
+  import { isAdmin } from '../scripts/auth/adminAuth';
   import { normalizeStatus } from '../scripts/vtt/sessionStatus';
   import { openSideDrawer, closeSideDrawer } from '../scripts/animations/modalAnimations';
 
@@ -1121,6 +1142,8 @@ import DeleteAccountModal from '../components/modals/DeleteAccountModal.astro';
   const navSettingsMenu = document.getElementById('nav-settings-menu');
   const navSettingsUserName = document.getElementById('nav-settings-user-name');
   const navSettingsUserEmail = document.getElementById('nav-settings-user-email');
+  const adminLinkTop = document.getElementById('btn-admin-link-top');
+  const drawerAdminLink = document.getElementById('drawer-item-admin');
   const signOutBtn = document.getElementById('btn-signout-top');
   const deleteAccountTopBtn = document.getElementById('btn-delete-account-top');
   const drawerJoinBtn = document.getElementById('drawer-item-join-campaign');
@@ -1165,9 +1188,16 @@ import DeleteAccountModal from '../components/modals/DeleteAccountModal.astro';
 
     if (isAuthed && cloudSession.isCloud()) {
       const user = userStore.getCurrentUser();
+      const userIsAdmin = isAdmin(user);
       if (navSettingsUserName) navSettingsUserName.textContent = user.name || 'Aventurero';
       if (navSettingsUserEmail) navSettingsUserEmail.textContent = user.email || '';
+      adminLinkTop?.classList.toggle('hidden', !userIsAdmin);
+      adminLinkTop?.classList.toggle('flex', userIsAdmin);
+      drawerAdminLink?.classList.toggle('hidden', !userIsAdmin);
+      drawerAdminLink?.classList.toggle('flex', userIsAdmin);
     } else {
+      adminLinkTop?.classList.add('hidden');
+      drawerAdminLink?.classList.add('hidden');
       navSettingsMenu?.classList.add('hidden');
     }
 

@@ -78,8 +78,16 @@
 </section>
 
 <script>
-  // Enlace del botón secundario de auth para abrir el modal AuthGate
+  import { telemetry } from '../../scripts/analytics/telemetry.ts';
+
+  // Telemetría del botón Probar Demo
+  document.getElementById('landing-hero-demo-btn')?.addEventListener('click', () => {
+    telemetry.track('landing_cta_demo_click', { source: 'landing_hero' });
+  });
+
+  // Enlace del botón secundario de auth para abrir el modal AuthGate y telemetría
   document.getElementById('landing-hero-auth-btn')?.addEventListener('click', () => {
+    telemetry.track('landing_cta_auth_click', { source: 'landing_hero' });
     window.dispatchEvent(new CustomEvent('open-auth-modal', { detail: { mode: 'login' } }));
   });
 </script>

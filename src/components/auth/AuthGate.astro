@@ -96,6 +96,7 @@
 
 <script>
   import { cloudSession } from '../../scripts/data/cloudSync';
+  import { telemetry } from '../../scripts/analytics/telemetry';
   import {
     signInWithGoogle, signInWithEmail, signUpWithEmail, sendPasswordReset, describeAuthError,
   } from '../../scripts/firebase/authService';
@@ -216,6 +217,7 @@
   window.addEventListener('open-auth-modal', ((e: CustomEvent<{ mode?: 'login' | 'signup' | 'forgot' }>) => {
     if (!gate) return;
     const nextMode = e.detail?.mode || 'login';
+    telemetry.track('auth_modal_open', { mode: nextMode });
     setMode(nextMode);
     gate.classList.remove('hidden');
     gate.classList.add('flex');
@@ -224,7 +226,8 @@
     emailInp?.focus();
   }) as EventListener);
 
-  function handlePostAuthSuccess() {
+  function handlePostAuthSuccess(method = 'email') {
+    telemetry.track('auth_success', { method });
     try {
       localStorage.removeItem('dnd_demo_mode');
       localStorage.setItem('dnd_cloud_authed', '1');
@@ -242,8 +245,10 @@
     submitBtn.disabled = true;
     try {
       await action();
-    } catch (err) {
-      setMessage(errorEl, describeAuthError(err));
+    } catch (err: any) {
+      const errMsg = describeAuthError(err);
+      telemetry.track('ui_error', { errorMessage: errMsg, source: 'auth' });
+      setMessage(errorEl, errMsg);
     } finally {
       submitBtn.disabled = false;
     }
@@ -259,7 +264,7 @@
 
   document.getElementById('auth-google-btn')?.addEventListener('click', () => run(async () => {
     await signInWithGoogle();
-    handlePostAuthSuccess();
+    handlePostAuthSuccess('google');
   }));
 
   toggleBtn?.addEventListener('click', () => setMode(mode === 'login' ? 'signup' : 'login'));
@@ -273,7 +278,7 @@
     run(async () => {
       if (mode === 'signup') {
         await signUpWithEmail(nameInp.value, emailInp.value, passwordInp.value);
-        handlePostAuthSuccess();
+        handlePostAuthSuccess('signup');
       } else if (mode === 'forgot') {
         if (!emailInp.value.trim()) {
           throw { code: 'auth/invalid-email' };
