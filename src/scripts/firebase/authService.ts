@@ -16,6 +16,7 @@ const AUTH_ERRORS: Record<string, string> = {
   'auth/popup-blocked': 'El navegador bloqueó la ventana de Google. Habilitá los popups para este sitio.',
   'auth/network-request-failed': 'Sin conexión. Revisá tu red e intentá de nuevo.',
   'auth/unauthorized-domain': 'Este dominio no está autorizado en Firebase Auth.',
+  'auth/requires-recent-login': 'Por seguridad, debes volver a iniciar sesión antes de realizar esta acción.',
 };
 
 export function describeAuthError(err: any): string {
@@ -62,6 +63,13 @@ export async function signOut(): Promise<void> {
   const { auth } = await getFirebase();
   const { signOut: fbSignOut } = await import('firebase/auth');
   await fbSignOut(auth);
+}
+
+export async function deleteCurrentUser(): Promise<void> {
+  const { auth } = await getFirebase();
+  if (!auth.currentUser) throw new Error('No hay una sesión activa para eliminar.');
+  const { deleteUser } = await import('firebase/auth');
+  await deleteUser(auth.currentUser);
 }
 
 export async function onAuthChange(cb: (user: User | null) => void): Promise<() => void> {

@@ -2,6 +2,7 @@
 import type { Campaign, DmEvent } from '../models/campaign.ts';
 import type { CharacterData } from '../models/character.ts';
 import { defaultCharacter } from '../data/defaultCharacter.ts';
+import { PREMADE_CHARACTERS, buildFullPremadeCharacter } from '../data/premadeCharacters.ts';
 import { getRandomCharacterAvatar, isBrokenAvatarUrl, sanitizeAvatarUrl, CHARACTER_PRESET_IMAGES } from '../data/characterAvatars.ts';
 import { generateInviteCode } from '../utils/ids.ts';
 import { isFirebaseConfigured } from '../firebase/client.ts';
@@ -856,7 +857,8 @@ class CampaignStoreManager {
   private persistCharacters(chars: CharacterData[], broadcast = true) {
     this.characters = chars;
     if (this.cloud) {
-      const changes = diffDocs(this.syncedCharacters, chars, serializeCharacter);
+      const syncableChars = chars.filter(c => !c.id.startsWith('demo-'));
+      const changes = diffDocs(this.syncedCharacters, syncableChars, serializeCharacter);
       if (this.usesAtomicHp()) stripHpFromUpdates(changes);
       if (hasChanges(changes)) {
         for (const c of changes.creates) this.syncedCharacters.set(c.id, JSON.stringify(c.data));
@@ -871,6 +873,14 @@ class CampaignStoreManager {
       return;
     }
     if (this.cloudExpected) {
+      if (typeof window !== 'undefined') {
+        const demoChar = this.characters.find(c => c.id.startsWith('demo-'));
+        if (demoChar) {
+          try {
+            localStorage.setItem(ALL_CHARACTERS_STORAGE_KEY, JSON.stringify(this.characters));
+          } catch (_) {}
+        }
+      }
       this.emitCharacters();
       return;
     }
@@ -1243,6 +1253,40 @@ class CampaignStoreManager {
   public getMyStandaloneCharacters(userId?: string): CharacterData[] {
     const currentUserId = userId || userStore.getCurrentUser().id;
     return this.getStandaloneCharacters().filter(c => this.isCharacterOwner(c, currentUserId));
+  }
+
+  /**
+   * Garantiza que exista un personaje de demostración para visitantes no autenticados o modo demo.
+   * Carga uno de los personajes prehechos al azar (excluyendo a Atlas, que es personal).
+   * Si forceNewRandom es true, sortea uno nuevo distinto al actual.
+   */
+  public ensureDemoCharacter(forceNewRandom = false): CharacterData {
+    const availablePremades = PREMADE_CHARACTERS.filter(
+      p => p.id !== 'premade-explorador' && !p.name.includes('Atlas')
+    );
+
+    if (!forceNewRandom) {
+      const existingDemo = this.characters.find(c => c.id.startsWith('demo-'));
+      if (existingDemo) {
+        return existingDemo;
+      }
+    }
+
+    const currentDemo = this.characters.find(c => c.id.startsWith('demo-'));
+    const candidateList = currentDemo && availablePremades.length > 1
+      ? availablePremades.filter(p => `demo-${p.id.replace('premade-', '')}` !== currentDemo.id)
+      : availablePremades;
+
+    const randomIndex = Math.floor(Math.random() * candidateList.length);
+    const template = candidateList[randomIndex];
+
+    const currentUserId = userStore.getCurrentUser().id;
+    const demoChar = buildFullPremadeCharacter(template, 3, currentUserId);
+
+    this.characters = [demoChar, ...this.characters.filter(c => !c.id.startsWith('demo-'))];
+    this.charactersLoaded = true;
+    this.persistCharacters([...this.characters]);
+    return demoChar;
   }
 
   /**

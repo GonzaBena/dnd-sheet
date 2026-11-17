@@ -32,6 +32,7 @@ service cloud.firestore {
         && request.resource.data.keys().hasOnly(['name', 'avatarUrl', 'createdAt', 'migratedAt'])
         && request.resource.data.name is string
         && request.resource.data.name.size() <= 80;
+      allow delete: if signedIn() && uid() == userId;
 
       // Diario de personajes sin campaña: solo su dueño.
       match /notes/{noteId} {

@@ -105,6 +105,13 @@ test('cada uno edita solo su perfil y sin campos extra', async () => {
   await assertSucceeds(getDoc(doc(db(STRANGER), 'users', PLAYER)));
 });
 
+test('un usuario puede borrar su propio perfil pero no el de otros', async () => {
+  await assertSucceeds(setDoc(doc(db(PLAYER), 'users', PLAYER), { name: 'Elena' }));
+  await assertFails(deleteDoc(doc(db(STRANGER), 'users', PLAYER)));
+  await assertFails(deleteDoc(doc(anon(), 'users', PLAYER)));
+  await assertSucceeds(deleteDoc(doc(db(PLAYER), 'users', PLAYER)));
+});
+
 test('las notas personales son privadas', async () => {
   const note = { id: 'n1', authorUid: PLAYER, visibility: 'player', title: 'x', content: 'y', timestamp: 1, tags: [] };
   await assertSucceeds(setDoc(doc(db(PLAYER), 'users', PLAYER, 'notes', 'n1'), note));

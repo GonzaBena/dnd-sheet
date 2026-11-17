@@ -29,6 +29,7 @@ import AddSpellModal from '../components/modals/AddSpellModal.astro';
 import AddWeaponModal from '../components/modals/AddWeaponModal.astro';
 import ConfigurePanelsModal from '../components/modals/ConfigurePanelsModal.astro';
 import ResetConfirmModal from '../components/modals/ResetConfirmModal.astro';
+import DeleteAccountModal from '../components/modals/DeleteAccountModal.astro';
 import EditCampaignModal from '../components/modals/EditCampaignModal.astro';
 import EditAttunedModal from '../components/modals/EditAttunedModal.astro';
 import EditProficienciesModal from '../components/modals/EditProficienciesModal.astro';
@@ -46,6 +47,8 @@ import CompendiumModal from '../components/modals/CompendiumModal.astro';
 import ItemDetailModal from '../components/modals/ItemDetailModal.astro';
 import SpellDetailModal from '../components/modals/SpellDetailModal.astro';
 import TurnNotifier from '../components/party/TurnNotifier.astro';
+import DemoNoticeBanner from '../components/ui/DemoNoticeBanner.astro';
+import SiteFooter from '../components/layout/SiteFooter.astro';
 ---
 
 <BaseLayout>
@@ -62,6 +65,9 @@ import TurnNotifier from '../components/party/TurnNotifier.astro';
       <div class="absolute -top-32 left-1/4 w-96 h-96 bg-amber-500/10 rounded-full blur-[110px] pointer-events-none"></div>
       <div class="absolute top-96 right-10 w-96 h-96 bg-rose-600/10 rounded-full blur-[120px] pointer-events-none"></div>
       <div class="absolute top-1/2 left-10 w-72 h-72 bg-amber-600/5 rounded-full blur-[90px] pointer-events-none"></div>
+
+      <!-- Top Demo Notice Banner (Shown for visitors in demo mode) -->
+      <DemoNoticeBanner />
 
       <!-- Top Slim Session Context Strip (Shown for player) -->
       <div id="session-banner-container" class="hidden">
@@ -161,6 +167,9 @@ import TurnNotifier from '../components/party/TurnNotifier.astro';
     </div>
   </main>
 
+  <!-- Global Footer -->
+  <SiteFooter />
+
   <!-- Floating Action Button (FAB) for Quick Notes Bottom-Right -->
   <QuickJournalFab />
 
@@ -176,6 +185,7 @@ import TurnNotifier from '../components/party/TurnNotifier.astro';
   <AddWeaponModal />
   <ConfigurePanelsModal />
   <ResetConfirmModal />
+  <DeleteAccountModal />
   <EditCampaignModal />
   <EditAttunedModal />
   <EditProficienciesModal />
@@ -203,34 +213,43 @@ import TurnNotifier from '../components/party/TurnNotifier.astro';
   import { congratulationBanner } from '../scripts/ui/congratulationBanner';
   import { reorderSectionsDOM, applyCollapseStates, setupSheetDragAndDrop } from '../scripts/ui/sectionOrganizer';
 
-  // En modo nube espera la sesión y los primeros datos de Firestore; en modo local resuelve al instante.
-  if (typeof window !== 'undefined') cloudSession.ready().then(() => {
-    // Si no hay sesión en modo nube, AuthGate presentará el modal de ingreso sin forzar redirección
-    if (cloudSession.isCloud() && cloudSession.state === 'signed-out') {
-      return;
+  let listenersAttached = false;
+
+  function initCampaignsWorkspace() {
+    const params = new URLSearchParams(window.location.search);
+    const hasDemoParam = params.get('demo') === '1';
+    if (!hasDemoParam && cloudSession.isCloud() && cloudSession.state === 'ready') {
+      try { localStorage.removeItem('dnd_demo_mode'); } catch (_) {}
+    }
+    const isDemo = hasDemoParam || (typeof localStorage !== 'undefined' && localStorage.getItem('dnd_demo_mode') === '1' && (!cloudSession.isCloud() || cloudSession.state !== 'ready'));
+
+    if (hasDemoParam) {
+      try { localStorage.setItem('dnd_demo_mode', '1'); } catch (_) {}
     }
 
-    const params = new URLSearchParams(window.location.search);
+    const workspaceLoading = document.getElementById('campaigns-workspace-loading');
+
+    // Si no hay sesión en modo nube y NO estamos en demo, AuthGate presentará el modal de ingreso
+    if (cloudSession.isCloud() && cloudSession.state === 'signed-out' && !isDemo) {
+      workspaceLoading?.classList.add('hidden');
+      return;
+    }
 
     // Check if opened via campaign or character switcher
     const targetCamp = params.get('campaign');
     const targetChar = params.get('character');
     const activeCampId = targetCamp || campaignStore.getActiveCampaignId();
     const currentUser = userStore.getCurrentUser();
-    const isDm = campaignStore.isCurrentUserDm(activeCampId || undefined);
-    const myChars = campaignStore.getAllCharacters().filter(c => campaignStore.isCharacterOwner(c, currentUser.id));
+    const isDm = !isDemo && campaignStore.isCurrentUserDm(activeCampId || undefined);
 
-    // If user has NO characters and is NOT DM of an active campaign, redirect to / (campaigns manager)
-    // (sólo con los datos ya cargados: un store todavía vacío no significa "sin personajes").
-    const dataLoaded = !cloudSession.isCloud() || (campaignStore.hasLoadedCampaigns() && campaignStore.hasLoadedCharacters());
-    if (dataLoaded && !isDm && myChars.length === 0 && !targetChar) {
-      window.location.href = '/';
-    }
-
-    if (targetCamp) {
+    if (isDemo) {
+      const demoChar = campaignStore.ensureDemoCharacter();
+      characterStore.loadCharacter(demoChar, true);
+    } else if (targetCamp) {
       campaignStore.setActiveCampaign(targetCamp);
     }
-    if (targetChar) {
+
+    if (!isDemo && targetChar) {
       const char = campaignStore.getCharacter(targetChar);
       if (char) {
         if (campaignStore.isCharacterOwner(char, currentUser.id)) {
@@ -241,7 +260,7 @@ import TurnNotifier from '../components/party/TurnNotifier.astro';
             .then(() => { window.location.href = '/'; });
         }
       }
-    } else {
+    } else if (!isDemo) {
       // If no character explicitly in URL, load character corresponding to the active campaign (if player)
       if (activeCampId && !isDm) {
         const myChar = campaignStore.getMyCharacterForCampaign(activeCampId, currentUser.id);
@@ -253,46 +272,74 @@ import TurnNotifier from '../components/party/TurnNotifier.astro';
         const standalone = campaignStore.getMyStandaloneCharacters(currentUser.id);
         if (standalone.length > 0) {
           characterStore.loadCharacter(standalone[0], true);
+        } else {
+          const cur = characterStore.get();
+          if (cur && cur.name) {
+            characterStore.loadCharacter(cur, true);
+          }
         }
-      }
-    }
-
-    // Determine Workspace Mode: Grimorio del Control (DM) vs Hoja de Personaje (Jugador)
-    function updateWorkspaceMode() {
-      const activeCampId = campaignStore.getActiveCampaignId();
-      const isDm = campaignStore.isCurrentUserDm(activeCampId || undefined);
-      const urlMode = new URLSearchParams(window.location.search).get('mode');
-
-      const dmWorkspace = document.getElementById('dm-control-workspace');
-      const playerWorkspace = document.getElementById('player-sheet-workspace');
-      const sessionBannerContainer = document.getElementById('session-banner-container');
-      const sessionBanner = document.getElementById('session-banner-root');
-      const workspaceLoading = document.getElementById('campaigns-workspace-loading');
-
-      // Dismiss loading state once mode is determined
-      workspaceLoading?.classList.add('hidden');
-
-      // If user is DM of active campaign and mode is not explicitly player
-      const myCharInCamp = activeCampId ? campaignStore.getMyCharacterForCampaign(activeCampId, currentUser.id) : null;
-      const shouldShowDm = isDm && (!myCharInCamp || urlMode !== 'player');
-
-      if (shouldShowDm) {
-        dmWorkspace?.classList.remove('hidden');
-        playerWorkspace?.classList.add('hidden');
-        sessionBannerContainer?.classList.add('hidden');
-        sessionBanner?.classList.add('hidden');
-        window.dispatchEvent(new CustomEvent('dm-grimoire-refresh'));
-      } else {
-        dmWorkspace?.classList.add('hidden');
-        playerWorkspace?.classList.remove('hidden');
-        sessionBannerContainer?.classList.remove('hidden');
-        sessionBanner?.classList.remove('hidden');
       }
     }
 
     updateWorkspaceMode();
 
+    if (!listenersAttached) {
+      listenersAttached = true;
+      attachWorkspaceListeners();
+    }
+  }
+
+  // Determine Workspace Mode: Grimorio del Control (DM) vs Hoja de Personaje (Jugador)
+  function updateWorkspaceMode() {
+    const params = new URLSearchParams(window.location.search);
+    const hasDemoParam = params.get('demo') === '1';
+    const isDemo = hasDemoParam || (typeof localStorage !== 'undefined' && localStorage.getItem('dnd_demo_mode') === '1' && (!cloudSession.isCloud() || cloudSession.state !== 'ready'));
+    const activeCampId = campaignStore.getActiveCampaignId();
+    const isDm = !isDemo && campaignStore.isCurrentUserDm(activeCampId || undefined);
+    const urlMode = params.get('mode');
+    const currentUser = userStore.getCurrentUser();
+
+    const dmWorkspace = document.getElementById('dm-control-workspace');
+    const playerWorkspace = document.getElementById('player-sheet-workspace');
+    const sessionBannerContainer = document.getElementById('session-banner-container');
+    const sessionBanner = document.getElementById('session-banner-root');
+    const demoNoticeBanner = document.getElementById('demo-notice-banner');
+    const workspaceLoading = document.getElementById('campaigns-workspace-loading');
+
+    // Dismiss loading state once mode is determined
+    workspaceLoading?.classList.add('hidden');
+
+    if (isDemo) {
+      demoNoticeBanner?.classList.remove('hidden');
+      dmWorkspace?.classList.add('hidden');
+      playerWorkspace?.classList.remove('hidden');
+      sessionBannerContainer?.classList.add('hidden');
+      sessionBanner?.classList.add('hidden');
+      return;
+    }
+
+    // If user is DM of active campaign and mode is not explicitly player
+    const myCharInCamp = activeCampId ? campaignStore.getMyCharacterForCampaign(activeCampId, currentUser.id) : null;
+    const shouldShowDm = isDm && (!myCharInCamp || urlMode !== 'player');
+
+    if (shouldShowDm) {
+      dmWorkspace?.classList.remove('hidden');
+      playerWorkspace?.classList.add('hidden');
+      sessionBannerContainer?.classList.add('hidden');
+      sessionBanner?.classList.add('hidden');
+      window.dispatchEvent(new CustomEvent('dm-grimoire-refresh'));
+    } else {
+      dmWorkspace?.classList.add('hidden');
+      playerWorkspace?.classList.remove('hidden');
+      sessionBannerContainer?.classList.remove('hidden');
+      sessionBanner?.classList.remove('hidden');
+    }
+  }
+
+  function attachWorkspaceListeners() {
     const syncActiveCharacter = () => {
+      const isDemo = new URLSearchParams(window.location.search).get('demo') === '1' || (typeof localStorage !== 'undefined' && localStorage.getItem('dnd_demo_mode') === '1');
+      if (isDemo) return;
       const activeCampId = campaignStore.getActiveCampaignId();
       const currentUser = userStore.getCurrentUser();
       const isDm = campaignStore.isCurrentUserDm(activeCampId || undefined);
@@ -300,6 +347,14 @@ import TurnNotifier from '../components/party/TurnNotifier.astro';
         const myChar = campaignStore.getMyCharacterForCampaign(activeCampId, currentUser.id);
         if (myChar) {
           characterStore.loadCharacter(myChar, true);
+        }
+      } else if (!activeCampId && !isDm) {
+        const standalone = campaignStore.getMyStandaloneCharacters(currentUser.id);
+        if (standalone.length > 0) {
+          const current = characterStore.get();
+          if (!current || !standalone.some(c => c.id === current.id)) {
+            characterStore.loadCharacter(standalone[0], true);
+          }
         }
       }
     };
@@ -311,6 +366,10 @@ import TurnNotifier from '../components/party/TurnNotifier.astro';
     });
     window.addEventListener('campaigns-updated', updateWorkspaceMode);
     window.addEventListener('all-characters-updated', syncActiveCharacter);
+    window.addEventListener('demo-change-random-character', () => {
+      const newChar = campaignStore.ensureDemoCharacter(true);
+      characterStore.loadCharacter(newChar, true);
+    });
 
     // Dynamic Section Organization (Reorder & Collapse)
     const initSectionsOrganizer = () => {
@@ -356,5 +415,15 @@ import TurnNotifier from '../components/party/TurnNotifier.astro';
         }
       }
     });
-  });
+  }
+
+  // En modo nube espera la sesión y los primeros datos de Firestore; en modo local resuelve al instante.
+  if (typeof window !== 'undefined') {
+    cloudSession.ready().then(initCampaignsWorkspace);
+    window.addEventListener('cloud-session-changed', ((e: CustomEvent<{ state: string }>) => {
+      if (e.detail?.state === 'ready') {
+        initCampaignsWorkspace();
+      }
+    }) as EventListener);
+  }
 </script>

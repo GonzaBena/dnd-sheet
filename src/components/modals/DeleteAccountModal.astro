@@ -1,0 +1,150 @@
+---
+// src/components/modals/DeleteAccountModal.astro
+---
+
+<div id="delete-account-modal" class="hidden fixed inset-0 z-[70] flex items-center justify-center p-4">
+  <div class="modal-content w-full max-w-sm sm:max-w-md rounded-2xl bg-[#121721] border border-rose-500/40 shadow-[0_20px_60px_rgba(0,0,0,0.95)] overflow-hidden flex flex-col">
+    <!-- Header -->
+    <div class="p-4 bg-rose-950/20 border-b border-[#222f42] flex items-center justify-between">
+      <div class="flex items-center gap-2.5">
+        <div class="w-8 h-8 rounded-lg bg-rose-500/20 text-rose-400 flex items-center justify-center border border-rose-500/30">
+          <span class="material-symbols-outlined text-[20px]">person_remove</span>
+        </div>
+        <div>
+          <h3 class="font-headline font-bold text-base text-[#f1f5f9]">Eliminar Cuenta</h3>
+          <span class="text-[10px] text-rose-400">Acción permanente e irreversible</span>
+        </div>
+      </div>
+      <button
+        type="button"
+        id="delete-account-close-x"
+        class="w-7 h-7 rounded-lg bg-[#10141d] border border-[#222f42] hover:border-rose-500/50 text-[#94a3b8] hover:text-rose-400 flex items-center justify-center text-xs transition-colors cursor-pointer"
+        aria-label="Cerrar modal"
+      >
+        <span class="material-symbols-outlined text-[16px]">close</span>
+      </button>
+    </div>
+
+    <!-- Body -->
+    <div class="p-5 space-y-4 text-xs font-label">
+      <div class="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-200 space-y-2 leading-relaxed">
+        <div class="flex items-center gap-2 font-bold text-rose-300">
+          <span class="material-symbols-outlined text-[18px]">warning</span>
+          <span>¿Estás completamente seguro?</span>
+        </div>
+        <p class="text-[11px] text-rose-200/90">
+          Esta acción eliminará de forma definitiva tu cuenta de usuario, tus credenciales de acceso, tus personajes guardados en la nube y tus datos de perfil según las normativas de privacidad y derecho al olvido.
+        </p>
+      </div>
+
+      <div class="space-y-1.5">
+        <label for="delete-account-confirm-input" class="text-[11px] text-[#94a3b8] font-bold block">
+          Para confirmar la eliminación, escribí <span class="text-rose-400 font-mono tracking-wider font-bold">BORRAR</span> a continuación:
+        </label>
+        <input
+          type="text"
+          id="delete-account-confirm-input"
+          autocomplete="off"
+          placeholder="BORRAR"
+          class="w-full p-2.5 rounded-lg bg-[#18202e] border border-[#222f42] text-[#f1f5f9] placeholder:text-[#64748b] focus:border-rose-500 focus:outline-none uppercase font-mono tracking-wider"
+        />
+      </div>
+
+      <p id="delete-account-error" class="hidden p-2.5 rounded-lg bg-rose-500/15 border border-rose-500/40 text-rose-200 text-[11px] leading-relaxed" role="alert"></p>
+
+      <!-- Actions -->
+      <div class="pt-2 flex items-center justify-end gap-2.5 border-t border-[#222f42]">
+        <button
+          type="button"
+          id="delete-account-cancel-btn"
+          class="px-4 py-2 rounded-xl bg-[#18202e] border border-[#222f42] text-[#94a3b8] hover:text-[#f1f5f9] hover:border-slate-600 transition-colors cursor-pointer text-xs font-medium"
+        >
+          Cancelar
+        </button>
+        <button
+          type="button"
+          id="delete-account-submit-btn"
+          disabled
+          class="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed shadow-[0_0_12px_rgba(225,29,72,0.3)]"
+        >
+          <span class="material-symbols-outlined text-[16px]">delete_forever</span>
+          <span id="delete-account-submit-text">Eliminar mi cuenta</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  import { openModal, closeModal } from '../../scripts/animations/modalAnimations';
+  import { cloudSession } from '../../scripts/data/cloudSync';
+  import { describeAuthError } from '../../scripts/firebase/authService';
+
+  const modal = document.getElementById('delete-account-modal');
+  const backdrop = document.getElementById('modal-backdrop');
+  const closeX = document.getElementById('delete-account-close-x');
+  const cancelBtn = document.getElementById('delete-account-cancel-btn');
+  const confirmInput = document.getElementById('delete-account-confirm-input') as HTMLInputElement | null;
+  const submitBtn = document.getElementById('delete-account-submit-btn') as HTMLButtonElement | null;
+  const submitText = document.getElementById('delete-account-submit-text');
+  const errorEl = document.getElementById('delete-account-error');
+
+  function hideModal() {
+    if (modal && backdrop) {
+      closeModal(modal, backdrop);
+    }
+    if (confirmInput) confirmInput.value = '';
+    if (submitBtn) submitBtn.disabled = true;
+    if (errorEl) {
+      errorEl.textContent = '';
+      errorEl.classList.add('hidden');
+    }
+  }
+
+  closeX?.addEventListener('click', hideModal);
+  cancelBtn?.addEventListener('click', hideModal);
+
+  confirmInput?.addEventListener('input', () => {
+    const val = confirmInput.value.trim().toUpperCase();
+    if (submitBtn) {
+      submitBtn.disabled = val !== 'BORRAR';
+    }
+  });
+
+  submitBtn?.addEventListener('click', async () => {
+    if (!confirmInput || confirmInput.value.trim().toUpperCase() !== 'BORRAR') return;
+
+    if (errorEl) {
+      errorEl.textContent = '';
+      errorEl.classList.add('hidden');
+    }
+
+    if (submitBtn) submitBtn.disabled = true;
+    if (submitText) submitText.textContent = 'Eliminando...';
+
+    try {
+      await cloudSession.deleteAccount();
+    } catch (err: any) {
+      console.error('[DeleteAccount] Error:', err);
+      if (errorEl) {
+        errorEl.textContent = describeAuthError(err);
+        errorEl.classList.remove('hidden');
+      }
+      if (submitBtn) submitBtn.disabled = false;
+      if (submitText) submitText.textContent = 'Eliminar mi cuenta';
+    }
+  });
+
+  window.addEventListener('open-delete-account-modal', () => {
+    if (confirmInput) confirmInput.value = '';
+    if (submitBtn) submitBtn.disabled = true;
+    if (errorEl) {
+      errorEl.textContent = '';
+      errorEl.classList.add('hidden');
+    }
+    if (modal && backdrop) {
+      openModal(modal, backdrop);
+      setTimeout(() => confirmInput?.focus(), 150);
+    }
+  });
+</script>

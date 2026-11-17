@@ -1,0 +1,180 @@
+---
+// src/components/landing/LandingFeatures.astro
+// Vitrina detallada de características principales y llamada a la acción final.
+---
+
+<section class="relative w-full py-16 bg-[#0a0d12] border-t border-[#18202e] overflow-hidden">
+  <div class="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 space-y-20">
+
+    <!-- Section Header -->
+    <div class="text-center space-y-3 max-w-3xl mx-auto">
+      <span class="text-xs font-bold text-amber-500 uppercase tracking-widest font-label">
+        Diseñado por y para jugadores de rol
+      </span>
+      <h2 class="text-2xl sm:text-4xl font-headline font-bold text-[#f1f5f9] tracking-tight">
+        Todo lo que necesitas para tu mesa de juego.<br class="hidden sm:inline" />
+        <span class="text-amber-400">Sin reglas complejas ni pantallas pesadas.</span>
+      </h2>
+      <p class="text-sm sm:text-base text-[#94a3b8] font-body leading-relaxed">
+        Olvidate de borrar la hoja con goma hasta romper el papel. Automatizá los números y enfocate en lo que de verdad importa: la historia y las decisiones de tus personajes.
+      </p>
+    </div>
+
+    <!-- 6 Pillars Feature Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 font-label">
+      
+      <!-- Feature 1: Ficha Inteligente -->
+      <div class="p-6 rounded-2xl bg-[#121721] border border-[#222f42] hover:border-amber-500/40 transition-all space-y-4 flex flex-col justify-between group shadow-lg">
+        <div class="space-y-3">
+          <div class="w-12 h-12 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-400 flex items-center justify-center group-hover:scale-110 group-hover:border-amber-500/70 transition-all">
+            <span class="material-symbols-outlined text-2xl">badge</span>
+          </div>
+          <h3 class="text-lg font-headline font-bold text-[#f1f5f9] group-hover:text-amber-300 transition-colors">
+            Ficha Viva y Cálculos Automáticos
+          </h3>
+          <p class="text-xs sm:text-sm text-[#94a3b8] leading-relaxed">
+            Modificadores, tiros de salvación, competencias y Clase de Armadura desglosada al instante. Soporta slots de armadura, escudo, 3 sintonizaciones mágicas y avisa si equipás algo sin competencia.
+          </p>
+        </div>
+        <div class="pt-2 flex items-center gap-1.5 text-xs text-amber-400 font-bold">
+          <span>CA derivada y slots de equipo</span>
+          <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+        </div>
+      </div>
+
+      <!-- Feature 2: Torre de Dados Animada -->
+      <div class="p-6 rounded-2xl bg-[#121721] border border-[#222f42] hover:border-amber-500/40 transition-all space-y-4 flex flex-col justify-between group shadow-lg">
+        <div class="space-y-3">
+          <div class="w-12 h-12 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-400 flex items-center justify-center group-hover:scale-110 group-hover:border-amber-500/70 transition-all">
+            <span class="material-symbols-outlined text-2xl">casino</span>
+          </div>
+          <h3 class="text-lg font-headline font-bold text-[#f1f5f9] group-hover:text-amber-300 transition-colors">
+            Torre de Dados Animada
+          </h3>
+          <p class="text-xs sm:text-sm text-[#94a3b8] leading-relaxed">
+            Lanzamiento visual y fluido para dados d4, d6, d8, d10, d12, d20 y d100. Detección automática de 20 natural (¡crítico con celebración visual!) y pifias en 1 natural. Soporta tiradas secretas u ocultas tras la pantalla.
+          </p>
+        </div>
+        <div class="pt-2 flex items-center gap-1.5 text-xs text-amber-400 font-bold">
+          <span>Tiradas públicas y secretas</span>
+          <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+        </div>
+      </div>
+
+      <!-- Feature 3: Grimorio de DM -->
+      <div class="p-6 rounded-2xl bg-[#121721] border border-[#222f42] hover:border-amber-500/40 transition-all space-y-4 flex flex-col justify-between group shadow-lg">
+        <div class="space-y-3">
+          <div class="w-12 h-12 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-400 flex items-center justify-center group-hover:scale-110 group-hover:border-amber-500/70 transition-all">
+            <span class="material-symbols-outlined text-2xl">auto_stories</span>
+          </div>
+          <h3 class="text-lg font-headline font-bold text-[#f1f5f9] group-hover:text-amber-300 transition-colors">
+            Grimorio Táctico de Dungeon Master
+          </h3>
+          <p class="text-xs sm:text-sm text-[#94a3b8] leading-relaxed">
+            Visión panorámica de todos los aventureros: Puntos de Golpe en vivo, Percepción Pasiva, CA e Inspiración. Modificá la vida de los personajes o monstruos y otorgá descansos con un solo clic.
+          </p>
+        </div>
+        <div class="pt-2 flex items-center gap-1.5 text-xs text-amber-400 font-bold">
+          <span>Control total tras la pantalla</span>
+          <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+        </div>
+      </div>
+
+      <!-- Feature 4: Compendio SRD en Español -->
+      <div class="p-6 rounded-2xl bg-[#121721] border border-[#222f42] hover:border-amber-500/40 transition-all space-y-4 flex flex-col justify-between group shadow-lg">
+        <div class="space-y-3">
+          <div class="w-12 h-12 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-400 flex items-center justify-center group-hover:scale-110 group-hover:border-amber-500/70 transition-all">
+            <span class="material-symbols-outlined text-2xl">menu_book</span>
+          </div>
+          <h3 class="text-lg font-headline font-bold text-[#f1f5f9] group-hover:text-amber-300 transition-colors">
+            Compendio Oficial SRD en Español
+          </h3>
+          <p class="text-xs sm:text-sm text-[#94a3b8] leading-relaxed">
+            Cientos de hechizos, armas, armaduras, objetos mágicos y dotes de las reglas oficiales D&D 5e (2014 y 2024), traducidos al español. Búsqueda instantánea durante la partida sin abrir libros.
+          </p>
+        </div>
+        <div class="pt-2 flex items-center gap-1.5 text-xs text-amber-400 font-bold">
+          <span>Reglas oficiales 2014 y 2024</span>
+          <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+        </div>
+      </div>
+
+      <!-- Feature 5: Mesa Virtual (VTT) Integrada -->
+      <div class="p-6 rounded-2xl bg-[#121721] border border-[#222f42] hover:border-amber-500/40 transition-all space-y-4 flex flex-col justify-between group shadow-lg">
+        <div class="space-y-3">
+          <div class="w-12 h-12 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-400 flex items-center justify-center group-hover:scale-110 group-hover:border-amber-500/70 transition-all">
+            <span class="material-symbols-outlined text-2xl">map</span>
+          </div>
+          <h3 class="text-lg font-headline font-bold text-[#f1f5f9] group-hover:text-amber-300 transition-colors">
+            Mesa Virtual Táctica (VTT)
+          </h3>
+          <p class="text-xs sm:text-sm text-[#94a3b8] leading-relaxed">
+            Mapas con cuadrícula, niebla de guerra para ocultar salas, movimiento de tokens en vivo y presencia de jugadores. Diseñado para consumir poca batería y funcionar suave en cualquier celular.
+          </p>
+        </div>
+        <div class="pt-2 flex items-center gap-1.5 text-xs text-amber-400 font-bold">
+          <span>Tokens y niebla en tiempo real</span>
+          <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+        </div>
+      </div>
+
+      <!-- Feature 6: Bitácora de Sesión Compartida -->
+      <div class="p-6 rounded-2xl bg-[#121721] border border-[#222f42] hover:border-amber-500/40 transition-all space-y-4 flex flex-col justify-between group shadow-lg">
+        <div class="space-y-3">
+          <div class="w-12 h-12 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-400 flex items-center justify-center group-hover:scale-110 group-hover:border-amber-500/70 transition-all">
+            <span class="material-symbols-outlined text-2xl">history_edu</span>
+          </div>
+          <h3 class="text-lg font-headline font-bold text-[#f1f5f9] group-hover:text-amber-300 transition-colors">
+            Bitácora de Sesión y Cronología
+          </h3>
+          <p class="text-xs sm:text-sm text-[#94a3b8] leading-relaxed">
+            Cronología de eventos compartidos, pistas, rumores y botín. Soporta notas privadas para cada jugador que solo el autor puede leer, evitando que el resto de la mesa descubra sus secretos.
+          </p>
+        </div>
+        <div class="pt-2 flex items-center gap-1.5 text-xs text-amber-400 font-bold">
+          <span>Notas públicas y privadas</span>
+          <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Final Call to Action Box -->
+    <div class="relative rounded-3xl bg-gradient-to-r from-[#18202e] via-[#1b2536] to-[#18202e] border border-amber-500/30 p-8 sm:p-12 text-center space-y-6 shadow-[0_20px_50px_rgba(0,0,0,0.7)]">
+      <div class="space-y-3 max-w-2xl mx-auto">
+        <h3 class="text-2xl sm:text-3xl font-headline font-bold text-[#f1f5f9]">
+          ¿Listo para comenzar tu próxima aventura?
+        </h3>
+        <p class="text-sm sm:text-base text-[#94a3b8]">
+          Probá una ficha interactiva de inmediato o creá tu cuenta gratuita para guardar y sincronizar tu campaña con tu grupo.
+        </p>
+      </div>
+
+      <div class="flex flex-col sm:flex-row items-center justify-center gap-4 max-w-2xl mx-auto pt-2">
+        <a
+          href="/campaigns?demo=1"
+          class="w-full sm:w-auto sm:min-w-[270px] px-8 py-4 rounded-xl bg-gradient-to-r from-amber-600 via-amber-500 to-amber-600 hover:from-amber-500 hover:to-amber-400 text-[#0a0d12] font-headline font-bold text-base flex items-center justify-center gap-2.5 shadow-[0_0_20px_rgba(245,158,11,0.4)] hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer whitespace-nowrap"
+        >
+          <span class="material-symbols-outlined text-[20px] font-bold">casino</span>
+          <span>Probar Demo sin Registro</span>
+        </a>
+
+        <button
+          type="button"
+          id="landing-cta-auth-btn"
+          class="w-full sm:w-auto sm:min-w-[270px] px-8 py-4 rounded-xl bg-[#121721] hover:bg-[#18202e] border border-[#222f42] hover:border-amber-500/60 text-[#f1f5f9] font-headline font-bold text-base flex items-center justify-center gap-2 transition-all cursor-pointer whitespace-nowrap"
+        >
+          <span class="material-symbols-outlined text-[18px] text-amber-400">how_to_reg</span>
+          <span>Crear Cuenta Gratis</span>
+        </button>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<script>
+  document.getElementById('landing-cta-auth-btn')?.addEventListener('click', () => {
+    window.dispatchEvent(new CustomEvent('open-auth-modal', { detail: { mode: 'signup' } }));
+  });
+</script>

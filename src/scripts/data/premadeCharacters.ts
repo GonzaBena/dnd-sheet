@@ -1,8 +1,12 @@
 // src/scripts/data/premadeCharacters.ts
-import type { CharacterData } from '../models/character.ts';
+import type { CharacterData, InventoryItem } from '../models/character.ts';
 import { CHARACTER_CLASSES, CLASS_DEFINITIONS } from '../dnd/classes.ts';
 import { CHARACTER_PRESET_IMAGES } from './characterAvatars.ts';
 import { defaultCharacter } from './defaultCharacter.ts';
+import { CLASS_STARTER_KITS } from './classStarterKits.ts';
+import { buildAttackFromWeapon } from '../dnd/weaponAttack.ts';
+import { recalculateCharacter } from '../dnd/calculations.ts';
+import { getSpellSlotsForClass, getSpellcastingAbilityForClass } from '../dnd/spellSlots.ts';
 
 export interface PremadeCharacterTemplate {
   id: string;
@@ -264,4 +268,165 @@ export function buildCharacterFromPremade(template: PremadeCharacterTemplate): P
       showSpells: ['Bardo', 'Brujo', 'Clérigo', 'Druida', 'Explorador', 'Hechicero', 'Mago', 'Paladín'].includes(template.className),
     },
   };
+}
+
+/**
+ * Construye un personaje completo listo para jugar de nivel 3 (o el nivel especificado),
+ * con su equipamiento de clase inicial, armas equipadas, acciones de ataque, conjuros y slots según reglas 5e.
+ */
+export function buildFullPremadeCharacter(
+  template: PremadeCharacterTemplate,
+  level: number = 3,
+  userId: string = 'user-me'
+): CharacterData {
+  const classDef = CLASS_DEFINITIONS[template.className];
+  const kit = CLASS_STARTER_KITS[template.className];
+  const saves = new Set(classDef.savingThrows);
+  const base = JSON.parse(JSON.stringify(defaultCharacter)) as CharacterData;
+
+  const profBonus = Math.ceil(level / 4) + 1;
+  const hitDieMax = Number(classDef.hitDie.replace('d', '')) || 8;
+  const hitDieAvg = Math.floor(hitDieMax / 2) + 1;
+  const conMod = mod(template.stats.con);
+  const raceHpBonus = template.race.includes('Enano') ? level : 0;
+  const hpMax = hitDieMax + conMod + (level - 1) * Math.max(1, hitDieAvg + conMod) + raceHpBonus;
+
+  const kitEquipment: InventoryItem[] = kit?.equipment
+    ? JSON.parse(JSON.stringify(kit.equipment))
+    : [];
+
+  const basicSupplies: InventoryItem[] = [
+    {
+      id: `potion-healing-${template.id}`,
+      name: 'Poción de Curación',
+      quantity: 2,
+      category: 'potion',
+      icon: 'science',
+      description: 'Bebida carmesí brillante. Recupera 2d4 + 2 Puntos de Golpe al instante.',
+      usableType: 'heal',
+      healAmount: '2d4+2',
+    },
+    {
+      id: `pack-${template.id}`,
+      name: 'Mochila de Aventurero',
+      quantity: 1,
+      category: 'gear',
+      icon: 'backpack',
+      description: 'Mochila con saco de dormir, yesquero, 10 antorchas y raciones de viaje.',
+    },
+  ];
+
+  const inventory: InventoryItem[] = [...kitEquipment, ...basicSupplies];
+
+  const rawSlots = getSpellSlotsForClass(template.className, level, '2024', template.subclass) || {};
+  const slots: Record<number, { total: number; used: number }> = {
+    1: { total: rawSlots[1] || 0, used: 0 },
+    2: { total: rawSlots[2] || 0, used: 0 },
+    3: { total: rawSlots[3] || 0, used: 0 },
+    4: { total: rawSlots[4] || 0, used: 0 },
+    5: { total: rawSlots[5] || 0, used: 0 },
+    6: { total: rawSlots[6] || 0, used: 0 },
+    7: { total: rawSlots[7] || 0, used: 0 },
+    8: { total: rawSlots[8] || 0, used: 0 },
+    9: { total: rawSlots[9] || 0, used: 0 },
+  };
+
+  const spellAbility = getSpellcastingAbilityForClass(template.className) || 'int';
+
+  let classPreset: 'wizard' | 'druid' | 'fighter' | 'rogue' | 'cleric' = 'fighter';
+  if (['Mago', 'Hechicero', 'Brujo'].includes(template.className)) classPreset = 'wizard';
+  else if (template.className === 'Druida') classPreset = 'druid';
+  else if (['Clérigo', 'Paladín'].includes(template.className)) classPreset = 'cleric';
+  else if (['Pícaro', 'Bardo'].includes(template.className)) classPreset = 'rogue';
+
+  const hasSpells = ['Bardo', 'Brujo', 'Clérigo', 'Druida', 'Explorador', 'Hechicero', 'Mago', 'Paladín'].includes(template.className);
+
+  const draftChar: CharacterData = {
+    ...base,
+    id: `demo-${template.id.replace('premade-', '')}`,
+    name: template.name,
+    title: template.title,
+    race: template.race,
+    className: template.className,
+    subclass: level >= 3 ? template.subclass : '',
+    level,
+    proficiencyBonus: profBonus,
+    avatarUrl: template.avatarUrl,
+    quote: `"${template.description}"`,
+    userId,
+    playerName: 'Aventurero (Demo)',
+    campaignId: null,
+    hp: {
+      current: hpMax,
+      max: hpMax,
+      temp: 0,
+    },
+    armorNote: '',
+    initiativeBonus: mod(template.stats.dex),
+    speedFt: template.speedFt,
+    speedNote: `${Math.floor(template.speedFt / 5)} casillas`,
+    hitDice: {
+      total: level,
+      remaining: level,
+      die: classDef.hitDie,
+    },
+    stats: {
+      str: { score: template.stats.str, modifier: mod(template.stats.str), savingProficient: saves.has('str') },
+      dex: { score: template.stats.dex, modifier: mod(template.stats.dex), savingProficient: saves.has('dex') },
+      con: { score: template.stats.con, modifier: mod(template.stats.con), savingProficient: saves.has('con') },
+      int: { score: template.stats.int, modifier: mod(template.stats.int), savingProficient: saves.has('int') },
+      wis: { score: template.stats.wis, modifier: mod(template.stats.wis), savingProficient: saves.has('wis') },
+      cha: { score: template.stats.cha, modifier: mod(template.stats.cha), savingProficient: saves.has('cha') },
+    },
+    proficiencies: {
+      armor: [...classDef.armorProficiencies],
+      weapons: [...classDef.weaponProficiencies],
+    },
+    inventory,
+    actions: [],
+    currency: {
+      cp: 0,
+      sp: 0,
+      ep: 0,
+      gp: kit?.defaultGold || 25,
+      pp: 0,
+    },
+    attunedItems: [],
+    spellcasting: {
+      ability: spellAbility,
+      saveDc: 8 + profBonus + mod(template.stats[spellAbility]),
+      attackBonus: profBonus + mod(template.stats[spellAbility]),
+      slots,
+      spells: kit?.spells ? JSON.parse(JSON.stringify(kit.spells)) : [],
+    },
+    features: [
+      {
+        id: `feat-${template.id}`,
+        title: `${template.className} • ${template.subclass || 'Iniciado'}`,
+        description: template.description,
+        uses: 'Pasivo',
+        enabled: true,
+      },
+    ],
+    layoutConfig: {
+      ...base.layoutConfig,
+      classPreset,
+      showWildShape: template.className === 'Druida',
+      showSpells: hasSpells,
+    },
+  };
+
+  draftChar.actions = inventory
+    .filter((item) => item.weapon)
+    .map((item) => {
+      const act = buildAttackFromWeapon(draftChar, item);
+      if (item.equipped) {
+        act.equipped = true;
+        act.slot = item.slot;
+        act.hands = item.hands;
+      }
+      return act;
+    });
+
+  return recalculateCharacter(draftChar);
 }

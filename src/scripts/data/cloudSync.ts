@@ -22,8 +22,9 @@ import { journalStore, getEntryVisibility, withVisibility } from '../state/journ
 import { userStore } from '../state/userStore.ts';
 import { recalculateCharacter } from '../dnd/calculations.ts';
 import { getFirebase, isFirebaseConfigured } from '../firebase/client.ts';
-import { onAuthChange, signOut as authSignOut, toAppUser } from '../firebase/authService.ts';
-import { normalizeInviteCode } from '../utils/ids.ts';
+import { onAuthChange, signOut as authSignOut, deleteCurrentUser, toAppUser } from '../firebase/authService.ts';
+import { normalizeInviteCode, slugify } from '../utils/ids.ts';
+import { defaultCharacter } from '../data/defaultCharacter.ts';
 import { toPlain, type DocChanges } from './cloudTypes.ts';
 import { migrateLocalData } from './migrateLocalData.ts';
 import { startRoomSync } from './roomService.ts';
@@ -84,7 +85,25 @@ class CloudSession {
   /** Se resuelve en modo local enseguida, o cuando hay sesión y llegaron los primeros datos. */
   public ready(): Promise<void> {
     this.start();
-    return this.readyPromise;
+    if (this.state === 'ready' || this.state === 'signed-out' || this.state === 'local') {
+      return Promise.resolve();
+    }
+    return new Promise(resolve => {
+      const handler = (e: any) => {
+        const s = e.detail?.state;
+        if (s === 'ready' || s === 'signed-out' || s === 'local') {
+          if (typeof window !== 'undefined') {
+            window.removeEventListener('cloud-session-changed', handler);
+          }
+          resolve();
+        }
+      };
+      if (typeof window !== 'undefined') {
+        window.addEventListener('cloud-session-changed', handler);
+      } else {
+        resolve();
+      }
+    });
   }
 
   public isCloud(): boolean {
@@ -117,6 +136,10 @@ class CloudSession {
 
     onAuthChange(user => {
       if (user) {
+        try {
+          localStorage.setItem('dnd_cloud_authed', '1');
+          localStorage.removeItem('dnd_demo_mode');
+        } catch (_) {}
         this.handleSignIn(user).catch(err => {
           console.error('[CloudSync] Error al iniciar la sesión en la nube', err);
           this.reportError(err);
@@ -125,23 +148,70 @@ class CloudSession {
         });
       } else if (this.uid) {
         // Cerró sesión en otra pestaña: se recarga para limpiar todo el estado en memoria.
+        try {
+          localStorage.removeItem('dnd_cloud_authed');
+          localStorage.removeItem('dnd_demo_mode');
+        } catch (_) {}
         window.location.reload();
       } else {
+        try {
+          localStorage.removeItem('dnd_cloud_authed');
+        } catch (_) {}
         this.setState('signed-out');
         this.resolveReady();
       }
     }).catch(err => {
       console.error('[CloudSync] No se pudo inicializar Firebase', err);
       this.reportError(err);
+      try {
+        localStorage.removeItem('dnd_cloud_authed');
+      } catch (_) {}
       this.setState('signed-out');
       this.resolveReady();
     });
   }
 
   public async signOut() {
+    try {
+      localStorage.removeItem('dnd_cloud_authed');
+      localStorage.removeItem('dnd_demo_mode');
+    } catch (_) {}
     this.flushCharacters();
     await authSignOut();
     window.location.reload();
+  }
+
+  public async deleteAccount(): Promise<void> {
+    const uid = this.uid;
+    if (!uid) return;
+    this.flushCharacters();
+
+    try {
+      localStorage.removeItem('dnd_cloud_authed');
+      localStorage.removeItem('dnd_demo_mode');
+    } catch (_) {}
+
+    // 1. Borrar perfil en Firestore si está disponible
+    if (this.db && this.fs) {
+      try {
+        const userRef = this.fs.doc(this.db, 'users', uid);
+        await this.fs.deleteDoc(userRef);
+      } catch (err) {
+        console.warn('[CloudSync] No se pudo borrar el perfil en Firestore:', err);
+      }
+    }
+
+    // 2. Borrar credenciales de Firebase Auth
+    await deleteCurrentUser();
+
+    // 3. Limpiar almacenamiento local
+    try {
+      localStorage.clear();
+      sessionStorage.clear();
+    } catch {}
+
+    // 4. Redirigir a inicio
+    window.location.href = '/';
   }
 
   // ---------------------------------------------------------------------------
@@ -149,7 +219,17 @@ class CloudSession {
   // ---------------------------------------------------------------------------
 
   private async handleSignIn(user: User) {
-    if (this.uid === user.uid) return;
+    if (this.uid === user.uid) {
+      try {
+        localStorage.setItem('dnd_cloud_authed', '1');
+        localStorage.removeItem('dnd_demo_mode');
+      } catch (_) {}
+      if (this.state !== 'ready') {
+        this.setState('ready');
+      }
+      this.resolveReady();
+      return;
+    }
     this.setState('loading');
 
     try {
@@ -188,7 +268,29 @@ class CloudSession {
       // Sala RTDB del VTT (/rooms/{liveRoomId}) de cada campaña donde el usuario es DM.
       startRoomSync(() => this.uid);
 
-      if (migration?.activeCharacter) {
+      const myRemoteChars = campaignStore.getAllCharacters().filter(c => campaignStore.isCharacterOwner(c, me.id));
+      if (myRemoteChars.length === 0) {
+        let charToUpload = characterStore.get();
+        if (!charToUpload || !charToUpload.name) {
+          charToUpload = defaultCharacter;
+        }
+        const newCharId = `char-${me.id.substring(0, 6)}-${slugify(charToUpload.name || 'atlas')}-${Math.random().toString(36).substring(2, 6)}`;
+        const uploadedChar: CharacterData = {
+          ...toPlain(charToUpload),
+          id: newCharId,
+          userId: me.id,
+          playerName: me.name,
+          campaignId: null,
+          updatedAt: Date.now(),
+        };
+        try {
+          const charRef = this.fs!.doc(this.db!, 'characters', newCharId);
+          await this.fs!.setDoc(charRef, toPlain(uploadedChar));
+          characterStore.loadCharacter(uploadedChar, true);
+        } catch (e) {
+          console.warn('[CloudSync] No se pudo guardar personaje inicial en Firestore', e);
+        }
+      } else if (migration?.activeCharacter) {
         characterStore.loadCharacter(migration.activeCharacter, true);
       } else {
         const active = characterStore.get();

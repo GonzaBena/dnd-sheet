@@ -1,0 +1,147 @@
+---
+// src/components/layout/SiteFooter.astro
+// Pie de página global con enlaces de navegación, canal de feedback y atribución legal obligatoria del SRD 5.1 (Wizards of the Coast CC-BY-4.0).
+---
+
+<footer class="w-full bg-[#07090d] border-t border-[#222f42] text-[#94a3b8] font-body text-xs relative z-20">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <!-- Top Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-8 mb-10">
+      <!-- Columna 1: Marca y descripción -->
+      <div class="md:col-span-2 space-y-4">
+        <div class="flex items-center gap-2.5">
+          <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-amber-500 to-amber-700 flex items-center justify-center shadow-[0_0_12px_rgba(245,158,11,0.4)] border border-amber-400/40 shrink-0">
+            <span class="material-symbols-outlined text-[#0a0d12] text-xl font-bold">auto_stories</span>
+          </div>
+          <div>
+            <span class="text-base font-headline font-bold text-[#f1f5f9] block leading-tight">Crónicas del Aventurero</span>
+            <span class="text-[10px] font-label text-amber-500 uppercase tracking-wider font-semibold">Grimorio de Campaña & VTT en Tiempo Real</span>
+          </div>
+        </div>
+
+        <p class="text-xs text-[#cbd5e1] leading-relaxed max-w-md">
+          Plataforma web gratuita y en español diseñada para mesas de Dungeons & Dragons 5e. Fichas de personaje automatizadas, tiradas de dados animadas, sincronización móvil-PC y grimorio táctico para el Dungeon Master.
+        </p>
+
+        <div class="flex items-center gap-3 pt-1">
+          <a
+            href="mailto:contacto@gonzabena.com.ar?subject=Cr%C3%B3nicas%20del%20Aventurero%20-%20Feedback%20o%20Sugerencia"
+            class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#121721] hover:bg-amber-500/15 border border-[#222f42] hover:border-amber-500/40 text-amber-300 hover:text-amber-200 text-xs font-headline font-bold transition-all cursor-pointer shadow-xs active:scale-95"
+            title="Enviar sugerencia o reporte por email"
+          >
+            <span class="material-symbols-outlined text-[16px]">mail</span>
+            <span>Sugerir idea o reporte</span>
+          </a>
+
+          <span class="px-2.5 py-1 rounded-md bg-[#121721] border border-[#222f42] text-[10px] font-label text-[#64748b]">
+            v1.0 • Alpha Abierta
+          </span>
+        </div>
+      </div>
+
+      <!-- Columna 2: Navegación -->
+      <div class="space-y-3">
+        <h4 class="font-headline font-bold text-sm text-[#f1f5f9] tracking-wide">Navegación</h4>
+        <ul class="space-y-2 text-xs font-label">
+          <li>
+            <a href="/" class="hover:text-amber-400 transition-colors flex items-center gap-1.5">
+              <span class="material-symbols-outlined text-[14px] text-amber-500">home</span>
+              <span>Inicio / Portada</span>
+            </a>
+          </li>
+          <li>
+            <a href="/campaigns?demo=1" class="hover:text-amber-400 transition-colors flex items-center gap-1.5">
+              <span class="material-symbols-outlined text-[14px] text-amber-500">explore</span>
+              <span>Probar Demo sin Registro</span>
+            </a>
+          </li>
+          <li>
+            <a href="/campaigns" class="hover:text-amber-400 transition-colors flex items-center gap-1.5">
+              <span class="material-symbols-outlined text-[14px] text-amber-500">badge</span>
+              <span>Espacio de Campañas</span>
+            </a>
+          </li>
+          <li>
+            <a href="/partida" class="hover:text-amber-400 transition-colors flex items-center gap-1.5">
+              <span class="material-symbols-outlined text-[14px] text-amber-500">swords</span>
+              <span>Mesa Táctica de Combate</span>
+            </a>
+          </li>
+        </ul>
+      </div>
+
+      <!-- Columna 3: Legal y Términos -->
+      <div class="space-y-3">
+        <h4 class="font-headline font-bold text-sm text-[#f1f5f9] tracking-wide">Legal y Licencia</h4>
+        <ul class="space-y-2 text-xs font-label">
+          <li>
+            <a href="/privacidad" class="hover:text-amber-400 transition-colors flex items-center gap-1.5">
+              <span class="material-symbols-outlined text-[14px] text-amber-500">shield</span>
+              <span>Política de Privacidad</span>
+            </a>
+          </li>
+          <li>
+            <a href="/terminos" class="hover:text-amber-400 transition-colors flex items-center gap-1.5">
+              <span class="material-symbols-outlined text-[14px] text-amber-500">gavel</span>
+              <span>Términos y Condiciones</span>
+            </a>
+          </li>
+          <li>
+            <a
+              href="https://dnd.wizards.com/resources/systems-reference-document"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="hover:text-amber-400 transition-colors flex items-center gap-1.5"
+            >
+              <span class="material-symbols-outlined text-[14px] text-amber-500">menu_book</span>
+              <span>SRD 5.1 (Wizards of the Coast)</span>
+            </a>
+          </li>
+          <li>
+            <a
+              href="https://creativecommons.org/licenses/by/4.0/deed.es"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="hover:text-amber-400 transition-colors flex items-center gap-1.5"
+            >
+              <span class="material-symbols-outlined text-[14px] text-amber-500">copyright</span>
+              <span>Licencia CC-BY-4.0</span>
+            </a>
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Divisor -->
+    <div class="border-t border-[#222f42]/70 pt-8 pb-4">
+      <!-- Legal WotC SRD 5.1 Disclaimer Notice -->
+      <div class="p-4 rounded-xl bg-[#121721]/80 border border-[#222f42] text-[11px] leading-relaxed text-[#94a3b8] space-y-2">
+        <div class="flex items-center gap-2 text-amber-400/90 font-bold uppercase tracking-wider text-[10px]">
+          <span class="material-symbols-outlined text-[16px]">info</span>
+          <span>Aviso Legal y Atribución SRD 5.1</span>
+        </div>
+        <p>
+          Este proyecto incluye material extraído del <strong>System Reference Document 5.1 (“SRD 5.1”)</strong> de <strong>Wizards of the Coast LLC</strong>, disponible bajo la licencia <strong>Creative Commons Attribution 4.0 International (CC-BY-4.0)</strong>.
+        </p>
+        <p class="text-[10px] text-[#64748b]">
+          <em>Dungeons & Dragons</em> y <em>D&D</em> son marcas comerciales registradas de Wizards of the Coast LLC en EE.UU. y otros países. <strong>Crónicas del Aventurero</strong> es una herramienta digital independiente desarrollada por la comunidad para facilitar partidas de rol en español; no está afiliada, respaldada ni patrocinada oficialmente por Wizards of the Coast LLC.
+        </p>
+      </div>
+
+      <!-- Copyright / Pie final -->
+      <div class="mt-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-[11px] text-[#64748b]">
+        <p>© 2026 Crónicas del Aventurero. Hecho con pasión para la comunidad rolera.</p>
+        <div class="flex items-center gap-4">
+          <a href="/privacidad" class="hover:text-[#94a3b8] transition-colors">Privacidad</a>
+          <span>•</span>
+          <a href="/terminos" class="hover:text-[#94a3b8] transition-colors">Términos</a>
+          <span>•</span>
+          <a href="#landing-hero" class="hover:text-amber-400 transition-colors flex items-center gap-1">
+            <span>Volver arriba</span>
+            <span class="material-symbols-outlined text-[12px]">expand_less</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</footer>

@@ -243,6 +243,14 @@ import AlertPrefsMenu from './AlertPrefsMenu.astro';
               <span class="material-symbols-outlined text-[16px]">delete_sweep</span>
               <span>Borrar Todo / Reiniciar</span>
             </button>
+
+            <button
+              id="menu-delete-account-btn"
+              class="hidden w-full text-left px-3.5 py-2 text-rose-400 hover:bg-rose-950/30 hover:text-rose-300 flex items-center gap-2.5 transition-colors"
+            >
+              <span class="material-symbols-outlined text-[16px]">person_remove</span>
+              <span>Eliminar Cuenta</span>
+            </button>
           </div>
         </div>
       </div>
@@ -431,10 +439,13 @@ import AlertPrefsMenu from './AlertPrefsMenu.astro';
 
   // Sesión en la nube: solo con Firebase configurado
   const signOutBtn = document.getElementById('menu-signout-btn');
+  const deleteAccountBtn = document.getElementById('menu-delete-account-btn');
   const renderSessionItem = () => {
     const active = userStore.isCloudMode();
     signOutBtn?.classList.toggle('hidden', !active);
     signOutBtn?.classList.toggle('flex', active);
+    deleteAccountBtn?.classList.toggle('hidden', !active);
+    deleteAccountBtn?.classList.toggle('flex', active);
     const nameEl = document.getElementById('menu-signout-name');
     if (nameEl) nameEl.textContent = active ? `(${userStore.getCurrentUser().name})` : '';
   };
@@ -443,6 +454,10 @@ import AlertPrefsMenu from './AlertPrefsMenu.astro';
   signOutBtn?.addEventListener('click', () => {
     profileMenu?.classList.add('hidden');
     cloudSession.signOut();
+  });
+  deleteAccountBtn?.addEventListener('click', () => {
+    profileMenu?.classList.add('hidden');
+    window.dispatchEvent(new CustomEvent('open-delete-account-modal'));
   });
 
   // Reset confirmation trigger
