@@ -64,17 +64,24 @@ import CompatWarnings from './CompatWarnings.astro';
             <span id="temp-hp-badge" class="text-[10px] font-bold text-amber-300 bg-amber-500/20 border border-amber-500/40 px-1.5 py-0.5 rounded shadow-[0_0_8px_rgba(245,158,11,0.2)] ml-0.5">+5 Temp</span>
           </div>
 
-          <!-- Quick heal/damage controls -->
+          <!-- Quick heal/damage controls [-] and [+] -->
           <div class="flex items-center gap-1.5 pl-2.5 border-l border-[#222f42]">
-            <div class="flex items-center gap-1">
-              <button id="hp-sub-5" class="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-[#121721] border border-[#222f42] hover:border-rose-500/50 flex items-center justify-center text-[11px] font-bold text-rose-400 active:scale-90 transition-all cursor-pointer" title="Recibir 5 de daño">-5</button>
-              <button id="hp-sub-1" class="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-[#121721] border border-[#222f42] hover:border-rose-500/50 flex items-center justify-center text-[11px] font-bold text-rose-400 active:scale-90 transition-all cursor-pointer" title="Recibir 1 de daño">-1</button>
-            </div>
-            <div class="w-px h-4 bg-[#222f42]"></div>
-            <div class="flex items-center gap-1">
-              <button id="hp-add-1" class="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-[#121721] border border-[#222f42] hover:border-amber-500/50 flex items-center justify-center text-[11px] font-bold text-amber-400 active:scale-90 transition-all cursor-pointer" title="Curar 1 PG">+1</button>
-              <button id="hp-add-5" class="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-[#121721] border border-[#222f42] hover:border-amber-500/50 flex items-center justify-center text-[11px] font-bold text-amber-400 active:scale-90 transition-all cursor-pointer" title="Curar 5 PG">+5</button>
-            </div>
+            <button
+              type="button"
+              id="hp-sub-btn"
+              class="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-[#121721] border border-[#222f42] hover:border-rose-500/50 hover:bg-rose-500/10 flex items-center justify-center text-sm font-bold font-mono text-rose-400 active:scale-90 transition-all cursor-pointer"
+              title="Recibir daño (restar PG)"
+            >
+              <span class="material-symbols-outlined text-[16px]">remove</span>
+            </button>
+            <button
+              type="button"
+              id="hp-add-btn"
+              class="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-[#121721] border border-[#222f42] hover:border-emerald-500/50 hover:bg-emerald-500/10 flex items-center justify-center text-sm font-bold font-mono text-emerald-400 active:scale-90 transition-all cursor-pointer"
+              title="Curar (sumar PG)"
+            >
+              <span class="material-symbols-outlined text-[16px]">add</span>
+            </button>
           </div>
         </div>
       </div>
@@ -364,26 +371,27 @@ import CompatWarnings from './CompatWarnings.astro';
   attunedBtn?.addEventListener('click', openAttunedModal);
   attunedContainer?.addEventListener('click', openAttunedModal);
 
-  // Quick modify buttons with smooth Anime.js
-  document.getElementById('hp-sub-5')?.addEventListener('click', () => {
-    const old = characterStore.get().hp.current;
-    const res = characterStore.modifyHp(-5);
-    if (barEl && numEl) animateHpBar(barEl, numEl, old, res.current, res.max);
+  // Daño y curación con solicitud de cantidad
+  document.getElementById('hp-sub-btn')?.addEventListener('click', () => {
+    const valStr = prompt('¿Cuántos puntos de daño recibes?');
+    if (!valStr) return;
+    const amount = parseInt(valStr.trim(), 10);
+    if (!isNaN(amount) && amount > 0) {
+      const old = characterStore.get().hp.current;
+      const res = characterStore.modifyHp(-amount);
+      if (barEl && numEl) animateHpBar(barEl, numEl, old, res.current, res.max);
+    }
   });
-  document.getElementById('hp-sub-1')?.addEventListener('click', () => {
-    const old = characterStore.get().hp.current;
-    const res = characterStore.modifyHp(-1);
-    if (barEl && numEl) animateHpBar(barEl, numEl, old, res.current, res.max);
-  });
-  document.getElementById('hp-add-1')?.addEventListener('click', () => {
-    const old = characterStore.get().hp.current;
-    const res = characterStore.modifyHp(1);
-    if (barEl && numEl) animateHpBar(barEl, numEl, old, res.current, res.max);
-  });
-  document.getElementById('hp-add-5')?.addEventListener('click', () => {
-    const old = characterStore.get().hp.current;
-    const res = characterStore.modifyHp(5);
-    if (barEl && numEl) animateHpBar(barEl, numEl, old, res.current, res.max);
+
+  document.getElementById('hp-add-btn')?.addEventListener('click', () => {
+    const valStr = prompt('¿Cuántos puntos de vida te curas?');
+    if (!valStr) return;
+    const amount = parseInt(valStr.trim(), 10);
+    if (!isNaN(amount) && amount > 0) {
+      const old = characterStore.get().hp.current;
+      const res = characterStore.modifyHp(amount);
+      if (barEl && numEl) animateHpBar(barEl, numEl, old, res.current, res.max);
+    }
   });
 
   // Manual HP edit

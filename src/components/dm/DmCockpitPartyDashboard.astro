@@ -1,0 +1,186 @@
+---
+// src/components/dm/DmCockpitPartyDashboard.astro
+// Resumen táctico compacto de aventureros para la pantalla de mando del DM (Spec 14, H7).
+// Permite consultar CA, Percepción Pasiva, Estados y modificar PG con botones compactos [-] y [+].
+---
+
+<div id="cockpit-party-dashboard-root" class="rounded-2xl bg-[#121721] border border-[#222f42] p-3.5 space-y-3 shadow-md font-label">
+  <div class="flex items-center justify-between gap-2 pb-2 border-b border-[#222f42]/60">
+    <div class="flex items-center gap-2">
+      <span class="material-symbols-outlined text-amber-400 text-lg">groups</span>
+      <h3 class="text-xs font-headline font-bold text-[#f1f5f9] uppercase tracking-wider">
+        Party Dashboard
+      </h3>
+    </div>
+    <span id="cpd-count" class="px-2 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 text-[10px] font-mono font-bold">
+      0 Aventureros
+    </span>
+  </div>
+
+  <!-- Contenedor de Aventureros en filas compactas -->
+  <div id="cpd-list" class="space-y-2">
+    <!-- Poblado dinámicamente -->
+  </div>
+</div>
+
+<script>
+  import { campaignStore } from '../../scripts/state/campaignStore';
+  import { getArmorClass } from '../../scripts/dnd/ac';
+  import { calculatePassivePerception } from '../../scripts/dnd/calculations';
+
+  const listEl = document.getElementById('cpd-list');
+  const countEl = document.getElementById('cpd-count');
+
+  export function renderCockpitPartyDashboard() {
+    if (!listEl) return;
+    const activeCampId = campaignStore.getActiveCampaignId();
+    if (!activeCampId) {
+      listEl.innerHTML = '<div class="text-xs text-[#64748b] italic py-2 text-center">Sin campaña activa.</div>';
+      return;
+    }
+
+    const characters = campaignStore.getCharactersForCampaign(activeCampId);
+    if (countEl) countEl.textContent = `${characters.length} ${characters.length === 1 ? 'Aventurero' : 'Aventureros'}`;
+
+    if (characters.length === 0) {
+      listEl.innerHTML = '<div class="text-xs text-[#64748b] italic py-2 text-center">No hay aventureros en la campaña.</div>';
+      return;
+    }
+
+    listEl.innerHTML = '';
+    characters.forEach((char) => {
+      const curHp = char.hp?.current ?? 10;
+      const maxHp = char.hp?.max ?? 10;
+      const tempHp = char.hp?.temp ?? 0;
+      const pct = Math.min(100, Math.max(0, Math.round((curHp / maxHp) * 100)));
+
+      let hpBarColor = 'bg-emerald-500';
+      if (curHp <= 0) hpBarColor = 'bg-rose-700';
+      else if (pct <= 25) hpBarColor = 'bg-rose-500';
+      else if (pct <= 50) hpBarColor = 'bg-amber-500';
+
+      const ac = getArmorClass(char);
+      const pp = char.passivePerception ?? calculatePassivePerception(char);
+
+      const row = document.createElement('div');
+      row.className = 'p-2.5 rounded-xl bg-[#18202e] border border-[#222f42] hover:border-amber-500/40 transition-colors space-y-1.5';
+
+      // Condiciones o Concentración
+      const conc = char.activeEffects?.find((e) => e.condition === 'Concentración' || e.name.toLowerCase().includes('concentraci'));
+
+      row.innerHTML = `
+        <div class="flex items-center justify-between gap-2">
+          <!-- Avatar + Identidad -->
+          <div class="flex items-center gap-2 min-w-0">
+            <div class="relative w-8 h-8 rounded-lg overflow-hidden shrink-0 border border-amber-500/30 bg-[#10141d]">
+              <img
+                src="${char.avatarUrl || '/characters/ch-1.avif'}"
+                alt="${char.name}"
+                class="w-full h-full object-cover"
+                onerror="this.onerror=null;this.src='/characters/ch-1.avif';"
+              />
+            </div>
+            <div class="min-w-0">
+              <div class="flex items-center gap-1.5">
+                <span class="font-headline font-bold text-xs text-[#f1f5f9] truncate">${char.name}</span>
+                ${char.inspiration ? '<span class="text-amber-400 text-[10px]" title="Inspiración">★</span>' : ''}
+                ${conc ? '<span class="px-1 py-0.2 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[8px] font-bold" title="Concentrado">CON</span>' : ''}
+              </div>
+              <div class="text-[10px] text-[#94a3b8] flex items-center gap-2">
+                <span>CA: <strong class="text-amber-300">${ac}</strong></span>
+                <span>•</span>
+                <span>PP: <strong class="text-slate-300">${pp}</strong></span>
+              </div>
+            </div>
+          </div>
+
+          <!-- PG y Controles [-] y [+] solicitando cantidad -->
+          <div class="flex items-center gap-1.5 shrink-0 font-mono">
+            <!-- HP Clickable -->
+            <button
+              type="button"
+              class="cpd-hp-display text-right pr-1 cursor-pointer hover:opacity-80 transition-opacity"
+              data-char-id="${char.id}"
+              title="Clic para editar PG manualmente"
+            >
+              <div class="flex items-baseline justify-end gap-1 font-bold text-xs">
+                <span class="${curHp <= maxHp / 2 ? 'text-rose-400' : 'text-emerald-400'}">${curHp}</span>
+                <span class="text-[10px] text-[#64748b]">/${maxHp}</span>
+                ${tempHp > 0 ? `<span class="text-[9px] text-amber-300 font-bold">(+${tempHp})</span>` : ''}
+              </div>
+            </button>
+
+            <!-- Botón [-] Dañar -->
+            <button
+              type="button"
+              class="cpd-sub-btn w-6 h-6 rounded-md bg-rose-950/50 hover:bg-rose-900 border border-rose-500/40 text-rose-300 font-bold text-xs flex items-center justify-center cursor-pointer active:scale-95 transition-all"
+              data-char-id="${char.id}"
+              data-char-name="${char.name}"
+              title="Dañar a ${char.name} (solicita cantidad)"
+            >
+              -
+            </button>
+
+            <!-- Botón [+] Curar -->
+            <button
+              type="button"
+              class="cpd-add-btn w-6 h-6 rounded-md bg-emerald-950/50 hover:bg-emerald-900 border border-emerald-500/40 text-emerald-300 font-bold text-xs flex items-center justify-center cursor-pointer active:scale-95 transition-all"
+              data-char-id="${char.id}"
+              data-char-name="${char.name}"
+              title="Curar a ${char.name} (solicita cantidad)"
+            >
+              +
+            </button>
+          </div>
+        </div>
+
+        <!-- Mini barra de vida -->
+        <div class="w-full h-1.5 rounded-full bg-[#10141d] overflow-hidden border border-[#222f42]/60">
+          <div class="h-full ${hpBarColor} transition-all duration-300" style="width: ${pct}%"></div>
+        </div>
+      `;
+
+      // Eventos de daño [-]
+      row.querySelector('.cpd-sub-btn')?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const input = prompt(`Cantidad de daño para ${char.name}:`);
+        if (!input) return;
+        const amount = parseInt(input.trim(), 10);
+        if (!isNaN(amount) && amount > 0) {
+          campaignStore.mutateHp(char.id, { kind: 'delta', amount: -amount });
+        }
+      });
+
+      // Eventos de curación [+]
+      row.querySelector('.cpd-add-btn')?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const input = prompt(`Cantidad de curación para ${char.name}:`);
+        if (!input) return;
+        const amount = parseInt(input.trim(), 10);
+        if (!isNaN(amount) && amount > 0) {
+          campaignStore.mutateHp(char.id, { kind: 'delta', amount });
+        }
+      });
+
+      // Evento de edición directa de PG
+      row.querySelector('.cpd-hp-display')?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const input = prompt(`Ajustar PG actuales de ${char.name} (Máx: ${maxHp}):`, String(curHp));
+        if (!input) return;
+        const newHp = parseInt(input.trim(), 10);
+        if (!isNaN(newHp)) {
+          campaignStore.mutateHp(char.id, { kind: 'set', current: newHp, max: maxHp, temp: tempHp });
+        }
+      });
+
+      listEl.appendChild(row);
+    });
+  }
+
+  // Escuchar actualizaciones
+  window.addEventListener('campaigns-updated', renderCockpitPartyDashboard);
+  window.addEventListener('all-characters-updated', renderCockpitPartyDashboard);
+  window.addEventListener('character-updated', renderCockpitPartyDashboard);
+  window.addEventListener('dm-grimoire-refresh', renderCockpitPartyDashboard);
+  renderCockpitPartyDashboard();
+</script>

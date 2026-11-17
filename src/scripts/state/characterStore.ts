@@ -1240,6 +1240,18 @@ class CharacterStoreManager {
     }
   }
 
+  public setViewMode(mode: 'standard' | 'table') {
+    if (!this.character.layoutConfig) this.updateLayoutConfig({});
+    if (this.character.layoutConfig) {
+      this.character.layoutConfig.viewMode = mode;
+      this.saveAndNotify();
+    }
+  }
+
+  public getViewMode(): 'standard' | 'table' {
+    return this.character.layoutConfig?.viewMode || 'standard';
+  }
+
   public applyClassPreset(preset: 'wizard' | 'druid' | 'fighter' | 'rogue' | 'cleric' | 'custom') {
     if (!this.character.layoutConfig) this.updateLayoutConfig({});
     const cfg = this.character.layoutConfig!;

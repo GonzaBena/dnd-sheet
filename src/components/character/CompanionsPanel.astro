@@ -374,10 +374,12 @@
           </div>
           <div class="flex items-center justify-between pt-1">
             <div class="flex items-center gap-1">
-              <button type="button" class="comp-hp-sub-5 px-1.5 py-0.5 rounded bg-[#18202e] hover:bg-rose-500/20 text-rose-300 text-[10px] font-mono font-bold border border-[#222f42] cursor-pointer">-5</button>
-              <button type="button" class="comp-hp-sub-1 px-1.5 py-0.5 rounded bg-[#18202e] hover:bg-rose-500/20 text-rose-300 text-[10px] font-mono font-bold border border-[#222f42] cursor-pointer">-1</button>
-              <button type="button" class="comp-hp-add-1 px-1.5 py-0.5 rounded bg-[#18202e] hover:bg-emerald-500/20 text-emerald-300 text-[10px] font-mono font-bold border border-[#222f42] cursor-pointer">+1</button>
-              <button type="button" class="comp-hp-add-5 px-1.5 py-0.5 rounded bg-[#18202e] hover:bg-emerald-500/20 text-emerald-300 text-[10px] font-mono font-bold border border-[#222f42] cursor-pointer">+5</button>
+              <button type="button" class="comp-hp-sub-btn px-2 py-0.5 rounded bg-[#18202e] hover:bg-rose-500/20 text-rose-300 text-xs font-mono font-bold border border-[#222f42] cursor-pointer flex items-center justify-center" title="Dañar compañero">
+                <span class="material-symbols-outlined text-[13px]">remove</span>
+              </button>
+              <button type="button" class="comp-hp-add-btn px-2 py-0.5 rounded bg-[#18202e] hover:bg-emerald-500/20 text-emerald-300 text-xs font-mono font-bold border border-[#222f42] cursor-pointer flex items-center justify-center" title="Curar compañero">
+                <span class="material-symbols-outlined text-[13px]">add</span>
+              </button>
             </div>
             <div class="flex items-center gap-2 text-[10px] text-[#94a3b8] font-mono">
               ${comp.armorClass ? `<span>CA: <strong class="text-amber-300">${comp.armorClass}</strong></span>` : ''}
@@ -418,17 +420,21 @@
 
       // Eventos de edición y PG
       card.querySelector('.comp-edit-btn')?.addEventListener('click', () => openModal(comp));
-      card.querySelector('.comp-hp-sub-5')?.addEventListener('click', () => {
-        characterStore.updateCompanion(comp.id, { hp: { current: Math.max(0, curHp - 5), max: maxHp } });
+      card.querySelector('.comp-hp-sub-btn')?.addEventListener('click', () => {
+        const valStr = prompt(`¿Cuántos puntos de daño recibe ${comp.name}?`);
+        if (!valStr) return;
+        const amount = parseInt(valStr.trim(), 10);
+        if (!isNaN(amount) && amount > 0) {
+          characterStore.updateCompanion(comp.id, { hp: { current: Math.max(0, curHp - amount), max: maxHp } });
+        }
       });
-      card.querySelector('.comp-hp-sub-1')?.addEventListener('click', () => {
-        characterStore.updateCompanion(comp.id, { hp: { current: Math.max(0, curHp - 1), max: maxHp } });
-      });
-      card.querySelector('.comp-hp-add-1')?.addEventListener('click', () => {
-        characterStore.updateCompanion(comp.id, { hp: { current: Math.min(maxHp, curHp + 1), max: maxHp } });
-      });
-      card.querySelector('.comp-hp-add-5')?.addEventListener('click', () => {
-        characterStore.updateCompanion(comp.id, { hp: { current: Math.min(maxHp, curHp + 5), max: maxHp } });
+      card.querySelector('.comp-hp-add-btn')?.addEventListener('click', () => {
+        const valStr = prompt(`¿Cuántos puntos se cura ${comp.name}?`);
+        if (!valStr) return;
+        const amount = parseInt(valStr.trim(), 10);
+        if (!isNaN(amount) && amount > 0) {
+          characterStore.updateCompanion(comp.id, { hp: { current: Math.min(maxHp, curHp + amount), max: maxHp } });
+        }
       });
 
       card.querySelector('.comp-map-btn')?.addEventListener('click', async () => {

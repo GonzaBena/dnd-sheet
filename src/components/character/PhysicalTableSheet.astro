@@ -1,0 +1,692 @@
+---
+// src/components/character/PhysicalTableSheet.astro
+// Vista especializada de la Hoja de Personaje para mesa física y pantallas móviles (Spec 14, H7).
+// Prioriza legibilidad a distancia, vitales gigantes, consumo táctil de slots/recursos y ataques directos.
+---
+
+<div id="physical-table-sheet-root" class="w-full max-w-4xl mx-auto space-y-4 select-none pb-12">
+  <!-- 1. BARRA SUPERIOR DE CONTEXTO & TOGGLE DE VISTA -->
+  <header class="flex items-center justify-between gap-3 p-3.5 sm:p-4 rounded-2xl bg-[#121721] border border-[#222f42] shadow-md">
+    <div class="flex items-center gap-3 min-w-0">
+      <div class="relative shrink-0">
+        <img
+          id="pts-avatar"
+          src=""
+          alt="Avatar"
+          class="w-12 h-12 rounded-xl object-cover border-2 border-amber-500/50 shadow-[0_0_12px_rgba(245,158,11,0.3)] bg-[#18202e]"
+        />
+        <span
+          id="pts-inspiration-dot"
+          class="hidden absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-amber-400 border-2 border-[#121721] flex items-center justify-center text-[10px] text-[#0a0d12] font-black shadow-xs"
+          title="Inspiración Heroica activa"
+        >
+          ★
+        </span>
+      </div>
+      <div class="min-w-0">
+        <h2 id="pts-name" class="text-base sm:text-lg font-headline font-bold text-[#f1f5f9] truncate">
+          Cargando personaje...
+        </h2>
+        <p id="pts-meta" class="text-xs text-[#94a3b8] font-label truncate">
+          Nivel 1 • Clase • Raza
+        </p>
+      </div>
+    </div>
+
+    <!-- Botón de Conmutación a Ficha Completa -->
+    <div class="flex items-center gap-2 shrink-0">
+      <button
+        type="button"
+        id="pts-to-standard-btn"
+        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#18202e] hover:bg-[#222f42] text-amber-300 border border-amber-500/30 hover:border-amber-500/60 text-xs font-headline font-bold transition-all active:scale-95 shadow-xs cursor-pointer"
+        title="Cambiar a la vista detallada de 3 columnas"
+      >
+        <span class="material-symbols-outlined text-[16px]">view_column</span>
+        <span class="hidden xs:inline">Ficha Completa</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- 2. VITALES HERO: PG GIGANTES + BARRA + CONTROLES TÁCTILES -->
+  <section class="rounded-2xl bg-gradient-to-b from-[#161e2c] to-[#121721] border border-amber-500/40 p-4 sm:p-6 shadow-[0_8px_30px_rgba(0,0,0,0.5)] space-y-4">
+    <div class="flex flex-wrap items-center justify-between gap-2">
+      <div class="flex items-center gap-2">
+        <span class="material-symbols-outlined text-rose-500 text-2xl drop-shadow-[0_0_8px_rgba(239,68,68,0.7)] animate-pulse">
+          favorite
+        </span>
+        <div>
+          <span class="text-[11px] font-bold uppercase tracking-wider text-[#94a3b8] block">Puntos de Golpe</span>
+          <span id="pts-hp-percentage" class="text-xs font-mono font-bold text-amber-400">100% Salud</span>
+        </div>
+      </div>
+
+      <!-- PG Actuales y Temporales -->
+      <div class="flex items-baseline gap-2">
+        <span id="pts-current-hp" class="text-3xl sm:text-5xl font-mono font-black text-[#f1f5f9] tracking-tight">45</span>
+        <span class="text-sm font-mono text-[#64748b]">/ <span id="pts-max-hp">45</span></span>
+        <span id="pts-temp-hp" class="hidden px-2 py-0.5 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/40 text-xs font-mono font-bold">
+          +0 Temp
+        </span>
+      </div>
+    </div>
+
+    <!-- Barra de Vida visual -->
+    <div class="h-3.5 w-full bg-[#0a0d12] rounded-full overflow-hidden border border-[#222f42] flex p-0.5">
+      <div id="pts-hp-fill" class="h-full bg-gradient-to-r from-emerald-500 to-emerald-400 rounded-full transition-all duration-300" style="width: 100%;"></div>
+      <div id="pts-temp-fill" class="h-full bg-amber-400 rounded-r-full transition-all duration-300" style="width: 0%;"></div>
+    </div>
+
+    <!-- Controles Táctiles Rápidos de Daño y Curación [-] y [+] -->
+    <div class="grid grid-cols-2 gap-3 pt-1 font-mono">
+      <button
+        type="button"
+        id="pts-sub-btn"
+        class="py-2.5 rounded-xl bg-rose-950/40 hover:bg-rose-900/60 border border-rose-500/40 text-rose-300 font-bold text-sm active:scale-95 transition-all shadow-xs cursor-pointer flex items-center justify-center gap-1.5"
+        title="Recibir daño (restar PG)"
+      >
+        <span class="material-symbols-outlined text-[18px]">remove</span>
+        <span>Dañar</span>
+      </button>
+      <button
+        type="button"
+        id="pts-add-btn"
+        class="py-2.5 rounded-xl bg-emerald-950/40 hover:bg-emerald-900/60 border border-emerald-500/40 text-emerald-300 font-bold text-sm active:scale-95 transition-all shadow-xs cursor-pointer flex items-center justify-center gap-1.5"
+        title="Curar (sumar PG)"
+      >
+        <span class="material-symbols-outlined text-[18px]">add</span>
+        <span>Curar</span>
+      </button>
+    </div>
+  </section>
+
+  <!-- 3. DEFENSAS RÁPIDAS: CA • VELOCIDAD • PERCEPCIÓN • INSPIRACIÓN • CONCENTRACIÓN -->
+  <section class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+    <!-- CA -->
+    <div class="p-3 rounded-2xl bg-[#121721] border border-[#222f42] flex items-center gap-3">
+      <div class="w-10 h-10 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 shrink-0">
+        <span class="material-symbols-outlined text-[20px]">shield</span>
+      </div>
+      <div>
+        <span class="text-[10px] font-bold uppercase text-[#94a3b8] block">Armadura</span>
+        <span id="pts-ac" class="text-xl font-mono font-black text-[#f1f5f9]">15 CA</span>
+      </div>
+    </div>
+
+    <!-- Velocidad -->
+    <div class="p-3 rounded-2xl bg-[#121721] border border-[#222f42] flex items-center gap-3">
+      <div class="w-10 h-10 rounded-xl bg-sky-500/15 border border-sky-500/30 flex items-center justify-center text-sky-400 shrink-0">
+        <span class="material-symbols-outlined text-[20px]">directions_run</span>
+      </div>
+      <div>
+        <span class="text-[10px] font-bold uppercase text-[#94a3b8] block">Velocidad</span>
+        <span id="pts-speed" class="text-xl font-mono font-black text-[#f1f5f9]">30 ft</span>
+      </div>
+    </div>
+
+    <!-- Percepción Pasiva -->
+    <div class="p-3 rounded-2xl bg-[#121721] border border-[#222f42] flex items-center gap-3">
+      <div class="w-10 h-10 rounded-xl bg-purple-500/15 border border-purple-500/30 flex items-center justify-center text-purple-400 shrink-0">
+        <span class="material-symbols-outlined text-[20px]">visibility</span>
+      </div>
+      <div>
+        <span class="text-[10px] font-bold uppercase text-[#94a3b8] block">Perc. Pasiva</span>
+        <span id="pts-passive-perception" class="text-xl font-mono font-black text-[#f1f5f9]">12</span>
+      </div>
+    </div>
+
+    <!-- Inspiración Heroica (Toggle táctil) -->
+    <button
+      type="button"
+      id="pts-inspiration-btn"
+      class="p-3 rounded-2xl bg-[#121721] hover:bg-[#18202e] border border-[#222f42] flex items-center gap-3 text-left transition-all active:scale-95 cursor-pointer"
+    >
+      <div id="pts-insp-icon-box" class="w-10 h-10 rounded-xl bg-[#18202e] border border-[#222f42] flex items-center justify-center text-[#64748b] shrink-0 transition-colors">
+        <span class="material-symbols-outlined text-[20px]">star</span>
+      </div>
+      <div>
+        <span class="text-[10px] font-bold uppercase text-[#94a3b8] block">Inspiración</span>
+        <span id="pts-insp-status" class="text-xs font-bold text-[#64748b]">Inactiva</span>
+      </div>
+    </button>
+  </section>
+
+  <!-- Banner de Concentración Activa (Si aplica) -->
+  <div id="pts-concentration-banner" class="hidden p-3 rounded-2xl bg-amber-950/40 border border-amber-500/40 text-amber-200 flex items-center justify-between gap-3">
+    <div class="flex items-center gap-2">
+      <span class="material-symbols-outlined text-amber-400 text-xl">bolt</span>
+      <div>
+        <span class="text-xs font-bold text-amber-300 block">Concentración activa</span>
+        <span id="pts-concentration-spell" class="text-[11px] text-[#cbd5e1] italic">Hechizo</span>
+      </div>
+    </div>
+    <button
+      type="button"
+      id="pts-drop-concentration-btn"
+      class="px-2.5 py-1 rounded-lg bg-[#10141d] hover:bg-rose-500/20 text-[#94a3b8] hover:text-rose-300 border border-[#222f42] text-xs font-bold transition-colors cursor-pointer"
+    >
+      Perder
+    </button>
+  </div>
+
+  <!-- 4. MATRIZ TÁCTIL DE ESPACIOS DE CONJURO (Niveles 1 a 9) -->
+  <section id="pts-spell-slots-section" class="hidden rounded-2xl bg-[#121721] border border-[#222f42] p-4 sm:p-5 shadow-sm space-y-3">
+    <div class="flex items-center justify-between pb-2 border-b border-[#222f42]/60">
+      <div class="flex items-center gap-2">
+        <span class="material-symbols-outlined text-purple-400 text-lg">auto_fix_high</span>
+        <h3 class="text-xs font-headline font-bold text-[#f1f5f9] uppercase tracking-wider">
+          Espacios de Conjuro
+        </h3>
+      </div>
+      <div class="flex items-center gap-3 text-xs font-mono">
+        <span class="text-[#94a3b8]">CD: <strong id="pts-spell-dc" class="text-purple-300">13</strong></span>
+        <span class="text-[#94a3b8]">Ataque: <strong id="pts-spell-atk" class="text-amber-300">+5</strong></span>
+      </div>
+    </div>
+
+    <!-- Grid de ranuras por nivel -->
+    <div id="pts-slots-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+      <!-- Generado dinámicamente -->
+    </div>
+  </section>
+
+  <!-- 5. RECURSOS DE CLASE RÁPIDOS -->
+  <section id="pts-resources-section" class="hidden rounded-2xl bg-[#121721] border border-[#222f42] p-4 sm:p-5 shadow-sm space-y-3">
+    <div class="flex items-center justify-between pb-2 border-b border-[#222f42]/60">
+      <div class="flex items-center gap-2">
+        <span class="material-symbols-outlined text-amber-400 text-lg">inventory</span>
+        <h3 class="text-xs font-headline font-bold text-[#f1f5f9] uppercase tracking-wider">
+          Recursos de Clase
+        </h3>
+      </div>
+    </div>
+
+    <div id="pts-resources-container" class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+      <!-- Generado dinámicamente -->
+    </div>
+  </section>
+
+  <!-- 6. ARMAS Y ATAQUES PREPARADOS -->
+  <section class="rounded-2xl bg-[#121721] border border-[#222f42] p-4 sm:p-5 shadow-sm space-y-3">
+    <div class="flex items-center justify-between pb-2 border-b border-[#222f42]/60">
+      <div class="flex items-center gap-2">
+        <span class="material-symbols-outlined text-amber-400 text-lg">swords</span>
+        <h3 class="text-xs font-headline font-bold text-[#f1f5f9] uppercase tracking-wider">
+          Ataques Preparados
+        </h3>
+      </div>
+      <span id="pts-weapons-count" class="text-[10px] font-mono text-[#94a3b8]">0 armas</span>
+    </div>
+
+    <div id="pts-weapons-container" class="space-y-2">
+      <!-- Generado dinámicamente -->
+    </div>
+  </section>
+
+  <!-- 7. CONDICIONES Y ESTADOS ACTIVOS -->
+  <section class="rounded-2xl bg-[#121721] border border-[#222f42] p-4 sm:p-5 shadow-sm space-y-2.5">
+    <div class="flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <span class="material-symbols-outlined text-rose-400 text-lg">healing</span>
+        <h3 class="text-xs font-headline font-bold text-[#f1f5f9] uppercase tracking-wider">
+          Condiciones Activas
+        </h3>
+      </div>
+      <button
+        type="button"
+        id="pts-add-condition-btn"
+        class="text-[10px] font-bold text-amber-300 hover:text-amber-200 px-2 py-0.5 rounded bg-amber-500/10 border border-amber-500/30 cursor-pointer"
+      >
+        + Estado
+      </button>
+    </div>
+
+    <div id="pts-conditions-container" class="flex flex-wrap gap-1.5 min-h-[32px] items-center">
+      <!-- Generado dinámicamente -->
+    </div>
+  </section>
+
+  <!-- 8. SALVACIONES RÁPIDAS -->
+  <section class="rounded-2xl bg-[#121721] border border-[#222f42] p-4 sm:p-5 shadow-sm space-y-2.5">
+    <div class="flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <span class="material-symbols-outlined text-emerald-400 text-lg">verified</span>
+        <h3 class="text-xs font-headline font-bold text-[#f1f5f9] uppercase tracking-wider">
+          Tiradas de Salvación
+        </h3>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-3 sm:grid-cols-6 gap-2 font-mono" id="pts-saves-grid">
+      <!-- Botones de FUE, DES, CON, INT, SAB, CAR -->
+    </div>
+  </section>
+</div>
+
+<script>
+  import { characterStore } from '../../scripts/state/characterStore';
+  import { remaining } from '../../scripts/dnd/resources';
+  import { showAlert } from '../../scripts/ui/notify';
+
+  const root = document.getElementById('physical-table-sheet-root');
+  const avatarEl = document.getElementById('pts-avatar') as HTMLImageElement;
+  const nameEl = document.getElementById('pts-name');
+  const metaEl = document.getElementById('pts-meta');
+  const inspDot = document.getElementById('pts-inspiration-dot');
+  const toStandardBtn = document.getElementById('pts-to-standard-btn');
+
+  const curHpEl = document.getElementById('pts-current-hp');
+  const maxHpEl = document.getElementById('pts-max-hp');
+  const tempHpEl = document.getElementById('pts-temp-hp');
+  const hpPercentEl = document.getElementById('pts-hp-percentage');
+  const hpFillEl = document.getElementById('pts-hp-fill');
+  const tempFillEl = document.getElementById('pts-temp-fill');
+
+  const acEl = document.getElementById('pts-ac');
+  const speedEl = document.getElementById('pts-speed');
+  const ppEl = document.getElementById('pts-passive-perception');
+  const inspBtn = document.getElementById('pts-inspiration-btn');
+  const inspStatus = document.getElementById('pts-insp-status');
+  const inspIconBox = document.getElementById('pts-insp-icon-box');
+
+  const concBanner = document.getElementById('pts-concentration-banner');
+  const concSpell = document.getElementById('pts-concentration-spell');
+  const concDropBtn = document.getElementById('pts-drop-concentration-btn');
+
+  const spellSec = document.getElementById('pts-spell-slots-section');
+  const spellDcEl = document.getElementById('pts-spell-dc');
+  const spellAtkEl = document.getElementById('pts-spell-atk');
+  const slotsContainer = document.getElementById('pts-slots-container');
+
+  const resSec = document.getElementById('pts-resources-section');
+  const resContainer = document.getElementById('pts-resources-container');
+
+  const weaponsContainer = document.getElementById('pts-weapons-container');
+  const weaponsCount = document.getElementById('pts-weapons-count');
+
+  const conditionsContainer = document.getElementById('pts-conditions-container');
+  const addCondBtn = document.getElementById('pts-add-condition-btn');
+
+  const savesGrid = document.getElementById('pts-saves-grid');
+
+  // Toggle vista estándar
+  toStandardBtn?.addEventListener('click', () => {
+    characterStore.setViewMode('standard');
+    window.dispatchEvent(new CustomEvent('sheet-view-changed', { detail: { mode: 'standard' } }));
+  });
+
+  // Botones de daño/curación [-] y [+]
+  document.getElementById('pts-sub-btn')?.addEventListener('click', () => {
+    const valStr = prompt('¿Cuántos puntos de daño recibes?');
+    if (!valStr) return;
+    const val = parseInt(valStr.trim(), 10);
+    if (!isNaN(val) && val > 0) {
+      characterStore.modifyHp(-val);
+    }
+  });
+
+  document.getElementById('pts-add-btn')?.addEventListener('click', () => {
+    const valStr = prompt('¿Cuántos puntos de vida te curas?');
+    if (!valStr) return;
+    const val = parseInt(valStr.trim(), 10);
+    if (!isNaN(val) && val > 0) {
+      characterStore.modifyHp(val);
+    }
+  });
+
+  // Inspiración
+  inspBtn?.addEventListener('click', () => {
+    const cur = characterStore.get().inspiration;
+    characterStore.setInspiration(!cur);
+  });
+
+  // Concentración
+  concDropBtn?.addEventListener('click', () => {
+    const char = characterStore.get();
+    const concIdx = char.activeEffects.findIndex((e) => e.condition === 'Concentración' || e.name.toLowerCase().includes('concentraci'));
+    if (concIdx >= 0) {
+      characterStore.removeActiveEffect(char.activeEffects[concIdx].id);
+    }
+  });
+
+  // Render principal
+  function renderPhysicalTableSheet() {
+    const char = characterStore.get();
+    if (!char) return;
+
+    // 1. Header
+    if (avatarEl) avatarEl.src = char.avatarUrl || '/assets/default-avatar.png';
+    if (nameEl) nameEl.textContent = char.name || 'Sin Nombre';
+    if (metaEl) {
+      metaEl.textContent = `Nivel ${char.level || 1} • ${char.className || 'Clase'} • ${char.race || 'Raza'}`;
+    }
+    if (inspDot) {
+      inspDot.classList.toggle('hidden', !char.inspiration);
+    }
+
+    // 2. PG
+    const cur = char.hp.current;
+    const max = char.hp.max || 1;
+    const temp = char.hp.temp || 0;
+    if (curHpEl) curHpEl.textContent = String(cur);
+    if (maxHpEl) maxHpEl.textContent = String(max);
+
+    if (tempHpEl) {
+      if (temp > 0) {
+        tempHpEl.textContent = `+${temp} Temp`;
+        tempHpEl.classList.remove('hidden');
+      } else {
+        tempHpEl.classList.add('hidden');
+      }
+    }
+
+    const pct = Math.min(100, Math.max(0, Math.round((cur / max) * 100)));
+    if (hpPercentEl) hpPercentEl.textContent = `${pct}% Salud`;
+
+    if (hpFillEl) {
+      hpFillEl.style.width = `${pct}%`;
+      hpFillEl.className = `h-full rounded-full transition-all duration-300 ${
+        pct <= 25 ? 'bg-rose-500' : pct <= 50 ? 'bg-amber-500' : 'bg-emerald-500'
+      }`;
+    }
+    if (tempFillEl) {
+      const tempPct = Math.min(50, Math.round((temp / max) * 100));
+      tempFillEl.style.width = `${tempPct}%`;
+    }
+
+    // 3. Defensas
+    if (acEl) acEl.textContent = `${char.armorClass || 10} CA`;
+    if (speedEl) speedEl.textContent = `${char.speed || '30'} ft`;
+    const wisMod = Math.floor(((char.stats?.wis?.base || 10) - 10) / 2);
+    if (ppEl) ppEl.textContent = String(10 + wisMod);
+
+    if (inspStatus) inspStatus.textContent = char.inspiration ? 'Activa' : 'Inactiva';
+    if (inspIconBox) {
+      inspIconBox.className = `w-10 h-10 rounded-xl border flex items-center justify-center shrink-0 transition-colors ${
+        char.inspiration
+          ? 'bg-amber-500/20 border-amber-500/40 text-amber-300 shadow-[0_0_12px_rgba(245,158,11,0.4)]'
+          : 'bg-[#18202e] border-[#222f42] text-[#64748b]'
+      }`;
+    }
+
+    // Concentración
+    const conc = char.activeEffects?.find((e) => e.condition === 'Concentración' || e.name.toLowerCase().includes('concentraci'));
+    if (concBanner && concSpell) {
+      if (conc) {
+        concSpell.textContent = conc.name || 'Hechizo Activo';
+        concBanner.classList.remove('hidden');
+      } else {
+        concBanner.classList.add('hidden');
+      }
+    }
+
+    // 4. Espacios de Conjuro (Nivel 1 al 9)
+    if (slotsContainer && spellSec) {
+      const slots = char.spellcasting?.slots || {};
+      const levels = Object.keys(slots).map(Number).filter((l) => slots[l]?.total > 0).sort((a, b) => a - b);
+
+      if (levels.length > 0) {
+        spellSec.classList.remove('hidden');
+        if (spellDcEl) spellDcEl.textContent = String(char.spellcasting?.saveDc || 10);
+        if (spellAtkEl) {
+          const b = char.spellcasting?.attackBonus || 0;
+          spellAtkEl.textContent = b >= 0 ? `+${b}` : String(b);
+        }
+
+        slotsContainer.innerHTML = '';
+        levels.forEach((lvl) => {
+          const st = slots[lvl];
+          const available = Math.max(0, st.total - st.used);
+          const card = document.createElement('div');
+          card.className = 'p-3 rounded-xl bg-[#18202e] border border-[#222f42] flex items-center justify-between gap-3';
+
+          // Ranuras circulares interactivas
+          let circlesHtml = '';
+          for (let i = 0; i < st.total; i++) {
+            const isUsed = i >= available;
+            circlesHtml += `
+              <button
+                type="button"
+                data-level="${lvl}"
+                data-slot-idx="${i}"
+                class="pts-slot-circle w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all cursor-pointer ${
+                  isUsed
+                    ? 'bg-[#10141d] border border-[#222f42] text-[#64748b] hover:border-purple-400'
+                    : 'bg-gradient-to-br from-purple-500 to-purple-700 text-[#f1f5f9] border border-purple-400 shadow-[0_0_8px_rgba(168,85,247,0.4)] active:scale-95'
+                }"
+                title="${isUsed ? 'Recuperar espacio' : 'Gastar espacio'}"
+              >
+                ${isUsed ? '○' : '●'}
+              </button>
+            `;
+          }
+
+          card.innerHTML = `
+            <div>
+              <span class="text-xs font-headline font-bold text-purple-300 block">Nivel ${lvl}</span>
+              <span class="text-[10px] font-mono text-[#94a3b8]">${available} / ${st.total} disp.</span>
+            </div>
+            <div class="flex items-center gap-1.5 flex-wrap">
+              ${circlesHtml}
+            </div>
+          `;
+
+          // Event listeners en ranuras
+          card.querySelectorAll('.pts-slot-circle').forEach((btn) => {
+            btn.addEventListener('click', (e) => {
+              e.stopPropagation();
+              const isUsed = btn.textContent?.trim() === '○';
+              if (isUsed) {
+                characterStore.restoreSpellSlot(lvl);
+              } else {
+                characterStore.useSpellSlot(lvl);
+              }
+            });
+          });
+
+          slotsContainer.appendChild(card);
+        });
+      } else {
+        spellSec.classList.add('hidden');
+      }
+    }
+
+    // 5. Recursos de Clase
+    if (resContainer && resSec) {
+      const resources = char.resources || [];
+      if (resources.length > 0) {
+        resSec.classList.remove('hidden');
+        resContainer.innerHTML = '';
+        resources.forEach((r) => {
+          const rem = remaining(r);
+          const card = document.createElement('div');
+          card.className = 'p-3 rounded-xl bg-[#18202e] border border-[#222f42] flex items-center justify-between gap-3';
+          card.innerHTML = `
+            <div class="min-w-0">
+              <span class="text-xs font-headline font-bold text-amber-300 block truncate">${r.name}</span>
+              <span class="text-[10px] font-mono text-[#94a3b8]">${rem} / ${r.max} restantes</span>
+            </div>
+            <div class="flex items-center gap-1.5 shrink-0 font-mono">
+              <button
+                type="button"
+                data-res-sub="${r.id}"
+                class="w-7 h-7 rounded-lg bg-[#10141d] hover:bg-rose-500/20 text-rose-300 border border-[#222f42] flex items-center justify-center font-bold text-xs cursor-pointer active:scale-95 transition-all"
+                title="Gastar 1 uso"
+              >
+                -
+              </button>
+              <button
+                type="button"
+                data-res-add="${r.id}"
+                class="w-7 h-7 rounded-lg bg-[#10141d] hover:bg-emerald-500/20 text-emerald-300 border border-[#222f42] flex items-center justify-center font-bold text-xs cursor-pointer active:scale-95 transition-all"
+                title="Recuperar 1 uso"
+              >
+                +
+              </button>
+            </div>
+          `;
+
+          card.querySelector(`[data-res-sub="${r.id}"]`)?.addEventListener('click', () => {
+            characterStore.spendResource(r.id, 1);
+          });
+          card.querySelector(`[data-res-add="${r.id}"]`)?.addEventListener('click', () => {
+            characterStore.recoverResource(r.id, 1);
+          });
+
+          resContainer.appendChild(card);
+        });
+      } else {
+        resSec.classList.add('hidden');
+      }
+    }
+
+    // 6. Armas y Ataques Preparados
+    if (weaponsContainer && weaponsCount) {
+      const actions = char.actions || [];
+      weaponsCount.textContent = `${actions.length} ${actions.length === 1 ? 'arma' : 'armas'}`;
+      weaponsContainer.innerHTML = '';
+
+      if (actions.length === 0) {
+        weaponsContainer.innerHTML = `
+          <div class="p-4 rounded-xl bg-[#18202e]/60 border border-dashed border-[#222f42] text-center text-xs text-[#64748b] italic">
+            No tienes armas ni acciones de ataque preparadas.
+          </div>
+        `;
+      } else {
+        actions.forEach((act) => {
+          const card = document.createElement('div');
+          card.className = 'p-3 rounded-xl bg-[#18202e] border border-[#222f42] hover:border-amber-500/30 flex items-center justify-between gap-3 transition-colors';
+          card.innerHTML = `
+            <div class="min-w-0">
+              <div class="flex items-center gap-2">
+                <span class="text-xs font-headline font-bold text-[#f1f5f9] truncate">${act.name}</span>
+                ${
+                  act.equipped
+                    ? '<span class="px-1.5 py-0.2 rounded bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 text-[9px] font-bold">Equipada</span>'
+                    : ''
+                }
+              </div>
+              <div class="flex items-center gap-2 text-[11px] font-mono text-[#94a3b8] pt-0.5">
+                <span class="text-amber-300 font-bold">${act.bonus}</span>
+                <span>•</span>
+                <span>${act.damage} ${act.damageType || ''}</span>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              class="pts-roll-atk-btn inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-gradient-to-r from-amber-600 to-amber-500 hover:brightness-110 text-[#0a0d12] font-headline font-bold text-xs shadow-xs active:scale-95 transition-all cursor-pointer shrink-0"
+              title="Tirar ataque con ${act.name}"
+            >
+              <span class="material-symbols-outlined text-[16px]">casino</span>
+              <span>Tirar</span>
+            </button>
+          `;
+
+          card.querySelector('.pts-roll-atk-btn')?.addEventListener('click', () => {
+            const modMatch = act.bonus.match(/([+-]?\d+)/);
+            const mod = modMatch ? parseInt(modMatch[1], 10) : 0;
+            const dmgMatch = act.damage.match(/(\d+)d(\d+)(?:\s*([+-]\s*\d+))?/i);
+            const followUp = dmgMatch
+              ? {
+                  count: parseInt(dmgMatch[1], 10),
+                  die: parseInt(dmgMatch[2], 10),
+                  modifier: dmgMatch[3] ? parseInt(dmgMatch[3].replace(/\s+/g, ''), 10) : 0,
+                  damageType: act.damageType || 'Físico',
+                  weaponOrSpellName: act.name,
+                }
+              : undefined;
+
+            window.dispatchEvent(
+              new CustomEvent('open-dice-roller', {
+                detail: {
+                  die: 20,
+                  count: 1,
+                  modifier: mod,
+                  label: `Ataque con ${act.name}`,
+                  tag: '#Combate',
+                  isAttackRoll: true,
+                  followUpDamage: followUp,
+                },
+              })
+            );
+          });
+
+          weaponsContainer.appendChild(card);
+        });
+      }
+    }
+
+    // 7. Condiciones Activas
+    if (conditionsContainer) {
+      conditionsContainer.innerHTML = '';
+      const effects = char.activeEffects || [];
+      if (effects.length === 0) {
+        conditionsContainer.innerHTML = `
+          <span class="text-xs text-[#64748b] italic">Sin condiciones activas.</span>
+        `;
+      } else {
+        effects.forEach((eff) => {
+          const chip = document.createElement('span');
+          chip.className = 'inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-rose-950/40 text-rose-300 border border-rose-500/40 text-xs font-bold shadow-xs';
+          chip.innerHTML = `
+            <span>${eff.name}</span>
+            <button type="button" class="pts-del-cond hover:text-white cursor-pointer ml-1 text-xs">×</button>
+          `;
+          chip.querySelector('.pts-del-cond')?.addEventListener('click', () => {
+            characterStore.removeActiveEffect(eff.id);
+          });
+          conditionsContainer.appendChild(chip);
+        });
+      }
+    }
+
+    // 8. Salvaciones
+    if (savesGrid) {
+      savesGrid.innerHTML = '';
+      const statKeys: Array<'str' | 'dex' | 'con' | 'int' | 'wis' | 'cha'> = ['str', 'dex', 'con', 'int', 'wis', 'cha'];
+      const statLabels = { str: 'FUE', dex: 'DES', con: 'CON', int: 'INT', wis: 'SAB', cha: 'CAR' };
+
+      statKeys.forEach((key) => {
+        const st = char.stats?.[key];
+        const base = st?.base || 10;
+        const mod = Math.floor((base - 10) / 2);
+        const isProf = Boolean(st?.savingThrowProficient);
+        const total = isProf ? mod + (char.proficiencyBonus || 2) : mod;
+        const totalStr = total >= 0 ? `+${total}` : String(total);
+
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = `p-2.5 rounded-xl border flex flex-col items-center justify-center transition-all cursor-pointer active:scale-95 ${
+          isProf
+            ? 'bg-emerald-950/30 border-emerald-500/40 text-emerald-300 hover:bg-emerald-900/40'
+            : 'bg-[#18202e] border-[#222f42] text-[#94a3b8] hover:text-[#f1f5f9]'
+        }`;
+        btn.innerHTML = `
+          <span class="text-[10px] font-bold uppercase">${statLabels[key]}</span>
+          <span class="text-sm font-bold font-mono text-[#f1f5f9]">${totalStr}</span>
+        `;
+
+        btn.addEventListener('click', () => {
+          window.dispatchEvent(
+            new CustomEvent('open-dice-roller', {
+              detail: {
+                die: 20,
+                count: 1,
+                modifier: total,
+                label: `Salvación de ${statLabels[key]}`,
+                tag: '#Salvación',
+              },
+            })
+          );
+        });
+
+        savesGrid.appendChild(btn);
+      });
+    }
+  }
+
+  // Escuchar cambios
+  window.addEventListener('character-updated', renderPhysicalTableSheet);
+  window.addEventListener('character-loaded', renderPhysicalTableSheet);
+  renderPhysicalTableSheet();
+</script>

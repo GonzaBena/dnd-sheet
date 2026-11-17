@@ -176,6 +176,8 @@ export interface SectionOrderConfig {
   unifiedOrder?: string[];
 }
 
+export type SheetViewMode = 'standard' | 'table';
+
 export interface LayoutConfig {
   activeTab: 'all' | 'combat' | 'skills' | 'spells' | 'wildshape' | 'inventory' | 'journal';
   showSpells: boolean;
@@ -187,6 +189,8 @@ export interface LayoutConfig {
   classPreset?: 'custom' | 'wizard' | 'druid' | 'fighter' | 'rogue' | 'cleric';
   sectionOrder?: SectionOrderConfig;
   collapsedSections?: string[];
+  /** Modo de vista de la hoja: 'standard' (3 bloques completos) o 'table' (Mesa física reducida, Spec 14, H7). */
+  viewMode?: SheetViewMode;
 }
 
 export interface CharacterData {

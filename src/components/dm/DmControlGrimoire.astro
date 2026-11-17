@@ -7,6 +7,7 @@ import MapManager from './MapManager.astro';
 import TokenEditor from './TokenEditor.astro';
 import PresenceTracker from '../party/PresenceTracker.astro';
 import HandoutManager from './HandoutManager.astro';
+import DmCockpitPartyDashboard from './DmCockpitPartyDashboard.astro';
 ---
 
 <div id="dm-control-root" class="space-y-6">
@@ -62,6 +63,27 @@ import HandoutManager from './HandoutManager.astro';
             <span>Editar Sesión</span>
           </button>
           <SessionStatusControls />
+          <!-- Selector de Modo de Mando (Spec 14, H7, Fase B) -->
+          <div class="flex items-center gap-1 p-0.5 rounded-xl bg-[#10141d] border border-[#222f42] text-xs font-headline">
+            <button
+              type="button"
+              id="grimoire-view-classic-btn"
+              class="px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer flex items-center gap-1 bg-amber-500/20 text-amber-300 border border-amber-500/40"
+              title="Vista Clásica (Paneles secuenciales)"
+            >
+              <span class="material-symbols-outlined text-[14px]">view_agenda</span>
+              <span>Clásico</span>
+            </button>
+            <button
+              type="button"
+              id="grimoire-view-cockpit-btn"
+              class="px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer flex items-center gap-1 text-[#94a3b8] hover:text-[#f1f5f9]"
+              title="Cockpit Táctico (Party Dashboard y controles centralizados)"
+            >
+              <span class="material-symbols-outlined text-[14px]">dashboard</span>
+              <span>Cockpit</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -146,13 +168,17 @@ import HandoutManager from './HandoutManager.astro';
     </div>
 
     <!-- COMBAT TRACKER -->
-    <div class="lg:col-span-5 xl:col-span-4 min-w-0" data-index-section="Combate" data-index-icon="swords" data-index-order="20">
+    <div class="lg:col-span-5 xl:col-span-4 min-w-0 space-y-4" data-index-section="Combate" data-index-icon="swords" data-index-order="20">
+      <!-- Party Dashboard compacto visible en Cockpit Mode -->
+      <div id="grimoire-cockpit-party-wrapper" class="hidden">
+        <DmCockpitPartyDashboard />
+      </div>
       <CombatTracker />
     </div>
   </div>
 
   <!-- [tokens, miembros] -->
-  <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+  <div id="grimoire-tokens-roster-row" class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
     <!-- Gestión y edición de tokens tácticos (Fase 3: T-30) -->
     <div class="lg:col-span-7 xl:col-span-8 min-w-0" data-index-section="Tokens" data-index-icon="token" data-index-order="30">
       <TokenEditor />
@@ -428,11 +454,13 @@ import HandoutManager from './HandoutManager.astro';
               <div class="w-full h-2 rounded-full bg-[#10141d] overflow-hidden">
                 <div class="h-full ${hpColor} transition-all duration-300" style="width: ${hpPercent}%"></div>
               </div>
-              <div class="grid grid-cols-4 gap-1.5 pt-0.5">
-                <button type="button" class="hp-btn py-1 rounded-md bg-rose-950/60 hover:bg-rose-900 border border-rose-800/80 text-rose-300 font-bold text-[11px] active:scale-95 transition-all cursor-pointer" data-id="${char.id}" data-delta="-5" aria-label="Restar 5 PG a ${char.name}">-5</button>
-                <button type="button" class="hp-btn py-1 rounded-md bg-rose-950/60 hover:bg-rose-900 border border-rose-800/80 text-rose-300 font-bold text-[11px] active:scale-95 transition-all cursor-pointer" data-id="${char.id}" data-delta="-1" aria-label="Restar 1 PG a ${char.name}">-1</button>
-                <button type="button" class="hp-btn py-1 rounded-md bg-emerald-950/60 hover:bg-emerald-900 border border-emerald-800/80 text-emerald-300 font-bold text-[11px] active:scale-95 transition-all cursor-pointer" data-id="${char.id}" data-delta="1" aria-label="Sumar 1 PG a ${char.name}">+1</button>
-                <button type="button" class="hp-btn py-1 rounded-md bg-emerald-950/60 hover:bg-emerald-900 border border-emerald-800/80 text-emerald-300 font-bold text-[11px] active:scale-95 transition-all cursor-pointer" data-id="${char.id}" data-delta="5" aria-label="Sumar 5 PG a ${char.name}">+5</button>
+              <div class="grid grid-cols-2 gap-2 pt-0.5">
+                <button type="button" class="hp-sub-btn py-1 rounded-lg bg-rose-950/60 hover:bg-rose-900 border border-rose-800/80 text-rose-300 font-bold text-xs flex items-center justify-center gap-1 active:scale-95 transition-all cursor-pointer" data-id="${char.id}" aria-label="Restar PG a ${char.name}">
+                  <span class="material-symbols-outlined text-[15px]">remove</span> Dañar
+                </button>
+                <button type="button" class="hp-add-btn py-1 rounded-lg bg-emerald-950/60 hover:bg-emerald-900 border border-emerald-800/80 text-emerald-300 font-bold text-xs flex items-center justify-center gap-1 active:scale-95 transition-all cursor-pointer" data-id="${char.id}" aria-label="Sumar PG a ${char.name}">
+                  <span class="material-symbols-outlined text-[15px]">add</span> Curar
+                </button>
               </div>
             </div>
 
@@ -454,16 +482,27 @@ import HandoutManager from './HandoutManager.astro';
             </div>
           `;
 
-          // HP Adjustments
-          card.querySelectorAll('.hp-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-              if (!guardDmPlay(camp)) return;
-
-              const delta = parseInt(btn.getAttribute('data-delta') || '0');
-              // Atómico sobre el valor del servidor; si se rechaza, vuelve al valor anterior con aviso.
-              applyHpAction(char.id, { kind: 'delta', amount: delta }, { actor: 'dm', campaignId: camp.id });
+          // HP Adjustments [-] y [+]
+          card.querySelector('.hp-sub-btn')?.addEventListener('click', () => {
+            if (!guardDmPlay(camp)) return;
+            const valStr = prompt(`¿Cuántos puntos de daño aplicar a ${char.name}?`);
+            if (!valStr) return;
+            const amount = parseInt(valStr.trim(), 10);
+            if (!isNaN(amount) && amount > 0) {
+              applyHpAction(char.id, { kind: 'delta', amount: -amount }, { actor: 'dm', campaignId: camp.id });
               renderGrimoire();
-            });
+            }
+          });
+
+          card.querySelector('.hp-add-btn')?.addEventListener('click', () => {
+            if (!guardDmPlay(camp)) return;
+            const valStr = prompt(`¿Cuántos puntos de curación aplicar a ${char.name}?`);
+            if (!valStr) return;
+            const amount = parseInt(valStr.trim(), 10);
+            if (!isNaN(amount) && amount > 0) {
+              applyHpAction(char.id, { kind: 'delta', amount }, { actor: 'dm', campaignId: camp.id });
+              renderGrimoire();
+            }
           });
 
           // Inspiration Toggle
@@ -534,7 +573,7 @@ import HandoutManager from './HandoutManager.astro';
     setDisabled(document.getElementById('grimoire-short-rest-btn'), !canPlay);
     setDisabled(document.getElementById('grimoire-long-rest-btn'), !canPlay);
     // PG e inspiración en tarjetas de aventureros
-    document.querySelectorAll<HTMLElement>('.hp-btn').forEach(btn => setDisabled(btn, !canPlay));
+    document.querySelectorAll<HTMLElement>('.hp-sub-btn, .hp-add-btn').forEach(btn => setDisabled(btn, !canPlay));
     document.querySelectorAll<HTMLElement>('.inspire-btn').forEach(btn => setDisabled(btn, !canPlay));
     // Formulario de bitácora: las notas secretas también se escriben con la partida en pausa (preparación)
     const canPrepare = isDm && canPerform('dmPrepare', 'dm', s);
@@ -932,5 +971,38 @@ import HandoutManager from './HandoutManager.astro';
     const activeCampId = campaignStore.getActiveCampaignId();
     if (activeCampId) renderJournalFeed(activeCampId);
   });
+
+  // Selector y persistencia del modo Cockpit DM (Spec 14, H7, Fase B)
+  const classicBtn = document.getElementById('grimoire-view-classic-btn');
+  const cockpitBtn = document.getElementById('grimoire-view-cockpit-btn');
+  const cockpitPartyWrapper = document.getElementById('grimoire-cockpit-party-wrapper');
+  const rosterRow = document.getElementById('grimoire-tokens-roster-row');
+
+  function applyDmViewMode(mode: 'classic' | 'cockpit') {
+    const isCockpit = mode === 'cockpit';
+    if (cockpitPartyWrapper) cockpitPartyWrapper.classList.toggle('hidden', !isCockpit);
+    if (rosterRow) {
+      const rosterSection = rosterRow.querySelector('#grimoire-roster');
+      if (rosterSection) (rosterSection as HTMLElement).classList.toggle('hidden', isCockpit);
+    }
+
+    if (isCockpit) {
+      if (cockpitBtn) cockpitBtn.className = 'px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer flex items-center gap-1 bg-amber-500/20 text-amber-300 border border-amber-500/40';
+      if (classicBtn) classicBtn.className = 'px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer flex items-center gap-1 text-[#94a3b8] hover:text-[#f1f5f9]';
+    } else {
+      if (classicBtn) classicBtn.className = 'px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer flex items-center gap-1 bg-amber-500/20 text-amber-300 border border-amber-500/40';
+      if (cockpitBtn) cockpitBtn.className = 'px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer flex items-center gap-1 text-[#94a3b8] hover:text-[#f1f5f9]';
+    }
+
+    if (typeof localStorage !== 'undefined') {
+      try { localStorage.setItem('dnd_dm_view_mode', mode); } catch (_) {}
+    }
+  }
+
+  classicBtn?.addEventListener('click', () => applyDmViewMode('classic'));
+  cockpitBtn?.addEventListener('click', () => applyDmViewMode('cockpit'));
+
+  const savedDmMode = typeof localStorage !== 'undefined' ? (localStorage.getItem('dnd_dm_view_mode') as 'classic' | 'cockpit') : null;
+  applyDmViewMode(savedDmMode || 'classic');
   applyStatusLocks();
 </script>

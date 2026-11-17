@@ -21,6 +21,7 @@ import ArmorSection from '../components/inventory/ArmorSection.astro';
 import SpellcastingPanel from '../components/combat/SpellcastingPanel.astro';
 import QuickJournalFab from '../components/journal/QuickJournalFab.astro';
 import JournalModal from '../components/journal/JournalModal.astro';
+import PhysicalTableSheet from '../components/character/PhysicalTableSheet.astro';
 
 import EditCharacterModal from '../components/modals/EditCharacterModal.astro';
 import EditCurrencyModal from '../components/modals/EditCurrencyModal.astro';
@@ -93,9 +94,44 @@ import SiteFooter from '../components/layout/SiteFooter.astro';
       </div>
 
       <!-- 2. PLAYER CHARACTER SHEET WORKSPACE (Active when user is player) -->
-      <div id="player-sheet-workspace" class="hidden space-y-5">
-        <!-- MAIN HERO & CHARACTER HEADER BANNER -->
-        <section class="relative mb-5 rounded-xl bg-[#121721] border border-[#222f42] shadow-[0_8px_30px_rgba(0,0,0,0.5)] p-5 lg:p-6 overflow-hidden">
+      <div id="player-sheet-workspace" class="hidden space-y-4">
+        <!-- BARRA DE ALTERNANCIA DE VISTA: [ 📱 Mesa Física | 📄 Ficha Completa ] -->
+        <div id="sheet-view-toggle-bar" class="flex items-center justify-between p-2 rounded-xl bg-[#121721] border border-[#222f42] text-xs font-headline shadow-xs">
+          <div class="flex items-center gap-1.5 text-[#94a3b8] px-1 sm:px-2">
+            <span class="material-symbols-outlined text-[16px] text-amber-400">dashboard_customize</span>
+            <span class="font-bold">Vista:</span>
+          </div>
+          <div class="flex items-center gap-1 p-0.5 rounded-lg bg-[#0a0d12] border border-[#222f42]">
+            <button
+              type="button"
+              id="btn-view-table"
+              class="px-2.5 py-1 rounded-md text-xs font-bold transition-all cursor-pointer flex items-center gap-1 text-[#94a3b8] hover:text-[#f1f5f9]"
+              title="Modo Mesa Física (Celular / Combate ágil y vitales gigantes)"
+            >
+              <span class="material-symbols-outlined text-[14px]">smartphone</span>
+              <span>Mesa Física</span>
+            </button>
+            <button
+              type="button"
+              id="btn-view-standard"
+              class="px-2.5 py-1 rounded-md text-xs font-bold transition-all cursor-pointer flex items-center gap-1 bg-amber-500/20 text-amber-300 border border-amber-500/40"
+              title="Ficha Completa (Detallada en 3 columnas)"
+            >
+              <span class="material-symbols-outlined text-[14px]">view_column</span>
+              <span>Ficha Completa</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 2A. MODO MESA FÍSICA CONTAINER -->
+        <div id="player-sheet-table-view" class="hidden">
+          <PhysicalTableSheet />
+        </div>
+
+        <!-- 2B. MODO FICHA COMPLETA (3 BLOQUES ESTÁNDAR) -->
+        <div id="player-sheet-standard-view" class="space-y-5">
+          <!-- MAIN HERO & CHARACTER HEADER BANNER -->
+          <section class="relative mb-5 rounded-xl bg-[#121721] border border-[#222f42] shadow-[0_8px_30px_rgba(0,0,0,0.5)] p-5 lg:p-6 overflow-hidden">
           <!-- Decorative background runes/rings -->
           <div class="absolute -right-20 -bottom-20 w-80 h-80 rounded-full bg-amber-500/5 blur-2xl pointer-events-none"></div>
           
@@ -168,6 +204,7 @@ import SiteFooter from '../components/layout/SiteFooter.astro';
               </div>
             </div>
           </div>
+        </div>
         </div>
       </div>
     </div>
@@ -341,6 +378,37 @@ import SiteFooter from '../components/layout/SiteFooter.astro';
       playerWorkspace?.classList.remove('hidden');
       sessionBannerContainer?.classList.remove('hidden');
       sessionBanner?.classList.remove('hidden');
+      applySheetViewMode();
+    }
+  }
+
+  function applySheetViewMode(mode?: 'standard' | 'table') {
+    const char = characterStore.get();
+    const stored = (char?.id && typeof localStorage !== 'undefined') ? localStorage.getItem(`dnd_view_mode_${char.id}`) : null;
+    let resolvedMode = mode || (stored as 'standard' | 'table') || (char?.layoutConfig?.viewMode);
+    if (!resolvedMode) {
+      resolvedMode = window.innerWidth < 640 ? 'table' : 'standard';
+    }
+
+    const tableView = document.getElementById('player-sheet-table-view');
+    const standardView = document.getElementById('player-sheet-standard-view');
+    const btnTable = document.getElementById('btn-view-table');
+    const btnStandard = document.getElementById('btn-view-standard');
+
+    if (resolvedMode === 'table') {
+      tableView?.classList.remove('hidden');
+      standardView?.classList.add('hidden');
+      if (btnTable) btnTable.className = 'px-2.5 py-1 rounded-md text-xs font-bold transition-all cursor-pointer flex items-center gap-1 bg-amber-500/20 text-amber-300 border border-amber-500/40';
+      if (btnStandard) btnStandard.className = 'px-2.5 py-1 rounded-md text-xs font-bold transition-all cursor-pointer flex items-center gap-1 text-[#94a3b8] hover:text-[#f1f5f9]';
+    } else {
+      tableView?.classList.add('hidden');
+      standardView?.classList.remove('hidden');
+      if (btnTable) btnTable.className = 'px-2.5 py-1 rounded-md text-xs font-bold transition-all cursor-pointer flex items-center gap-1 text-[#94a3b8] hover:text-[#f1f5f9]';
+      if (btnStandard) btnStandard.className = 'px-2.5 py-1 rounded-md text-xs font-bold transition-all cursor-pointer flex items-center gap-1 bg-amber-500/20 text-amber-300 border border-amber-500/40';
+    }
+
+    if (char?.id && typeof localStorage !== 'undefined') {
+      try { localStorage.setItem(`dnd_view_mode_${char.id}`, resolvedMode); } catch (_) {}
     }
   }
 
@@ -378,6 +446,19 @@ import SiteFooter from '../components/layout/SiteFooter.astro';
       const newChar = campaignStore.ensureDemoCharacter(true);
       characterStore.loadCharacter(newChar, true);
     });
+
+    // Toggle de modo de vista (Mesa Física vs Ficha Completa, Spec 14, H7)
+    document.getElementById('btn-view-table')?.addEventListener('click', () => {
+      characterStore.setViewMode('table');
+      applySheetViewMode('table');
+    });
+    document.getElementById('btn-view-standard')?.addEventListener('click', () => {
+      characterStore.setViewMode('standard');
+      applySheetViewMode('standard');
+    });
+    window.addEventListener('sheet-view-changed', ((e: CustomEvent<{ mode: 'standard' | 'table' }>) => {
+      applySheetViewMode(e.detail?.mode);
+    }) as EventListener);
 
     // Dynamic Section Organization (Reorder & Collapse)
     const initSectionsOrganizer = () => {

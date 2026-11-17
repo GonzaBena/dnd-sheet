@@ -955,42 +955,26 @@
 
             <!-- Centro / Derecha: Botón Atacar + Botones de PG Rápido -->
             <div class="flex items-center gap-1.5 shrink-0">
-              <!-- Botones de PG Rápido -->
+              <!-- Botones de PG Rápido [-] y [+] -->
               <div class="flex items-center gap-1 shrink-0">
                 <button
                   type="button"
-                  class="dm-hp-delta-btn w-6 h-6 rounded bg-[#10141d] border border-rose-900/40 hover:bg-rose-950/60 text-rose-300 text-[10px] font-bold font-mono flex items-center justify-center cursor-pointer shrink-0"
+                  class="dm-hp-delta-btn dm-hp-sub-btn w-6 h-6 rounded bg-[#10141d] border border-rose-900/40 hover:bg-rose-950/60 text-rose-300 text-xs font-bold font-mono flex items-center justify-center cursor-pointer shrink-0"
                   data-id="${c.id}"
-                  data-delta="-5"
-                  title="Quitar 5 PG"
-                >-5</button>
+                  data-name="${c.name}"
+                  title="Dañar a ${c.name} (restar PG)"
+                >
+                  <span class="material-symbols-outlined text-[13px]">remove</span>
+                </button>
                 <button
                   type="button"
-                  class="dm-hp-delta-btn w-6 h-6 rounded bg-[#10141d] border border-rose-900/40 hover:bg-rose-950/60 text-rose-300 text-[10px] font-bold font-mono flex items-center justify-center cursor-pointer shrink-0"
+                  class="dm-hp-delta-btn dm-hp-add-btn w-6 h-6 rounded bg-[#10141d] border border-emerald-900/40 hover:bg-emerald-950/60 text-emerald-300 text-xs font-bold font-mono flex items-center justify-center cursor-pointer shrink-0"
                   data-id="${c.id}"
-                  data-delta="-1"
-                  title="Quitar 1 PG"
-                >-1</button>
-                <button
-                  type="button"
-                  class="dm-hp-custom-btn px-1.5 h-6 rounded bg-[#10141d] border border-[#222f42] hover:border-amber-500/40 text-[#cbd5e1] text-[10px] font-bold flex items-center justify-center cursor-pointer shrink-0 whitespace-nowrap"
-                  data-id="${c.id}"
-                  title="Aplicar daño o curación manual"
-                >Daño</button>
-                <button
-                  type="button"
-                  class="dm-hp-delta-btn w-6 h-6 rounded bg-[#10141d] border border-emerald-900/40 hover:bg-emerald-950/60 text-emerald-300 text-[10px] font-bold font-mono flex items-center justify-center cursor-pointer shrink-0"
-                  data-id="${c.id}"
-                  data-delta="1"
-                  title="Curar 1 PG"
-                >+1</button>
-                <button
-                  type="button"
-                  class="dm-hp-delta-btn w-6 h-6 rounded bg-[#10141d] border border-emerald-900/40 hover:bg-emerald-950/60 text-emerald-300 text-[10px] font-bold font-mono flex items-center justify-center cursor-pointer shrink-0"
-                  data-id="${c.id}"
-                  data-delta="5"
-                  title="Curar 5 PG"
-                >+5</button>
+                  data-name="${c.name}"
+                  title="Curar a ${c.name} (sumar PG)"
+                >
+                  <span class="material-symbols-outlined text-[13px]">add</span>
+                </button>
               </div>
             </div>
 
@@ -1089,34 +1073,34 @@
       });
     });
 
-    // Delta PG (±1, ±5)
-    rootEl?.querySelectorAll('.dm-hp-delta-btn').forEach((btn) => {
+    // Daño [-] a combatiente
+    rootEl?.querySelectorAll('.dm-hp-sub-btn').forEach((btn) => {
       btn.addEventListener('click', async (e) => {
         const target = e.currentTarget as HTMLElement;
         const id = target.dataset.id;
-        const delta = Number(target.dataset.delta);
-        if (!id || isNaN(delta)) return;
-        await applyDamageToCombatant(cid, id, delta);
+        const name = target.dataset.name || 'combatiente';
+        if (!id) return;
+        const valStr = prompt(`¿Cuántos puntos de daño aplicar a ${name}?`);
+        if (!valStr) return;
+        const dmg = parseInt(valStr.trim(), 10);
+        if (!isNaN(dmg) && dmg > 0) {
+          await applyDamageToCombatant(cid, id, -dmg);
+        }
       });
     });
 
-    // Daño manual
-    rootEl?.querySelectorAll('.dm-hp-custom-btn').forEach((btn) => {
+    // Curación [+] a combatiente
+    rootEl?.querySelectorAll('.dm-hp-add-btn').forEach((btn) => {
       btn.addEventListener('click', async (e) => {
         const target = e.currentTarget as HTMLElement;
         const id = target.dataset.id;
+        const name = target.dataset.name || 'combatiente';
         if (!id) return;
-
-        const val = await showForm([
-          { name: 'amount', label: 'Puntos (positivo = daño, negativo = curar)', type: 'number', required: true }
-        ], { title: 'Aplicar Daño / Curación' });
-
-        if (val && val.amount !== undefined) {
-          const dmg = Number(val.amount);
-          if (!isNaN(dmg)) {
-            // daño resta vida, curación suma
-            await applyDamageToCombatant(cid, id, -dmg);
-          }
+        const valStr = prompt(`¿Cuántos puntos de vida curar a ${name}?`);
+        if (!valStr) return;
+        const heal = parseInt(valStr.trim(), 10);
+        if (!isNaN(heal) && heal > 0) {
+          await applyDamageToCombatant(cid, id, heal);
         }
       });
     });

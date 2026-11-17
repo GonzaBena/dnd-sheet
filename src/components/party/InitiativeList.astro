@@ -504,16 +504,33 @@ import { isOwnedBy } from '../../scripts/vtt/initiative';
     let calculatedDist = 5;
     let fromMap = false;
 
-    if (lastCombat && lastCombat.combatants.length > 0 && currentActiveMap) {
+    if (lastCombat && lastCombat.combatants.length > 0) {
       const actorCombatant = lastCombat.combatants[lastCombat.turnIndex];
       const targetCombatant = lastCombat.combatants.find((c) => c.id === target.id);
       if (actorCombatant && targetCombatant) {
-        const distResult = resolveCombatantDistance(actorCombatant, targetCombatant, currentActiveMap);
+        let distResult = currentActiveMap ? resolveCombatantDistance(actorCombatant, targetCombatant, currentActiveMap) : null;
+        let isTotm = false;
+
+        // Si no hay mapa o tokens, probar zonas de Teatro de la Mente (Spec 14, H7)
+        if (!distResult) {
+          try {
+            const cid = campaignStore.getActiveCampaignId() || 'default';
+            const saved = localStorage.getItem(`dnd_totm_zones_${cid}`);
+            if (saved) {
+              const totmZones = JSON.parse(saved);
+              distResult = resolveCombatantDistance(actorCombatant, targetCombatant, null, totmZones);
+              if (distResult) isTotm = true;
+            }
+          } catch (_) {}
+        }
+
         if (distResult) {
           calculatedDist = distResult.feet;
           fromMap = true;
           if (distanceSourceBadgeEl) {
-            distanceSourceBadgeEl.textContent = `🎯 Medido en mapa (${distResult.feet} ft)`;
+            distanceSourceBadgeEl.textContent = isTotm
+              ? `🎭 Teatro de la mente (${distResult.feet} ft)`
+              : `🎯 Medido en mapa (${distResult.feet} ft)`;
             distanceSourceBadgeEl.className = 'px-2 py-0.5 rounded text-[10px] font-medium bg-emerald-500/15 text-emerald-300 border border-emerald-500/30';
             distanceSourceBadgeEl.classList.remove('hidden');
           }

@@ -152,11 +152,12 @@ Orden estratégico de implementación: combina las etapas mecánicas de la hoja 
 
 ### H7 · Layouts Especializados
 * **Objetivo:** Vistas optimizadas para DM, Jugador en mesa física (celular) y modo sin mapa (teatro de la mente).
-* **Spec:** `docs/Specs/14-layouts.spec.md` *(por escribir)*.
+* **Spec:** [`docs/Specs/14-layouts.spec.md`](Specs/14-layouts.spec.md) · **Cerrada**.
+* **Planes:** [`docs/Plans/14-layouts/`](Plans/14-layouts/).
 
 ---
 
-### H8 · Zonas de Hechizo en el Mapa *(para después)*
+### H8 · Zonas de Hechizo en el Mapa
 * **Objetivo:** Colocar conjuros de área en el mapa con su forma real y que las criaturas dentro sufran el efecto mientras permanezcan dentro.
 * **Spec:** [`docs/Specs/15-zonas-de-hechizo.spec.md`](Specs/15-zonas-de-hechizo.spec.md) *(borrador)*.
 
@@ -166,8 +167,6 @@ Orden estratégico de implementación: combina las etapas mecánicas de la hoja 
 | **Zonas instantáneas** | S | Lista de afectados y aviso de salvación con la CD del lanzador (*Bola de Fuego*) |
 | **Efecto mientras estés dentro** | L | Entra y sale con el token; lo aplica el cliente del dueño, el DM etiqueta a los PNJ |
 | **Disparadores por turno y fin de zona** | M | Salvación al entrar/empezar turno; termina por rondas o al perder la concentración |
-
-* **No bloquea** otras etapas: puede adelantarse detrás de H6 si un grupo real la pide.
 
 ---
 
@@ -182,15 +181,15 @@ Orden estratégico de implementación: combina las etapas mecánicas de la hoja 
 | 11 | H4 | [`Specs/11-combate-en-la-hoja.spec.md`](Specs/11-combate-en-la-hoja.spec.md) | Cerrada (H4 cerrada) |
 | 12 | H5 | [`Specs/12-reacciones.spec.md`](Specs/12-reacciones.spec.md) | Cerrada (H5 cerrada) |
 | 13 | H6 | [`Specs/13-alcance-y-tokens.spec.md`](Specs/13-alcance-y-tokens.spec.md) | Cerrada (H6 cerrada) |
-| 14 | H7 | `Specs/14-layouts.spec.md` | **Siguiente** (por escribir) |
-| 15 | H8 | [`Specs/15-zonas-de-hechizo.spec.md`](Specs/15-zonas-de-hechizo.spec.md) | Borrador (para después) |
+| 14 | H7 | [`Specs/14-layouts.spec.md`](Specs/14-layouts.spec.md) | **Cerrada (H7 cerrada)** |
+| 15 | H8 | [`Specs/15-zonas-de-hechizo.spec.md`](Specs/15-zonas-de-hechizo.spec.md) | **Siguiente** (borrador listo) |
 | 16 | Pulido | [`Specs/16-pantalla-de-carga.spec.md`](Specs/16-pantalla-de-carga.spec.md) | Borrador (transversal, puede entrar entre H4 y H5) |
 
 ---
 
 ## Próximo Paso Inmediato
 
-Iniciar la **Spec 14 (H7 · Layouts Especializados)**:
-1. Redactar la spec técnica en `docs/Specs/14-layouts.spec.md`.
-2. Crear los planes por fase (`docs/Plans/14-layouts/`).
-3. Vistas optimizadas para DM (Cockpit táctico), Jugador en mesa física con celular y modo teatro de la mente sin mapa.
+Iniciar la **Spec 15 (H8 · Zonas de Hechizo en el Mapa)**:
+1. Revisar y pulir la spec técnica en `docs/Specs/15-zonas-de-hechizo.spec.md`.
+2. Crear los planes por fase (`docs/Plans/15-zonas-de-hechizo/`).
+3. Plantillas de área geométricas sobre la cuadrícula (esferas, conos, cubos, líneas) y detección de tokens afectados.

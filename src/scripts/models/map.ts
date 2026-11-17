@@ -16,6 +16,18 @@ export interface GridConfig {
 
 export type TokenKind = 'character' | 'companion' | 'mount' | 'summon' | 'monster' | 'npc';
 
+/** Zonas narrativas para combate en modo Teatro de la Mente (Spec 14, H7). */
+export type TotmZone = 'melee' | 'near' | 'far';
+
+export interface TotmCombatantState {
+  id: string;
+  name: string;
+  zone: TotmZone;
+  avatarUrl?: string;
+  isMonster?: boolean;
+  engagementId?: string;
+}
+
 export interface Token {
   name: string;
   /** Unidades de la imagen original (px de imagen). */

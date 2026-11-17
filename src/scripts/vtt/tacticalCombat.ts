@@ -3,7 +3,7 @@
 
 import type { Combatant } from '../models/combat.ts';
 import type { AttackAction, SpellItem, InventoryItem } from '../models/character.ts';
-import type { MapDoc, Token, GridConfig } from '../models/map.ts';
+import type { MapDoc, Token, GridConfig, TotmZone } from '../models/map.ts';
 
 export interface ActionReach {
   normal: number;
@@ -359,17 +359,68 @@ export function calculateTokenDistanceFeet(
 }
 
 /**
- * Resuelve la distancia táctica entre dos combatientes buscando sus tokens en el mapa activo.
- * Retorna null si alguno de los combatientes no posee token en el mapa o si no hay mapa cargado.
+ * Calcula la distancia táctica en pies entre dos combatientes en Modo Teatro de la Mente (Spec 14, H7).
+ */
+export function calculateTotmDistanceFeet(
+  zoneA: TotmZone,
+  zoneB: TotmZone,
+  sameEngagement: boolean = false
+): TokenDistanceResult {
+  let feet = 30;
+  let cells = 6;
+
+  if (zoneA === 'melee' && zoneB === 'melee') {
+    feet = sameEngagement ? 5 : 10;
+    cells = sameEngagement ? 1 : 2;
+  } else if ((zoneA === 'melee' && zoneB === 'near') || (zoneA === 'near' && zoneB === 'melee')) {
+    feet = 30;
+    cells = 6;
+  } else if ((zoneA === 'melee' && zoneB === 'far') || (zoneA === 'far' && zoneB === 'melee')) {
+    feet = 60;
+    cells = 12;
+  } else if (zoneA === 'near' && zoneB === 'near') {
+    feet = 15;
+    cells = 3;
+  } else if ((zoneA === 'near' && zoneB === 'far') || (zoneA === 'far' && zoneB === 'near')) {
+    feet = 30;
+    cells = 6;
+  } else if (zoneA === 'far' && zoneB === 'far') {
+    feet = 30;
+    cells = 6;
+  }
+
+  return {
+    cells,
+    feet,
+    adjacent: feet <= 5,
+    overlapping: feet === 0,
+  };
+}
+
+/**
+ * Resuelve la distancia táctica entre dos combatientes buscando sus tokens en el mapa activo
+ * o resolviendo sus zonas en Modo Teatro de la Mente (TotM).
+ * Retorna null si alguno de los combatientes no posee token ni zona configurada.
  */
 export function resolveCombatantDistance(
-  actor: { id: string; tokenId?: string; characterId?: string },
-  target: { id: string; tokenId?: string; characterId?: string },
+  actor: { id: string; tokenId?: string; characterId?: string; totmZone?: TotmZone; totmEngagement?: string },
+  target: { id: string; tokenId?: string; characterId?: string; totmZone?: TotmZone; totmEngagement?: string },
   mapDoc?: {
     grid: { size: number; offsetX?: number; offsetY?: number };
     tokens?: Record<string, { x: number; y: number; size?: number; characterId?: string }>;
-  } | null
+  } | null,
+  totmZones?: Record<string, TotmZone>
 ): TokenDistanceResult | null {
+  // 1. Si se proveen zonas TotM o los combatientes tienen totmZone explícita
+  const zoneA = actor.totmZone || (totmZones ? totmZones[actor.id] || (actor.characterId ? totmZones[actor.characterId] : undefined) : undefined);
+  const zoneB = target.totmZone || (totmZones ? totmZones[target.id] || (target.characterId ? totmZones[target.characterId] : undefined) : undefined);
+
+  if (zoneA && zoneB) {
+    const sameEng = Boolean(actor.totmEngagement && target.totmEngagement && actor.totmEngagement === target.totmEngagement) || zoneA === 'melee';
+    return calculateTotmDistanceFeet(zoneA, zoneB, sameEng);
+  }
+
+  // 2. Fallback a mapa 2D con cuadrícula
   if (!mapDoc || !mapDoc.tokens || !mapDoc.grid) return null;
 
   const tokens = mapDoc.tokens;

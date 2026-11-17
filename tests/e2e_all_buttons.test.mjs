@@ -197,7 +197,7 @@ test('Conteo total de botones verificados supera los 550 botones', () => {
 });
 
 // 2. Tests funcionales exhaustivos de las acciones de cada familia de botones
-test('Acciones de botones de VitalsGrid (#hp-sub-5, #hp-sub-1, #hp-add-1, #hp-add-5, #hp-clickable-area, #rest-short-btn, #rest-long-btn)', () => {
+test('Acciones de botones de VitalsGrid (#hp-sub-btn, #hp-add-btn, #hp-clickable-area, #rest-short-btn, #rest-long-btn)', () => {
   const char = {
     ...JSON.parse(JSON.stringify(defaultCharacter)),
     id: 'vitals-btn-char',
@@ -207,20 +207,12 @@ test('Acciones de botones de VitalsGrid (#hp-sub-5, #hp-sub-1, #hp-add-1, #hp-ad
   };
   characterStore.loadCharacter(char, true);
 
-  // Botón -5 (#hp-sub-5)
-  characterStore.modifyHp(-5);
-  assert.equal(characterStore.get().hp.current, 15);
-
-  // Botón -1 (#hp-sub-1)
-  characterStore.modifyHp(-1);
+  // Botón dañar [-] (#hp-sub-btn)
+  characterStore.modifyHp(-6);
   assert.equal(characterStore.get().hp.current, 14);
 
-  // Botón +1 (#hp-add-1)
-  characterStore.modifyHp(1);
-  assert.equal(characterStore.get().hp.current, 15);
-
-  // Botón +5 (#hp-add-5)
-  characterStore.modifyHp(5);
+  // Botón curar [+] (#hp-add-btn)
+  characterStore.modifyHp(6);
   assert.equal(characterStore.get().hp.current, 20);
 
   // Edición manual con PG temporales (#hp-clickable-area)
@@ -240,7 +232,7 @@ test('Acciones de botones de VitalsGrid (#hp-sub-5, #hp-sub-1, #hp-add-1, #hp-ad
   assert.equal(characterStore.get().hp.temp, 0);
 });
 
-test('Acciones de botones de Combate del DM (.dm-hp-delta-btn -5/-1/+1/+5, .dm-hp-custom-btn, .dm-toggle-hidden-hp-btn, .dm-duplicate-btn, .dm-remove-combatant-btn, turnos)', async () => {
+test('Acciones de botones de Combate del DM (.dm-hp-sub-btn, .dm-hp-add-btn, .dm-toggle-hidden-hp-btn, .dm-duplicate-btn, .dm-remove-combatant-btn, turnos)', async () => {
   const me = userStore.getCurrentUser();
   const camp = campaignStore.createCampaign({
     name: 'Campaña Test Botones Combate',
@@ -288,24 +280,16 @@ test('Acciones de botones de Combate del DM (.dm-hp-delta-btn -5/-1/+1/+5, .dm-h
     },
   ]);
 
-  // Botones -5, -1, +1, +5 sobre PJ
-  await applyDamageToCombatant(cid, 'pc-aelar', -5);
-  assert.equal(getCurrentCombat(cid).combatants.find((c) => c.id === 'pc-aelar').hp, 20);
-  assert.equal(campaignStore.getCharacter(playerChar.id).hp.current, 20);
-
-  await applyDamageToCombatant(cid, 'pc-aelar', -1);
+  // Botones [-] (daño) y [+] (curar) sobre PJ
+  await applyDamageToCombatant(cid, 'pc-aelar', -6);
   assert.equal(getCurrentCombat(cid).combatants.find((c) => c.id === 'pc-aelar').hp, 19);
   assert.equal(campaignStore.getCharacter(playerChar.id).hp.current, 19);
 
-  await applyDamageToCombatant(cid, 'pc-aelar', 1);
-  assert.equal(getCurrentCombat(cid).combatants.find((c) => c.id === 'pc-aelar').hp, 20);
-  assert.equal(campaignStore.getCharacter(playerChar.id).hp.current, 20);
-
-  await applyDamageToCombatant(cid, 'pc-aelar', 5);
+  await applyDamageToCombatant(cid, 'pc-aelar', 6);
   assert.equal(getCurrentCombat(cid).combatants.find((c) => c.id === 'pc-aelar').hp, 25);
   assert.equal(campaignStore.getCharacter(playerChar.id).hp.current, 25);
 
-  // Botón Daño manual (.dm-hp-custom-btn) sobre NPC
+  // Daño a NPC (.dm-hp-sub-btn)
   await applyDamageToCombatant(cid, 'npc-goblin', -4);
   assert.equal(getCurrentCombat(cid).combatants.find((c) => c.id === 'npc-goblin').hp, 6);
 
