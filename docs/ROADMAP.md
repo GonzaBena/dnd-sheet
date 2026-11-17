@@ -95,9 +95,10 @@ Orden estratégico de implementación: combina las etapas mecánicas de la hoja 
 
 ---
 
-### H4 · Combate en la Hoja
+### H4 · Combate en la Hoja *(Cerrada)*
 * **Objetivo:** Que atacar y lanzar conjuros respete las reglas oficiales sin cálculos manuales.
-* **Spec:** `docs/Specs/11-combate-en-la-hoja.spec.md` *(por escribir)*.
+* **Spec:** [`docs/Specs/11-combate-en-la-hoja.spec.md`](Specs/11-combate-en-la-hoja.spec.md).
+* **Planes por fase:** [`docs/Plans/11-combate-en-la-hoja/`](Plans/11-combate-en-la-hoja/).
 
 | Pieza | Tamaño | Nota |
 | --- | --- | --- |
@@ -134,8 +135,8 @@ Orden estratégico de implementación: combina las etapas mecánicas de la hoja 
 | 08 | H2 | [`Specs/08-equipo.spec.md`](Specs/08-equipo.spec.md) | Cerrada (H2 cerrada) |
 | 09 | M1 | [`Specs/09-lanzamiento-y-onboarding.spec.md`](Specs/09-lanzamiento-y-onboarding.spec.md) | Cerrada (M1 cerrada) |
 | 10 | H3 | [`Specs/10-descansos-y-recursos.spec.md`](Specs/10-descansos-y-recursos.spec.md) | Cerrada (H3 cerrada) |
-| 11 | H4 | `Specs/11-combate-en-la-hoja.spec.md` | Por escribir |
-| 12 | H5 | `Specs/12-reacciones.spec.md` | Por escribir |
+| 11 | H4 | [`Specs/11-combate-en-la-hoja.spec.md`](Specs/11-combate-en-la-hoja.spec.md) | Cerrada (H4 cerrada) |
+| 12 | H5 | `Specs/12-reacciones.spec.md` | **Siguiente** (por escribir) |
 | 13 | H6 | `Specs/13-alcance-y-tokens.spec.md` | Por escribir |
 | 14 | H7 | `Specs/14-layouts.spec.md` | Por escribir |
 
@@ -143,10 +144,8 @@ Orden estratégico de implementación: combina las etapas mecánicas de la hoja 
 
 ## Próximo Paso Inmediato
 
-Ejecutar la **Spec 11 (H4 · Combate en la Hoja)**:
-1. Redactar la spec técnica detallada en `docs/Specs/11-combate-en-la-hoja.spec.md`.
-2. Crear los planes por fase (`docs/Plans/11-combate-en-la-hoja/`).
-3. Selector de modificadores al impacto y consumo de facultades "1 vez por turno".
-4. Validación de conjuros, componentes V/S/M, rituales y descuento de espacios de conjuro.
-5. Concentración activa automática y salvación de Constitución al recibir daño con CD calculada (máx(10, daño / 2)).
-6. Explicación visible de ventajas y desventajas en tiradas según armaduras y efectos activos.
+Iniciar la **Spec 12 (H5 · Reacciones en Vivo)**:
+1. Redactar la spec técnica en `docs/Specs/12-reacciones.spec.md`.
+2. Crear los planes por fase (`docs/Plans/12-reacciones/`).
+3. Detección y ofrecimiento de reacciones en tiempo real durante el turno del adversario (ej. conjuro *Escudo*, *Absorber Elementos*, *Ataque de Oportunidad*, *Interposición de Escudo*).
+4. Integración reactiva con el tracker de combate del DM y consumo del recurso "Reacción" del personaje por ronda.

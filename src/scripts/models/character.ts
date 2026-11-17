@@ -266,6 +266,11 @@ export interface CharacterData {
   
   quickSlotItemId?: string | null;
 
+  /** Estado del turno en combate (Spec 11, H4): modificadores o facultades usadas este turno. */
+  turnState?: {
+    usedModifiers?: string[];
+  };
+
   features: {
     id?: string;
     title: string;

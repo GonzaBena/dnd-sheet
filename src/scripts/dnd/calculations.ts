@@ -152,6 +152,9 @@ export function recalculateCharacter(char: CharacterData): CharacterData {
   migrateArmorClass(char);
   // Spec 10, Fase A: Sincronización de dados de golpe (monoclass y multiclass) alineada al nivel.
   syncHitDicePools(char);
+  // Spec 11, Fase A: Estado volátil de turno para combate.
+  if (!char.turnState) char.turnState = { usedModifiers: [] };
+  if (!Array.isArray(char.turnState.usedModifiers)) char.turnState.usedModifiers = [];
   // DECISION (FD-9): `armorNote` ya no es la descripción automática. La nota que traía el personaje de
   // ejemplo se limpia (exacta, para no tocar notas escritas por el usuario).
   if (char.armorNote === 'Cuero tach. + Escudo') char.armorNote = '';

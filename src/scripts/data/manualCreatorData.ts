@@ -80,7 +80,8 @@ export interface BackpackSupplyOption {
   defaultSelected: boolean;
 }
 
-export { type ClassStarterKit, CLASS_STARTER_KITS } from './classStarterKits.ts';
+import { CLASS_STARTER_KITS, type ClassStarterKit } from './classStarterKits.ts';
+export { CLASS_STARTER_KITS, type ClassStarterKit };
 
 export function clampScore(score: number, min = 1, max = 20): number {
   const n = Math.round(Number(score) || 10);

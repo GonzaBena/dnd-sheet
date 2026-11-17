@@ -13,6 +13,16 @@
     <div class="flex items-center gap-2">
       <button
         type="button"
+        id="reset-combat-turn-btn"
+        class="text-[10px] text-sky-400 hover:text-sky-300 font-bold bg-sky-500/10 hover:bg-sky-500/20 px-2.5 py-1 rounded-lg border border-sky-500/30 flex items-center gap-1 cursor-pointer transition-colors"
+        title="Reiniciar facultades de 1 vez por turno (Ataque Furtivo, etc.)"
+      >
+        <span class="material-symbols-outlined text-[13px]">restart_alt</span>
+        <span>Nuevo Turno</span>
+        <span id="turn-used-badge" class="hidden px-1.5 py-0.2 rounded bg-amber-500/30 text-amber-300 text-[9px] font-mono font-bold">1</span>
+      </button>
+      <button
+        type="button"
         id="open-add-weapon-btn"
         class="text-[10px] text-amber-400 hover:text-amber-300 font-bold bg-amber-500/10 hover:bg-amber-500/20 px-2.5 py-1 rounded-lg border border-amber-500/30 flex items-center gap-1 cursor-pointer transition-colors"
         title="Añadir nueva arma o ataque"
@@ -49,21 +59,41 @@
   import { attachSwipeToDelete } from '../../scripts/ui/swipeToDelete';
   import { SLOT_LABELS, validSlotsForAction } from '../../scripts/dnd/equipment';
   import { showAlert } from '../../scripts/ui/notify';
+  import { getAvailableCombatModifiers, combineDamageModifiers, parseFormulaDice } from '../../scripts/dnd/combat';
+  import { evaluateAdvantage } from '../../scripts/dnd/advantage';
   import type { EquipSlot } from '../../scripts/models/character';
 
   const container = document.getElementById('weapon-actions-container');
   const addWeaponBtn = document.getElementById('open-add-weapon-btn');
+  const resetTurnBtn = document.getElementById('reset-combat-turn-btn');
+  const turnBadge = document.getElementById('turn-used-badge');
 
   addWeaponBtn?.addEventListener('click', () => {
     window.dispatchEvent(new CustomEvent('open-add-weapon-modal'));
   });
 
+  resetTurnBtn?.addEventListener('click', () => {
+    characterStore.resetTurn();
+    showAlert('Nuevo turno iniciado: facultades de 1 vez por turno restablecidas.', { kind: 'info' });
+  });
 
   const expandedWeapons = new Set<string>();
+  const selectedModsPerWeapon = new Map<string, Set<string>>();
 
   function renderWeapons(char: any) {
     if (!container) return;
     container.innerHTML = '';
+
+    // Actualizar indicador de facultades de 1 vez por turno usadas
+    const usedModsCount = (char.turnState?.usedModifiers || []).length;
+    if (turnBadge) {
+      if (usedModsCount > 0) {
+        turnBadge.textContent = String(usedModsCount);
+        turnBadge.classList.remove('hidden');
+      } else {
+        turnBadge.classList.add('hidden');
+      }
+    }
 
     char.actions.forEach((act: any) => {
       const wrapper = document.createElement('div');
@@ -108,6 +138,9 @@
             </button>
           </div>
         </div>
+
+        <!-- Modificadores de Combate y 1 vez por turno (Spec 11, H4) -->
+        <div class="weapon-mods-container pt-1 text-[10px]"></div>
 
         <div class="weapon-extra ${expandedWeapons.has(act.id) ? 'flex' : 'hidden'} flex-col gap-2 pt-2 border-t border-[#222f42]/60">
           ${act.notes ? `
@@ -225,6 +258,56 @@
         onTrigger: triggerWeaponDelete
       });
 
+      // Spec 11, H4: Modificadores al impacto y 1 vez por turno
+      const availableMods = getAvailableCombatModifiers(char, act);
+      if (!selectedModsPerWeapon.has(act.id)) {
+        selectedModsPerWeapon.set(act.id, new Set());
+      }
+      const curSelected = selectedModsPerWeapon.get(act.id)!;
+      const modsContainer = card.querySelector('.weapon-mods-container');
+
+      if (modsContainer && availableMods.length > 0) {
+        modsContainer.className = 'weapon-mods-container pt-1.5 pb-0.5 flex flex-wrap items-center gap-1.5 border-t border-[#222f42]/40 text-[10px]';
+        modsContainer.innerHTML = `
+          <span class="text-[#64748b] font-bold uppercase tracking-wider flex items-center gap-0.5">
+            <span class="material-symbols-outlined text-[12px] text-amber-400">bolt</span>
+            <span>Opciones:</span>
+          </span>
+        `;
+        availableMods.forEach((m) => {
+          if (m.usedThisTurn) {
+            const usedSpan = document.createElement('span');
+            usedSpan.className = 'px-1.5 py-0.5 rounded bg-[#10141d] border border-[#222f42] text-[#64748b] cursor-not-allowed opacity-60';
+            usedSpan.title = 'Ya utilizado en este turno (pulsa "Nuevo Turno" para reiniciar)';
+            usedSpan.textContent = `${m.name} (${m.formula}) • Usado`;
+            modsContainer.appendChild(usedSpan);
+          } else {
+            const chip = document.createElement('button');
+            chip.type = 'button';
+            const isActive = curSelected.has(m.id);
+            chip.className = `combat-mod-chip px-2 py-0.5 rounded transition-all cursor-pointer font-bold ${
+              isActive
+                ? 'bg-amber-500/30 text-amber-300 border border-amber-500/60 shadow-xs'
+                : 'bg-[#10141d] text-[#94a3b8] hover:text-[#f1f5f9] border border-[#222f42] hover:border-amber-500/40'
+            }`;
+            chip.textContent = `${m.name} (${m.formula})`;
+            chip.title = m.description;
+            chip.addEventListener('click', (e) => {
+              e.stopPropagation();
+              if (curSelected.has(m.id)) {
+                curSelected.delete(m.id);
+              } else {
+                curSelected.add(m.id);
+              }
+              renderWeapons(characterStore.get());
+            });
+            modsContainer.appendChild(chip);
+          }
+        });
+      } else if (modsContainer) {
+        modsContainer.remove();
+      }
+
       const parseDamageFormula = (dmgStr: string) => {
         const match = (dmgStr || '').match(/(\d+)d(\d+)(?:\s*([+-])\s*(\d+))?/);
         const count = match ? parseInt(match[1]) || 1 : 1;
@@ -238,21 +321,38 @@
       const triggerAtkRoll = (isSecret = false) => {
         const bonusNum = parseInt(act.bonus.replace(/[^0-9-]/g, '')) || 0;
         const dmg = parseDamageFormula(act.damage);
+        const curActiveMods = availableMods.filter(m => curSelected.has(m.id) && !m.usedThisTurn);
+
+        let extraAttackBonus = 0;
+        for (const m of curActiveMods) {
+          if (m.type === 'attack' || m.type === 'both') {
+            const parsed = parseFormulaDice(m.formula);
+            if (parsed && parsed.die === 0) extraAttackBonus += parsed.mod;
+          }
+        }
+
+        const combinedDmg = combineDamageModifiers(act.damage, act.damageType || 'Físico', curActiveMods);
+        const advInfo = evaluateAdvantage(char, { action: act, checkType: 'attack' });
+
         window.dispatchEvent(new CustomEvent('open-dice-roller', {
           detail: {
             die: 20,
             count: 1,
-            modifier: bonusNum,
+            modifier: bonusNum + extraAttackBonus,
             label: isSecret ? `Ataque Secreto con ${act.name}` : `Ataque con ${act.name}`,
             tag: isSecret ? '#Privado' : '#Combate',
             isSecret,
             isAttackRoll: true,
+            advantageInfo: advInfo,
             followUpDamage: {
               count: dmg.count,
               die: dmg.die,
               modifier: dmg.mod,
               damageType: act.damageType || 'Físico',
               weaponOrSpellName: act.name,
+              combinedFormula: combinedDmg.combinedFormula,
+              extraDiceList: combinedDmg.extraDiceList,
+              selectedModifiers: curActiveMods,
             }
           }
         }));

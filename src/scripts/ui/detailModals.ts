@@ -255,6 +255,21 @@ function mount(prefix: 'item' | 'spell', openEvent: string, actionEvent: string)
           : 'Elige el espacio de conjuro';
       }
 
+      if (entry.meta?.ritual || /ritual/i.test(entry.description || '')) {
+        const ritualBtn = el('button',
+          'px-2.5 py-1 rounded-lg border text-xs font-bold transition-all bg-sky-950/40 text-sky-200 border-sky-600/50 hover:bg-sky-900/60 cursor-pointer shadow-sm',
+          '📜 Lanzar como Ritual (+10 min, sin espacios)'
+        );
+        ritualBtn.type = 'button';
+        ritualBtn.addEventListener('click', () => {
+          window.dispatchEvent(new CustomEvent('spell-action', {
+            detail: { entryId: entry.id, action: 'cast', context, entry, ritual: true }
+          }));
+          close();
+        });
+        options.append(ritualBtn);
+      }
+
       if (linkedResource) {
         const freeBtn = el('button',
           'px-2.5 py-1 rounded-lg border text-xs font-bold transition-all ' +

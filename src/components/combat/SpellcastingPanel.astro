@@ -54,11 +54,14 @@
 <script>
   import { characterStore } from '../../scripts/state/characterStore';
   import { escapeHtml, toCatalogEntry } from '../../scripts/dnd/catalog';
-  import { showAlert } from '../../scripts/ui/notify';
+  import { showAlert, showConfirm } from '../../scripts/ui/notify';
   import { applyFromEntry, isInstant } from '../../scripts/ui/applyEffectFlow';
   import { customBadgeHtml } from '../../scripts/ui/customBadge';
   import { openModal } from '../../scripts/animations/modalAnimations';
   import { attachSwipeToDelete } from '../../scripts/ui/swipeToDelete';
+  import { validateSpellComponents, isRitualSpell } from '../../scripts/dnd/spellcasting';
+  import { getActiveConcentrationEffect, isConcentrationDuration } from '../../scripts/dnd/concentration';
+  import { journalStore } from '../../scripts/state/journalStore';
 
   const spellsContainer = document.getElementById('spells-list-container');
   const slotsGrid = document.getElementById('spell-slots-grid');
@@ -177,6 +180,9 @@
       card.className = 'relative p-2.5 rounded-xl bg-[#18202e] border border-transparent hover:border-amber-500/30 transition-colors flex flex-col gap-1.5 group cursor-grab active:cursor-grabbing';
       
       const dmgFormula = sp.damageFormula || sp.damageDice;
+      const compCheck = validateSpellComponents(char, sp);
+      const isRitual = isRitualSpell(sp);
+      const isConc = isConcentrationDuration(sp.duration, sp.notes);
 
       card.innerHTML = `
         <div class="flex items-center justify-between gap-2 flex-wrap sm:flex-nowrap">
@@ -189,6 +195,9 @@
                 <span class="text-[#f1f5f9] font-medium truncate">${escapeHtml(sp.name)}</span>
                 ${customBadgeHtml(sp)}
                 <span class="text-[10px] text-[#64748b]">(${sp.school})</span>
+                ${isConc ? `<span class="px-1.5 py-0.2 rounded bg-amber-500/15 text-amber-300 border border-amber-500/30 text-[9px] font-bold font-mono" title="Requiere Concentración">CONC</span>` : ''}
+                ${isRitual ? `<span class="px-1.5 py-0.2 rounded bg-sky-500/15 text-sky-300 border border-sky-500/30 text-[9px] font-bold font-mono" title="Se puede lanzar como Ritual (+10 min, sin ranuras)">RITUAL</span>` : ''}
+                ${!compCheck.canCast ? `<span class="px-1.5 py-0.2 rounded bg-rose-500/10 text-rose-300 border border-rose-500/30 text-[9px] font-bold" title="${escapeHtml(compCheck.warnings.join(' • '))}">⚠️ Comp</span>` : ''}
                 ${sp.isSave ? `<span class="px-1.5 py-0.2 rounded bg-purple-500/10 text-purple-300 border border-purple-500/30 text-[9px] font-bold font-mono">CD ${sp.saveDc || char.spellcasting.saveDc} ${sp.saveAbility ? sp.saveAbility.toUpperCase() : ''}</span>` : ''}
                 ${(() => {
                   if (!sp.resourceId) return '';
@@ -274,6 +283,32 @@
             ${sp.duration ? `<span class="bg-[#10141d] px-2 py-0.5 rounded border border-[#222f42] text-amber-400/90"><strong>Duración:</strong> ${sp.duration}</span>` : ''}
             ${sp.components ? `<span class="bg-[#10141d] px-2 py-0.5 rounded border border-[#222f42] text-[#94a3b8]"><strong>Comp:</strong> ${sp.components}</span>` : ''}
           </div>
+
+          ${compCheck.warnings.length > 0 ? `
+            <div class="p-2 rounded bg-rose-500/10 border border-rose-500/30 text-[10px] text-rose-200 space-y-0.5">
+              <div class="font-bold flex items-center gap-1 text-rose-300">
+                <span class="material-symbols-outlined text-[13px]">warning</span>
+                <span>Aviso de Componentes:</span>
+              </div>
+              ${compCheck.warnings.map((w: string) => `<p class="leading-tight">• ${escapeHtml(w)}</p>`).join('')}
+            </div>
+          ` : ''}
+
+          ${isRitual ? `
+            <div class="flex items-center justify-between p-2 rounded bg-sky-500/10 border border-sky-500/25 text-[10px] text-sky-200">
+              <div class="flex items-center gap-1.5 truncate mr-2">
+                <span class="material-symbols-outlined text-[14px] text-sky-400">auto_stories</span>
+                <span class="truncate"><strong>Ritual (+10 min):</strong> No consume espacio de conjuro.</span>
+              </div>
+              <button
+                type="button"
+                class="panel-cast-ritual-btn px-2.5 py-1 rounded bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 border border-sky-500/40 font-bold text-[10px] shrink-0 cursor-pointer transition-colors"
+                title="Lanzar como Ritual (+10 min, sin gastar espacios)"
+              >
+                Lanzar Ritual
+              </button>
+            </div>
+          ` : ''}
 
           ${(() => {
             if (!sp.resourceId) return '';
@@ -443,6 +478,17 @@
         });
       });
 
+      // Spec 11, H4: Lanzamiento como ritual
+      card.querySelector('.panel-cast-ritual-btn')?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        journalStore.log(
+          `Lanzamiento de Ritual: ${sp.name}`,
+          `El personaje lanzó "${sp.name}" como ritual (+10 minutos). Sin gasto de espacios de conjuro.`,
+          ['#Magia', '#Ritual']
+        );
+        showAlert(`Has lanzado "${sp.name}" como Ritual (+10 min). Sin gasto de espacios.`, { kind: 'success' });
+      });
+
       const parseSpellDice = (formulaStr?: string) => {
         if (!formulaStr) return null;
         const match = formulaStr.match(/(\d+)d(\d+)(?:\s*([+-])\s*(\d+))?/);
@@ -593,9 +639,35 @@
 
   // Acciones de la ficha de hechizo abierta desde el grimorio (FD-3).
   window.addEventListener('spell-action', (async (e: CustomEvent) => {
-    const { entryId, action, context, entry, level, freeCast, resourceId } = e.detail || {};
+    const { entryId, action, context, entry, level, freeCast, resourceId, ritual } = e.detail || {};
     if (context !== 'spellbook') return;
     if (action === 'cast') {
+      const char = characterStore.get();
+      const sp = (char?.spellcasting?.spells || char?.spells || []).find((s: any) => (s.id || s.name) === entryId || s.name === entry?.name);
+
+      // Comprobar concentración única (Spec 11, H4)
+      const isConc = isConcentrationDuration(sp?.duration || entry?.meta?.duration, sp?.notes || entry?.description);
+      if (isConc) {
+        const activeConc = getActiveConcentrationEffect(char);
+        if (activeConc) {
+          const ok = await showConfirm(`Ya estás concentrado en "${activeConc.name}". ¿Reemplazarlo por "${sp?.name || entry?.name}"? La concentración previa terminará.`, { kind: 'question' });
+          if (!ok) return;
+          characterStore.endEffect(activeConc.id);
+        }
+      }
+
+      // Lanzamiento como ritual: no gasta espacios de conjuro
+      if (ritual) {
+        journalStore.log(
+          `Lanzamiento de Ritual: ${sp?.name || entry?.name}`,
+          `El personaje lanzó "${sp?.name || entry?.name}" como ritual (+10 minutos). Sin gasto de espacios de conjuro.`,
+          ['#Magia', '#Ritual']
+        );
+        await showAlert(`Has lanzado "${sp?.name || entry?.name}" como Ritual (+10 min). Sin gasto de espacios.`, { kind: 'success' });
+        if (entry?.effects?.length && !isInstant(entry)) await applyFromEntry(entry);
+        return;
+      }
+
       // Uso gratuito o consumo de espacio de conjuro.
       if (freeCast) {
         const targetResId = resourceId || entry?.meta?.resourceId;
@@ -605,13 +677,13 @@
       } else if (typeof level === 'number') {
         characterStore.useSpellSlot(level);
       }
-      const char = characterStore.get();
-      const sp = (char?.spellcasting?.spells || char?.spells || []).find((s: any) => (s.id || s.name) === entryId || s.name === entry?.name);
+      const updatedChar = characterStore.get();
+      const updatedSp = (updatedChar?.spellcasting?.spells || updatedChar?.spells || []).find((s: any) => (s.id || s.name) === entryId || s.name === entry?.name) || sp;
       // FE-5: un hechizo con efectos y duración no instantánea deja su efecto en el panel.
       if (entry?.effects?.length && !isInstant(entry)) await applyFromEntry(entry);
 
-      if (sp && (sp.isAttack || sp.isSave || sp.damageDice || sp.damageFormula)) {
-        const formula = sp.damageFormula || sp.damageDice || '';
+      if (updatedSp && (updatedSp.isAttack || updatedSp.isSave || updatedSp.damageDice || updatedSp.damageFormula)) {
+        const formula = updatedSp.damageFormula || updatedSp.damageDice || '';
         const match = formula.match(/(\d+)d(\d+)(?:\s*([+-])\s*(\d+))?/);
         const parsedDmg = match ? {
           count: parseInt(match[1]) || 1,
@@ -619,45 +691,45 @@
           mod: match[4] ? (match[3] === '-' ? -1 : 1) * parseInt(match[4]) : 0,
         } : null;
 
-        if (sp.isAttack) {
+        if (updatedSp.isAttack) {
           window.dispatchEvent(new CustomEvent('open-dice-roller', {
             detail: {
               die: 20,
               count: 1,
-              modifier: char?.spellcasting?.attackBonus || 0,
-              label: `Ataque de Conjuro: ${sp.name}`,
+              modifier: updatedChar?.spellcasting?.attackBonus || 0,
+              label: `Ataque de Conjuro: ${updatedSp.name}`,
               tag: '#Magia',
               ...(parsedDmg ? {
                 followUpDamage: {
                   count: parsedDmg.count,
                   die: parsedDmg.die,
                   modifier: parsedDmg.mod,
-                  damageType: sp.damageType || 'Mágico',
-                  weaponOrSpellName: sp.name,
+                  damageType: updatedSp.damageType || 'Mágico',
+                  weaponOrSpellName: updatedSp.name,
                 }
               } : {}),
             }
           }));
-        } else if (sp.isSave) {
-          const dc = sp.saveDc || char?.spellcasting?.saveDc || 13;
-          const ability = (sp.saveAbility || 'DES').toUpperCase();
+        } else if (updatedSp.isSave) {
+          const dc = updatedSp.saveDc || updatedChar?.spellcasting?.saveDc || 13;
+          const ability = (updatedSp.saveAbility || 'DES').toUpperCase();
           window.dispatchEvent(new CustomEvent('open-dice-roller', {
             detail: {
               die: parsedDmg ? parsedDmg.die : 20,
               count: parsedDmg ? parsedDmg.count : 1,
               modifier: parsedDmg ? parsedDmg.mod : 0,
-              label: parsedDmg ? `${sp.damageType || 'Daño'} de ${sp.name} (Salvación ${ability} CD ${dc})` : `Salvación de ${ability} contra ${sp.name} (CD ${dc})`,
+              label: parsedDmg ? `${updatedSp.damageType || 'Daño'} de ${updatedSp.name} (Salvación ${ability} CD ${dc})` : `Salvación de ${ability} contra ${updatedSp.name} (CD ${dc})`,
               tag: '#Magia',
               saveInfo: {
                 dc,
                 ability,
-                spellName: sp.name,
+                spellName: updatedSp.name,
                 isRollingEnemySave: !parsedDmg,
                 ...(parsedDmg ? {
                   damageCount: parsedDmg.count,
                   damageDie: parsedDmg.die,
                   damageMod: parsedDmg.mod,
-                  damageType: sp.damageType || 'Mágico',
+                  damageType: updatedSp.damageType || 'Mágico',
                 } : {}),
               },
             }
@@ -668,7 +740,7 @@
               die: parsedDmg.die,
               count: parsedDmg.count,
               modifier: parsedDmg.mod,
-              label: `${sp.damageType || 'Efecto'} de ${sp.name}`,
+              label: `${updatedSp.damageType || 'Efecto'} de ${updatedSp.name}`,
               tag: '#Magia',
             }
           }));

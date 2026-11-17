@@ -4,6 +4,45 @@ import CompatWarnings from './CompatWarnings.astro';
 ---
 
 <div class="xl:col-span-8 flex flex-col gap-2.5 w-full">
+  <!-- Banner de Salvación de Concentración ante Daño (Spec 11, H4) -->
+  <div
+    id="concentration-damage-banner"
+    class="hidden p-3 rounded-xl bg-gradient-to-r from-amber-950/60 via-[#18202e] to-rose-950/50 border-2 border-amber-500/60 shadow-[0_0_20px_rgba(245,158,11,0.25)] flex flex-col sm:flex-row items-center justify-between gap-3 animate-pulse select-none"
+  >
+    <div class="flex items-center gap-2.5">
+      <div class="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center border border-amber-500/40 shrink-0">
+        <span class="material-symbols-outlined text-[20px]">bolt</span>
+      </div>
+      <div>
+        <div class="flex items-center gap-2">
+          <span class="font-headline font-bold text-xs text-amber-300">¡Concentración en Riesgo!</span>
+          <span id="conc-banner-dc" class="px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-200 border border-amber-500/40 font-mono text-[10px] font-bold">CD 10 CON</span>
+        </div>
+        <p id="conc-banner-desc" class="text-[11px] text-[#cbd5e1] leading-tight">
+          Recibiste daño manteniendo un conjuro activo.
+        </p>
+      </div>
+    </div>
+    <div class="flex items-center gap-2 shrink-0 w-full sm:w-auto">
+      <button
+        type="button"
+        id="conc-roll-save-btn"
+        class="flex-1 sm:flex-none px-3 py-1.5 rounded-lg bg-gradient-to-r from-amber-600 to-amber-500 hover:brightness-110 text-[#0a0d12] font-headline font-extrabold text-xs flex items-center justify-center gap-1 shadow-xs cursor-pointer transition-all"
+      >
+        <span class="material-symbols-outlined text-[15px]">casino</span>
+        <span>Tirar Salvación de CON</span>
+      </button>
+      <button
+        type="button"
+        id="conc-drop-btn"
+        class="px-2.5 py-1.5 rounded-lg bg-[#10141d] hover:bg-rose-500/20 text-[#94a3b8] hover:text-rose-300 border border-[#222f42] hover:border-rose-500/40 text-xs font-bold transition-colors cursor-pointer"
+        title="Terminar la concentración voluntariamente"
+      >
+        Perder
+      </button>
+    </div>
+  </div>
+
   <!-- FILA 1: [ Vida (Puntos de Golpe) | Monedas ] -->
   <div class="grid grid-cols-1 lg:grid-cols-12 gap-2.5 w-full">
     <!-- Hit Points Panel (7 cols on lg) -->
@@ -224,6 +263,7 @@ import CompatWarnings from './CompatWarnings.astro';
   import { openModal } from '../../scripts/animations/modalAnimations';
   import { MAX_ATTUNED } from '../../scripts/dnd/equipment';
   import { computeAc, getArmorClass } from '../../scripts/dnd/ac';
+  import { hasWarCasterFeat } from '../../scripts/dnd/spellcasting';
 
   const acCard = document.getElementById('vitals-ac-card');
   const openAcBreakdown = () => window.dispatchEvent(new CustomEvent('open-ac-breakdown-modal'));
@@ -381,6 +421,73 @@ import CompatWarnings from './CompatWarnings.astro';
     window.dispatchEvent(new CustomEvent('open-rest-modal', { detail: { mode: 'long' } }));
   });
 
+  // Gestión del Banner de Concentración ante Daño (Spec 11, H4)
+  const concBanner = document.getElementById('concentration-damage-banner');
+  const concDcEl = document.getElementById('conc-banner-dc');
+  const concDescEl = document.getElementById('conc-banner-desc');
+  const concRollBtn = document.getElementById('conc-roll-save-btn');
+  const concDropBtn = document.getElementById('conc-drop-btn');
+
+  let pendingConcCheck: {
+    characterId: string;
+    damageTaken: number;
+    dc: number;
+    sourceName: string;
+    effectId: string;
+  } | null = null;
+
+  window.addEventListener('concentration-check-required', ((e: CustomEvent) => {
+    pendingConcCheck = e.detail;
+    if (!pendingConcCheck) return;
+    if (concDcEl) concDcEl.textContent = `CD ${pendingConcCheck.dc} CON`;
+    if (concDescEl) {
+      concDescEl.textContent = `Recibiste ${pendingConcCheck.damageTaken} de daño manteniendo ${pendingConcCheck.sourceName}.`;
+    }
+    concBanner?.classList.remove('hidden');
+  }) as EventListener);
+
+  concDropBtn?.addEventListener('click', () => {
+    if (pendingConcCheck) {
+      characterStore.endEffect(pendingConcCheck.effectId);
+      pendingConcCheck = null;
+    }
+    concBanner?.classList.add('hidden');
+  });
+
+  concRollBtn?.addEventListener('click', () => {
+    if (!pendingConcCheck) return;
+    const char = characterStore.get();
+    const conMod = char.stats.con.modifier;
+    const isProf = char.stats.con.savingProficient;
+    const profBonus = char.proficiencyBonus || 0;
+    const totalMod = conMod + (isProf ? profBonus : 0);
+    const warCaster = hasWarCasterFeat(char);
+
+    const advantageInfo = warCaster
+      ? {
+          state: 'advantage' as const,
+          advantageReasons: ['Dote Lanzador de Conjuros de Guerra (War Caster)'],
+          disadvantageReasons: [],
+        }
+      : undefined;
+
+    window.dispatchEvent(
+      new CustomEvent('open-dice-roller', {
+        detail: {
+          die: 20,
+          count: 1,
+          modifier: totalMod,
+          label: `Salvación de CON (Concentración: ${pendingConcCheck.sourceName})`,
+          tag: '#Concentración',
+          targetAc: pendingConcCheck.dc,
+          advantageState: warCaster ? 'advantage' : 'normal',
+          advantageInfo,
+        },
+      })
+    );
+    concBanner?.classList.add('hidden');
+  });
+
   function renderVitals(char: any) {
     if (!char) return;
     updateHpUi(char);
@@ -405,6 +512,11 @@ import CompatWarnings from './CompatWarnings.astro';
     if (ppEl) ppEl.textContent = String(char.passivePerception ?? 10);
     if (hdDispEl) hdDispEl.textContent = `${char.hitDice.remaining} / ${char.hitDice.total}`;
     if (hdTypeEl) hdTypeEl.textContent = char.hitDice.die;
+
+    if (pendingConcCheck && (!char.activeEffects || !char.activeEffects.some((e: any) => e.id === pendingConcCheck!.effectId))) {
+      pendingConcCheck = null;
+      concBanner?.classList.add('hidden');
+    }
   }
 
   // Hydrate immediately

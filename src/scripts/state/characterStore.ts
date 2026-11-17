@@ -23,6 +23,7 @@ import { campaignStore } from './campaignStore.ts';
 import { userStore } from './userStore.ts';
 import { generateCharacterSyncId } from '../utils/ids.ts';
 import { applyHpOp, describeHpChange, normalizeHp, sameHp, type HitPoints, type HpOp } from '../dnd/hp.ts';
+import { evaluateConcentrationOnDamage } from '../dnd/concentration.ts';
 
 const STORAGE_KEY = 'dnd_active_character_v1';
 
@@ -53,7 +54,11 @@ class CharacterStoreManager {
       const { id, hp } = e.detail || ({} as any);
       if (!id || !hp || id !== this.character?.id) return;
       if (sameHp(this.character.hp, hp)) return;
+      const prevCurrent = this.character.hp.current;
       this.character.hp = { ...hp };
+      if (prevCurrent > hp.current) {
+        this.checkConcentrationOnDamage(prevCurrent - hp.current);
+      }
       this.saveAndNotify(false, true);
     }) as EventListener);
     setTimeout(() => {
@@ -174,6 +179,9 @@ class CharacterStoreManager {
         this.character.hp = { ...mutation.optimistic };
         this.saveAndNotify(false, true);
       }
+      if (mutation.before.current > mutation.optimistic.current) {
+        this.checkConcentrationOnDamage(mutation.before.current - mutation.optimistic.current);
+      }
       void mutation.done.then(change => { if (change) log(change); });
       return { before: mutation.before, after: mutation.optimistic };
     }
@@ -184,9 +192,19 @@ class CharacterStoreManager {
     const before = normalizeHp(this.character.hp);
     const after = applyHpOp(before, op);
     this.character.hp = after;
+    if (before.current > after.current) {
+      this.checkConcentrationOnDamage(before.current - after.current);
+    }
     this.saveAndNotify();
     log({ before, after });
     return { before, after };
+  }
+
+  public checkConcentrationOnDamage(damageTaken: number): void {
+    const check = evaluateConcentrationOnDamage(this.character, damageTaken);
+    if (check && typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('concentration-check-required', { detail: check }));
+    }
   }
 
   public modifyHp(delta: number, silent: boolean = false): { current: number; max: number; old: number } {
@@ -631,6 +649,26 @@ class CharacterStoreManager {
     if (!r) return;
     r.values = values.slice(0, r.max);
     this.saveAndNotify();
+  }
+
+  // ---- Combate en la Hoja: Turnos y Modificadores (Spec 11, H4) ----
+
+  public resetTurn(): void {
+    this.character.turnState = { usedModifiers: [] };
+    this.saveAndNotify();
+  }
+
+  public markTurnModifierUsed(id: string): void {
+    if (!this.character.turnState) this.character.turnState = { usedModifiers: [] };
+    if (!Array.isArray(this.character.turnState.usedModifiers)) this.character.turnState.usedModifiers = [];
+    if (!this.character.turnState.usedModifiers.includes(id)) {
+      this.character.turnState.usedModifiers.push(id);
+      this.saveAndNotify();
+    }
+  }
+
+  public isTurnModifierUsed(id: string): boolean {
+    return Boolean(this.character.turnState?.usedModifiers?.includes(id));
   }
 
   // ---- Efectos activos (Spec 07, Fase B) ----
