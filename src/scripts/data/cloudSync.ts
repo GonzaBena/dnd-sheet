@@ -628,7 +628,7 @@ class CloudSession {
         batch.set(fs.doc(db, 'invites', data.inviteCode), { campaignId: id, createdBy: uid, createdAt: Date.now() });
         this.inviteCodes.set(id, data.inviteCode);
       }
-      this.commit(batch);
+      this.commit(batch, `create:campaigns/${id}`);
     }
 
     for (const { id, fields, removedKeys } of changes.updates) {
@@ -642,7 +642,7 @@ class CloudSession {
         if (previous && previous !== fields.inviteCode) batch.delete(fs.doc(db, 'invites', previous));
         this.inviteCodes.set(id, fields.inviteCode);
       }
-      this.commit(batch);
+      this.commit(batch, `update:campaigns/${id}`);
     }
 
     for (const id of changes.deletes) {
@@ -651,7 +651,7 @@ class CloudSession {
       if (code) batch.delete(fs.doc(db, 'invites', code));
       batch.delete(fs.doc(db, 'campaigns', id));
       this.inviteCodes.delete(id);
-      this.commit(batch);
+      this.commit(batch, `delete:campaigns/${id}`);
     }
   }
 
@@ -661,13 +661,13 @@ class CloudSession {
 
     for (const { id, data } of changes.creates) {
       this.flushCharacter(id);
-      fs.setDoc(fs.doc(db, 'characters', id), { ...data, updatedAt: Date.now() }).catch(err => this.onWriteError(err));
+      fs.setDoc(fs.doc(db, 'characters', id), { ...data, updatedAt: Date.now() }).catch(err => this.onWriteError(err, `create:characters/${id}`));
     }
 
     // Los cambios de la ficha (cada click de PG, etc.) se agrupan con debounce por personaje.
     for (const { id, fields, removedKeys } of changes.updates) {
       const known = campaignStore.getCharacter(id);
-      const isOwner = !known || !known.userId || known.userId === this.uid;
+      const isOwner = !known || !known.userId || known.userId === this.uid || (this.uid && known.userId === 'user-me');
       let effectiveFields = fields;
       let effectiveRemoved = removedKeys;
       // Sobre fichas ajenas el DM solo puede escribir la inspiración por esta vía (los PG van por mutateHp).
@@ -695,7 +695,7 @@ class CloudSession {
       const pending = this.pendingCharacters.get(id);
       if (pending) clearTimeout(pending.timer);
       this.pendingCharacters.delete(id);
-      fs.deleteDoc(fs.doc(db, 'characters', id)).catch(err => this.onWriteError(err));
+      fs.deleteDoc(fs.doc(db, 'characters', id)).catch(err => this.onWriteError(err, `delete:characters/${id}`));
     }
   }
 
@@ -711,7 +711,7 @@ class CloudSession {
     const payload: Record<string, any> = { ...pending.fields, updatedAt: now };
     pending.removedKeys.forEach(k => { payload[k] = fs.deleteField(); });
     fs.updateDoc(fs.doc(this.db, 'characters', id), payload)
-      .catch(err => this.onWriteError(err))
+      .catch(err => this.onWriteError(err, `update:characters/${id}`))
       .finally(() => {
         const cur = (this.inFlightCharacters.get(id) || 1) - 1;
         if (cur <= 0) this.inFlightCharacters.delete(id);
@@ -763,7 +763,7 @@ class CloudSession {
     if (!this.fs || !this.db) return;
     this.seenDmEvents.add(event.id);
     this.fs.setDoc(this.fs.doc(this.db, 'campaigns', event.campaignId, 'dm_events', event.id), toPlain(event))
-      .catch(err => this.onWriteError(err));
+      .catch(err => this.onWriteError(err, `dm_events:${event.campaignId}/${event.id}`));
   }
 
   private writeJournalEntry(entry: JournalEntry) {
@@ -782,7 +782,7 @@ class CloudSession {
       delete (data as any).isDmOnly;
       delete (data as any).isPlayerOnly;
       delete (data as any).isForDm;
-      fs.setDoc(fs.doc(this.db, 'campaigns', campaignId, 'journal', entry.id), data).catch(err => this.onWriteError(err));
+      fs.setDoc(fs.doc(this.db, 'campaigns', campaignId, 'journal', entry.id), data).catch(err => this.onWriteError(err, `journal:${campaignId}/${entry.id}`));
     } else {
       // Sin campaña no hay DM: lo restringido queda como nota personal.
       if (visibility !== 'party') visibility = 'player';
@@ -791,7 +791,7 @@ class CloudSession {
       delete (data as any).isPlayerOnly;
       delete (data as any).isForDm;
       delete (data as any).campaignId;
-      fs.setDoc(fs.doc(this.db, 'users', this.uid, 'notes', entry.id), data).catch(err => this.onWriteError(err));
+      fs.setDoc(fs.doc(this.db, 'users', this.uid, 'notes', entry.id), data).catch(err => this.onWriteError(err, `notes:${this.uid}/${entry.id}`));
     }
   }
 
@@ -801,15 +801,15 @@ class CloudSession {
     const ref = campaignId && campaignStore.getCampaign(campaignId)
       ? this.fs.doc(this.db, 'campaigns', campaignId, 'journal', entry.id)
       : this.fs.doc(this.db, 'users', this.uid, 'notes', entry.id);
-    this.fs.deleteDoc(ref).catch(err => this.onWriteError(err));
+    this.fs.deleteDoc(ref).catch(err => this.onWriteError(err, `delete:${campaignId ? `journal:${campaignId}` : `notes:${this.uid}`}/${entry.id}`));
   }
 
-  private commit(batch: { commit(): Promise<void> }) {
-    batch.commit().catch(err => this.onWriteError(err));
+  private commit(batch: { commit(): Promise<void> }, context?: string) {
+    batch.commit().catch(err => this.onWriteError(err, context));
   }
 
-  private onWriteError(err: any) {
-    console.error('[CloudSync] Escritura rechazada', err);
+  private onWriteError(err: any, context?: string) {
+    console.error(`[CloudSync] Escritura rechazada${context ? ` [${context}]` : ''}`, err);
     this.reportError(err);
   }
 

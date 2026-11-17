@@ -138,6 +138,12 @@ class CharacterStoreManager {
   }
 
   private saveAndNotify(broadcast = true, fromRemote = false) {
+    if (campaignStore.isCloudMode()) {
+      const currentUid = userStore.getCurrentUser().id;
+      if (currentUid && (!this.character.userId || this.character.userId === 'user-me')) {
+        this.character.userId = currentUid;
+      }
+    }
     this.character = recalculateCharacter(this.character);
     if (!fromRemote) {
       (this.character as any).updatedAt = Date.now();

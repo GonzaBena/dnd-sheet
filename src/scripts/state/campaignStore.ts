@@ -1167,8 +1167,9 @@ class CampaignStoreManager {
   }
 
   public saveCharacter(char: CharacterData) {
-    if (!char.userId) {
-      char.userId = userStore.getCurrentUser().id;
+    const currentUid = userStore.getCurrentUser().id;
+    if (!char.userId || (this.cloud && char.userId === 'user-me')) {
+      char.userId = currentUid;
     }
 
     // Rule: una campaña no puede tener 2 personajes del mismo usuario
@@ -1201,20 +1202,23 @@ class CampaignStoreManager {
     if (char.campaignId) {
       const camp = this.getCampaign(char.campaignId);
       if (camp) {
-        let changed = false;
         if (!camp.characterIds.includes(char.id)) {
           camp.characterIds.push(char.id);
-          changed = true;
         }
-        if (!camp.memberUserIds.includes(char.userId)) {
-          camp.memberUserIds.push(char.userId);
-          changed = true;
-        }
-        if (changed) {
-          this.updateCampaign(camp.id, {
-            characterIds: camp.characterIds,
-            memberUserIds: camp.memberUserIds
-          });
+        // En modo nube nunca se dispara una actualización remota de campaña desde una edición de ficha:
+        // solo el DM/creador puede editar campañas, y characterIds se deriva de las fichas.
+        if (!this.cloud) {
+          let changed = false;
+          if (!camp.memberUserIds.includes(char.userId)) {
+            camp.memberUserIds.push(char.userId);
+            changed = true;
+          }
+          if (changed) {
+            this.updateCampaign(camp.id, {
+              characterIds: camp.characterIds,
+              memberUserIds: camp.memberUserIds
+            });
+          }
         }
       }
     }
@@ -1227,7 +1231,14 @@ class CampaignStoreManager {
   public isCharacterOwner(char: CharacterData | { id: string; userId?: string; playerName?: string }, userId?: string): boolean {
     const currentUserId = userId || userStore.getCurrentUser().id;
     if (char.userId) {
-      return char.userId === currentUserId;
+      if (char.userId === currentUserId) return true;
+      if (this.cloud && (char.userId === 'user-me' || !char.userId)) {
+        const u = userStore.getUser(currentUserId);
+        if (u && char.playerName && (char.playerName.includes(u.name) || char.playerName.includes('Tú') || char.playerName.includes('Gonzo'))) {
+          return true;
+        }
+      }
+      return false;
     }
     if (char.playerName) {
       const u = userStore.getUser(currentUserId);
