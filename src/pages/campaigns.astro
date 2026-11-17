@@ -38,6 +38,7 @@ import StatBreakdownModal from '../components/modals/StatBreakdownModal.astro';
 import EditFeaturesModal from '../components/modals/EditFeaturesModal.astro';
 import ConfirmDeleteModal from '../components/modals/ConfirmDeleteModal.astro';
 import RestModal from '../components/modals/RestModal.astro';
+import RestSummaryModal from '../components/modals/RestSummaryModal.astro';
 import NewMilestoneModal from '../components/modals/NewMilestoneModal.astro';
 import CampaignRosterModal from '../components/campaigns/CampaignRosterModal.astro';
 import CloneCharacterModal from '../components/campaigns/CloneCharacterModal.astro';
@@ -136,7 +137,7 @@ import SiteFooter from '../components/layout/SiteFooter.astro';
               <div id="section-weapons" data-section-id="weapons" class="transition-all duration-200 w-full">
                 <WeaponActionCard />
               </div>
-              <div id="section-armor" class="transition-all duration-200 w-full">
+              <div id="section-armor" data-section-id="armor" class="transition-all duration-200 w-full">
                 <ArmorSection />
               </div>
             </div>
@@ -194,6 +195,7 @@ import SiteFooter from '../components/layout/SiteFooter.astro';
   <EditFeaturesModal />
   <ConfirmDeleteModal />
   <RestModal />
+  <RestSummaryModal />
   <NewMilestoneModal />
   <CampaignRosterModal />
   <CloneCharacterModal />

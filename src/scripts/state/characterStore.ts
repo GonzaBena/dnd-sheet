@@ -10,6 +10,14 @@ import type { ActiveEffect } from '../models/effect.ts';
 import { buildAttackFromWeapon, upsertAttack } from '../dnd/weaponAttack.ts';
 import { getArmorClass } from '../dnd/ac.ts';
 import { addEffect, removeEffect, tickRounds, expireOnRest, roundDelta, type AddResult } from '../dnd/effects.ts';
+import {
+  executeShortRestLogic,
+  executeLongRestLogic,
+  consumeSavedDie,
+  getHitDicePools,
+} from '../dnd/rests.ts';
+import type { HitDie } from '../models/character.ts';
+import type { ShortRestResult, LongRestResult, LongRestOptions } from '../models/rest.ts';
 import { journalStore } from './journalStore.ts';
 import { campaignStore } from './campaignStore.ts';
 import { userStore } from './userStore.ts';
@@ -890,36 +898,33 @@ class CharacterStoreManager {
     );
   }
 
-  public shortRest(hitDiceToSpend: number = 1): { healed: number; remainingDice: number } {
-    const available = this.character.hitDice.remaining;
-    const spend = Math.min(available, hitDiceToSpend);
-    let healed = 0;
-    if (spend > 0) {
-      this.character.hitDice.remaining -= spend;
-      // D&D 5e: Hit die roll or average + CON mod (min 1 healed per hit die)
-      const conMod = this.character.stats.con?.modifier ?? 0;
-      const dieSize = parseInt(this.character.hitDice.die.replace(/\D/g, '')) || 10;
-      const avgRoll = Math.floor(dieSize / 2) + 1;
-      healed = Math.max(1, spend * Math.max(1, avgRoll + conMod));
-      this.modifyHp(healed, true); // Silent to avoid double log
-    }
-    // Recursos con reinicio en descanso corto (incluye Forma Salvaje, migrada al registro).
-    // Si wildShape aún no está en el registro, se restaura directo (fuente vieja).
-    if (this.character.wildShape && !this.character.resources.some((r) => r.id === 'wildShape')) {
-      this.character.wildShape.usesRemaining = this.character.wildShape.usesTotal;
-    }
-    const recoveredShort = this.applyRestToResources('short');
-    const expiredShort = this.expireEffectsOnRest('short');
+  public executeShortRest(spentDice: { die: HitDie; roll?: number }[]): ShortRestResult {
+    const { char, result } = executeShortRestLogic(this.character, { spent: spentDice });
+    this.character = char;
     this.saveAndNotify();
-    this.emitEffectsExpired(expiredShort);
-
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('short-rest-completed', { detail: result }));
+    }
+    const spentText = result.spentDice.map((d) => `${d.die} (sacó ${d.roll} + ${d.conMod} CON = ${d.total} PG)`).join(', ');
     journalStore.log(
       'Descanso Corto completado',
-      `Descanso de 1 hora completado. Gastado ${spend} Dado de Golpe (${this.character.hitDice.die}). Recuperados +${healed} PG (Salud actual: ${this.character.hp.current}/${this.character.hp.max}). Dados restantes: ${this.character.hitDice.remaining}/${this.character.hitDice.total}. Usos de Forma Salvaje restaurados al máximo.${recoveredShort.length ? ` Recursos recuperados: ${recoveredShort.join(', ')}.` : ''}${expiredShort.length ? ` Efectos terminados: ${expiredShort.map((e) => e.name).join(', ')}.` : ''}`,
+      `Descanso de 1 hora completado. Curados +${result.healedHp} PG (Salud actual: ${this.character.hp.current}/${this.character.hp.max}). Dados gastados: ${spentText || 'Ninguno'}. Dados restantes: ${result.remainingDiceTotal}/${this.character.hitDice.total}.${result.recoveredResources.length ? ` Recursos recuperados: ${result.recoveredResources.join(', ')}.` : ''}${result.expiredEffects.length ? ` Efectos terminados: ${result.expiredEffects.join(', ')}.` : ''}`,
       ['#Descanso']
     );
+    return result;
+  }
 
-    return { healed, remainingDice: this.character.hitDice.remaining };
+  public shortRest(hitDiceToSpend: number = 1): { healed: number; remainingDice: number } {
+    const pools = getHitDicePools(this.character);
+    const availablePool = pools.find((p) => p.remaining > 0);
+    const die = (availablePool?.die || this.character.hitDice?.die || 'd10') as HitDie;
+    const count = Math.min(availablePool?.remaining ?? 0, hitDiceToSpend);
+    const spentList: { die: HitDie }[] = [];
+    for (let i = 0; i < count; i++) {
+      spentList.push({ die });
+    }
+    const res = this.executeShortRest(spentList);
+    return { healed: res.healedHp, remainingDice: res.remainingDiceTotal };
   }
 
   /**
@@ -942,32 +947,42 @@ class CharacterStoreManager {
     );
   }
 
-  public longRest() {
-    this.changeHp({ kind: 'full' }, false);
-    // Restore half hit dice (min 1)
-    const restoreDice = Math.max(1, Math.floor(this.character.hitDice.total / 2));
-    this.character.hitDice.remaining = Math.min(this.character.hitDice.total, this.character.hitDice.remaining + restoreDice);
-    // Restore all spell slots
-    if (this.character.spellcasting?.slots) {
-      for (const n of Object.keys(this.character.spellcasting.slots)) {
-        this.character.spellcasting.slots[Number(n)].used = 0;
-      }
-    }
-    // Restore Wild Shape uses
-    if (this.character.wildShape) {
-      this.character.wildShape.usesRemaining = this.character.wildShape.usesTotal;
-      this.character.wildShape.activeForm = null;
-    }
-    const recoveredLong = this.applyRestToResources('long');
-    const expiredLong = this.expireEffectsOnRest('long');
+  public executeLongRest(options: LongRestOptions = {}): LongRestResult {
+    const { char, result } = executeLongRestLogic(this.character, options);
+    this.character = char;
     this.saveAndNotify();
-    this.emitEffectsExpired(expiredLong);
-
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('long-rest-completed', { detail: result }));
+    }
+    const diceText = result.recoveredDice.map((d) => `+${d.count} ${d.die}`).join(', ');
+    const portentText = result.savedDiceRolled.length
+      ? ` Portento obtenido: ${result.savedDiceRolled.map((p) => `${p.resourceName} [${p.values.join(', ')}]`).join(', ')}.`
+      : '';
     journalStore.log(
       'Descanso Largo completado',
-      `Descanso de 8 horas completado. Salud restaurada al 100% (${this.character.hp.max}/${this.character.hp.max} PG). Recuperados +${restoreDice} Dados de Golpe (${this.character.hitDice.remaining}/${this.character.hitDice.total}). Todos los espacios de conjuro y formas salvajes restablecidos.${recoveredLong.length ? ` Recursos recuperados: ${recoveredLong.join(', ')}.` : ''}${expiredLong.length ? ` Efectos terminados: ${expiredLong.map((e) => e.name).join(', ')}.` : ''}`,
+      `Descanso de 8 horas completado. Salud restaurada al 100% (${this.character.hp.max}/${this.character.hp.max} PG). Recuperados Dados de Golpe: ${diceText || '0'} (${result.remainingDiceTotal}/${this.character.hitDice.total}). Todos los espacios de conjuro y formas salvajes restablecidos.${portentText}${result.recoveredResources.length ? ` Recursos recuperados: ${result.recoveredResources.join(', ')}.` : ''}${result.expiredEffects.length ? ` Efectos terminados: ${result.expiredEffects.join(', ')}.` : ''}`,
       ['#Descanso']
     );
+    return result;
+  }
+
+  public longRest(): LongRestResult {
+    return this.executeLongRest();
+  }
+
+  public consumePortentDie(resourceId: string, valueOrIndex: number | { index: number }) {
+    if (!Array.isArray(this.character.resources)) return null;
+    const rIndex = this.character.resources.findIndex((r) => r.id === resourceId);
+    if (rIndex === -1) return null;
+    const { resource, value } = consumeSavedDie(this.character.resources[rIndex], valueOrIndex);
+    this.character.resources[rIndex] = resource;
+    this.saveAndNotify();
+    journalStore.log(
+      'Dado de Portento utilizado',
+      `Se utilizó el dado guardado [${value}] de ${resource.name}. Usos restantes: ${resource.max - resource.used}/${resource.max}.`,
+      ['#Recursos']
+    );
+    return { resource, value };
   }
 
   public updateLayoutConfig(updates: Partial<CharacterData['layoutConfig']>) {
@@ -1054,7 +1069,7 @@ class CharacterStoreManager {
 
   public setAllSectionsCollapsed(collapsed: boolean) {
     if (!this.character.layoutConfig) this.updateLayoutConfig({});
-    const allSections = ['abilities', 'saves', 'skills', 'features', 'weapons', 'wildshape', 'currency', 'backpack', 'spells'];
+    const allSections = ['abilities', 'saves', 'skills', 'features', 'weapons', 'wildshape', 'currency', 'backpack', 'spells', 'armor'];
     this.character.layoutConfig!.collapsedSections = collapsed ? [...allSections] : [];
     this.saveAndNotify();
   }

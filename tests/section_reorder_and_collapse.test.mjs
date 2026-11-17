@@ -53,8 +53,8 @@ test('Section Reordering, Collapsing & Layout Tests', async (t) => {
     assert.deepEqual(char.layoutConfig.collapsedSections, []);
   });
 
-  await t.test('2. SECTIONS_META defines all 9 modular sections', () => {
-    assert.equal(ALL_SECTION_IDS.length, 9);
+  await t.test('2. SECTIONS_META defines all 10 modular sections', () => {
+    assert.equal(ALL_SECTION_IDS.length, 10);
     for (const secId of ALL_SECTION_IDS) {
       assert.ok(SECTIONS_META[secId]);
       assert.ok(SECTIONS_META[secId].name);
@@ -97,7 +97,8 @@ test('Section Reordering, Collapsing & Layout Tests', async (t) => {
   await t.test('6. characterStore.setAllSectionsCollapsed collapses or expands all sections in bulk', () => {
     characterStore.setAllSectionsCollapsed(true);
     const collapsedAll = characterStore.get().layoutConfig.collapsedSections;
-    assert.equal(collapsedAll.length, 9);
+    assert.equal(collapsedAll.length, 10);
+    assert.equal(characterStore.isSectionCollapsed('armor'), true);
     assert.equal(characterStore.isSectionCollapsed('weapons'), true);
     assert.equal(characterStore.isSectionCollapsed('backpack'), true);
 
@@ -174,7 +175,8 @@ test('Section Reordering, Collapsing & Layout Tests', async (t) => {
 
     const fixed = recalculateCharacter(partialOrderChar);
     const allAssigned = new Set([...fixed.layoutConfig.sectionOrder.col1, ...fixed.layoutConfig.sectionOrder.col2]);
-    for (const sec of ALL_SECTION_IDS) {
+    // `armor` vive fijo en el bloque 2 y no forma parte de las columnas reordenables.
+    for (const sec of ALL_SECTION_IDS.filter((id) => id !== 'armor')) {
       assert.ok(allAssigned.has(sec), `Expected section ${sec} to be assigned`);
     }
   });

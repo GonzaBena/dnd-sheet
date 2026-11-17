@@ -67,6 +67,13 @@ export const SECTIONS_META: Record<string, SectionMeta> = {
     description: 'Inventario, consumibles y equipo',
     defaultCol: 'col2'
   },
+  armor: {
+    id: 'armor',
+    name: 'Armaduras y Equipo Puesto',
+    icon: 'shield',
+    description: 'Armadura, escudo y objetos puestos',
+    defaultCol: 'col2'
+  },
   spells: {
     id: 'spells',
     name: 'Magia y Conjuros',
@@ -202,6 +209,7 @@ export function jumpToSection(sectionId: string) {
       wildshape: ['all', 'wildshape'],
       currency: ['all', 'inventory'],
       backpack: ['all', 'inventory'],
+      armor: ['all', 'inventory'],
       spells: ['all', 'spells']
     };
 

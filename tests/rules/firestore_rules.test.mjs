@@ -223,6 +223,7 @@ test('el dueño escribe recursos, efectos e imagen de objetos; el DM no (Spec 07
   await assertSucceeds(updateDoc(doc(db(PLAYER), 'characters', 'char-player'), sheet));
   await assertFails(updateDoc(doc(db(DM), 'characters', 'char-player'), { activeEffects: [] }));
   await assertFails(updateDoc(doc(db(DM), 'characters', 'char-player'), { resources: [] }));
+  await assertFails(updateDoc(doc(db(DM), 'characters', 'char-player'), { hitDice: { total: 5, remaining: 5, die: 'd10' } }));
   // Regresión: el DM sigue pudiendo escribir PG e inspiración.
   await assertSucceeds(updateDoc(doc(db(DM), 'characters', 'char-player'), { hp: { current: 5, max: 20, temp: 0 }, hpRev: 1, inspiration: true, updatedAt: 4 }));
 });

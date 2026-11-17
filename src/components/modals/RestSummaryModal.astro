@@ -1,0 +1,285 @@
+---
+// src/components/modals/RestSummaryModal.astro
+// Modal interactivo de celebración y resumen post-descanso (Spec 10, Fase C).
+// Optimizado para pantallas anchas (max-w-3xl / max-w-4xl) con grid responsivo.
+---
+
+<div id="rest-summary-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4">
+  <div class="modal-content w-full max-w-xl md:max-w-3xl lg:max-w-4xl rounded-2xl bg-[#121721] border border-amber-500/50 shadow-[0_25px_70px_rgba(0,0,0,0.95)] overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-200 max-h-[92vh] transition-all">
+    <!-- Header -->
+    <div class="p-4 sm:px-6 bg-gradient-to-r from-amber-500/20 via-amber-500/10 to-transparent border-b border-[#222f42] flex items-center justify-between shrink-0">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center border border-amber-500/40 shadow-xs">
+          <span id="summary-header-icon" class="material-symbols-outlined text-[24px]">hotel</span>
+        </div>
+        <div>
+          <h3 id="summary-header-title" class="font-headline font-bold text-base sm:text-lg text-[#f1f5f9]">Descanso Completado</h3>
+          <span id="summary-header-sub" class="text-[11px] text-amber-400/90 font-medium">Resumen táctico de recuperación</span>
+        </div>
+      </div>
+      <button
+        type="button"
+        id="rest-summary-close-x"
+        class="w-8 h-8 rounded-lg bg-[#10141d] border border-[#222f42] hover:border-amber-500/50 text-[#94a3b8] hover:text-white flex items-center justify-center text-xs transition-colors cursor-pointer"
+        aria-label="Cerrar resumen"
+      >
+        <span class="material-symbols-outlined text-[18px]">close</span>
+      </button>
+    </div>
+
+    <!-- Body / Summary Cards Grid -->
+    <div class="p-4 sm:p-6 overflow-y-auto custom-scrollbar">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <!-- Salud / Puntos de Golpe -->
+        <div class="p-4 rounded-xl bg-[#18202e] border border-[#222f42] flex items-center justify-between gap-3 shadow-xs">
+          <div class="flex items-center gap-3 min-w-0">
+            <div class="w-9 h-9 rounded-lg bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 flex items-center justify-center shrink-0">
+              <span class="material-symbols-outlined text-[20px]">favorite</span>
+            </div>
+            <div class="min-w-0">
+              <h4 class="text-xs sm:text-sm font-bold text-[#f1f5f9]">Puntos de Golpe</h4>
+              <p id="summary-hp-sub" class="text-[11px] text-[#94a3b8] truncate">Salud actualizada</p>
+            </div>
+          </div>
+          <div class="text-right shrink-0">
+            <span id="summary-hp-val" class="text-xs sm:text-sm font-mono font-bold text-emerald-300">0 / 0 PG</span>
+            <span id="summary-hp-delta" class="block text-[11px] font-bold text-emerald-400 font-mono">+0 PG</span>
+          </div>
+        </div>
+
+        <!-- Dados de Golpe -->
+        <div class="p-4 rounded-xl bg-[#18202e] border border-[#222f42] flex items-center justify-between gap-3 shadow-xs">
+          <div class="flex items-center gap-3 min-w-0">
+            <div class="w-9 h-9 rounded-lg bg-amber-500/15 text-amber-400 border border-amber-500/30 flex items-center justify-center shrink-0">
+              <span class="material-symbols-outlined text-[20px]">casino</span>
+            </div>
+            <div class="min-w-0">
+              <h4 class="text-xs sm:text-sm font-bold text-[#f1f5f9]">Dados de Golpe</h4>
+              <p id="summary-dice-sub" class="text-[11px] text-[#94a3b8] truncate">Disponibilidad de descanso</p>
+            </div>
+          </div>
+          <div class="text-right shrink-0">
+            <span id="summary-dice-val" class="text-xs sm:text-sm font-mono font-bold text-amber-300">0 / 0</span>
+            <span id="summary-dice-delta" class="block text-[11px] font-bold text-[#cbd5e1] font-mono">0 gastados</span>
+          </div>
+        </div>
+
+        <!-- Espacios de Conjuro (solo si hay recuperados) -->
+        <div id="summary-slots-row" class="hidden p-4 rounded-xl bg-[#18202e] border border-sky-500/30 flex items-center justify-between gap-3 shadow-xs md:col-span-2">
+          <div class="flex items-center gap-3 min-w-0">
+            <div class="w-9 h-9 rounded-lg bg-sky-500/15 text-sky-400 border border-sky-500/30 flex items-center justify-center shrink-0">
+              <span class="material-symbols-outlined text-[20px]">auto_fix_high</span>
+            </div>
+            <div class="min-w-0">
+              <h4 class="text-xs sm:text-sm font-bold text-sky-200">Espacios de Conjuro</h4>
+              <p id="summary-slots-sub" class="text-[11px] text-sky-400/80 truncate">Ranuras mágicas recargadas</p>
+            </div>
+          </div>
+          <div id="summary-slots-badges" class="flex flex-wrap gap-2 justify-end shrink-0"></div>
+        </div>
+
+        <!-- Portento / Dados Guardados (si aplica) -->
+        <div id="summary-portent-row" class="hidden p-4 rounded-xl bg-purple-950/30 border border-purple-500/40 space-y-2.5 shadow-xs md:col-span-2">
+          <div class="flex items-center justify-between gap-2">
+            <div class="flex items-center gap-2.5 text-purple-300 font-bold text-xs sm:text-sm">
+              <span class="material-symbols-outlined text-[20px] text-purple-400">psychology</span>
+              <span>Tiradas de Portento de Adivinación</span>
+            </div>
+            <span class="text-[10px] text-purple-300/80 font-mono">Listas para el nuevo día</span>
+          </div>
+          <div id="summary-portent-chips" class="flex flex-wrap items-center gap-2 pt-0.5"></div>
+        </div>
+
+        <!-- Recursos y Facultades -->
+        <div id="summary-resources-row" class="hidden p-4 rounded-xl bg-[#18202e] border border-[#222f42] space-y-2.5 shadow-xs md:col-span-2">
+          <div class="flex items-center gap-2.5 text-[#cbd5e1] font-bold text-xs sm:text-sm">
+            <span class="material-symbols-outlined text-[20px] text-amber-400">flare</span>
+            <span>Recursos y Facultades Recargados</span>
+          </div>
+          <div id="summary-resources-chips" class="flex flex-wrap gap-2 pt-0.5"></div>
+        </div>
+
+        <!-- Efectos Expirados -->
+        <div id="summary-effects-row" class="hidden p-4 rounded-xl bg-[#18202e] border border-rose-500/30 space-y-2.5 shadow-xs md:col-span-2">
+          <div class="flex items-center gap-2.5 text-rose-300 font-bold text-xs sm:text-sm">
+            <span class="material-symbols-outlined text-[20px] text-rose-400">hourglass_disabled</span>
+            <span>Efectos que han Expirado</span>
+          </div>
+          <div id="summary-effects-chips" class="flex flex-wrap gap-2 pt-0.5"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer Action Button -->
+    <div class="p-4 sm:px-6 bg-[#18202e] border-t border-[#222f42] flex items-center justify-end shrink-0">
+      <button
+        type="button"
+        id="rest-summary-ok-btn"
+        class="w-full sm:w-auto sm:min-w-[200px] py-2.5 px-6 rounded-xl bg-gradient-to-r from-amber-600 via-amber-500 to-amber-600 hover:from-amber-500 hover:to-amber-400 text-[#0a0d12] font-bold text-xs sm:text-sm shadow-[0_0_15px_rgba(245,158,11,0.3)] active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-2"
+      >
+        <span class="material-symbols-outlined text-[18px]">check_circle</span>
+        <span>Continuar la Aventura</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+  import { openModal, closeModal } from '../../scripts/animations/modalAnimations';
+  import type { ShortRestResult, LongRestResult } from '../../scripts/models/rest';
+
+  const modal = document.getElementById('rest-summary-modal');
+  const backdrop = document.getElementById('modal-backdrop');
+  const closeX = document.getElementById('rest-summary-close-x');
+  const okBtn = document.getElementById('rest-summary-ok-btn');
+
+  const headerIcon = document.getElementById('summary-header-icon');
+  const headerTitle = document.getElementById('summary-header-title');
+  const headerSub = document.getElementById('summary-header-sub');
+
+  const hpVal = document.getElementById('summary-hp-val');
+  const hpDelta = document.getElementById('summary-hp-delta');
+  const hpSub = document.getElementById('summary-hp-sub');
+
+  const diceVal = document.getElementById('summary-dice-val');
+  const diceDelta = document.getElementById('summary-dice-delta');
+  const diceSub = document.getElementById('summary-dice-sub');
+
+  const slotsRow = document.getElementById('summary-slots-row');
+  const slotsBadges = document.getElementById('summary-slots-badges');
+
+  const portentRow = document.getElementById('summary-portent-row');
+  const portentChips = document.getElementById('summary-portent-chips');
+
+  const resourcesRow = document.getElementById('summary-resources-row');
+  const resourcesChips = document.getElementById('summary-resources-chips');
+
+  const effectsRow = document.getElementById('summary-effects-row');
+  const effectsChips = document.getElementById('summary-effects-chips');
+
+  function hideModal() {
+    if (modal && backdrop) {
+      closeModal(modal, backdrop);
+    }
+  }
+
+  closeX?.addEventListener('click', hideModal);
+  okBtn?.addEventListener('click', hideModal);
+
+  function renderShortResult(res: ShortRestResult) {
+    if (headerIcon) headerIcon.textContent = 'hourglass_bottom';
+    if (headerTitle) headerTitle.textContent = 'Descanso Corto Completado';
+    if (headerSub) headerSub.textContent = '1 hora de reposo · Heridas vendadas';
+
+    if (hpVal) hpVal.textContent = `${res.hpAfter} PG`;
+    if (hpDelta) hpDelta.textContent = `+${res.healedHp} PG curados`;
+    if (hpSub) hpSub.textContent = `Salud previa: ${res.hpBefore} PG`;
+
+    if (diceVal) diceVal.textContent = `${res.remainingDiceTotal} disponibles`;
+    if (diceDelta) diceDelta.textContent = `${res.spentDice.length} dado${res.spentDice.length === 1 ? '' : 's'} gastado${res.spentDice.length === 1 ? '' : 's'}`;
+    if (diceSub) diceSub.textContent = res.spentDice.map((d) => `${d.die} (+${d.total})`).join(', ') || 'Ningún dado gastado';
+
+    slotsRow?.classList.add('hidden');
+    portentRow?.classList.add('hidden');
+
+    // Recursos
+    if (resourcesRow && resourcesChips) {
+      if (res.recoveredResources.length > 0) {
+        resourcesRow.classList.remove('hidden');
+        resourcesChips.innerHTML = res.recoveredResources
+          .map((name) => `<span class="px-2.5 py-1 rounded-lg bg-amber-500/20 text-amber-300 font-bold text-xs border border-amber-500/30 shadow-xs">${name}</span>`)
+          .join('');
+      } else {
+        resourcesRow.classList.add('hidden');
+      }
+    }
+
+    // Efectos
+    if (effectsRow && effectsChips) {
+      if (res.expiredEffects.length > 0) {
+        effectsRow.classList.remove('hidden');
+        effectsChips.innerHTML = res.expiredEffects
+          .map((name) => `<span class="px-2.5 py-1 rounded-lg bg-rose-950/40 text-rose-300 font-bold text-xs border border-rose-500/40 shadow-xs">${name}</span>`)
+          .join('');
+      } else {
+        effectsRow.classList.add('hidden');
+      }
+    }
+  }
+
+  function renderLongResult(res: LongRestResult) {
+    if (headerIcon) headerIcon.textContent = 'hotel';
+    if (headerTitle) headerTitle.textContent = 'Descanso Largo Completado';
+    if (headerSub) headerSub.textContent = '8 horas de sueño · Vitalidad al 100%';
+
+    if (hpVal) hpVal.textContent = `${res.hpAfter} PG (100%)`;
+    if (hpDelta) hpDelta.textContent = `+${res.healedHp} PG restaurados`;
+    if (hpSub) hpSub.textContent = `Salud previa: ${res.hpBefore} PG`;
+
+    if (diceVal) diceVal.textContent = `${res.remainingDiceTotal} disponibles`;
+    const recText = res.recoveredDice.map((d) => `+${d.count} ${d.die}`).join(', ') || '0 recuperados';
+    if (diceDelta) diceDelta.textContent = recText;
+    if (diceSub) diceSub.textContent = 'Hasta la mitad de dados máximos recuperados';
+
+    // Espacios de conjuro
+    if (slotsRow && slotsBadges) {
+      const slotEntries = Object.entries(res.recoveredSlots || {}).filter(([_, count]) => count > 0);
+      if (slotEntries.length > 0) {
+        slotsRow.classList.remove('hidden');
+        slotsBadges.innerHTML = slotEntries
+          .map(([lvl, count]) => `<span class="px-2.5 py-1 rounded-lg bg-sky-500/20 text-sky-300 font-mono font-bold text-xs border border-sky-500/40 shadow-xs">Nv ${lvl}: +${count}</span>`)
+          .join('');
+      } else {
+        slotsRow.classList.add('hidden');
+      }
+    }
+
+    // Portento
+    if (portentRow && portentChips) {
+      if (res.savedDiceRolled && res.savedDiceRolled.length > 0) {
+        portentRow.classList.remove('hidden');
+        portentChips.innerHTML = res.savedDiceRolled
+          .flatMap((p) => p.values.map((v) => `<span class="px-3 py-1.5 rounded-lg bg-purple-500/30 text-purple-200 font-mono font-bold text-sm border border-purple-400/50 shadow-xs">[${v}]</span>`))
+          .join('');
+      } else {
+        portentRow.classList.add('hidden');
+      }
+    }
+
+    // Recursos
+    if (resourcesRow && resourcesChips) {
+      if (res.recoveredResources.length > 0) {
+        resourcesRow.classList.remove('hidden');
+        resourcesChips.innerHTML = res.recoveredResources
+          .map((name) => `<span class="px-2.5 py-1 rounded-lg bg-amber-500/20 text-amber-300 font-bold text-xs border border-amber-500/30 shadow-xs">${name}</span>`)
+          .join('');
+      } else {
+        resourcesRow.classList.add('hidden');
+      }
+    }
+
+    // Efectos
+    if (effectsRow && effectsChips) {
+      if (res.expiredEffects.length > 0) {
+        effectsRow.classList.remove('hidden');
+        effectsChips.innerHTML = res.expiredEffects
+          .map((name) => `<span class="px-2.5 py-1 rounded-lg bg-rose-950/40 text-rose-300 font-bold text-xs border border-rose-500/40 shadow-xs">${name}</span>`)
+          .join('');
+      } else {
+        effectsRow.classList.add('hidden');
+      }
+    }
+  }
+
+  window.addEventListener('short-rest-completed', ((e: CustomEvent<ShortRestResult>) => {
+    if (!e.detail) return;
+    renderShortResult(e.detail);
+    if (modal && backdrop) openModal(modal, backdrop);
+  }) as EventListener);
+
+  window.addEventListener('long-rest-completed', ((e: CustomEvent<LongRestResult>) => {
+    if (!e.detail) return;
+    renderLongResult(e.detail);
+    if (modal && backdrop) openModal(modal, backdrop);
+  }) as EventListener);
+</script>

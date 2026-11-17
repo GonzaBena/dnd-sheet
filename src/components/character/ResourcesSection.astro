@@ -17,7 +17,7 @@
       + Añadir
     </button>
   </div>
-  <div id="resources-list" class="grid grid-cols-1 sm:grid-cols-2 gap-1.5"></div>
+  <div id="resources-list" class="grid grid-cols-1 sm:grid-cols-2 gap-2.5"></div>
 </section>
 
 <script>
@@ -34,7 +34,7 @@
     b.title = title;
     b.setAttribute('aria-label', title);
     b.textContent = label;
-    b.className = `w-5 h-5 rounded bg-[#10141d] border border-[#222f42] hover:border-amber-500/40 text-[#cbd5e1] text-xs leading-none cursor-pointer flex items-center justify-center ${extra}`;
+    b.className = `w-6 h-6 rounded-lg bg-[#10141d] border border-[#222f42] hover:border-amber-500/40 text-[#cbd5e1] hover:text-[#f1f5f9] text-xs font-bold leading-none cursor-pointer flex items-center justify-center active:scale-95 transition-all ${extra}`;
     b.addEventListener('click', onClick);
     return b;
   }
@@ -53,16 +53,45 @@
     }
     for (const r of resources) {
       const row = document.createElement('div');
-      row.className = 'flex items-center gap-1.5 px-2 py-1 rounded-lg bg-[#121721] border border-[#222f42] text-xs';
+      row.className = 'flex items-center justify-between gap-2.5 px-3 py-2 rounded-xl bg-[#121721] border border-[#222f42] text-xs hover:border-amber-500/30 transition-colors';
+
+      const leftCol = document.createElement('div');
+      leftCol.className = 'flex items-center gap-2 min-w-0 flex-1';
+
       const name = document.createElement('span');
-      name.className = 'flex-1 min-w-0 truncate font-bold text-[#f1f5f9]';
+      name.className = 'truncate font-bold text-[#f1f5f9]';
       name.textContent = r.name;
+      leftCol.appendChild(name);
+
+      if (Array.isArray(r.values) && r.values.length > 0) {
+        const valuesWrap = document.createElement('div');
+        valuesWrap.className = 'flex items-center gap-1.5 shrink-0';
+        for (let i = 0; i < r.values.length; i++) {
+          const val = r.values[i];
+          const chip = document.createElement('button');
+          chip.type = 'button';
+          chip.className = 'px-2 py-0.5 rounded-lg bg-purple-500/25 text-purple-200 border border-purple-500/40 font-mono font-bold text-[10px] hover:bg-purple-500/40 cursor-pointer active:scale-95 transition-all shadow-xs';
+          chip.textContent = `[${val}]`;
+          chip.title = `Clic para gastar el dado guardado [${val}]`;
+          chip.addEventListener('click', async () => {
+            if (await showConfirm(`¿Gastar el dado guardado [${val}] de "${r.name}" para sustituir una tirada?`, { title: 'Usar Dado Guardado', confirmText: 'Usar dado' })) {
+              characterStore.consumePortentDie(r.id, { index: i });
+            }
+          });
+          valuesWrap.appendChild(chip);
+        }
+        leftCol.appendChild(valuesWrap);
+      }
+
+      const rightControls = document.createElement('div');
+      rightControls.className = 'flex items-center gap-1.5 shrink-0 ml-auto';
+
       const count = document.createElement('span');
-      count.className = 'font-mono text-[11px] text-amber-300 shrink-0';
+      count.className = 'font-mono text-[11px] font-bold text-amber-300 px-2 py-0.5 rounded-md bg-[#10141d] border border-[#222f42] shrink-0';
       count.textContent = `${remaining(r)}/${r.max}`;
       count.title = `Quedan ${remaining(r)} de ${r.max} (usados: ${r.used})`;
-      row.append(
-        name,
+
+      rightControls.append(
         count,
         btn('−', 'Gastar 1', () => characterStore.spendResource(r.id, 1)),
         btn('+', 'Recuperar 1', () => characterStore.recoverResource(r.id, 1)),
@@ -70,8 +99,10 @@
           if (await showConfirm(`¿Borrar "${r.name}"?`, { danger: true, confirmText: 'Borrar' })) {
             characterStore.removeResource(r.id);
           }
-        }, 'hover:text-rose-400')
+        }, 'hover:text-rose-400 hover:border-rose-500/40')
       );
+
+      row.append(leftCol, rightControls);
       list.appendChild(row);
     }
   }
@@ -79,7 +110,7 @@
   document.getElementById('resource-new-btn')?.addEventListener('click', async () => {
     const values = await showForm(
       [
-        { name: 'name', label: 'Nombre (Bendición, Don o Recurso)', type: 'text', required: true, placeholder: 'Bendición del Alba / Inspiración Bárdica' },
+        { name: 'name', label: 'Nombre (Bendición, Don o Recurso)', type: 'text', required: true, placeholder: 'Bendición del Alba / Portento' },
         { name: 'max', label: 'Usos o Cargas Máximas', type: 'number', value: '1', min: 1, required: true },
         {
           name: 'rechargeOn',
@@ -93,6 +124,20 @@
             { value: 'manual', label: 'Manual' },
           ],
         },
+        {
+          name: 'dieType',
+          label: 'Dados Guardados (Opcional, ej. Portento)',
+          type: 'select',
+          value: 'none',
+          options: [
+            { value: 'none', label: 'Ninguno (contador estándar)' },
+            { value: 'd20', label: 'd20 (Portento de Adivinación)' },
+            { value: 'd12', label: 'd12' },
+            { value: 'd10', label: 'd10' },
+            { value: 'd8', label: 'd8' },
+            { value: 'd6', label: 'd6' },
+          ],
+        },
       ],
       { title: 'Nueva Bendición o Recurso', confirmText: 'Crear' }
     );
@@ -100,7 +145,13 @@
     const name = values.name.trim();
     const max = parseInt(values.max, 10);
     if (!name || !(max > 0)) return;
-    characterStore.addResource({ name, max, rechargeOn: values.rechargeOn as Resource['rechargeOn'] });
+    const dieType = values.dieType && values.dieType !== 'none' ? values.dieType : undefined;
+    characterStore.addResource({
+      name,
+      max,
+      rechargeOn: values.rechargeOn as Resource['rechargeOn'],
+      dieType,
+    });
   });
 
   render(characterStore.get());

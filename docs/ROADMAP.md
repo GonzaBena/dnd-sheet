@@ -24,14 +24,14 @@ Orden estratégico de implementación: combina las etapas mecánicas de la hoja 
                                      │
    ┌─────────────────────────────────┴─────────────────────────────────┐
    ▼                                                                   ▼
-[M1] Spec 09: Lanzamiento (Cerrada)                     [H3] Spec 10: Descansos y Recursos (Siguiente)
+[M1] Spec 09: Lanzamiento (Cerrada)                     [H3] Spec 10: Descansos y Recursos (Cerrada)
   ├─ Landing Page y propuesta de valor                    ├─ Descanso corto con dados de golpe y CON
   ├─ Modo Demo / Playground sin login                     ├─ Descanso largo y reposición de recursos
   ├─ Blindaje legal (SRD 5.1 CC-BY-4.0 + ToS/Privacy)     ├─ Dados guardados (Portento)
   ├─ Canal de feedback y métricas de embudo               └─ Resumen interactivo
   └─ Verificación de cuotas y producción (Google OAuth)                │
                                                                        ▼
-                                                        [H4] Spec 11: Combate en la Hoja
+                                                        [H4] Spec 11: Combate en la Hoja (Siguiente)
                                                           ├─ Consumo 1 vez por turno
                                                           ├─ Validación de espacios y conjuros
                                                           ├─ Concentración automática y salvaciones
@@ -81,9 +81,10 @@ Orden estratégico de implementación: combina las etapas mecánicas de la hoja 
 
 ---
 
-### H3 · Descansos y Recursos
+### H3 · Descansos y Recursos *(Cerrada)*
 * **Objetivo:** Automatizar la recuperación de salud y recursos diarios según las reglas oficiales 5e.
-* **Spec:** `docs/Specs/10-descansos-y-recursos.spec.md` *(por escribir)*.
+* **Spec:** [`docs/Specs/10-descansos-y-recursos.spec.md`](Specs/10-descansos-y-recursos.spec.md).
+* **Planes por fase:** [`docs/Plans/10-descansos-y-recursos/`](Plans/10-descansos-y-recursos/).
 
 | Pieza | Tamaño | Nota |
 | --- | --- | --- |
@@ -132,7 +133,7 @@ Orden estratégico de implementación: combina las etapas mecánicas de la hoja 
 | 07 | H1 | [`Specs/07-cimientos-de-la-hoja.spec.md`](Specs/07-cimientos-de-la-hoja.spec.md) | Hecha (H1 cerrada) |
 | 08 | H2 | [`Specs/08-equipo.spec.md`](Specs/08-equipo.spec.md) | Cerrada (H2 cerrada) |
 | 09 | M1 | [`Specs/09-lanzamiento-y-onboarding.spec.md`](Specs/09-lanzamiento-y-onboarding.spec.md) | Cerrada (M1 cerrada) |
-| 10 | H3 | `Specs/10-descansos-y-recursos.spec.md` | **Siguiente etapa** |
+| 10 | H3 | [`Specs/10-descansos-y-recursos.spec.md`](Specs/10-descansos-y-recursos.spec.md) | Cerrada (H3 cerrada) |
 | 11 | H4 | `Specs/11-combate-en-la-hoja.spec.md` | Por escribir |
 | 12 | H5 | `Specs/12-reacciones.spec.md` | Por escribir |
 | 13 | H6 | `Specs/13-alcance-y-tokens.spec.md` | Por escribir |
@@ -142,9 +143,10 @@ Orden estratégico de implementación: combina las etapas mecánicas de la hoja 
 
 ## Próximo Paso Inmediato
 
-Ejecutar la **Spec 10 (H3 · Descansos y Recursos)**:
-1. Redactar la spec técnica detallada en [`docs/Specs/10-descansos-y-recursos.spec.md`](Specs/10-descansos-y-recursos.spec.md).
-2. Crear los planes por fase (`docs/Plans/10-descansos-y-recursos/`).
-3. Descanso corto: selección y tirada interactiva de Dados de Golpe sumando modificador de CON, soporte para multiclase.
-4. Descanso largo: recuperación automática de hasta la mitad de los Dados de Golpe máximos (mínimo 1), restauración completa de PG, espacios de conjuro y recursos con recarga en descanso largo (`longRest`).
-5. Dados especiales guardados (Portento del Mago de Adivinación y similares) y modal de resumen interactivo del descanso.
+Ejecutar la **Spec 11 (H4 · Combate en la Hoja)**:
+1. Redactar la spec técnica detallada en `docs/Specs/11-combate-en-la-hoja.spec.md`.
+2. Crear los planes por fase (`docs/Plans/11-combate-en-la-hoja/`).
+3. Selector de modificadores al impacto y consumo de facultades "1 vez por turno".
+4. Validación de conjuros, componentes V/S/M, rituales y descuento de espacios de conjuro.
+5. Concentración activa automática y salvación de Constitución al recibir daño con CD calculada (máx(10, daño / 2)).
+6. Explicación visible de ventajas y desventajas en tiradas según armaduras y efectos activos.

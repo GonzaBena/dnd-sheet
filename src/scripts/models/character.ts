@@ -1,6 +1,15 @@
 import type { Resource, SlotState } from './resource.ts';
 import type { ActiveEffect, Modifier } from './effect.ts';
 import type { FeatType } from './catalog.ts';
+import type { HitDie } from '../dnd/hitDice.ts';
+
+export type { HitDie };
+
+export interface HitDicePool {
+  die: HitDie;
+  total: number;
+  remaining: number;
+}
 
 export interface StatBlock {
   score: number;
@@ -200,6 +209,7 @@ export interface CharacterData {
     total: number;
     remaining: number;
     die: string;
+    pools?: HitDicePool[];
   };
   
   stats: {

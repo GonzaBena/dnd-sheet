@@ -17,20 +17,25 @@ import CompatWarnings from './CompatWarnings.astro';
           </div>
         </div>
 
-        <div class="flex items-center gap-2 ml-auto">
+        <div class="flex items-center gap-2.5 sm:gap-3 ml-auto">
           <!-- Direct editable HP values -->
-          <div class="text-right flex items-baseline gap-1 cursor-pointer hover:opacity-80 transition-opacity" id="hp-clickable-area" title="Haz clic para modificar tus PG manualmente">
+          <div class="text-right flex items-baseline gap-1.5 cursor-pointer hover:opacity-80 transition-opacity" id="hp-clickable-area" title="Haz clic para modificar tus PG manualmente">
             <span id="current-hp-num" class="text-xl sm:text-2xl font-headline font-bold text-[#f1f5f9]">42</span>
             <span class="text-xs font-label text-[#64748b]">/ <span id="max-hp-num">48</span> PG</span>
-            <span id="temp-hp-badge" class="text-[10px] font-bold text-amber-300 bg-amber-500/20 border border-amber-500/40 px-1.5 py-0.5 rounded shadow-[0_0_8px_rgba(245,158,11,0.2)]">+5 Temp</span>
+            <span id="temp-hp-badge" class="text-[10px] font-bold text-amber-300 bg-amber-500/20 border border-amber-500/40 px-1.5 py-0.5 rounded shadow-[0_0_8px_rgba(245,158,11,0.2)] ml-0.5">+5 Temp</span>
           </div>
 
           <!-- Quick heal/damage controls -->
-          <div class="flex items-center gap-1 pl-2 border-l border-[#222f42]">
-            <button id="hp-sub-5" class="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-[#121721] border border-[#222f42] hover:border-rose-500/50 flex items-center justify-center text-[11px] font-bold text-rose-400 active:scale-90 transition-all cursor-pointer" title="Recibir 5 de daño">-5</button>
-            <button id="hp-sub-1" class="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-[#121721] border border-[#222f42] hover:border-rose-500/50 flex items-center justify-center text-[11px] font-bold text-rose-400 active:scale-90 transition-all cursor-pointer" title="Recibir 1 de daño">-1</button>
-            <button id="hp-add-1" class="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-[#121721] border border-[#222f42] hover:border-amber-500/50 flex items-center justify-center text-[11px] font-bold text-amber-400 active:scale-90 transition-all cursor-pointer" title="Curar 1 PG">+1</button>
-            <button id="hp-add-5" class="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-[#121721] border border-[#222f42] hover:border-amber-500/50 flex items-center justify-center text-[11px] font-bold text-amber-400 active:scale-90 transition-all cursor-pointer" title="Curar 5 PG">+5</button>
+          <div class="flex items-center gap-1.5 pl-2.5 border-l border-[#222f42]">
+            <div class="flex items-center gap-1">
+              <button id="hp-sub-5" class="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-[#121721] border border-[#222f42] hover:border-rose-500/50 flex items-center justify-center text-[11px] font-bold text-rose-400 active:scale-90 transition-all cursor-pointer" title="Recibir 5 de daño">-5</button>
+              <button id="hp-sub-1" class="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-[#121721] border border-[#222f42] hover:border-rose-500/50 flex items-center justify-center text-[11px] font-bold text-rose-400 active:scale-90 transition-all cursor-pointer" title="Recibir 1 de daño">-1</button>
+            </div>
+            <div class="w-px h-4 bg-[#222f42]"></div>
+            <div class="flex items-center gap-1">
+              <button id="hp-add-1" class="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-[#121721] border border-[#222f42] hover:border-amber-500/50 flex items-center justify-center text-[11px] font-bold text-amber-400 active:scale-90 transition-all cursor-pointer" title="Curar 1 PG">+1</button>
+              <button id="hp-add-5" class="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-[#121721] border border-[#222f42] hover:border-amber-500/50 flex items-center justify-center text-[11px] font-bold text-amber-400 active:scale-90 transition-all cursor-pointer" title="Curar 5 PG">+5</button>
+            </div>
           </div>
         </div>
       </div>
@@ -64,7 +69,7 @@ import CompatWarnings from './CompatWarnings.astro';
       </div>
 
       <div
-        class="grid grid-cols-5 gap-1.5 text-center font-label cursor-pointer"
+        class="grid grid-cols-5 gap-2 text-center font-label cursor-pointer"
         id="currency-display-grid"
         title="Haz clic para abrir el gestor de monedas"
       >
@@ -146,7 +151,7 @@ import CompatWarnings from './CompatWarnings.astro';
       </div>
 
       <div
-        class="grid grid-cols-1 sm:grid-cols-3 gap-1.5 text-[11px] font-label cursor-pointer"
+        class="grid grid-cols-1 sm:grid-cols-3 gap-2 text-[11px] font-label cursor-pointer"
         id="attuned-items-container"
         title="Haz clic para gestionar objetos sintonizados"
       >
@@ -204,9 +209,9 @@ import CompatWarnings from './CompatWarnings.astro';
         </div>
       </div>
 
-      <div class="flex items-center gap-1 ml-auto">
-        <button id="rest-short-btn" class="px-2 py-1 rounded-lg bg-[#121721] border border-[#222f42] hover:bg-[#222f42] text-[10px] font-bold text-[#cbd5e1] transition-colors cursor-pointer" title="Descanso Corto (gastar 1 Dado de Golpe)">Corto</button>
-        <button id="rest-long-btn" class="px-2 py-1 rounded-lg bg-amber-500/20 border border-amber-500/40 hover:bg-amber-500/30 text-[10px] font-bold text-amber-300 transition-colors cursor-pointer" title="Descanso Largo (recuperar PG y recursos)">Largo</button>
+      <div class="flex items-center gap-2 ml-auto">
+        <button id="rest-short-btn" class="px-2.5 py-1.5 rounded-lg bg-[#121721] border border-[#222f42] hover:bg-[#222f42] hover:border-slate-500 text-[10px] font-bold text-[#cbd5e1] hover:text-white transition-colors cursor-pointer" title="Descanso Corto (gastar 1 Dado de Golpe)">Corto</button>
+        <button id="rest-long-btn" class="px-2.5 py-1.5 rounded-lg bg-amber-500/20 border border-amber-500/40 hover:bg-amber-500/30 text-[10px] font-bold text-amber-300 transition-colors cursor-pointer" title="Descanso Largo (recuperar PG y recursos)">Largo</button>
       </div>
     </div>
   </div>
@@ -367,22 +372,13 @@ import CompatWarnings from './CompatWarnings.astro';
     }));
   });
 
-  // Short and Long rest triggers
+  // Short and Long rest triggers (Spec 10)
   document.getElementById('rest-short-btn')?.addEventListener('click', () => {
-    const char = characterStore.get();
-    if (char.hitDice.remaining <= 0) {
-      showAlert('No te quedan Dados de Golpe disponibles para gastar. Necesitas un Descanso Largo.', { kind: 'warning' });
-      return;
-    }
-    const res = characterStore.shortRest(1);
-    showAlert(`¡Descanso Corto completado! Has gastado 1 Dado de Golpe y recuperado +${res.healed} PG.`, { kind: 'success', title: 'Descanso corto' });
+    window.dispatchEvent(new CustomEvent('open-rest-modal', { detail: { mode: 'short' } }));
   });
 
-  document.getElementById('rest-long-btn')?.addEventListener('click', async () => {
-    if (await showConfirm('Restaura todos tus PG al 100%, los espacios de conjuro y recupera dados de golpe.', { title: '¿Completar Descanso Largo?', confirmText: 'Descansar' })) {
-      characterStore.longRest();
-      showAlert(`¡Descanso Largo completado! Tus PG están al máximo (${characterStore.get().hp.max}/${characterStore.get().hp.max}) y tus recursos al 100%.`, { kind: 'success', title: 'Descanso largo' });
-    }
+  document.getElementById('rest-long-btn')?.addEventListener('click', () => {
+    window.dispatchEvent(new CustomEvent('open-rest-modal', { detail: { mode: 'long' } }));
   });
 
   function renderVitals(char: any) {
