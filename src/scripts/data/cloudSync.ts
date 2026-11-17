@@ -761,9 +761,11 @@ class CloudSession {
 
   private writeDmEvent(event: DmEvent) {
     if (!this.fs || !this.db) return;
+    const camp = campaignStore.getCampaign(event.campaignId);
+    if (!camp || camp.status !== 'active') return;
     this.seenDmEvents.add(event.id);
     this.fs.setDoc(this.fs.doc(this.db, 'campaigns', event.campaignId, 'dm_events', event.id), toPlain(event))
-      .catch(err => this.onWriteError(err, `dm_events:${event.campaignId}/${event.id}`));
+      .catch(err => console.warn(`[CloudSync] No se pudo emitir dm_event [${event.campaignId}/${event.id}]`, err));
   }
 
   private writeJournalEntry(entry: JournalEntry) {
@@ -773,7 +775,21 @@ class CloudSession {
     let visibility = getEntryVisibility(entry);
 
     if (campaignId && campaignStore.getCampaign(campaignId)) {
+      const camp = campaignStore.getCampaign(campaignId)!;
       const isDm = campaignStore.isCurrentUserDm(campaignId);
+      const isActive = camp.status === 'active';
+
+      // En Firestore (firestore.rules), la creación de entradas en /campaigns/{cid}/journal
+      // exige canPlay() (partida 'active') para los jugadores.
+      // Si la partida está pausada o terminada:
+      // - El DM solo puede escribir notas secretas (visibility == 'dm') o eventos de sistema (status).
+      // - Las entradas 'party' (como cambios de equipo, descansos, etc.) no se pueden escribir en la bitácora
+      //   remota de la mesa hasta que la partida esté activa.
+      if (!isActive) {
+        if (!isDm) return;
+        if (visibility !== 'dm' && (entry as any).systemEvent !== 'status') return;
+      }
+
       // Solo el DM puede escribir entradas 'dm'; si no lo es, queda como nota de jugador.
       if (visibility === 'dm' && !isDm) visibility = 'player';
       // Un "mensaje al DM" escrito por el propio DM es una nota de DM.
@@ -782,7 +798,9 @@ class CloudSession {
       delete (data as any).isDmOnly;
       delete (data as any).isPlayerOnly;
       delete (data as any).isForDm;
-      fs.setDoc(fs.doc(this.db, 'campaigns', campaignId, 'journal', entry.id), data).catch(err => this.onWriteError(err, `journal:${campaignId}/${entry.id}`));
+      fs.setDoc(fs.doc(this.db, 'campaigns', campaignId, 'journal', entry.id), data).catch(err => {
+        console.warn(`[CloudSync] No se pudo guardar entrada en bitácora [journal:${campaignId}/${entry.id}]`, err);
+      });
     } else {
       // Sin campaña no hay DM: lo restringido queda como nota personal.
       if (visibility !== 'party') visibility = 'player';
@@ -791,17 +809,27 @@ class CloudSession {
       delete (data as any).isPlayerOnly;
       delete (data as any).isForDm;
       delete (data as any).campaignId;
-      fs.setDoc(fs.doc(this.db, 'users', this.uid, 'notes', entry.id), data).catch(err => this.onWriteError(err, `notes:${this.uid}/${entry.id}`));
+      fs.setDoc(fs.doc(this.db, 'users', this.uid, 'notes', entry.id), data).catch(err => {
+        console.warn(`[CloudSync] No se pudo guardar nota personal [notes:${this.uid}/${entry.id}]`, err);
+      });
     }
   }
 
   private removeJournalEntry(entry: JournalEntry) {
     if (!this.fs || !this.db || !this.uid) return;
     const campaignId = entry.campaignId || campaignStore.getActiveCampaignId();
+    if (campaignId && campaignStore.getCampaign(campaignId)) {
+      const camp = campaignStore.getCampaign(campaignId);
+      const isDm = camp ? campaignStore.isCurrentUserDm(campaignId) : false;
+      const isActive = camp ? camp.status === 'active' : false;
+      if (!isActive && !isDm) return;
+    }
     const ref = campaignId && campaignStore.getCampaign(campaignId)
       ? this.fs.doc(this.db, 'campaigns', campaignId, 'journal', entry.id)
       : this.fs.doc(this.db, 'users', this.uid, 'notes', entry.id);
-    this.fs.deleteDoc(ref).catch(err => this.onWriteError(err, `delete:${campaignId ? `journal:${campaignId}` : `notes:${this.uid}`}/${entry.id}`));
+    this.fs.deleteDoc(ref).catch(err => {
+      console.warn(`[CloudSync] No se pudo eliminar entrada en bitácora [delete:${campaignId ? `journal:${campaignId}` : `notes:${this.uid}`}/${entry.id}]`, err);
+    });
   }
 
   private commit(batch: { commit(): Promise<void> }, context?: string) {
