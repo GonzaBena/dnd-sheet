@@ -42,6 +42,8 @@ Orden estratégico de implementación: combina las etapas mecánicas de la hoja 
                                                         [H6] Spec 13: Alcance y Tokens
                                                                        │
                                                         [H7] Spec 14: Layouts DM / Jugador
+                                                                       │
+                                                        [H8] Spec 15: Zonas de hechizo en el mapa
 ```
 
 ---
@@ -109,14 +111,23 @@ Orden estratégico de implementación: combina las etapas mecánicas de la hoja 
 
 ---
 
-### H5 · Reacciones en Vivo
-* **Objetivo:** Ofrecer reacciones en tiempo real durante el turno del adversario (Escudo, etc.).
-* **Spec:** `docs/Specs/12-reacciones.spec.md` *(por escribir)*.
+### H5 · Reacciones en Vivo *(En curso)*
+* **Objetivo:** Ofrecer y ejecutar reacciones en tiempo real durante el turno del adversario (Escudo, Absorber Elementos, Esquiva Asombrosa, Ataque de Oportunidad, etc.).
+* **Spec:** [`docs/Specs/12-reacciones.spec.md`](Specs/12-reacciones.spec.md).
+* **Planes por fase:** [`docs/Plans/12-reacciones/`](Plans/12-reacciones/).
+
+| Pieza | Tamaño | Nota |
+| --- | --- | --- |
+| **Recurso Reacción y ciclo de asalto** (1/ronda, reset al inicio de turno) | M | Modelo de datos, sincronización con iniciativa y toggle manual |
+| **Motor de detección y reglas SRD** (*Escudo*, *Absorber*, *Esquiva Asombrosa*) | L | Algoritmo puro de búsqueda según detonante y comprobación de ranuras/rasgos |
+| **UI reactiva en vivo** (`ReactionPromptBanner`) | M | Banner emergente contextual no bloqueante con 1 clic para aceptar/omitir |
+| **Panel de reacciones en la hoja y control del DM** | M | Sección visual en hoja, indicador `[⚡]` en CombatTracker y suite de tests |
 
 ---
 
 ### H6 · Alcance y Tokens Propios
 * **Objetivo:** Reconocimiento de distancias tácticas y control de tokens de invocaciones / compañeros.
+* Las plantillas de área de conjuros salen de esta etapa y pasan a **H8 (Spec 15)**.
 * **Spec:** `docs/Specs/13-alcance-y-tokens.spec.md` *(por escribir)*.
 
 ---
@@ -124,6 +135,21 @@ Orden estratégico de implementación: combina las etapas mecánicas de la hoja 
 ### H7 · Layouts Especializados
 * **Objetivo:** Vistas optimizadas para DM, Jugador en mesa física (celular) y modo sin mapa (teatro de la mente).
 * **Spec:** `docs/Specs/14-layouts.spec.md` *(por escribir)*.
+
+---
+
+### H8 · Zonas de Hechizo en el Mapa *(para después)*
+* **Objetivo:** Colocar conjuros de área en el mapa con su forma real y que las criaturas dentro sufran el efecto mientras permanezcan dentro.
+* **Spec:** [`docs/Specs/15-zonas-de-hechizo.spec.md`](Specs/15-zonas-de-hechizo.spec.md) *(borrador)*.
+
+| Pieza | Tamaño | Nota |
+| --- | --- | --- |
+| **Plantillas de área** (esfera, cubo, cono, línea, cilindro) | M | Tamaño desde `area_of_effect` del SRD, ajuste a cuadrícula, rotación y anclaje a token |
+| **Zonas instantáneas** | S | Lista de afectados y aviso de salvación con la CD del lanzador (*Bola de Fuego*) |
+| **Efecto mientras estés dentro** | L | Entra y sale con el token; lo aplica el cliente del dueño, el DM etiqueta a los PNJ |
+| **Disparadores por turno y fin de zona** | M | Salvación al entrar/empezar turno; termina por rondas o al perder la concentración |
+
+* **No bloquea** otras etapas: puede adelantarse detrás de H6 si un grupo real la pide.
 
 ---
 
@@ -136,16 +162,18 @@ Orden estratégico de implementación: combina las etapas mecánicas de la hoja 
 | 09 | M1 | [`Specs/09-lanzamiento-y-onboarding.spec.md`](Specs/09-lanzamiento-y-onboarding.spec.md) | Cerrada (M1 cerrada) |
 | 10 | H3 | [`Specs/10-descansos-y-recursos.spec.md`](Specs/10-descansos-y-recursos.spec.md) | Cerrada (H3 cerrada) |
 | 11 | H4 | [`Specs/11-combate-en-la-hoja.spec.md`](Specs/11-combate-en-la-hoja.spec.md) | Cerrada (H4 cerrada) |
-| 12 | H5 | `Specs/12-reacciones.spec.md` | **Siguiente** (por escribir) |
-| 13 | H6 | `Specs/13-alcance-y-tokens.spec.md` | Por escribir |
+| 12 | H5 | [`Specs/12-reacciones.spec.md`](Specs/12-reacciones.spec.md) | **En curso** (Spec y planes redactados) |
+| 13 | H6 | `Specs/13-alcance-y-tokens.spec.md` | Siguiente (por escribir) |
 | 14 | H7 | `Specs/14-layouts.spec.md` | Por escribir |
+| 15 | H8 | [`Specs/15-zonas-de-hechizo.spec.md`](Specs/15-zonas-de-hechizo.spec.md) | Borrador (para después) |
+| 16 | Pulido | [`Specs/16-pantalla-de-carga.spec.md`](Specs/16-pantalla-de-carga.spec.md) | Borrador (transversal, puede entrar entre H4 y H5) |
 
 ---
 
 ## Próximo Paso Inmediato
 
-Iniciar la **Spec 12 (H5 · Reacciones en Vivo)**:
-1. Redactar la spec técnica en `docs/Specs/12-reacciones.spec.md`.
-2. Crear los planes por fase (`docs/Plans/12-reacciones/`).
-3. Detección y ofrecimiento de reacciones en tiempo real durante el turno del adversario (ej. conjuro *Escudo*, *Absorber Elementos*, *Ataque de Oportunidad*, *Interposición de Escudo*).
-4. Integración reactiva con el tracker de combate del DM y consumo del recurso "Reacción" del personaje por ronda.
+Ejecutar la **Fase A de la Spec 12 (H5 · Reacciones en Vivo)**:
+1. Crear el modelo de tipos en `src/scripts/models/reaction.ts`.
+2. Añadir la duración `untilNextTurn` a `EffectDuration` y lógica de expiración en `effects.ts`.
+3. Incorporar `reactionUsed` en `CharacterData.turnState` y `Combatant`.
+4. Implementar el ciclo de recuperación automática de reacción al tomar el turno en `src/scripts/vtt/initiative.ts`.
