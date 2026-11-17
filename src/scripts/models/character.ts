@@ -150,6 +150,26 @@ export interface WildShapeForm {
   attacks: { name: string; bonus: string; damage: string }[];
 }
 
+// Compañeros e Invocaciones (Spec 13, H6)
+export type CompanionType = 'familiar' | 'mount' | 'companion' | 'summon' | 'sidekick';
+
+export interface CharacterCompanion {
+  id: string;
+  name: string;
+  type: CompanionType;
+  size: 1 | 2 | 3 | 4; // 1: Mediano/Pequeño, 2: Grande, 3: Enorme, 4: Gigantesco
+  hp: {
+    current: number;
+    max: number;
+  };
+  armorClass?: number;
+  speedFt?: number;
+  avatarUrl?: string;
+  notes?: string;
+  /** ID del token en el mapa activo si está desplegado actualmente */
+  tokenId?: string;
+}
+
 export interface SectionOrderConfig {
   col1: string[];
   col2: string[];
@@ -261,6 +281,9 @@ export interface CharacterData {
     usesRemaining: number;
     activeForm: WildShapeForm | null;
   };
+
+  /** Criaturas subordinadas: familiares, monturas, compañeros animales e invocaciones (Spec 13, H6). */
+  companions?: CharacterCompanion[];
 
   layoutConfig?: LayoutConfig;
   

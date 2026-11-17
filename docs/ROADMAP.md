@@ -43,9 +43,14 @@ Orden estratégico de implementación: combina las etapas mecánicas de la hoja 
                                                           ├─ Esquiva Asombrosa (½ daño) y Ataque de Oportunidad
                                                           └─ Banner flotante ReactionPromptBanner y control DM
                                                                        │
-                                                        [H6] Spec 13: Alcance y Tokens (Siguiente)
+                                                        [H6] Spec 13: Alcance y Tokens (Cerrada)
+                                                          ├─ Distancia token a token borde a borde (Chebyshev 5/5/5)
+                                                          ├─ Validación automática de alcance y desventajas en combate
+                                                          ├─ Guía visual de alcance y vector de objetivo en el mapa
+                                                          ├─ Registro de compañeros, monturas e invocaciones en la hoja
+                                                          └─ Control y movimiento de tokens secundarios por el jugador
                                                                        │
-                                                        [H7] Spec 14: Layouts DM / Jugador
+                                                        [H7] Spec 14: Layouts DM / Jugador (Siguiente)
                                                                        │
                                                         [H8] Spec 15: Zonas de hechizo en el mapa
 ```
@@ -129,10 +134,19 @@ Orden estratégico de implementación: combina las etapas mecánicas de la hoja 
 
 ---
 
-### H6 · Alcance y Tokens Propios
-* **Objetivo:** Reconocimiento de distancias tácticas y control de tokens de invocaciones / compañeros.
+### H6 · Alcance y Tokens Propios *(Cerrada)*
+* **Objetivo:** Reconocimiento de distancias tácticas en el mapa y control de tokens de invocaciones / compañeros / monturas.
 * Las plantillas de área de conjuros salen de esta etapa y pasan a **H8 (Spec 15)**.
-* **Spec:** `docs/Specs/13-alcance-y-tokens.spec.md` *(por escribir)*.
+* **Spec:** [`docs/Specs/13-alcance-y-tokens.spec.md`](Specs/13-alcance-y-tokens.spec.md).
+* **Planes por fase:** [`docs/Plans/13-alcance-y-tokens/`](Plans/13-alcance-y-tokens/).
+
+| Pieza | Tamaño | Nota |
+| --- | --- | --- |
+| **Geometría Token a Token borde a borde** (1x1 a 4x4, regla Chebyshev 5/5/5) | M | Función matemática pura sin DOM para cálculo de distancias exactas |
+| **Validación automática de alcance en combate** | L | Sincronización automática de distancia en InitiativeList con advertencia de desventajas |
+| **Guía visual de alcance en el mapa táctico** | M | Halo de alcance interactivo y vector visual al apuntar |
+| **Compañeros e Invocaciones en la hoja** | M | Estructura en `character.companions` con PG, CA y estadísticas secundarias |
+| **Control y permisos de tokens subordinados** | M | Despliegue con `ownerUid` del jugador y centrado rápido de cámara |
 
 ---
 
@@ -167,8 +181,8 @@ Orden estratégico de implementación: combina las etapas mecánicas de la hoja 
 | 10 | H3 | [`Specs/10-descansos-y-recursos.spec.md`](Specs/10-descansos-y-recursos.spec.md) | Cerrada (H3 cerrada) |
 | 11 | H4 | [`Specs/11-combate-en-la-hoja.spec.md`](Specs/11-combate-en-la-hoja.spec.md) | Cerrada (H4 cerrada) |
 | 12 | H5 | [`Specs/12-reacciones.spec.md`](Specs/12-reacciones.spec.md) | Cerrada (H5 cerrada) |
-| 13 | H6 | `Specs/13-alcance-y-tokens.spec.md` | **Siguiente** (por escribir) |
-| 14 | H7 | `Specs/14-layouts.spec.md` | Por escribir |
+| 13 | H6 | [`Specs/13-alcance-y-tokens.spec.md`](Specs/13-alcance-y-tokens.spec.md) | Cerrada (H6 cerrada) |
+| 14 | H7 | `Specs/14-layouts.spec.md` | **Siguiente** (por escribir) |
 | 15 | H8 | [`Specs/15-zonas-de-hechizo.spec.md`](Specs/15-zonas-de-hechizo.spec.md) | Borrador (para después) |
 | 16 | Pulido | [`Specs/16-pantalla-de-carga.spec.md`](Specs/16-pantalla-de-carga.spec.md) | Borrador (transversal, puede entrar entre H4 y H5) |
 
@@ -176,8 +190,7 @@ Orden estratégico de implementación: combina las etapas mecánicas de la hoja 
 
 ## Próximo Paso Inmediato
 
-Iniciar la **Spec 13 (H6 · Alcance y Tokens Propios)**:
-1. Redactar la spec técnica en `docs/Specs/13-alcance-y-tokens.spec.md`.
-2. Crear los planes por fase (`docs/Plans/13-alcance-y-tokens/`).
-3. Detección y validación de distancias tácticas de armas y conjuros según el mapa.
-4. Soporte para control de tokens de compañeros, monturas e invocaciones vinculadas al personaje.
+Iniciar la **Spec 14 (H7 · Layouts Especializados)**:
+1. Redactar la spec técnica en `docs/Specs/14-layouts.spec.md`.
+2. Crear los planes por fase (`docs/Plans/14-layouts/`).
+3. Vistas optimizadas para DM (Cockpit táctico), Jugador en mesa física con celular y modo teatro de la mente sin mapa.

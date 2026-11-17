@@ -95,9 +95,14 @@ import { isOwnedBy } from '../../scripts/vtt/initiative';
             <span class="material-symbols-outlined text-[15px] text-amber-400">straighten</span>
             <span>Distancia al Objetivo:</span>
           </label>
-          <div class="flex items-center gap-1 font-mono text-xs font-bold text-amber-300">
-            <span id="party-modal-distance-display">5</span>
-            <span class="text-[10px] text-[#94a3b8]">pies</span>
+          <div class="flex items-center gap-1.5">
+            <span id="party-distance-source-badge" class="hidden px-2 py-0.5 rounded text-[10px] font-medium bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+              🎯 Medido en mapa
+            </span>
+            <div class="flex items-center gap-1 font-mono text-xs font-bold text-amber-300">
+              <span id="party-modal-distance-display">5</span>
+              <span class="text-[10px] text-[#94a3b8]">pies</span>
+            </div>
           </div>
         </div>
 
@@ -171,18 +176,24 @@ import { isOwnedBy } from '../../scripts/vtt/initiative';
     getSpellRangeFeet,
     getItemReachFeet,
     validateActionForDistance,
+    resolveCombatantDistance,
   } from '../../scripts/vtt/tacticalCombat.ts';
+  import { watchActiveMap } from '../../scripts/data/mapService.ts';
   import { campaignStore } from '../../scripts/state/campaignStore.ts';
   import { characterStore } from '../../scripts/state/characterStore.ts';
   import { userStore } from '../../scripts/state/userStore.ts';
   import { getArmorClass } from '../../scripts/dnd/ac.ts';
   import { animateHpBar } from '../../scripts/animations/hpAnimations.ts';
   import type { Combat, Combatant } from '../../scripts/models/combat.ts';
+  import type { MapDoc } from '../../scripts/models/map.ts';
 
   let currentCampaignId: string | null = null;
   let unsubscribe: (() => void) | null = null;
+  let mapUnsubscribe: (() => void) | null = null;
   let previousHpMap = new Map<string, number>();
   let previousTurnIndex = -1;
+  let lastCombat: Combat | null = null;
+  let currentActiveMap: MapDoc | null = null;
 
   // Estado del modal de ataque y distancia táctica (pies)
   let activeTarget: { id: string; name: string; ac?: number } | null = null;
@@ -203,6 +214,7 @@ import { isOwnedBy } from '../../scripts/vtt/initiative';
   const attackCustomBtn = document.getElementById('party-attack-custom-roll-btn');
   const distancePresetsContainer = document.getElementById('party-distance-presets');
   const distanceDisplayEl = document.getElementById('party-modal-distance-display');
+  const distanceSourceBadgeEl = document.getElementById('party-distance-source-badge');
 
   function init() {
     const params = new URLSearchParams(window.location.search);
@@ -213,14 +225,22 @@ import { isOwnedBy } from '../../scripts/vtt/initiative';
         unsubscribe();
         unsubscribe = null;
       }
+      if (mapUnsubscribe) {
+        mapUnsubscribe();
+        mapUnsubscribe = null;
+      }
       currentCampaignId = cid;
       unsubscribe = subscribeCombat(cid, (combat) => {
         renderCombat(combat);
+      });
+      mapUnsubscribe = watchActiveMap(cid, (map) => {
+        currentActiveMap = map;
       });
     }
   }
 
   function renderCombat(combat: Combat | null) {
+    lastCombat = combat;
     if (!combat || !combat.active || combat.combatants.length === 0) {
       if (roundBadgeEl) roundBadgeEl.classList.add('hidden');
       if (roundBadgeEl) roundBadgeEl.classList.remove('flex');
@@ -480,10 +500,36 @@ import { isOwnedBy } from '../../scripts/vtt/initiative';
     modalTargetName.textContent = target.name;
     modalTargetAc.textContent = target.ac ? `CA: ${target.ac}` : 'CA: Oculta por DM';
 
-    // Restablecer preset a 5 pies al abrir
-    currentTargetDistanceFeet = 5;
-    if (distanceDisplayEl) distanceDisplayEl.textContent = '5';
-    updateDistancePresetButtons(5);
+    // Intentar calcular la distancia automáticamente desde el mapa activo
+    let calculatedDist = 5;
+    let fromMap = false;
+
+    if (lastCombat && lastCombat.combatants.length > 0 && currentActiveMap) {
+      const actorCombatant = lastCombat.combatants[lastCombat.turnIndex];
+      const targetCombatant = lastCombat.combatants.find((c) => c.id === target.id);
+      if (actorCombatant && targetCombatant) {
+        const distResult = resolveCombatantDistance(actorCombatant, targetCombatant, currentActiveMap);
+        if (distResult) {
+          calculatedDist = distResult.feet;
+          fromMap = true;
+          if (distanceSourceBadgeEl) {
+            distanceSourceBadgeEl.textContent = `🎯 Medido en mapa (${distResult.feet} ft)`;
+            distanceSourceBadgeEl.className = 'px-2 py-0.5 rounded text-[10px] font-medium bg-emerald-500/15 text-emerald-300 border border-emerald-500/30';
+            distanceSourceBadgeEl.classList.remove('hidden');
+          }
+        }
+      }
+    }
+
+    if (!fromMap && distanceSourceBadgeEl) {
+      distanceSourceBadgeEl.textContent = '✋ Manual (sin tokens en mapa)';
+      distanceSourceBadgeEl.className = 'px-2 py-0.5 rounded text-[10px] font-medium bg-slate-500/15 text-slate-300 border border-slate-500/30';
+      distanceSourceBadgeEl.classList.remove('hidden');
+    }
+
+    currentTargetDistanceFeet = calculatedDist;
+    if (distanceDisplayEl) distanceDisplayEl.textContent = String(calculatedDist);
+    updateDistancePresetButtons(calculatedDist);
 
     renderTacticalAttackActions(target, currentTargetDistanceFeet);
     attackModal.classList.remove('hidden');
@@ -509,6 +555,12 @@ import { isOwnedBy } from '../../scripts/vtt/initiative';
       currentTargetDistanceFeet = feet;
       if (distanceDisplayEl) distanceDisplayEl.textContent = String(feet);
       updateDistancePresetButtons(feet);
+
+      if (distanceSourceBadgeEl) {
+        distanceSourceBadgeEl.textContent = '✋ Ajuste manual';
+        distanceSourceBadgeEl.className = 'px-2 py-0.5 rounded text-[10px] font-medium bg-amber-500/15 text-amber-300 border border-amber-500/30';
+        distanceSourceBadgeEl.classList.remove('hidden');
+      }
 
       if (activeTarget) {
         renderTacticalAttackActions(activeTarget, currentTargetDistanceFeet);
@@ -633,6 +685,10 @@ import { isOwnedBy } from '../../scripts/vtt/initiative';
                   targetName: target.name,
                   targetAc: target.ac,
                   isAttackRoll: true,
+                  advantageState: validation.disadvantage ? 'disadvantage' : 'normal',
+                  advantageInfo: validation.disadvantage
+                    ? { state: 'disadvantage', reasons: [validation.reason || 'Desventaja táctica por distancia'] }
+                    : undefined,
                   followUpDamage: {
                     count: dmgCount,
                     die: dmgDie,
@@ -758,6 +814,10 @@ import { isOwnedBy } from '../../scripts/vtt/initiative';
                   targetName: target.name,
                   targetAc: target.ac,
                   isAttackRoll: true,
+                  advantageState: validation.disadvantage ? 'disadvantage' : 'normal',
+                  advantageInfo: validation.disadvantage
+                    ? { state: 'disadvantage', reasons: [validation.reason || 'Desventaja táctica por distancia'] }
+                    : undefined,
                   followUpDamage: {
                     count: dmgCount,
                     die: dmgDie,

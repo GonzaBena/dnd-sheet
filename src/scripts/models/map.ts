@@ -14,6 +14,8 @@ export interface GridConfig {
   opacity?: number;
 }
 
+export type TokenKind = 'character' | 'companion' | 'mount' | 'summon' | 'monster' | 'npc';
+
 export interface Token {
   name: string;
   /** Unidades de la imagen original (px de imagen). */
@@ -26,6 +28,10 @@ export interface Token {
   /** null = solo lo mueve el DM. */
   ownerUid: string | null;
   characterId?: string;
+  /** Tipo de entidad para diferenciación táctica (Spec 13, H6). */
+  kind?: TokenKind;
+  /** Identificador del compañero en character.companions si aplica (Spec 13, H6). */
+  companionId?: string;
 }
 
 export type FogShape =

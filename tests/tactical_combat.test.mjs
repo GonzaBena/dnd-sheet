@@ -137,4 +137,25 @@ test('validateActionForDistance: sword CANNOT attack at 30 feet, bow CAN', () =>
   // El arco a 650 pies está fuera de alcance
   const bowAt650 = validateActionForDistance(bowReach, 650);
   assert.equal(bowAt650.valid, false);
+
+  // El arco a 5 pies impone desventaja táctica por disparo a quemarropa en 5e
+  const bowAt5 = validateActionForDistance(bowReach, 5);
+  assert.equal(bowAt5.valid, true);
+  assert.equal(bowAt5.disadvantage, true);
+  assert.match(bowAt5.reason, /corta distancia|quemarropa/);
+
+  // Alabarda (Reach / Alcance 10 pies)
+  const halberdReach = getWeaponReachFeet({
+    name: 'Alabarda',
+    type: 'Cuerpo a cuerpo',
+    tags: ['Pesada', 'Dos manos', 'Alcance'],
+  });
+  assert.equal(validateActionForDistance(halberdReach, 10).valid, true);
+  assert.equal(validateActionForDistance(halberdReach, 10).disadvantage, false);
+  assert.equal(validateActionForDistance(halberdReach, 15).valid, false);
+
+  // Conjuro de Toque (5 pies)
+  const touchReach = getSpellRangeFeet({ range: 'Toque' });
+  assert.equal(validateActionForDistance(touchReach, 5).valid, true);
+  assert.equal(validateActionForDistance(touchReach, 10).valid, false);
 });

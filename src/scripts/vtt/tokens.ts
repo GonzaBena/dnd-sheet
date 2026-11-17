@@ -4,6 +4,7 @@
 
 import type { Token, GridConfig } from '../models/map.ts';
 import type { SessionStatus } from '../models/campaign.ts';
+import type { CharacterCompanion } from '../models/character.ts';
 import { snapToGrid, type Point, type SizeLike } from './geometry.ts';
 import { normalizeStatus } from './sessionStatus.ts';
 
@@ -94,4 +95,94 @@ export function newTokenId(): string {
   const time = Date.now().toString(36);
   const random4 = Math.random().toString(36).substring(2, 6).padEnd(4, '0');
   return `tok-${time}${random4}`;
+}
+
+/**
+ * Construye un objeto Token para un compañero o criatura invocada subordinada (Spec 13, H6 · RF-354).
+ * Asigna el ownerUid del jugador para permitir su control y movimiento en tiempo real.
+ */
+export function buildCompanionToken(
+  companion: CharacterCompanion,
+  char: { id: string; name: string },
+  ownerUid: string,
+  pos?: { x: number; y: number }
+): Token {
+  const kind = companion.type === 'mount'
+    ? 'mount'
+    : companion.type === 'summon'
+    ? 'summon'
+    : 'companion';
+
+  return {
+    name: `${companion.name} (${char.name})`,
+    x: pos?.x ?? 0,
+    y: pos?.y ?? 0,
+    size: companion.size || 1,
+    imageUrl: companion.avatarUrl,
+    color: companion.type === 'mount' ? '#f59e0b' : companion.type === 'summon' ? '#06b6d4' : '#10b981',
+    ownerUid,
+    characterId: char.id,
+    kind,
+    companionId: companion.id,
+  };
+}
+
+/** Personaje mínimo necesario para resolver el dueño de su token. */
+export interface TokenOwnerSource {
+  id: string;
+  userId?: string | null;
+}
+
+/** Un token de compañero, montura o invocación pertenece al personaje pero no lo representa. */
+export function isCompanionToken(token: Pick<Token, 'kind' | 'companionId'>): boolean {
+  return (
+    !!token.companionId ||
+    token.kind === 'companion' ||
+    token.kind === 'mount' ||
+    token.kind === 'summon'
+  );
+}
+
+/**
+ * Busca el token que representa a un personaje. Solo empareja por characterId:
+ * ni el nombre ni el dueño identifican al personaje (un compañero comparte dueño).
+ */
+export function findCharacterToken(
+  tokens: Record<string, Token>,
+  characterId: string
+): [string, Token] | undefined {
+  return Object.entries(tokens).find(
+    ([, t]) => t.characterId === characterId && !isCompanionToken(t)
+  );
+}
+
+/**
+ * Dueño que debe tener un token: el elegido a mano si lo hay; si no, el usuario
+ * actual del personaje vinculado. null = solo el DM.
+ */
+export function resolveTokenOwner(
+  token: Pick<Token, 'ownerUid' | 'characterId'>,
+  characters: TokenOwnerSource[]
+): string | null {
+  if (token.ownerUid) return token.ownerUid;
+  if (!token.characterId) return null;
+  const char = characters.find((c) => c.id === token.characterId);
+  return char?.userId || null;
+}
+
+/**
+ * Tokens vinculados a un personaje que quedaron sin dueño (p. ej. desplegados antes
+ * de que la ficha estuviera asociada a un usuario) y el dueño que les corresponde.
+ */
+export function findMissingTokenOwners(
+  tokens: Record<string, Token>,
+  characters: TokenOwnerSource[]
+): Array<{ tid: string; ownerUid: string }> {
+  const fixes: Array<{ tid: string; ownerUid: string }> = [];
+  for (const [tid, t] of Object.entries(tokens)) {
+    if (t.ownerUid || !t.characterId) continue;
+    const ownerUid = resolveTokenOwner(t, characters);
+    if (ownerUid) fixes.push({ tid, ownerUid });
+  }
+  return fixes;
 }

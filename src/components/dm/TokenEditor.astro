@@ -322,7 +322,13 @@
   import { canPerform, normalizeStatus } from '../../scripts/vtt/sessionStatus.ts';
   import { snapToGrid } from '../../scripts/vtt/geometry.ts';
   import { showConfirm, showAlert, showForm } from '../../scripts/ui/notify.ts';
-  import { newTokenId } from '../../scripts/vtt/tokens.ts';
+  import {
+    newTokenId,
+    buildCompanionToken,
+    findCharacterToken,
+    findMissingTokenOwners,
+    resolveTokenOwner,
+  } from '../../scripts/vtt/tokens.ts';
   import type { Token, MapDoc } from '../../scripts/models/map.ts';
   import { lockBodyScroll, unlockBodyScroll } from '../../scripts/ui/scrollLock.ts';
 
@@ -712,8 +718,12 @@
       const size = Number(sizeRadio?.value || 1) as 1 | 2 | 3 | 4;
       const color = fieldColor?.value || '#3b82f6';
       const imageUrl = fieldImageUrl?.value.trim() || undefined;
-      const ownerUid = fieldOwner?.value || null;
       const characterId = fieldChar?.value || undefined;
+      // Sin dueño elegido a mano, un token vinculado hereda el usuario actual del personaje.
+      const ownerUid = resolveTokenOwner(
+        { ownerUid: fieldOwner?.value || null, characterId },
+        campaignStore.getCharactersForCampaign(cid)
+      );
 
       const tokenData: Token = {
         name,
@@ -887,12 +897,7 @@
       const tokens = currentMap?.tokens || {};
 
       characters.forEach((char) => {
-        const existingTokenEntry = Object.entries(tokens).find(
-          ([_, t]) =>
-            t.characterId === char.id ||
-            (char.userId && t.ownerUid === char.userId) ||
-            t.name.toLowerCase() === char.name.toLowerCase()
-        );
+        const existingTokenEntry = findCharacterToken(tokens, char.id);
 
         const card = document.createElement('div');
         card.className =
@@ -979,6 +984,98 @@
         }
 
         adventurersContainer.appendChild(card);
+
+        // Miniaturas de Compañeros, Monturas e Invocaciones del personaje (Spec 13, H6)
+        const companions = (char as any).companions || [];
+        companions.forEach((comp: any) => {
+          const compCard = document.createElement('div');
+          compCard.className =
+            'flex items-center justify-between gap-2 p-1.5 pl-3 rounded-lg bg-[#0e131b] border border-[#1e293b] hover:border-[#334155] transition-all text-xs font-label ml-4 border-l-2 border-l-amber-500/60';
+
+          const existingCompTokenEntry = Object.entries(tokens).find(
+            ([_, t]) =>
+              t.companionId === comp.id ||
+              (t.characterId === char.id && t.name.toLowerCase().includes(comp.name.toLowerCase()))
+          );
+
+          const compTypeLabel = comp.type === 'familiar' ? 'Familiar' : comp.type === 'mount' ? 'Montura' : comp.type === 'summon' ? 'Invocación' : 'Compañero';
+          const compInfoHtml = `
+            <div class="flex items-center gap-1.5 min-w-0">
+              <span class="material-symbols-outlined text-[14px] text-amber-400">pets</span>
+              <div class="min-w-0">
+                <span class="block font-headline font-bold text-[#e2e8f0] truncate max-w-[95px]">${comp.name}</span>
+                <span class="block text-[9px] text-[#94a3b8] truncate">${compTypeLabel} (${comp.size || 1}x${comp.size || 1})</span>
+              </div>
+            </div>
+          `;
+
+          if (existingCompTokenEntry) {
+            const [compTid] = existingCompTokenEntry;
+            compCard.innerHTML = `
+              ${compInfoHtml}
+              <div class="flex items-center gap-1.5 shrink-0">
+                <span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                  En mapa
+                </span>
+                <button
+                  type="button"
+                  data-action="center"
+                  class="px-2 py-0.5 rounded bg-[#18202e] hover:bg-[#222f42] text-[#cbd5e1] hover:text-amber-300 text-[10px] font-bold transition-colors cursor-pointer"
+                  title="Centrar mapa en este compañero"
+                >
+                  Centrar
+                </button>
+              </div>
+            `;
+            compCard.querySelector('[data-action="center"]')?.addEventListener('click', () => {
+              window.dispatchEvent(new CustomEvent('map-center-token', { detail: { tid: compTid } }));
+            });
+          } else {
+            compCard.innerHTML = `
+              ${compInfoHtml}
+              <button
+                type="button"
+                data-action="deploy-companion"
+                class="px-2 py-0.5 rounded bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 hover:text-amber-200 text-[10px] font-bold transition-all active:scale-95 cursor-pointer shrink-0"
+                title="Desplegar miniatura de este compañero"
+              >
+                + Desplegar
+              </button>
+            `;
+            compCard.querySelector('[data-action="deploy-companion"]')?.addEventListener('click', async () => {
+              if (!currentMap) {
+                showAlert('No hay un mapa activo donde desplegar la miniatura.', { title: 'Sin Mapa' });
+                return;
+              }
+              if (!checkCanEdit()) {
+                showAlert('No puedes desplegar tokens con la partida terminada.', { title: 'Partida Terminada' });
+                return;
+              }
+
+              const grid = currentMap.grid || { size: 50, offsetX: 0, offsetY: 0, visible: true };
+              const centerX = currentMap.imageWidth ? currentMap.imageWidth / 2 : 400;
+              const centerY = currentMap.imageHeight ? currentMap.imageHeight / 2 : 400;
+              const snapped = snapToGrid({ x: centerX + 50, y: centerY }, grid);
+
+              const token = buildCompanionToken(
+                comp,
+                { id: char.id, name: char.name },
+                char.userId || '',
+                { x: snapped.x, y: snapped.y }
+              );
+
+              try {
+                const tid = newTokenId('tok-comp');
+                await addToken(cid, currentMap.id, token, tid);
+              } catch (err: any) {
+                console.error('[TokenEditor] Error desplegando compañero:', err);
+                showAlert(err?.message || 'Error al desplegar compañero.', { title: 'Error' });
+              }
+            });
+          }
+
+          adventurersContainer.appendChild(compCard);
+        });
       });
     }
 
@@ -992,10 +1089,37 @@
         currentMap = map;
         if (map) {
           renderChips(map.tokens || {});
+          void healTokenOwners();
         } else {
           renderChips({});
         }
       });
+    }
+
+    // Completa el dueño de tokens de personaje que quedaron sin ownerUid (p. ej. desplegados
+    // antes de que la ficha estuviera vinculada a un usuario). Solo rellena huecos: nunca
+    // pisa un dueño elegido a mano. Al quedar asignado deja de figurar, así que no hay bucle.
+    const healingOwners = new Set<string>();
+    async function healTokenOwners() {
+      const cid = getActiveCampaignId();
+      const map = currentMap;
+      if (!cid || !map || !checkCanEdit()) return;
+      const fixes = findMissingTokenOwners(
+        map.tokens || {},
+        campaignStore.getCharactersForCampaign(cid)
+      ).filter(({ tid }) => !healingOwners.has(`${map.id}/${tid}`));
+
+      for (const { tid, ownerUid } of fixes) {
+        const key = `${map.id}/${tid}`;
+        healingOwners.add(key);
+        try {
+          await updateToken(cid, map.id, tid, { ownerUid });
+        } catch (err) {
+          console.warn('[TokenEditor] No se pudo asignar el dueño del token:', tid, err);
+        } finally {
+          healingOwners.delete(key);
+        }
+      }
     }
 
     function checkActiveMap() {
@@ -1021,7 +1145,10 @@
     window.addEventListener('active-map-changed', () => checkActiveMap());
     window.addEventListener('campaigns-updated', () => checkActiveMap());
     window.addEventListener('active-campaign-changed', () => checkActiveMap());
-    window.addEventListener('characters-updated', () => renderAdventurers());
+    window.addEventListener('characters-updated', () => {
+      renderAdventurers();
+      void healTokenOwners();
+    });
   }
 
   if (typeof document !== 'undefined') {

@@ -14,6 +14,7 @@ import SavingThrows from '../components/character/SavingThrows.astro';
 import SkillsList from '../components/character/SkillsList.astro';
 import FeaturesFeats from '../components/character/FeaturesFeats.astro';
 import WildShapePanel from '../components/character/WildShapePanel.astro';
+import CompanionsPanel from '../components/character/CompanionsPanel.astro';
 import WeaponActionCard from '../components/combat/WeaponActionCard.astro';
 import BackpackGrid from '../components/inventory/BackpackGrid.astro';
 import ArmorSection from '../components/inventory/ArmorSection.astro';
@@ -149,17 +150,20 @@ import SiteFooter from '../components/layout/SiteFooter.astro';
 
           <!-- BLOQUE 3: 2 COLUMNAS CON RASGOS Y HECHIZOS (+ FORMA SALVAJE) -->
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start" id="sheet-block-3">
-            <div class="space-y-5" id="sheet-block-3-col-1">
+            <div class="flex flex-col gap-5 w-full" id="sheet-block-3-col-1">
               <div id="section-features" data-section-id="features" class="transition-all duration-200">
                 <FeaturesFeats />
               </div>
             </div>
 
-            <div class="space-y-5" id="sheet-block-3-col-2">
+            <div class="flex flex-col gap-5 w-full" id="sheet-block-3-col-2">
               <div id="section-wildshape" data-section-id="wildshape" class="transition-all duration-200">
                 <WildShapePanel />
               </div>
-              <div id="section-spells" data-section-id="spells" class="!mt-0 transition-all duration-200">
+              <div id="section-companions" data-section-id="companions" class="transition-all duration-200">
+                <CompanionsPanel />
+              </div>
+              <div id="section-spells" data-section-id="spells" class="transition-all duration-200">
                 <SpellcastingPanel />
               </div>
             </div>

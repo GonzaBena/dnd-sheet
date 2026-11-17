@@ -1,4 +1,4 @@
-import type { CharacterData, SectionOrderConfig } from '../models/character.ts';
+import type { CharacterData, SectionOrderConfig, CharacterCompanion } from '../models/character.ts';
 import { defaultCharacter } from '../data/defaultCharacter.ts';
 import { getRandomCharacterAvatar, isBrokenAvatarUrl } from '../data/characterAvatars.ts';
 import { recalculateCharacter, calculateLevelUpHpGain } from '../dnd/calculations.ts';
@@ -1414,6 +1414,68 @@ class CharacterStoreManager {
       console.error('Failed to import JSON', e);
     }
     return false;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Compañeros e Invocaciones (Spec 13, H6)
+  // ---------------------------------------------------------------------------
+
+  public getCompanions(): CharacterCompanion[] {
+    return this.character.companions ? [...this.character.companions] : [];
+  }
+
+  public addCompanion(data: Omit<CharacterCompanion, 'id'>): string {
+    if (!this.character.companions) {
+      this.character.companions = [];
+    }
+    const id = `comp-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 6)}`;
+    const newCompanion: CharacterCompanion = {
+      ...data,
+      id,
+      size: data.size || 1,
+      hp: {
+        current: Math.max(0, data.hp?.current ?? data.hp?.max ?? 1),
+        max: Math.max(1, data.hp?.max ?? 1),
+      },
+    };
+    this.character.companions.push(newCompanion);
+    this.saveAndNotify();
+    return id;
+  }
+
+  public updateCompanion(companionId: string, patch: Partial<CharacterCompanion>): void {
+    if (!this.character.companions) return;
+    const idx = this.character.companions.findIndex((c) => c.id === companionId);
+    if (idx === -1) return;
+
+    const existing = this.character.companions[idx];
+    const updated = { ...existing, ...patch };
+    if (patch.hp) {
+      const max = Math.max(1, patch.hp.max ?? existing.hp.max);
+      const current = Math.max(0, Math.min(patch.hp.current ?? existing.hp.current, max));
+      updated.hp = { current, max };
+    }
+    this.character.companions[idx] = updated;
+    this.saveAndNotify();
+  }
+
+  public removeCompanion(companionId: string): void {
+    if (!this.character.companions) return;
+    this.character.companions = this.character.companions.filter((c) => c.id !== companionId);
+    this.saveAndNotify();
+  }
+
+  public linkCompanionToken(companionId: string, tokenId: string | null): void {
+    if (!this.character.companions) return;
+    const comp = this.character.companions.find((c) => c.id === companionId);
+    if (comp) {
+      if (tokenId) {
+        comp.tokenId = tokenId;
+      } else {
+        delete comp.tokenId;
+      }
+      this.saveAndNotify();
+    }
   }
 
   public exportJson(): string {
