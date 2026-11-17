@@ -279,6 +279,8 @@ export function toCatalogEntry(kind: CatalogKind, thing: ThingLike): CatalogEntr
       hands: thing.hands,
       requiresAttunement: thing.requiresAttunement,
       attuned: thing.attuned,
+      equipped: thing.equipped,
+      slot: thing.slot,
     };
   } else if (kind === 'spell') {
     description = thing.notes ?? '';

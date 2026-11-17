@@ -835,21 +835,39 @@
                     CA ${c.ac || 10}
                   </span>
 
-                  <!-- Indicador y Toggle de Reacción (Spec 12, H5) -->
-                  <button
-                    type="button"
-                    class="dm-toggle-reaction-btn px-1.5 py-0.5 rounded text-[10px] font-bold font-mono transition-all cursor-pointer whitespace-nowrap shrink-0 inline-flex items-center gap-1 border ${
-                      c.reactionUsed
-                        ? 'bg-[#10141d] border-[#222f42] text-[#64748b] hover:text-[#94a3b8]'
-                        : 'bg-amber-500/15 border-amber-500/40 text-amber-300 hover:bg-amber-500/25 shadow-[0_0_8px_rgba(245,158,11,0.2)]'
-                    }"
-                    data-id="${c.id}"
-                    data-used="${Boolean(c.reactionUsed)}"
-                    title="${c.reactionUsed ? 'Reacción gastada este asalto (clic para recargar)' : 'Reacción disponible (clic para gastar)'}"
-                  >
-                    <span class="material-symbols-outlined text-[13px] ${c.reactionUsed ? 'text-[#64748b]' : 'text-amber-400'}">bolt</span>
-                    <span>${c.reactionUsed ? 'R. Gastada' : 'R. Lista'}</span>
-                  </button>
+                  <!-- Indicador de Reacción: Solo lectura para jugadores, interactivo para PNJ/monstruos (Spec 12, H5) -->
+                  ${
+                    c.isPlayer
+                      ? `
+                      <span
+                        class="px-1.5 py-0.5 rounded text-[10px] font-bold font-mono whitespace-nowrap shrink-0 inline-flex items-center gap-1 border select-none ${
+                          c.reactionUsed
+                            ? 'bg-[#10141d] border-[#222f42] text-[#64748b]'
+                            : 'bg-amber-500/10 border-amber-500/30 text-amber-300'
+                        }"
+                        title="Reacción del jugador: ${c.reactionUsed ? 'Gastada' : 'Lista'} (gestionada por el jugador en su ficha)"
+                      >
+                        <span class="material-symbols-outlined text-[13px] ${c.reactionUsed ? 'text-[#64748b]' : 'text-amber-400'}">bolt</span>
+                        <span>${c.reactionUsed ? 'R. Gastada' : 'R. Lista'}</span>
+                      </span>
+                      `
+                      : `
+                      <button
+                        type="button"
+                        class="dm-toggle-reaction-btn px-1.5 py-0.5 rounded text-[10px] font-bold font-mono transition-all cursor-pointer whitespace-nowrap shrink-0 inline-flex items-center gap-1 border ${
+                          c.reactionUsed
+                            ? 'bg-[#10141d] border-[#222f42] text-[#64748b] hover:text-[#94a3b8]'
+                            : 'bg-amber-500/15 border-amber-500/40 text-amber-300 hover:bg-amber-500/25 shadow-[0_0_8px_rgba(245,158,11,0.2)]'
+                        }"
+                        data-id="${c.id}"
+                        data-used="${Boolean(c.reactionUsed)}"
+                        title="${c.reactionUsed ? 'Reacción de PNJ gastada (clic para recargar)' : 'Reacción de PNJ disponible (clic para gastar)'}"
+                      >
+                        <span class="material-symbols-outlined text-[13px] ${c.reactionUsed ? 'text-[#64748b]' : 'text-amber-400'}">bolt</span>
+                        <span>${c.reactionUsed ? 'R. Gastada' : 'R. Lista'}</span>
+                      </button>
+                      `
+                  }
 
                   <!-- Token enlazado del mapa (T-55) -->
                   <select
@@ -1162,6 +1180,9 @@
         const id = target.dataset.id;
         const used = target.dataset.used === 'true';
         if (!id || !currentCampaignId) return;
+        const combat = getCurrentCombat(cid);
+        const combatant = combat?.combatants.find((c) => c.id === id);
+        if (combatant?.isPlayer) return;
         await toggleCombatantReaction(currentCampaignId, id, !used);
       });
     });

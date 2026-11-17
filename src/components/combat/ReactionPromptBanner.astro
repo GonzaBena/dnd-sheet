@@ -93,6 +93,13 @@
     } else if (trigger.triggerType === 'opportunity_attack') {
       const fromStr = trigger.sourceCombatantName ? `${trigger.sourceCombatantName}` : 'Una criatura hostil';
       triggerDesc.textContent = `${fromStr} abandona tu alcance cuerpo a cuerpo sin destrabarse.`;
+    } else if (trigger.triggerType === 'condition_applied') {
+      const condStr = trigger.condition ? `el efecto de ${trigger.condition} (hechizado/miedo)` : 'un efecto mágico adverso';
+      triggerDesc.textContent = `Se intenta aplicar ${condStr} sobre ti. ¿Deseas usar tu reacción defensiva?`;
+    } else if (trigger.triggerType === 'ally_targeted' || trigger.triggerType === 'ally_attacked') {
+      const allyStr = trigger.allyName ? `tu aliado ${trigger.allyName}` : 'un aliado cercano';
+      const distStr = trigger.distanceFeet ? ` (a ${trigger.distanceFeet} pies)` : '';
+      triggerDesc.textContent = `${allyStr}${distStr} es objetivo de un ataque o efecto. Puedes usar tu reacción para protegerlo.`;
     } else {
       triggerDesc.textContent = 'Tienes una oportunidad para ejecutar una reacción en este momento.';
     }
@@ -102,7 +109,7 @@
 
     viable.forEach(reaction => {
       const btnWrapper = document.createElement('div');
-      btnWrapper.className = 'flex items-center gap-1.5';
+      btnWrapper.className = 'flex items-center gap-1.5 flex-wrap';
 
       const btn = document.createElement('button');
       btn.type = 'button';
@@ -112,8 +119,37 @@
       if (reaction.id.includes('dodge')) icon = 'sports_martial_arts';
       else if (reaction.id.includes('absorb')) icon = 'local_fire_department';
       else if (reaction.id.includes('opportunity')) icon = 'swords';
+      else if (reaction.id.includes('hellish')) icon = 'local_fire_department';
+      else if (reaction.id.includes('protection') || reaction.id.includes('interception')) icon = 'security';
+      else if (reaction.id.includes('deflect')) icon = 'front_hand';
+      else if (reaction.sourceType === 'feature') icon = 'stars';
+      else if (reaction.sourceType === 'item') icon = 'inventory_2';
+      else if (reaction.sourceType === 'spell') icon = 'auto_fix_high';
 
       btn.innerHTML = `<span class="material-symbols-outlined text-[16px]">${icon}</span><span>${reaction.name}</span>`;
+
+      // Selector de elemento para Absorber Elementos si no viene prefijado
+      let elemSelect: HTMLSelectElement | null = null;
+      if (reaction.id === 'reaction-absorb-elements') {
+        elemSelect = document.createElement('select');
+        elemSelect.className = 'bg-[#18202e] text-amber-200 border border-amber-500/40 text-[11px] rounded px-1.5 py-1 font-mono cursor-pointer focus:outline-none';
+        const elements = [
+          { val: 'fuego', label: 'Fuego' },
+          { val: 'frío', label: 'Frío' },
+          { val: 'rayo', label: 'Rayo' },
+          { val: 'ácido', label: 'Ácido' },
+          { val: 'trueno', label: 'Trueno' },
+        ];
+        elements.forEach(el => {
+          const opt = document.createElement('option');
+          opt.value = el.val;
+          opt.textContent = el.label;
+          if (trigger.damageType && trigger.damageType.toLowerCase().includes(el.val.replace(/[íá]/g, ''))) {
+            opt.selected = true;
+          }
+          elemSelect?.appendChild(opt);
+        });
+      }
 
       // Si tiene selección de ranura
       let slotSelect: HTMLSelectElement | null = null;
@@ -130,15 +166,21 @@
 
       btn.addEventListener('click', () => {
         const slotLevel = slotSelect ? parseInt(slotSelect.value, 10) : reaction.cost?.spellSlotLevel;
+        const chosenDamageType = elemSelect ? elemSelect.value : currentTrigger?.damageType;
+        const payloadToUse = currentTrigger
+          ? { ...currentTrigger, damageType: chosenDamageType || currentTrigger.damageType }
+          : undefined;
+
         characterStore.executeReaction(reaction.id, {
           spellSlotLevel: slotLevel,
           damageTaken: currentTrigger?.damageAmount,
-          triggerPayload: currentTrigger || undefined,
+          triggerPayload: payloadToUse,
         });
         dismissBanner();
       });
 
       btnWrapper.appendChild(btn);
+      if (elemSelect) btnWrapper.appendChild(elemSelect);
       if (slotSelect) btnWrapper.appendChild(slotSelect);
       optionsContainer.appendChild(btnWrapper);
     });

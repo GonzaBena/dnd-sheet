@@ -205,7 +205,9 @@ function mount(prefix: 'item' | 'spell', openEvent: string, actionEvent: string)
         actions.append(buildCastButton(entry, context));
         continue;
       }
-      const b = btn(action);
+      const isEquippedDrop = action === 'drop' && Boolean(entry.meta?.equipped);
+      const label = isEquippedDrop ? 'Desequipar' : undefined;
+      const b = btn(action, label);
       b.addEventListener('click', () => {
         dispatch(entry, action, context);
         close();

@@ -367,3 +367,133 @@ test('Fase D: syncCombatTurn restablece la reacción del personaje cuando llega 
   assert.equal(char.activeEffects.length, 0, 'El efecto untilNextTurn debe haber expirado');
 });
 
+test('Feedback: Escudo de Fe (Shield of Faith) no debe registrarse como reacción de Escudo', () => {
+  const paladin = createMockCharacter({
+    className: 'Paladín',
+    spellcasting: {
+      ability: 'cha',
+      saveDc: 14,
+      slots: { 1: { total: 4, used: 0 } },
+      spells: [
+        { name: 'Escudo de Fe', level: 1, school: 'abjuration', castingTime: '1 bonus action' },
+        { name: 'Castigo Divino', level: 1, school: 'evocation', castingTime: 'special' },
+      ],
+    },
+    inventory: [
+      { id: 'item-shield', name: 'Escudo Sagrado', slot: 'shield', equipped: true, armor: { category: 'shield', baseAc: 2 } }
+    ]
+  });
+
+  const reactions = findAvailableReactions(paladin, {
+    triggerType: 'attack_hits',
+    targetCharacterId: paladin.id,
+    attackRoll: 18,
+    targetAc: 16,
+  });
+
+  const shieldReaction = reactions.find((r) => r.id === 'reaction-shield');
+  assert.equal(shieldReaction, undefined, 'No debe ofrecer la reacción de Escudo Arcano a un Paladín con Escudo de Fe');
+});
+
+test('Feedback: Escudo físico habilita Estilo de Combate: Protección y deshabilitarlo al desequipar', () => {
+  const warriorWithShield = createMockCharacter({
+    className: 'Guerrero',
+    features: [
+      { id: 'f-prot', title: 'Estilo de Combate: Protección', description: 'Usa tu reacción con un escudo para imponer desventaja al atacar a un aliado.' }
+    ],
+    inventory: [
+      { id: 'item-sh', name: 'Escudo de Acero', slot: 'shield', equipped: true, armor: { category: 'shield', baseAc: 2 } }
+    ],
+  });
+
+  // Con escudo equipado
+  const withShieldReactions = findAvailableReactions(warriorWithShield, {
+    triggerType: 'ally_targeted',
+    targetCharacterId: warriorWithShield.id,
+    allyName: 'Rogar',
+    distanceFeet: 5,
+  });
+  const protWith = withShieldReactions.find((r) => r.id === 'reaction-protection');
+  assert.ok(protWith, 'Debe ofrecer Protección');
+  assert.equal(protWith.canExecute, true);
+
+  // Al desequipar el escudo
+  warriorWithShield.inventory[0].equipped = false;
+  const withoutShieldReactions = findAvailableReactions(warriorWithShield, {
+    triggerType: 'ally_targeted',
+    targetCharacterId: warriorWithShield.id,
+    allyName: 'Rogar',
+    distanceFeet: 5,
+  });
+  const protWithout = withoutShieldReactions.find((r) => r.id === 'reaction-protection');
+  assert.ok(protWithout);
+  assert.equal(protWithout.canExecute, false);
+  assert.match(protWithout.reasonDisabled, /escudo equipado/i);
+});
+
+test('Feedback: Absorber Elementos se activa con nombres de elementos en español', () => {
+  const wizard = createMockCharacter();
+
+  const spanishElements = ['fuego', 'frío', 'frio', 'rayo', 'ácido', 'acido', 'trueno'];
+  for (const elem of spanishElements) {
+    const reactions = findAvailableReactions(wizard, {
+      triggerType: 'damage_taken',
+      targetCharacterId: wizard.id,
+      damageAmount: 15,
+      damageType: elem,
+    });
+    const absorb = reactions.find((r) => r.id === 'reaction-absorb-elements');
+    assert.ok(absorb, `Debe activarse ante daño de ${elem}`);
+    assert.equal(absorb.canExecute, true);
+  }
+});
+
+test('Feedback: Detección dinámica de rasgos que reaccionan a Hechizado / Miedo (condition_applied)', () => {
+  const paladin = createMockCharacter({
+    className: 'Paladín',
+    features: [
+      {
+        id: 'f-aura-courage',
+        title: 'Bastión contra el Miedo',
+        description: 'Cuando un conjuro intente aplicar miedo sobre ti o un aliado, puedes usar tu reacción para inspirar entereza.',
+      }
+    ]
+  });
+
+  const reactions = findAvailableReactions(paladin, {
+    triggerType: 'condition_applied',
+    targetCharacterId: paladin.id,
+    condition: 'miedo',
+  });
+
+  const fearReaction = reactions.find((r) => r.id === 'reaction-feature-f-aura-courage');
+  assert.ok(fearReaction, 'Debe detectar el rasgo reactivo a la condición de miedo');
+  assert.equal(fearReaction.canExecute, true);
+});
+
+test('Feedback: Detección dinámica de objetos equipados con reacción', () => {
+  const char = createMockCharacter({
+    inventory: [
+      {
+        id: 'item-brooch',
+        name: 'Broche de Repulsión Mágica',
+        equipped: true,
+        notes: 'Otorga una reacción cuando una criatura te impacta con un ataque para emitir un pulso protector.',
+      }
+    ]
+  });
+
+  const reactions = findAvailableReactions(char, {
+    triggerType: 'attack_hits',
+    targetCharacterId: char.id,
+    attackRoll: 18,
+    targetAc: 14,
+  });
+
+  const itemReaction = reactions.find((r) => r.id === 'reaction-item-item-brooch');
+  assert.ok(itemReaction, 'Debe detectar la reacción otorgada por el objeto equipado');
+  assert.equal(itemReaction.sourceType, 'item');
+  assert.equal(itemReaction.canExecute, true);
+});
+
+

@@ -114,8 +114,13 @@
   });
 
   resetTurnBtn?.addEventListener('click', () => {
+    const char = characterStore.get();
     characterStore.resetTurn();
-    showAlert('Nuevo turno iniciado: facultades de 1 vez por turno restablecidas.', { kind: 'info' });
+    if (char.campaignId) {
+      showAlert('Facultades de 1 vez por turno restablecidas. (En campaña, tu reacción y efectos se reinician automáticamente al inicio de tu turno en la iniciativa).', { kind: 'info' });
+    } else {
+      showAlert('Nuevo turno iniciado: facultades de 1 vez por turno y reacción restablecidas.', { kind: 'info' });
+    }
   });
 
   const expandedWeapons = new Set<string>();
@@ -474,7 +479,7 @@
             <span class="font-bold font-headline text-[#f1f5f9] truncate">${r.name}</span>
             <span class="text-[9px] px-1.5 py-0.2 rounded font-mono ${
               r.canExecute ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' : 'bg-[#18202e] text-[#64748b]'
-            }">${r.sourceType === 'spell' ? 'Conjuro' : r.sourceType === 'feature' ? 'Rasgo' : 'Acción'}</span>
+            }">${r.sourceType === 'spell' ? 'Conjuro' : r.sourceType === 'feature' ? 'Rasgo' : r.sourceType === 'item' ? 'Objeto' : 'Acción'}</span>
           </div>
           <p class="text-[10px] text-amber-200/80 mt-0.5 line-clamp-1 italic">${r.triggerDescription}</p>
           <p class="text-[11px] text-[#94a3b8] mt-1 line-clamp-2">${r.description}</p>

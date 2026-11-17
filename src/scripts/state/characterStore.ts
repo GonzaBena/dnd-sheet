@@ -679,18 +679,26 @@ class CharacterStoreManager {
 
   // ---- Combate en la Hoja: Turnos, Modificadores y Reacciones (Spec 11, H4 & Spec 12, H5) ----
 
-  public resetTurn(): void {
+  private lastSyncedCombatKey: string | null = null;
+
+  public resetTurn(options?: { forceResetReaction?: boolean }): void {
     if (!this.character.turnState) this.character.turnState = {};
     this.character.turnState.usedModifiers = [];
-    this.character.turnState.reactionUsed = false;
-    const { effects, expired } = expireUntilNextTurn(this.character.activeEffects);
-    this.character.activeEffects = effects;
-    this.saveAndNotify();
-    this.emitEffectsExpired(expired);
-    if (typeof window !== 'undefined') {
-      window.dispatchEvent(new CustomEvent('character-reaction-changed', {
-        detail: { characterId: this.character.id, reactionUsed: false }
-      }));
+
+    const isInCampaign = Boolean(this.character.campaignId);
+    if (!isInCampaign || options?.forceResetReaction) {
+      this.character.turnState.reactionUsed = false;
+      const { effects, expired } = expireUntilNextTurn(this.character.activeEffects);
+      this.character.activeEffects = effects;
+      this.saveAndNotify();
+      this.emitEffectsExpired(expired);
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('character-reaction-changed', {
+          detail: { characterId: this.character.id, reactionUsed: false }
+        }));
+      }
+    } else {
+      this.saveAndNotify();
     }
   }
 
@@ -812,12 +820,19 @@ class CharacterStoreManager {
   /**
    * Sincroniza el turno de combate con el personaje: si es su turno, restablece su reacción y modificadores.
    */
-  public syncCombatTurn(combat: { active: boolean; turnIndex: number; combatants: { characterId?: string }[] }): void {
+  public syncCombatTurn(combat: { active: boolean; round?: number; turnIndex: number; combatants: { characterId?: string }[] }): void {
     if (!combat || !combat.active || !this.character?.id) return;
     const currentCombatant = combat.combatants[combat.turnIndex];
+    const currentKey = `${combat.round ?? 1}-${combat.turnIndex}-${currentCombatant?.characterId ?? ''}`;
+    if (this.lastSyncedCombatKey === currentKey) return;
+    this.lastSyncedCombatKey = currentKey;
+
     if (currentCombatant && currentCombatant.characterId === this.character.id) {
-      if (this.character.turnState?.reactionUsed) {
-        this.resetTurn();
+      this.resetTurn({ forceResetReaction: true });
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('combat-turn-started', {
+          detail: { characterId: this.character.id, round: combat.round, turnIndex: combat.turnIndex }
+        }));
       }
     }
   }

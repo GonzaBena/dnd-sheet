@@ -21,13 +21,18 @@ export function triggerReactionOpportunity(payload: ReactionTriggerPayload): boo
   if (payload.targetCharacterId && payload.targetCharacterId !== character.id) return false;
   if (!characterStore.isReactionAvailable()) return false;
 
-  const reactions = findAvailableReactions(character, payload).filter((r) => r.canExecute);
+  const actualPayload: ReactionTriggerPayload = {
+    ...payload,
+    targetCharacterId: payload.targetCharacterId || character.id,
+  };
+
+  const reactions = findAvailableReactions(character, actualPayload).filter((r) => r.canExecute);
   if (reactions.length === 0) return false;
 
   window.dispatchEvent(
     new CustomEvent('show-reaction-prompt', {
       detail: {
-        trigger: payload,
+        trigger: actualPayload,
         reactions,
       } as ReactionPromptDetail,
     })
@@ -36,12 +41,12 @@ export function triggerReactionOpportunity(payload: ReactionTriggerPayload): boo
 }
 
 /**
- * Inicializa los listeners globales para oportunidades de reacción (ataques, daño, oportunidad).
+ * Inicializa los listeners globales para oportunidades de reacción (ataques, daño, condiciones, oportunidad).
  */
 export function initReactionListeners(): void {
   if (typeof window === 'undefined') return;
 
-  // Oportunidad disparada por el VTT o por el DM
+  // Oportunidad genérica disparada por el VTT o por el DM
   window.addEventListener('reaction-opportunity', ((e: CustomEvent<ReactionTriggerPayload>) => {
     if (e.detail) {
       triggerReactionOpportunity(e.detail);
@@ -62,5 +67,43 @@ export function initReactionListeners(): void {
         sourceCombatantName: e.detail.sourceName,
       });
     }
+  }) as EventListener);
+
+  // Oportunidad al recibir daño directo (elemental o físico)
+  window.addEventListener('incoming-damage', ((e: CustomEvent<{ amount: number; damageType?: string; sourceName?: string }>) => {
+    const character = characterStore.get();
+    if (!character) return;
+    triggerReactionOpportunity({
+      triggerType: 'damage_taken',
+      targetCharacterId: character.id,
+      damageAmount: e.detail?.amount,
+      damageType: e.detail?.damageType,
+      sourceCombatantName: e.detail?.sourceName,
+    });
+  }) as EventListener);
+
+  // Oportunidad cuando se intenta aplicar una condición mágica (hechizado, miedo, etc.)
+  window.addEventListener('incoming-condition', ((e: CustomEvent<{ condition: string; sourceName?: string }>) => {
+    const character = characterStore.get();
+    if (!character) return;
+    triggerReactionOpportunity({
+      triggerType: 'condition_applied',
+      targetCharacterId: character.id,
+      condition: e.detail?.condition,
+      sourceCombatantName: e.detail?.sourceName,
+    });
+  }) as EventListener);
+
+  // Oportunidad cuando un aliado adyacente o cercano es blanco de ataque o magia
+  window.addEventListener('incoming-ally-targeted', ((e: CustomEvent<{ allyName: string; distanceFeet?: number; sourceName?: string }>) => {
+    const character = characterStore.get();
+    if (!character) return;
+    triggerReactionOpportunity({
+      triggerType: 'ally_targeted',
+      targetCharacterId: character.id,
+      allyName: e.detail?.allyName,
+      distanceFeet: e.detail?.distanceFeet,
+      sourceCombatantName: e.detail?.sourceName,
+    });
   }) as EventListener);
 }

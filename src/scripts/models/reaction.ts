@@ -7,18 +7,23 @@ export type ReactionTriggerType =
   | 'opportunity_attack'  // Criatura hostil abandona alcance cuerpo a cuerpo
   | 'spell_cast'          // Criatura a la vista lanza un conjuro
   | 'ally_attacked'       // Aliado adyacente es atacado
+  | 'ally_targeted'       // Aliado a X pies es objetivo de ataque o magia
+  | 'condition_applied'   // Efecto mágico intenta aplicar hechizado, miedo u otra condición
   | 'manual';             // Activación a demanda por el usuario
 
 export interface ReactionTriggerPayload {
   triggerType: ReactionTriggerType;
   sourceCombatantName?: string;
-  targetCharacterId: string;
+  targetCharacterId?: string;
   attackRoll?: number;
   targetAc?: number;
   damageAmount?: number;
-  damageType?: string; // 'fire', 'cold', 'lightning', 'acid', 'thunder', etc.
+  damageType?: string; // 'fire'/'fuego', 'cold'/'frío', 'lightning'/'rayo', etc.
   spellName?: string;
   isOpportunityLeaving?: boolean;
+  condition?: string;   // 'charmed'/'hechizado', 'frightened'/'miedo', etc.
+  allyName?: string;
+  distanceFeet?: number;
 }
 
 export interface ReactionCost {
@@ -30,7 +35,7 @@ export interface ReactionCost {
 export interface AvailableReaction {
   id: string;
   name: string;
-  sourceType: 'spell' | 'feature' | 'action';
+  sourceType: 'spell' | 'feature' | 'action' | 'item';
   description: string;
   triggerDescription: string;
   cost?: ReactionCost;
