@@ -268,6 +268,7 @@
   import { showAlert } from '../../scripts/ui/notify';
   // Nombres, daños y notas los escribe el usuario: todo lo que va a innerHTML pasa por esc().
   import { escapeHtml as esc } from '../../scripts/dnd/catalog';
+  import { getArmorClass } from '../../scripts/dnd/ac';
 
   const root = document.getElementById('physical-table-sheet-root');
   const avatarEl = document.getElementById('pts-avatar') as HTMLImageElement;
@@ -396,7 +397,7 @@
     }
 
     // 3. Defensas
-    if (acEl) acEl.textContent = `${char.armorClass || 10} CA`;
+    if (acEl) acEl.textContent = `${getArmorClass(char)} CA`;
     if (speedEl) speedEl.textContent = `${char.speed || '30'} ft`;
     const wisMod = Math.floor(((char.stats?.wis?.base || 10) - 10) / 2);
     if (ppEl) ppEl.textContent = String(10 + wisMod);

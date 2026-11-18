@@ -332,8 +332,7 @@ with Suite("Ficha jugador") as s:
         page.wait_for_function("document.getElementById('backpack-items-container').textContent.includes('Cuerda élfica')", timeout=8000)
         expect("x5" in text(page, "#backpack-items-container"), "Cantidad tras recargar")
 
-    @s.case("Triste: objeto con cantidad 0 o negativa no se guarda con cantidad inválida",
-            known_bug="AddItemModal: parseInt('-3') || 1 = -3; el min=1 del input no se valida (el botón no es submit)")
+    @s.case("Triste: objeto con cantidad 0 o negativa no se guarda con cantidad inválida")
     def _():
         fresh(page)
         page.click("#open-add-item-btn")
@@ -425,8 +424,7 @@ with Suite("Ficha jugador") as s:
         finally:
             mctx.close()
 
-    @s.case("Móvil: la CA de 'Mesa Física' coincide con la de la ficha completa (10 + DES)",
-            known_bug="PhysicalTableSheet muestra char.armorClass || 10 en vez de getArmorClass(char)")
+    @s.case("Móvil: la CA de 'Mesa Física' coincide con la de la ficha completa (10 + DES)")
     def _():
         mctx = s.new_context(viewport=(390, 844))
         mpage, _ = s.new_page(mctx)

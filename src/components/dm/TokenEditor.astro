@@ -473,7 +473,7 @@
       characters.forEach((c) => {
         const opt = document.createElement('option');
         opt.value = c.id;
-        opt.textContent = `${c.name} (${c.race || ''} ${c.characterClass || ''})`;
+        opt.textContent = `${c.name} (${c.race || ''} ${c.className || ''})`;
         fieldChar.appendChild(opt);
       });
     }
@@ -843,6 +843,8 @@
             No hay miniaturas desplegadas en este mapa. Toca "+ Nuevo Token" para añadir una.
           </div>
         `;
+        renderAdventurers();
+        renderMonsters(tokens);
         return;
       }
 
@@ -946,7 +948,7 @@
             <img src="${esc(avatar)}" alt="${esc(char.name)}" class="w-7 h-7 rounded-lg object-cover border border-[#222f42] shrink-0" />
             <div class="min-w-0">
               <span class="block font-headline font-bold text-[#f1f5f9] truncate max-w-[95px]">${esc(char.name)}</span>
-              <span class="block text-[10px] text-[#94a3b8] truncate max-w-[95px]">${esc(char.race || '')} ${esc(char.characterClass || 'Aventurero')}</span>
+              <span class="block text-[10px] text-[#94a3b8] truncate max-w-[95px]">${esc(char.race || '')} ${esc(char.className || 'Aventurero')}</span>
             </div>
           </div>
         `;
@@ -1230,7 +1232,7 @@
           if (!currentMap) return;
           const ok = await showConfirm(`¿Eliminar la miniatura de "${tok.name}" del mapa?`, {
             title: 'Eliminar Token',
-            kind: 'danger',
+            kind: 'warning',
             confirmText: 'Eliminar',
           });
           if (!ok) return;
@@ -1345,7 +1347,7 @@
         bindMapTokens(e.detail.cid, e.detail.mid);
       }
     }) as EventListener);
-    window.addEventListener('characters-updated', () => {
+    window.addEventListener('all-characters-updated', () => {
       renderAdventurers();
       void healTokenOwners();
     });

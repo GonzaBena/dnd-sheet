@@ -81,8 +81,7 @@ with Suite("Mapa táctico (DM)") as s:
     page, dialogs = s.new_page(ctx)
 
     # ------------------------------------------------------------------ aventureros
-    @s.case("Lista de aventureros: muestra nombre, raza y CLASE correcta del PJ",
-            known_bug="TokenEditor usa char.characterClass (no existe) en vez de char.className → muestra 'Aventurero'")
+    @s.case("Lista de aventureros: muestra nombre, raza y CLASE correcta del PJ")
     def _():
         fresh_dm(page)
         row = " ".join((adventurer_rows(page).first.text_content() or "").split())
@@ -156,8 +155,7 @@ with Suite("Mapa táctico (DM)") as s:
         expect(kt is not None and any("Orco Jefe" in x for x in kt["texts"]),
                f"El lienzo no refleja el nuevo nombre: {kt}")
 
-    @s.case("Eliminar el último enemigo desde el modal lo quita del mapa, del lienzo y de la lista de criaturas",
-            known_bug="renderChips hace return temprano con 0 tokens y no re-renderiza monstruos/aventureros (lista desactualizada)")
+    @s.case("Eliminar el último enemigo desde el modal lo quita del mapa, del lienzo y de la lista de criaturas")
     def _():
         fresh_dm(page)
         quick_enemy(page, "Kobold")
@@ -173,8 +171,7 @@ with Suite("Mapa táctico (DM)") as s:
         wait_konva_token(page, tid, present=False)
         page.wait_for_function("document.getElementById('token-monsters-count').textContent.trim() === '0 criaturas'", timeout=3000)
 
-    @s.case("Eliminar enemigo desde el botón de papelera de su tarjeta",
-            known_bug="showConfirm recibe kind:'danger' (inexistente en KIND_STYLES) y lanza 'iconClass' de undefined")
+    @s.case("Eliminar enemigo desde el botón de papelera de su tarjeta")
     def _():
         fresh_dm(page)
         quick_enemy(page, "Lobo")
@@ -305,8 +302,7 @@ with Suite("Mapa táctico (DM)") as s:
         expect_eq(page.evaluate("window.__xss"), 0, "Se ejecutó JS inyectado desde el nombre del token")
 
     # ------------------------------------------------------------------ sincronización entre pestañas
-    @s.case("Sync jugador→DM (2 pestañas): el jugador invoca un familiar y el DM lo ve bajo su PJ sin recargar",
-            known_bug="TokenEditor escucha 'characters-updated', evento que nadie emite (se emite 'all-characters-updated')")
+    @s.case("Sync jugador→DM (2 pestañas): el jugador invoca un familiar y el DM lo ve bajo su PJ sin recargar")
     def _():
         # Yo soy DM y además juego un PJ propio en mi campaña: dos pestañas del mismo navegador.
         fx.seed_dm(page, pc_overrides={"userId": fx.ME, "playerName": "Gonzo (Tú)"})
@@ -330,8 +326,7 @@ with Suite("Mapa táctico (DM)") as s:
         finally:
             player.close()
 
-    @s.case("Sync jugador→DM (2 pestañas): el jugador renombra su familiar y el DM ve el nombre nuevo sin recargar",
-            known_bug="TokenEditor escucha 'characters-updated', evento que nadie emite (se emite 'all-characters-updated')")
+    @s.case("Sync jugador→DM (2 pestañas): el jugador renombra su familiar y el DM ve el nombre nuevo sin recargar")
     def _():
         fx.seed_dm(page, pc_overrides={"userId": fx.ME, "playerName": "Gonzo (Tú)", "companions": [
             {"id": "comp-tic", "name": "Tic", "type": "familiar", "size": 1, "hp": {"current": 3, "max": 3}}]})

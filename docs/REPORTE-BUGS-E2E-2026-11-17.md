@@ -2,7 +2,7 @@
 
 **Fecha:** 2026-11-17
 **Alcance:** 107 escenarios en `tests/e2e/`. 92 corren en modo local y 15 en modo nube, contra Firebase Emulator Suite con dos usuarios reales (DM y jugadora).
-**Resultado sobre el árbol de trabajo actual:** 0 FAIL · 76 PASS · 13 XFAIL (bugs aún presentes) · 3 XPASS (bugs ya corregidos; se les quitó la marca).
+**Resultado actual (2026-11-18):** todos los bugs del reporte están corregidos. Suites locales 95/95 PASS y suite de nube 17/17 PASS, sin XFAIL ni XPASS. Tests unitarios 1209/1209.
 
 Cada bug que sigue abierto tiene un caso marcado con `known_bug=...` en la suite. Mientras el bug exista, el caso da **XFAIL**. Cuando se corrija dará **XPASS**, y en ese momento hay que quitarle la marca. Para ver cómo ejecutar las suites, consulta `tests/e2e/README.md`.
 
@@ -19,14 +19,14 @@ Cada bug que sigue abierto tiene un caso marcado con `known_bug=...` en la suite
 | 5 | 🟠 Media | Compañeros ↔ mapa | Eliminar un compañero deja su token huérfano en el mapa | ✅ Corregido |
 | 6 | 🟠 Media | Compañeros | Editar un compañero herido le devuelve todos los PG (`hp.current = max`) | ✅ Corregido |
 | 7 | 🟠 Media | Compañeros ↔ DM | Cuando el DM despliega el compañero, el jugador sigue viendo «Fuera del mapa» | ✅ Corregido (efecto del #1) |
-| 8 | 🟠 Media | Mapa táctico | `TokenEditor` escucha `'characters-updated'`, un evento que nadie emite, y la lista de aventureros no se refresca | Abierto |
-| 9 | 🟠 Media | Mapa táctico | `renderChips` sale antes de tiempo cuando quedan 0 tokens y la lista de criaturas queda desactualizada | Abierto |
-| 10 | 🟠 Media | Mapa táctico | La papelera de un enemigo se rompe porque usa `kind: 'danger'`, que no existe en `notify.ts` | Abierto |
+| 8 | 🟠 Media | Mapa táctico | `TokenEditor` escucha `'characters-updated'`, un evento que nadie emite, y la lista de aventureros no se refresca | ✅ Corregido |
+| 9 | 🟠 Media | Mapa táctico | `renderChips` sale antes de tiempo cuando quedan 0 tokens y la lista de criaturas queda desactualizada | ✅ Corregido |
+| 10 | 🟠 Media | Mapa táctico | La papelera de un enemigo se rompe porque usa `kind: 'danger'`, que no existe en `notify.ts` | ✅ Corregido |
 | 11 | 🟠 Media | Compañeros | La papelera de «Retirar» compañero usaba `kind: 'danger'` | ✅ Corregido |
-| 12 | 🟡 Baja | Ficha (móvil) | La «Mesa Física» muestra CA 10 en lugar de la CA real | Abierto |
-| 13 | 🟡 Baja | Mapa táctico | La tarjeta de aventurero muestra «Aventurero» en lugar de la clase | Abierto |
-| 14 | 🟡 Baja | Bitácora | En modo local, las entradas de una campaña aparecen en el Grimorio de otras campañas | Abierto |
-| 15 | 🟡 Baja | Mochila | Se puede guardar un objeto con cantidad negativa (`-3`) | Abierto |
+| 12 | 🟡 Baja | Ficha (móvil) | La «Mesa Física» muestra CA 10 en lugar de la CA real | ✅ Corregido |
+| 13 | 🟡 Baja | Mapa táctico | La tarjeta de aventurero muestra «Aventurero» en lugar de la clase | ✅ Corregido |
+| 14 | 🟡 Baja | Bitácora | En modo local, las entradas de una campaña aparecen en el Grimorio de otras campañas | ✅ Corregido |
+| 15 | 🟡 Baja | Mochila | Se puede guardar un objeto con cantidad negativa (`-3`) | ✅ Corregido |
 | 16 | 🔴 Seguridad | XSS | Nombres con HTML se ejecutan en `TokenEditor` y `WeaponActionCard` | ✅ Corregido |
 | 17 | 🔴 Seguridad | XSS | Mismo problema en `CompanionsPanel` | ✅ Corregido |
 | 18 | 🔴 Alta | Nube / mapas | Bucle infinito de `maps-updated`: más de 1000 lecturas de Firestore por segundo en las vistas del DM y del jugador | ✅ Corregido |
@@ -99,18 +99,24 @@ Con la sincronización restablecida, el panel recibe el mapa activo y detecta el
 - **Dónde:** el despliegue desde `TokenEditor` crea el token pero no guarda `comp.tokenId`. `CompanionsPanel` decide si el compañero está desplegado mirando solo `tokenId`.
 - **Test:** `tests/e2e/test_cloud_sync.py:145`.
 
-### 8. 🟠 La lista de aventureros del DM no se refresca (modo local)
+### 8. ✅ La lista de aventureros del DM no se refresca (corregido)
+
+> **Arreglo aplicado:** `TokenEditor` escucha `'all-characters-updated'`. `healTokenOwners` solo escribe cuando a un token le falta el dueño, así que no genera escrituras en bucle en la nube.
 
 - **Dónde:** `src/components/dm/TokenEditor.astro` escucha `'characters-updated'`, pero el store emite `'all-characters-updated'`.
 - **Qué pasa:** si un jugador cambia su nombre o sus PG en otra pestaña, la tarjeta del DM no cambia hasta recargar la página.
 - **Tests:** `tests/e2e/test_tactical_map.py:310` y `tests/e2e/test_tactical_map.py:335`.
 
-### 9. 🟠 Al borrar el último token, la lista sigue diciendo «1 criatura»
+### 9. ✅ Al borrar el último token, la lista sigue diciendo «1 criatura» (corregido)
+
+> **Arreglo aplicado:** con 0 tokens, `renderChips` vuelve a dibujar aventureros y monstruos antes de salir.
 
 - **Dónde:** `renderChips` en `TokenEditor` hace `return` cuando hay 0 tokens, antes de volver a dibujar las listas de monstruos y aventureros.
 - **Test:** `tests/e2e/test_tactical_map.py:160`.
 
-### 10. 🟠 La papelera de un enemigo lanza un error
+### 10. ✅ La papelera de un enemigo lanza un error (corregido)
+
+> **Arreglo aplicado:** usa `kind: 'warning'`, igual que «Retirar» compañero (#11).
 
 - **Dónde:** `TokenEditor` llama a `showConfirm({ kind: 'danger' })`. `KIND_STYLES` en `src/scripts/ui/notify.ts` no tiene `danger`, y el código falla con `Cannot read properties of undefined (reading 'iconClass')`.
 - **Arreglo sugerido:** usar un `kind` que exista, o agregar `danger` a `KIND_STYLES`.
@@ -120,23 +126,31 @@ Con la sincronización restablecida, el panel recibe el mapa activo y detecta el
 
 Era el mismo bug que el #10, pero en `CompanionsPanel`. Ya está corregido en el árbol de trabajo.
 
-### 12. 🟡 «Mesa Física» (móvil) muestra CA 10
+### 12. ✅ «Mesa Física» (móvil) muestra CA 10 (corregido)
+
+> **Arreglo aplicado:** `PhysicalTableSheet` usa `getArmorClass(char)`.
 
 - **Dónde:** `PhysicalTableSheet` usa `char.armorClass || 10` en lugar de `getArmorClass(char)`.
 - **Qué pasa:** un PJ con DES 14 sin armadura muestra CA 12 en la ficha completa y CA 10 en el móvil.
 - **Test:** `tests/e2e/test_player_sheet.py:424`.
 
-### 13. 🟡 La tarjeta de aventurero muestra «Aventurero»
+### 13. ✅ La tarjeta de aventurero muestra «Aventurero» (corregido)
+
+> **Arreglo aplicado:** `TokenEditor` lee `char.className`, en la tarjeta y en el selector de PJ del editor de tokens.
 
 - **Dónde:** `TokenEditor` lee `char.characterClass`, pero el campo real es `char.className`.
 - **Test:** `tests/e2e/test_tactical_map.py:85`.
 
-### 14. 🟡 La bitácora se mezcla entre campañas (modo local)
+### 14. ✅ La bitácora se mezcla entre campañas (corregido)
+
+> **Arreglo aplicado:** `renderJournalFeed` descarta las entradas de otra campaña. Las entradas antiguas sin `campaignId` se siguen mostrando para no ocultar datos.
 
 - **Dónde:** `renderJournalFeed` en `DmControlGrimoire` usa `journalStore.getEntries()` sin filtrar por `campaignId`.
 - **Test:** `tests/e2e/test_dm_tools.py:203`.
 
-### 15. 🟡 Cantidad negativa en la mochila
+### 15. ✅ Cantidad negativa en la mochila (corregido)
+
+> **Arreglo aplicado:** la cantidad se limita al rango 1–999, el mismo que declara el input.
 
 - **Dónde:** en `AddItemModal`, `parseInt('-3') || 1` da `-3`. El `min=1` del input no se valida porque el botón no es de tipo submit.
 - **Test:** `tests/e2e/test_player_sheet.py:336`.
@@ -203,4 +217,4 @@ Ya está corregido en el árbol de trabajo.
 2. ~~**#16 (XSS)**~~ ✅ corregido.
 3. ~~**#4–#6**~~ ✅ corregidos.
 3. ~~**#18**~~ ✅ corregido.
-4. **#8–#10, #12–#15:** errores visibles pero acotados.
+4. ~~**#8–#10, #12–#15**~~ ✅ corregidos.

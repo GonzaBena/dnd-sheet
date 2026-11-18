@@ -221,8 +221,7 @@ with Suite("Herramientas DM") as s:
         expect_eq(page.evaluate("window.__xss || 0"), 0, "Se ejecutó JS inyectado desde el nombre del PJ")
         expect(evil in text(page, "#dm-combatants-container"), "El nombre del PJ no se muestra literalmente en el tracker")
 
-    @s.case("Bitácora: las notas de una campaña no aparecen en el Grimorio de otra campaña del mismo DM",
-            known_bug="renderJournalFeed usa journalStore.getEntries() sin filtrar por campaignId (fuga entre campañas en modo local)")
+    @s.case("Bitácora: las notas de una campaña no aparecen en el Grimorio de otra campaña del mismo DM")
     def _():
         fresh(page)
         other = fx.make_campaign("camp-e2e-otra", name="Otra Campaña", dm_id=fx.ME, members=[fx.ME], char_ids=[])
