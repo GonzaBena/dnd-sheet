@@ -87,14 +87,15 @@ export function resolveTokenPosition(
 }
 
 /**
- * Genera un identificador único para tokens en formato tok-<timestamp36><random4>.
+ * Genera un identificador único para tokens en formato <prefix>-<timestamp36><random4>.
  *
  * DECISION (F3-3): Los ids de token son tok-${Date.now().toString(36)}${random4}.
+ * El prefijo es opcional (p. ej. `tok-comp`, `tok-pc`) y solo sirve para depurar.
  */
-export function newTokenId(): string {
+export function newTokenId(prefix = 'tok'): string {
   const time = Date.now().toString(36);
   const random4 = Math.random().toString(36).substring(2, 6).padEnd(4, '0');
-  return `tok-${time}${random4}`;
+  return `${prefix || 'tok'}-${time}${random4}`;
 }
 
 /**

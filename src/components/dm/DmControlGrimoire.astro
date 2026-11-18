@@ -858,7 +858,11 @@ import HandoutManager from './HandoutManager.astro';
       return;
     }
 
-    if (!content) return;
+    if (!content) {
+      showAlert('Escribí el contenido de la entrada antes de publicarla.', { kind: 'warning', title: 'Entrada vacía' });
+      descInput?.focus();
+      return;
+    }
 
     // Detect tags in content
     const detectedTags = content.match(/#[A-Za-z0-9_ÁÉÍÓÚáéíóúñÑ]+/g) || [];

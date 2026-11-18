@@ -2,7 +2,7 @@
 
 **Fecha:** 2026-11-17
 **Alcance:** 107 escenarios en `tests/e2e/`. 92 corren en modo local y 15 en modo nube, contra Firebase Emulator Suite con dos usuarios reales (DM y jugadora).
-**Resultado actual (2026-11-18):** todos los bugs del reporte están corregidos. Suites locales 95/95 PASS y suite de nube 17/17 PASS, sin XFAIL ni XPASS. Tests unitarios 1209/1209.
+**Resultado actual (2026-11-18):** todos los bugs del reporte están corregidos. Suites locales 96/96 PASS y suite de nube 17/17 PASS, sin XFAIL ni XPASS. Tests unitarios 1210/1210.
 
 Cada bug que sigue abierto tiene un caso marcado con `known_bug=...` en la suite. Mientras el bug exista, el caso da **XFAIL**. Cuando se corrija dará **XPASS**, y en ese momento hay que quitarle la marca. Para ver cómo ejecutar las suites, consulta `tests/e2e/README.md`.
 
@@ -205,11 +205,11 @@ Ya está corregido en el árbol de trabajo.
 
 ---
 
-## Hallazgos menores (sin test dedicado)
+## Hallazgos menores (✅ corregidos)
 
-- `newTokenId(prefix)` ignora el argumento `prefix`.
-- `SpellcastingPanel` lanza un error si el personaje no tiene `spellcasting` (por ejemplo, datos viejos o importados).
-- Si se publica una entrada de bitácora con el contenido vacío, no se guarda y no se muestra ningún aviso.
+- ✅ `newTokenId(prefix)` ignoraba el argumento `prefix`. Ahora genera `<prefix>-<timestamp><random>`, y si no se pasa prefijo usa `tok`. Test en `tests/tokens.test.mjs`.
+- ✅ `SpellcastingPanel` lanzaba un error si el personaje no tenía `spellcasting` (datos viejos o importados). Ahora muestra CD «—» y ataque +0. Hay un caso E2E nuevo en `test_player_sheet.py`, y se verificó que falla sin el arreglo.
+- ✅ Publicar una entrada de bitácora vacía no mostraba ningún aviso. Ahora el Grimorio y `JournalModal` muestran «Entrada vacía» y devuelven el foco al campo. Se amplió el caso de `test_dm_tools.py`.
 
 ## Prioridad sugerida
 

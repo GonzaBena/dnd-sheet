@@ -83,3 +83,9 @@ test('newTokenId generates unique identifiers starting with tok-', () => {
   assert.ok(id2.startsWith('tok-'));
   assert.notEqual(id1, id2);
 });
+
+test('newTokenId respeta el prefijo indicado', () => {
+  assert.match(newTokenId('tok-comp'), /^tok-comp-[a-z0-9]+$/);
+  assert.match(newTokenId('tok-pc'), /^tok-pc-[a-z0-9]+$/);
+  assert.match(newTokenId(''), /^tok-[a-z0-9]+$/);
+});

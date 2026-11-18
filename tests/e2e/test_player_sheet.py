@@ -469,3 +469,9 @@ with Suite("Ficha jugador") as s:
         page.click("#delete-modal-all-btn")
         page.wait_for_timeout(300)
         expect_eq(char(page)["inventory"], [], "Inventario tras eliminar todo")
+
+    @s.case("Triste: una ficha sin 'spellcasting' (vieja o importada) carga sin errores JS y muestra valores por defecto")
+    def _():
+        fresh(page, spellcasting=None)
+        expect_eq(text(page, "#spell-dc-num"), "—", "CD de conjuros sin spellcasting")
+        expect("+0" in text(page, "#spell-atk-num"), "El ataque de conjuro sin spellcasting no muestra +0")

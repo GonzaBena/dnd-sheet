@@ -153,6 +153,7 @@
   import { attachSwipeToDelete } from '../../scripts/ui/swipeToDelete';
   // Títulos, contenido, autores, etiquetas y tiradas de la bitácora los escriben los usuarios: van por esc().
   import { escapeHtml as esc } from '../../scripts/dnd/catalog';
+  import { showAlert } from '../../scripts/ui/notify';
 
   const modal = document.getElementById('journal-modal');
   const backdrop = document.getElementById('journal-modal-backdrop');
@@ -418,7 +419,11 @@
   form?.addEventListener('submit', (e) => {
     e.preventDefault();
     const content = textInput?.value.trim();
-    if (!content) return;
+    if (!content) {
+      showAlert('Escribí el contenido de la entrada antes de guardarla.', { kind: 'warning', title: 'Entrada vacía' });
+      textInput?.focus();
+      return;
+    }
 
     const title = titleInput?.value.trim() || 'Apunte de Sesión';
     // "Nota de jugador" gana si se marcan las dos: es la opción más restrictiva.

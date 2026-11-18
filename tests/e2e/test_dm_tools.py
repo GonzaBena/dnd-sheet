@@ -175,14 +175,15 @@ with Suite("Herramientas DM") as s:
         page.wait_for_timeout(300)
         expect("Emboscada en el puente" not in text(page, "#grimoire-journal-feed"), "La entrada sigue tras eliminarla")
 
-    @s.case("Triste Bitácora: publicar sin contenido no crea entradas")
+    @s.case("Triste Bitácora: publicar sin contenido avisa y no crea entradas")
     def _():
         fresh(page)
         before = page.locator("#grimoire-journal-feed .grimoire-delete-note-btn").count()
         page.fill("#grimoire-entry-title", "")
         page.fill("#grimoire-entry-desc", "")
         page.locator("#grimoire-entry-form button[type=submit]").click()
-        page.wait_for_timeout(300)
+        d = app_dialog(page)
+        expect("vacía" in d["title"].lower(), f"No se avisó de la entrada vacía: {d!r}")
         while page.locator("#app-dialog:not(.hidden) .app-dialog-card").count():
             app_dialog_primary(page)
         expect_eq(page.locator("#grimoire-journal-feed .grimoire-delete-note-btn").count(), before, "Entradas tras publicar vacío")
