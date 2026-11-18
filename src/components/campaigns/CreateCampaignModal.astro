@@ -106,7 +106,7 @@ import { CAMPAIGN_PRESET_IMAGES } from '../../scripts/state/campaignStore';
               data-url={img.url}
               title={img.name}
             >
-              <img src={img.url} alt={img.name} class="w-full h-full object-cover group-hover:scale-110 transition-transform" />
+              <img decoding="async" src={img.url} alt={img.name} class="w-full h-full object-cover group-hover:scale-110 transition-transform" />
               <div class="absolute inset-0 bg-black/40 group-hover:bg-transparent transition-colors"></div>
             </button>
           ))}

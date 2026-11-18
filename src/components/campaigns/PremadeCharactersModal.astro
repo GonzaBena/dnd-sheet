@@ -1,6 +1,7 @@
 ---
 // src/components/campaigns/PremadeCharactersModal.astro
 import { PREMADE_CHARACTERS } from '../../scripts/data/premadeCharacters';
+import { toAvatarThumb } from '../../scripts/data/characterAvatars';
 ---
 
 <dialog
@@ -53,7 +54,7 @@ import { PREMADE_CHARACTERS } from '../../scripts/data/premadeCharacters';
             class="premade-char-card group rounded-2xl bg-[#18202e] border border-[#222f42] hover:border-amber-500/60 transition-all overflow-hidden flex flex-col shadow-lg"
           >
             <img
-              src={char.avatarUrl}
+              src={toAvatarThumb(char.avatarUrl)} decoding="async"
               alt={`Retrato de ${char.name} (${char.className})`}
               class="w-full aspect-[3/4] max-h-44 object-cover object-top group-hover:scale-105 transition-transform duration-500 bg-[#10141d]"
               loading="lazy"

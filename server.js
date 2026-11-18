@@ -23,11 +23,14 @@ const MIME_TYPES = {
   '.svg': 'image/svg+xml',
   '.ico': 'image/x-icon',
   '.webp': 'image/webp',
+  '.avif': 'image/avif',
   '.woff': 'font/woff',
   '.woff2': 'font/woff2',
   '.ttf': 'font/ttf',
   '.webmanifest': 'application/manifest+json'
 };
+
+const CACHEABLE_STATIC_EXT = new Set(['.png', '.jpg', '.jpeg', '.gif', '.svg', '.ico', '.webp', '.avif', '.woff', '.woff2', '.ttf']);
 
 const server = http.createServer((req, res) => {
   let reqPath = decodeURI((req.url || '/').split('?')[0]);
@@ -75,9 +78,27 @@ const server = http.createServer((req, res) => {
 
     const ext = path.extname(filePath).toLowerCase();
     const contentType = MIME_TYPES[ext] || 'application/octet-stream';
-    // Los assets con hash de Astro son inmutables; el HTML siempre se revalida tras un deploy.
-    const cacheControl = reqPath.startsWith('/_astro/') ? 'public, max-age=31536000, immutable' : 'no-cache';
-    res.writeHead(200, { 'Content-Type': contentType, 'Cache-Control': cacheControl });
+    // Los assets con hash de Astro son inmutables. Imágenes y fuentes sin hash (retratos, iconos) se
+    // cachean un día y se revalidan en segundo plano. El resto (HTML, datos) siempre se revalida.
+    const cacheControl = reqPath.startsWith('/_astro/')
+      ? 'public, max-age=31536000, immutable'
+      : CACHEABLE_STATIC_EXT.has(ext)
+        ? 'public, max-age=86400, stale-while-revalidate=604800'
+        : 'no-cache';
+    // Validadores: sin ellos "no-cache" obligaba a descargar el archivo completo en cada visita.
+    const etag = `W/"${stats.size.toString(16)}-${Math.floor(stats.mtimeMs).toString(16)}"`;
+    const headers = {
+      'Content-Type': contentType,
+      'Cache-Control': cacheControl,
+      ETag: etag,
+      'Last-Modified': stats.mtime.toUTCString(),
+    };
+    if (req.headers['if-none-match'] === etag) {
+      res.writeHead(304, headers);
+      res.end();
+      return;
+    }
+    res.writeHead(200, { ...headers, 'Content-Length': stats.size });
     fs.createReadStream(filePath).pipe(res);
   });
 });

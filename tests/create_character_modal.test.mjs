@@ -52,7 +52,7 @@ test('CreateCharacterModal, QuickCreatorModal, ManualCreatorModal & PremadeChara
 
     for (const article of articleMatches) {
       assert.match(article, /aspect-\[3\/4\]/, 'Each card image should have vertical 3/4 aspect ratio');
-      assert.match(article, /\/characters\/ch-[1-5]\.avif/, 'Each card should use a loaded character image');
+      assert.match(article, /\/characters\/(thumbs\/)?ch-[1-5]\.avif/, 'Each card should use a loaded character image');
       assert.match(article, /<h4\b/, 'Each card should have a title heading');
       assert.match(article, /<footer\b[\s\S]*?<button\b[\s\S]*?data-creation-mode=/, 'Each card should have a footer CTA button');
     }

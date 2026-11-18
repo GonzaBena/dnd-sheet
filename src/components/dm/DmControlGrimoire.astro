@@ -406,7 +406,7 @@ import HandoutManager from './HandoutManager.astro';
             <div class="flex items-center justify-between gap-2">
               <div class="flex items-center gap-2.5 min-w-0">
                 <div class="relative w-10 h-10 rounded-xl overflow-hidden shrink-0 border border-amber-500/40 bg-[#10141d]">
-                  <img src="${esc(char.avatarUrl || '/characters/ch-1.avif')}" alt="${esc(char.name)}" class="w-full h-full object-cover" onerror="this.onerror=null;this.src='/characters/ch-1.avif';" />
+                  <img decoding="async" loading="lazy" src="${esc(char.avatarUrl || '/characters/ch-1.avif')}" alt="${esc(char.name)}" class="w-full h-full object-cover" onerror="this.onerror=null;this.src='/characters/ch-1.avif';" />
                 </div>
                 <div class="min-w-0">
                   <h4 class="font-headline font-bold text-sm text-[#f1f5f9] truncate">${esc(char.name)}</h4>

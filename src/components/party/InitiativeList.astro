@@ -332,7 +332,7 @@ import { isOwnedBy } from '../../scripts/vtt/initiative';
             </div>
 
             <!-- Avatar del combatiente -->
-            <img
+            <img decoding="async" loading="lazy"
               src="${esc(liveChar?.avatarUrl || c.avatarUrl || (c.isPlayer ? '/characters/ch-1.avif' : '/characters/ch-3.avif'))}"
               alt="${esc(displayName)}"
               class="w-8 h-8 rounded-lg object-cover border border-[#222f42] shrink-0 bg-[#10141d]"

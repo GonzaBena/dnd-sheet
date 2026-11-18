@@ -1,7 +1,7 @@
 ---
 // src/components/campaigns/QuickCreatorModal.astro
 import StepRail from '../ui/StepRail.astro';
-import { CHARACTER_PRESET_IMAGES } from '../../scripts/data/characterAvatars';
+import { CHARACTER_PRESET_IMAGES, toAvatarThumb } from '../../scripts/data/characterAvatars';
 import { QUICK_RACES, QUICK_CLASSES, QUICK_BACKGROUNDS } from '../../scripts/data/quickCreatorData';
 
 const inputCls =
@@ -124,7 +124,7 @@ const lblCls = 'text-[#94a3b8] block mb-1 text-xs font-bold';
                   aria-label={`Seleccionar retrato ${idx + 1}`}
                   class={`quick-avatar-btn relative w-24 sm:w-28 aspect-[3/4] rounded-xl overflow-hidden border-2 transition-all cursor-pointer bg-[#10141d] shrink-0 ${idx === 0 ? 'border-amber-500 ring-2 ring-amber-500/40 scale-[1.02]' : 'border-[#222f42] opacity-75 hover:opacity-100 hover:border-amber-500/50'}`}
                 >
-                  <img src={imgUrl} alt={`Retrato ${idx + 1}`} class="w-full h-full object-cover object-top" loading="lazy" />
+                  <img src={toAvatarThumb(imgUrl)} decoding="async" alt={`Retrato ${idx + 1}`} class="w-full h-full object-cover object-top" loading="lazy" />
                 </button>
               ))}
             </div>
@@ -148,7 +148,7 @@ const lblCls = 'text-[#94a3b8] block mb-1 text-xs font-bold';
             >
               <img
                 id="quick-race-card-img"
-                src={QUICK_RACES[0].avatarUrl}
+                src={toAvatarThumb(QUICK_RACES[0].avatarUrl)} decoding="async"
                 alt={`Raza seleccionada: ${QUICK_RACES[0].name}`}
                 class="w-full aspect-[3/4] max-h-44 object-cover object-top group-hover:scale-105 transition-transform duration-500 bg-[#10141d]"
               />
@@ -188,7 +188,7 @@ const lblCls = 'text-[#94a3b8] block mb-1 text-xs font-bold';
             >
               <img
                 id="quick-class-card-img"
-                src={QUICK_CLASSES[0].avatarUrl}
+                src={toAvatarThumb(QUICK_CLASSES[0].avatarUrl)} decoding="async"
                 alt={`Clase seleccionada: ${QUICK_CLASSES[0].name}`}
                 class="w-full aspect-[3/4] max-h-44 object-cover object-top group-hover:scale-105 transition-transform duration-500 bg-[#10141d]"
               />
@@ -228,7 +228,7 @@ const lblCls = 'text-[#94a3b8] block mb-1 text-xs font-bold';
             >
               <img
                 id="quick-bg-card-img"
-                src={QUICK_BACKGROUNDS[0].avatarUrl}
+                src={toAvatarThumb(QUICK_BACKGROUNDS[0].avatarUrl)} decoding="async"
                 alt={`Trasfondo seleccionado: ${QUICK_BACKGROUNDS[0].name}`}
                 class="w-full aspect-[3/4] max-h-44 object-cover object-top group-hover:scale-105 transition-transform duration-500 bg-[#10141d]"
               />
@@ -317,7 +317,7 @@ const lblCls = 'text-[#94a3b8] block mb-1 text-xs font-bold';
             <div class="flex items-center gap-3.5">
               <img
                 id="quick-summary-avatar"
-                src={CHARACTER_PRESET_IMAGES[0]}
+                src={toAvatarThumb(CHARACTER_PRESET_IMAGES[0])} decoding="async"
                 alt="Retrato del personaje"
                 class="w-14 h-14 rounded-xl object-cover object-top border border-amber-500/40 bg-[#10141d] shrink-0"
               />
@@ -394,7 +394,7 @@ const lblCls = 'text-[#94a3b8] block mb-1 text-xs font-bold';
             class="quick-race-option-card group rounded-2xl bg-[#18202e] border border-[#222f42] hover:border-amber-500/60 transition-all overflow-hidden flex flex-col shadow-lg"
           >
             <img
-              src={race.avatarUrl}
+              src={toAvatarThumb(race.avatarUrl)} decoding="async"
               alt={`Retrato de ${race.name}`}
               class="w-full aspect-[3/4] max-h-44 object-cover object-top group-hover:scale-105 transition-transform duration-500 bg-[#10141d]"
               loading="lazy"
@@ -440,7 +440,7 @@ const lblCls = 'text-[#94a3b8] block mb-1 text-xs font-bold';
             class="quick-class-option-card group rounded-2xl bg-[#18202e] border border-[#222f42] hover:border-amber-500/60 transition-all overflow-hidden flex flex-col shadow-lg"
           >
             <img
-              src={cls.avatarUrl}
+              src={toAvatarThumb(cls.avatarUrl)} decoding="async"
               alt={`Retrato de ${cls.name}`}
               class="w-full aspect-[3/4] max-h-44 object-cover object-top group-hover:scale-105 transition-transform duration-500 bg-[#10141d]"
               loading="lazy"
@@ -486,7 +486,7 @@ const lblCls = 'text-[#94a3b8] block mb-1 text-xs font-bold';
             class="quick-bg-option-card group rounded-2xl bg-[#18202e] border border-[#222f42] hover:border-amber-500/60 transition-all overflow-hidden flex flex-col shadow-lg"
           >
             <img
-              src={bg.avatarUrl}
+              src={toAvatarThumb(bg.avatarUrl)} decoding="async"
               alt={`Retrato de ${bg.name}`}
               class="w-full aspect-[3/4] max-h-44 object-cover object-top group-hover:scale-105 transition-transform duration-500 bg-[#10141d]"
               loading="lazy"
@@ -528,6 +528,7 @@ const lblCls = 'text-[#94a3b8] block mb-1 text-xs font-bold';
   import { campaignStore } from '../../scripts/state/campaignStore';
   import { initSteps } from '../../scripts/ui/modalSteps';
   import { telemetry } from '../../scripts/analytics/telemetry';
+  import { toAvatarThumb } from '../../scripts/data/characterAvatars';
   import {
     QUICK_RACES,
     QUICK_CLASSES,
@@ -662,7 +663,7 @@ const lblCls = 'text-[#94a3b8] block mb-1 text-xs font-bold';
   function updateBookmarkCardsUI() {
     // Update Race Bookmark Card
     if (raceCardImg) {
-      raceCardImg.src = selectedRace.avatarUrl;
+      raceCardImg.src = toAvatarThumb(selectedRace.avatarUrl);
       raceCardImg.alt = `Raza seleccionada: ${selectedRace.name}`;
     }
     if (raceCardIcon) raceCardIcon.innerHTML = selectedRace.raceIconSvg;
@@ -672,7 +673,7 @@ const lblCls = 'text-[#94a3b8] block mb-1 text-xs font-bold';
 
     // Update Class Bookmark Card
     if (classCardImg) {
-      classCardImg.src = selectedClass.avatarUrl;
+      classCardImg.src = toAvatarThumb(selectedClass.avatarUrl);
       classCardImg.alt = `Clase seleccionada: ${selectedClass.name}`;
     }
     if (classCardIcon) classCardIcon.innerHTML = selectedClass.classIconSvg;
@@ -682,7 +683,7 @@ const lblCls = 'text-[#94a3b8] block mb-1 text-xs font-bold';
 
     // Update Background Bookmark Card
     if (bgCardImg) {
-      bgCardImg.src = selectedBackground.avatarUrl;
+      bgCardImg.src = toAvatarThumb(selectedBackground.avatarUrl);
       bgCardImg.alt = `Trasfondo seleccionado: ${selectedBackground.name}`;
     }
     if (bgCardIcon) bgCardIcon.innerHTML = selectedBackground.backgroundIconSvg;
@@ -726,7 +727,7 @@ const lblCls = 'text-[#94a3b8] block mb-1 text-xs font-bold';
       statPreset: selectedStatPreset,
     });
 
-    if (summaryAvatar) summaryAvatar.src = built.avatarUrl || selectedAvatarUrl;
+    if (summaryAvatar) summaryAvatar.src = toAvatarThumb(built.avatarUrl || selectedAvatarUrl);
     if (summaryName) summaryName.textContent = built.name || 'Nuevo Aventurero';
     if (summarySubtitle) {
       summarySubtitle.textContent = `${selectedRace.name} • ${selectedClass.name} • ${selectedBackground.name} (Nvl. ${built.level})`;

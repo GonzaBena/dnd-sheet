@@ -61,6 +61,31 @@ export interface MapStageControllerOptions {
   initialMap?: MapDoc | null;
 }
 
+
+/** Lado (px) del bitmap cacheado por token: cubre zoom alto en pantallas retina sin redibujar originales enormes. */
+const TOKEN_BITMAP_SIZE = 384;
+
+/**
+ * Recorta al centro y reduce la imagen de un token a un canvas cuadrado pequeño. Konva redibuja los
+ * tokens en cada arrastre/zoom; remuestrear la imagen original (a veces de miles de px) en cada
+ * frame trababa la mesa. También evita la deformación de imágenes no cuadradas.
+ */
+function rasterizeTokenImage(img: HTMLImageElement): CanvasImageSource {
+  const w = img.naturalWidth;
+  const h = img.naturalHeight;
+  if (!w || !h) return img;
+  const side = Math.min(w, h);
+  const out = Math.min(TOKEN_BITMAP_SIZE, side);
+  const canvas = document.createElement('canvas');
+  canvas.width = out;
+  canvas.height = out;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return img;
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(img, (w - side) / 2, (h - side) / 2, side, side, 0, 0, out, out);
+  return canvas;
+}
+
 export class MapStageController extends EventTarget {
   private container: HTMLElement;
   private Konva: any;
@@ -119,7 +144,7 @@ export class MapStageController extends EventTarget {
   private draggingTokenId: string | null = null;
   private currentViewer: TokenViewer = { uid: null, isDm: false };
   private currentStatus: SessionStatus = 'active';
-  private imageCache = new Map<string, HTMLImageElement>();
+  private imageCache = new Map<string, CanvasImageSource>();
   private mapLoadSeq = 0;
   private remoteLivePositions = new Map<string, LiveTokenPosition>();
   private tweenStates = new Map<string, { x: number; y: number }>();
@@ -1128,7 +1153,7 @@ export class MapStageController extends EventTarget {
         }
         img.src = token.imageUrl;
         img.onload = () => {
-          this.imageCache.set(token.imageUrl!, img);
+          this.imageCache.set(token.imageUrl!, rasterizeTokenImage(img));
           if (this.tokenNodes.has(group.id())) {
             this.buildTokenVisuals(group, token, d);
             this.tokenLayer.batchDraw();
@@ -1557,7 +1582,7 @@ export class MapStageController extends EventTarget {
         img.src = token.imageUrl;
         const tidKey = group.id().replace('secret-', '');
         img.onload = () => {
-          this.imageCache.set(token.imageUrl!, img);
+          this.imageCache.set(token.imageUrl!, rasterizeTokenImage(img));
           if (this.secretTokenNodes.has(tidKey)) {
             this.buildSecretTokenVisuals(group, token, d);
             this.tokenLayer.batchDraw();

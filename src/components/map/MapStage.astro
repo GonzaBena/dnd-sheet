@@ -144,7 +144,7 @@ const { mode = 'player', class: className = '', id } = Astro.props;
     data-player-character-hud
     class="hidden absolute top-3 right-3 z-20 flex items-center gap-2 p-1.5 pr-2.5 rounded-xl bg-[#10141d]/90 backdrop-blur-md border border-[#222f42] shadow-xl font-label text-xs pointer-events-auto"
   >
-    <img
+    <img decoding="async"
       data-player-hud-avatar
       src="/characters/ch-1.avif"
       alt="Avatar"

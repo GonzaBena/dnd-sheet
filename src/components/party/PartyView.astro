@@ -813,7 +813,7 @@ import HandoutManager from '../dm/HandoutManager.astro';
       if (c.userId) card.dataset.presenceUid = c.userId;
       card.innerHTML = `
         <div class="flex items-center gap-3 min-w-0">
-          <img
+          <img decoding="async" loading="lazy"
             src="${c.avatarUrl || '/characters/ch-1.avif'}"
             alt="${c.name}"
             class="w-10 h-10 rounded-xl object-cover border border-[#222f42] shrink-0"

@@ -1,6 +1,6 @@
 ---
 // src/components/modals/EditCharacterModal.astro
-import { CHARACTER_PRESET_IMAGES } from '../../scripts/data/characterAvatars';
+import { CHARACTER_PRESET_IMAGES, toAvatarThumb } from '../../scripts/data/characterAvatars';
 ---
 
 <div id="edit-character-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -132,7 +132,7 @@ import { CHARACTER_PRESET_IMAGES } from '../../scripts/data/characterAvatars';
                   data-url={imgUrl}
                   title={`Retrato ${idx + 1}`}
                 >
-                  <img src={imgUrl} alt={`Retrato ${idx + 1}`} class="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                  <img decoding="async" loading="lazy" src={toAvatarThumb(imgUrl)} alt={`Retrato ${idx + 1}`} class="w-full h-full object-cover group-hover:scale-105 transition-transform" />
                 </button>
               ))}
             </div>

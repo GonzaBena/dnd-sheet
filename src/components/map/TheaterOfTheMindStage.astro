@@ -282,7 +282,7 @@
       card.innerHTML = `
         <div class="flex items-center gap-2 min-w-0">
           <div class="w-7 h-7 rounded-lg overflow-hidden shrink-0 border border-amber-500/30 bg-[#10141d]">
-            <img src="${esc(char.avatarUrl || '/characters/ch-1.avif')}" alt="${esc(char.name)}" class="w-full h-full object-cover" onerror="this.onerror=null;this.src='/characters/ch-1.avif';" />
+            <img decoding="async" loading="lazy" src="${esc(char.avatarUrl || '/characters/ch-1.avif')}" alt="${esc(char.name)}" class="w-full h-full object-cover" onerror="this.onerror=null;this.src='/characters/ch-1.avif';" />
           </div>
           <div class="min-w-0">
             <span class="font-headline font-bold text-xs text-[#f1f5f9] block truncate">${esc(char.name)}</span>

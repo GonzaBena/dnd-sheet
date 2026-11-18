@@ -9,6 +9,15 @@ export const CHARACTER_PRESET_IMAGES: readonly string[] = [
 ] as const;
 
 /**
+ * Devuelve la miniatura (480 px, generada con scripts/generate-avatar-thumbs.mjs) de un retrato
+ * predeterminado. Usar solo para mostrar: los originales miden ~3000 px y decodificarlos en
+ * tarjetas pequeñas traba la UI. URLs que no son retratos predeterminados se devuelven tal cual.
+ */
+export function toAvatarThumb(url: string): string {
+  return CHARACTER_PRESET_IMAGES.includes(url) ? url.replace('/characters/', '/characters/thumbs/') : url;
+}
+
+/**
  * Devuelve de manera aleatoria una imagen de los retratos predeterminados en /characters/.
  */
 export function getRandomCharacterAvatar(): string {

@@ -805,7 +805,7 @@ import DeleteAccountModal from '../components/modals/DeleteAccountModal.astro';
           card.innerHTML = `
             <!-- Card Image Header -->
             <div class="relative h-44 w-full overflow-hidden bg-[#18202e]">
-              <img src="${camp.imageUrl}" alt="${camp.name}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+              <img decoding="async" loading="lazy" src="${camp.imageUrl}" alt="${camp.name}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
               <div class="absolute inset-0 bg-gradient-to-t from-[#121721] via-[#121721]/40 to-transparent"></div>
 
               <!-- Badges top row -->
@@ -1022,7 +1022,7 @@ import DeleteAccountModal from '../components/modals/DeleteAccountModal.astro';
           charCard.innerHTML = `
             <div class="flex items-center gap-3 min-w-0">
               <div class="w-11 h-11 rounded-xl overflow-hidden shrink-0 border border-amber-500/30 bg-[#18202e]">
-                <img src="${char.avatarUrl || '/characters/ch-1.avif'}" alt="${char.name}" class="w-full h-full object-cover" onerror="this.onerror=null;this.src='/characters/ch-1.avif';" />
+                <img decoding="async" loading="lazy" src="${char.avatarUrl || '/characters/ch-1.avif'}" alt="${char.name}" class="w-full h-full object-cover" onerror="this.onerror=null;this.src='/characters/ch-1.avif';" />
               </div>
               <div class="min-w-0">
                 <div class="flex items-center gap-1.5 flex-wrap">

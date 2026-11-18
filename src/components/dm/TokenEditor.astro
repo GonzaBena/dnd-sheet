@@ -858,7 +858,7 @@
           'shrink-0 flex items-center gap-2 px-2.5 py-1.5 rounded-xl bg-[#18202e] hover:bg-[#222f42] border border-[#222f42] hover:border-amber-500/50 text-[#cbd5e1] hover:text-[#f1f5f9] transition-all cursor-pointer shadow-xs select-none';
 
         const avatarHtml = tok.imageUrl
-          ? `<img src="${esc(tok.imageUrl)}" class="w-5 h-5 rounded-full object-cover border border-[#222f42]" />`
+          ? `<img decoding="async" loading="lazy" src="${esc(tok.imageUrl)}" class="w-5 h-5 rounded-full object-cover border border-[#222f42]" />`
           : `<span class="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold text-white border border-[#222f42]" style="background-color: ${safeColor(tok.color, '#3b82f6')}">${esc((tok.name || 'T').substring(0, 1))}</span>`;
 
         chip.innerHTML = `
@@ -882,7 +882,7 @@
           'shrink-0 flex items-center gap-2 px-2.5 py-1.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/40 border-dashed text-amber-200 hover:text-amber-100 transition-all cursor-pointer shadow-xs select-none';
 
         const avatarHtml = tok.imageUrl
-          ? `<img src="${esc(tok.imageUrl)}" class="w-5 h-5 rounded-full object-cover border border-amber-500/50 opacity-75" />`
+          ? `<img decoding="async" loading="lazy" src="${esc(tok.imageUrl)}" class="w-5 h-5 rounded-full object-cover border border-amber-500/50 opacity-75" />`
           : `<span class="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold text-white border border-amber-500/50 opacity-75" style="background-color: ${safeColor(tok.color, '#d97706')}">${esc((tok.name || 'T').substring(0, 1))}</span>`;
 
         chip.innerHTML = `
@@ -945,7 +945,7 @@
         const avatar = char.avatarUrl || '/characters/ch-1.avif';
         const infoHtml = `
           <div class="flex items-center gap-2 min-w-0">
-            <img src="${esc(avatar)}" alt="${esc(char.name)}" class="w-7 h-7 rounded-lg object-cover border border-[#222f42] shrink-0" />
+            <img decoding="async" loading="lazy" src="${esc(avatar)}" alt="${esc(char.name)}" class="w-7 h-7 rounded-lg object-cover border border-[#222f42] shrink-0" />
             <div class="min-w-0">
               <span class="block font-headline font-bold text-[#f1f5f9] truncate max-w-[95px]">${esc(char.name)}</span>
               <span class="block text-[10px] text-[#94a3b8] truncate max-w-[95px]">${esc(char.race || '')} ${esc(char.className || 'Aventurero')}</span>
@@ -1176,7 +1176,7 @@
           'flex items-center justify-between gap-2 p-2 rounded-xl bg-[#141a24] border border-[#222f42] hover:border-[#334155] transition-all text-xs font-label';
 
         const avatarHtml = tok.imageUrl
-          ? `<img src="${esc(tok.imageUrl)}" class="w-7 h-7 rounded-lg object-cover border ${isSecret ? 'border-amber-500/50 opacity-75' : 'border-rose-500/40'} shrink-0" />`
+          ? `<img decoding="async" loading="lazy" src="${esc(tok.imageUrl)}" class="w-7 h-7 rounded-lg object-cover border ${isSecret ? 'border-amber-500/50 opacity-75' : 'border-rose-500/40'} shrink-0" />`
           : `<span class="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold text-white border ${isSecret ? 'border-amber-500/50' : 'border-rose-500/40'} shrink-0" style="background-color: ${safeColor(tok.color, '#ef4444')}">${esc((tok.name || 'E').substring(0, 1))}</span>`;
 
         card.innerHTML = `

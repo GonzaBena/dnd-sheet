@@ -27,7 +27,7 @@ const id = `${prefix}-detail`;
         id={`${id}-image-box`}
         class="w-24 h-24 sm:w-32 sm:h-32 shrink-0 rounded-lg border border-[#8c673b]/50 bg-[#5c3a1e]/10 flex items-center justify-center overflow-hidden"
       >
-        <img id={`${id}-image`} class="hidden w-full h-full object-cover" alt="" referrerpolicy="no-referrer" />
+        <img decoding="async" loading="lazy" id={`${id}-image`} class="hidden w-full h-full object-cover" alt="" referrerpolicy="no-referrer" />
         <span id={`${id}-fallback`} class="material-symbols-outlined text-5xl text-[#785125]"></span>
       </div>
 
