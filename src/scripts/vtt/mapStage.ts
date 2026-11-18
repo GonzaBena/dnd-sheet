@@ -86,6 +86,7 @@ export class MapStageController extends EventTarget {
   private turnTokenId: string | null = null;
   private turnRing: any = null;
   private turnRingState: { s: number; o: number } | null = null;
+  private reachRing: any = null;
 
   private bgImageNode: any;
   private gridShapeNode: any;
@@ -2113,6 +2114,7 @@ export class MapStageController extends EventTarget {
   public setTurnToken(tid: string | null): void {
     this.turnTokenId = tid;
     this.stopTurnRing();
+    this.clearReachRing();
     if (!tid) return;
     const c = this.tokenCenter(tid);
     if (!c) return; // Se reintenta en setTokens cuando aparezca el nodo.
@@ -2165,6 +2167,47 @@ export class MapStageController extends EventTarget {
   }
 
   /**
+   * Muestra un halo o anillo visual de alcance táctico alrededor de un token (Spec 13, H6 · RF-352).
+   */
+  public showReachRing(tid: string, reachFeet: number): void {
+    this.clearReachRing();
+    if (!tid || reachFeet <= 0) return;
+    const c = this.tokenCenter(tid);
+    if (!c) return;
+
+    const grid = this.currentMap?.grid || { size: 50 };
+    const cellSize = Math.max(1, grid.size);
+    const radiusPixels = c.r + (reachFeet / 5) * cellSize;
+
+    const ring = new this.Konva.Circle({
+      x: c.cx,
+      y: c.cy,
+      radius: radiusPixels,
+      stroke: '#38bdf8',
+      strokeWidth: 2,
+      dash: [6, 4],
+      fill: 'rgba(56, 189, 248, 0.06)',
+      listening: false,
+      perfectDrawEnabled: false,
+    });
+
+    this.fxLayer.add(ring);
+    this.reachRing = ring;
+    this.drawFx();
+  }
+
+  /**
+   * Oculta el anillo de alcance táctico.
+   */
+  public clearReachRing(): void {
+    if (this.reachRing) {
+      this.reachRing.destroy();
+      this.reachRing = null;
+      this.drawFx();
+    }
+  }
+
+  /**
    * Destruye el stage y libera observers y listeners.
    */
   public destroy(): void {
@@ -2173,6 +2216,7 @@ export class MapStageController extends EventTarget {
       this.resizeObserver = null;
     }
     this.stopTurnRing();
+    this.clearReachRing();
     this.cancelLongPress();
     this.endMeasure();
     this.clearToolLayer();

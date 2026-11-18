@@ -3,6 +3,7 @@
 
 import type { Combatant } from '../models/combat.ts';
 import type { AttackAction, SpellItem, InventoryItem } from '../models/character.ts';
+import type { MapDoc, Token, GridConfig, TotmZone } from '../models/map.ts';
 
 export interface ActionReach {
   normal: number;
@@ -275,4 +276,172 @@ export function validateActionForDistance(
     disadvantage: false,
     badgeText: '✓ En alcance óptimo',
   };
+}
+
+// ---------------------------------------------------------------------------
+// Geometría Táctica Token a Token (Spec 13, H6 · RF-350)
+// ---------------------------------------------------------------------------
+
+export interface TokenBounds {
+  minCol: number;
+  maxCol: number;
+  minRow: number;
+  maxRow: number;
+}
+
+export interface TokenDistanceResult {
+  cells: number;
+  feet: number;
+  adjacent: boolean;
+  overlapping: boolean;
+}
+
+/**
+ * Obtiene los límites de celdas de cuadrícula que ocupa un token según su posición y tamaño (1 a 4 celdas).
+ */
+export function getTokenGridBounds(
+  token: { x: number; y: number; size?: number },
+  grid: { size: number; offsetX?: number; offsetY?: number }
+): TokenBounds {
+  const gridSize = Math.max(1, grid.size);
+  const tokenCells = Math.max(1, token.size || 1);
+  const offsetX = grid.offsetX || 0;
+  const offsetY = grid.offsetY || 0;
+
+  const minCol = Math.round((token.x - offsetX) / gridSize);
+  const minRow = Math.round((token.y - offsetY) / gridSize);
+  const maxCol = minCol + tokenCells - 1;
+  const maxRow = minRow + tokenCells - 1;
+
+  return { minCol, maxCol, minRow, maxRow };
+}
+
+/**
+ * Calcula la distancia en celdas y pies entre dos tokens bajo la regla oficial Chebyshev 5/5/5 de D&D 5e.
+ * La distancia se mide borde a borde entre las casillas ocupadas por ambos tokens.
+ */
+export function calculateTokenDistanceFeet(
+  tokenA: { x: number; y: number; size?: number },
+  tokenB: { x: number; y: number; size?: number },
+  grid: { size: number; offsetX?: number; offsetY?: number }
+): TokenDistanceResult {
+  const boundsA = getTokenGridBounds(tokenA, grid);
+  const boundsB = getTokenGridBounds(tokenB, grid);
+
+  // Separación horizontal (en celdas)
+  let deltaCol = 0;
+  if (boundsB.minCol > boundsA.maxCol) {
+    deltaCol = boundsB.minCol - boundsA.maxCol;
+  } else if (boundsA.minCol > boundsB.maxCol) {
+    deltaCol = boundsA.minCol - boundsB.maxCol;
+  }
+
+  // Separación vertical (en celdas)
+  let deltaRow = 0;
+  if (boundsB.minRow > boundsA.maxRow) {
+    deltaRow = boundsB.minRow - boundsA.maxRow;
+  } else if (boundsA.minRow > boundsB.maxRow) {
+    deltaRow = boundsA.minRow - boundsB.maxRow;
+  }
+
+  // Distancia Chebyshev 5/5/5: el movimiento diagonal cuesta 5 pies (1 celda)
+  const cells = Math.max(deltaCol, deltaRow);
+  const feet = cells * 5;
+  const adjacent = cells === 1;
+  const overlapping = cells === 0;
+
+  return {
+    cells,
+    feet,
+    adjacent,
+    overlapping,
+  };
+}
+
+/**
+ * Calcula la distancia táctica en pies entre dos combatientes en Modo Teatro de la Mente (Spec 14, H7).
+ */
+export function calculateTotmDistanceFeet(
+  zoneA: TotmZone,
+  zoneB: TotmZone,
+  sameEngagement: boolean = false
+): TokenDistanceResult {
+  let feet = 30;
+  let cells = 6;
+
+  if (zoneA === 'melee' && zoneB === 'melee') {
+    feet = sameEngagement ? 5 : 10;
+    cells = sameEngagement ? 1 : 2;
+  } else if ((zoneA === 'melee' && zoneB === 'near') || (zoneA === 'near' && zoneB === 'melee')) {
+    feet = 30;
+    cells = 6;
+  } else if ((zoneA === 'melee' && zoneB === 'far') || (zoneA === 'far' && zoneB === 'melee')) {
+    feet = 60;
+    cells = 12;
+  } else if (zoneA === 'near' && zoneB === 'near') {
+    feet = 15;
+    cells = 3;
+  } else if ((zoneA === 'near' && zoneB === 'far') || (zoneA === 'far' && zoneB === 'near')) {
+    feet = 30;
+    cells = 6;
+  } else if (zoneA === 'far' && zoneB === 'far') {
+    feet = 30;
+    cells = 6;
+  }
+
+  return {
+    cells,
+    feet,
+    adjacent: feet <= 5,
+    overlapping: feet === 0,
+  };
+}
+
+/**
+ * Resuelve la distancia táctica entre dos combatientes buscando sus tokens en el mapa activo
+ * o resolviendo sus zonas en Modo Teatro de la Mente (TotM).
+ * Retorna null si alguno de los combatientes no posee token ni zona configurada.
+ */
+export function resolveCombatantDistance(
+  actor: { id: string; tokenId?: string; characterId?: string; totmZone?: TotmZone; totmEngagement?: string },
+  target: { id: string; tokenId?: string; characterId?: string; totmZone?: TotmZone; totmEngagement?: string },
+  mapDoc?: {
+    grid: { size: number; offsetX?: number; offsetY?: number };
+    tokens?: Record<string, { x: number; y: number; size?: number; characterId?: string }>;
+  } | null,
+  totmZones?: Record<string, TotmZone>
+): TokenDistanceResult | null {
+  // 1. Si se proveen zonas TotM o los combatientes tienen totmZone explícita
+  const zoneA = actor.totmZone || (totmZones ? totmZones[actor.id] || (actor.characterId ? totmZones[actor.characterId] : undefined) : undefined);
+  const zoneB = target.totmZone || (totmZones ? totmZones[target.id] || (target.characterId ? totmZones[target.characterId] : undefined) : undefined);
+
+  if (zoneA && zoneB) {
+    const sameEng = Boolean(actor.totmEngagement && target.totmEngagement && actor.totmEngagement === target.totmEngagement) || zoneA === 'melee';
+    return calculateTotmDistanceFeet(zoneA, zoneB, sameEng);
+  }
+
+  // 2. Fallback a mapa 2D con cuadrícula
+  if (!mapDoc || !mapDoc.tokens || !mapDoc.grid) return null;
+
+  const tokens = mapDoc.tokens;
+
+  // Buscar token del actor: por tokenId directo o por characterId
+  let tokenA: { x: number; y: number; size?: number; characterId?: string } | undefined;
+  if (actor.tokenId && tokens[actor.tokenId]) {
+    tokenA = tokens[actor.tokenId];
+  } else if (actor.characterId) {
+    tokenA = Object.values(tokens).find((t) => t.characterId === actor.characterId);
+  }
+
+  // Buscar token del target: por tokenId directo o por characterId
+  let tokenB: { x: number; y: number; size?: number; characterId?: string } | undefined;
+  if (target.tokenId && tokens[target.tokenId]) {
+    tokenB = tokens[target.tokenId];
+  } else if (target.characterId) {
+    tokenB = Object.values(tokens).find((t) => t.characterId === target.characterId);
+  }
+
+  if (!tokenA || !tokenB) return null;
+
+  return calculateTokenDistanceFeet(tokenA, tokenB, mapDoc.grid);
 }

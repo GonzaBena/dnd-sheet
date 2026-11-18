@@ -354,6 +354,8 @@ import HandoutManager from '../dm/HandoutManager.astro';
   import { syncCombatWithLiveCharacters } from '../../scripts/data/combatService.ts';
   import { applyHpAction } from '../../scripts/ui/hpActions.ts';
   import { initTabs } from '../../scripts/ui/tabs.ts';
+  // Títulos, contenido, autores, etiquetas y tiradas de la bitácora los escriben los usuarios: van por esc().
+  import { escapeHtml as esc } from '../../scripts/dnd/catalog.ts';
 
   const root = document.getElementById('party-view-root');
   const localNotice = document.getElementById('party-local-notice');
@@ -921,9 +923,9 @@ import HandoutManager from '../dm/HandoutManager.astro';
         if (e.diceRoll.hitOutcome === 'crit') {
           outcomeBadge = '<span class="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[10px] font-bold">¡Crítico!</span>';
         } else if (e.diceRoll.hitOutcome === 'hit') {
-          outcomeBadge = `<span class="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[10px] font-bold">Acierto${e.diceRoll.targetDc ? ` vs CD ${e.diceRoll.targetDc}` : ''}</span>`;
+          outcomeBadge = `<span class="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[10px] font-bold">Acierto${e.diceRoll.targetDc ? ` vs CD ${esc(e.diceRoll.targetDc)}` : ''}</span>`;
         } else if (e.diceRoll.hitOutcome === 'miss') {
-          outcomeBadge = `<span class="px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/40 text-[10px] font-bold">Fallo${e.diceRoll.targetDc ? ` vs CD ${e.diceRoll.targetDc}` : ''}</span>`;
+          outcomeBadge = `<span class="px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/40 text-[10px] font-bold">Fallo${e.diceRoll.targetDc ? ` vs CD ${esc(e.diceRoll.targetDc)}` : ''}</span>`;
         } else if (e.diceRoll.hitOutcome === 'fumble') {
           outcomeBadge = '<span class="px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/40 text-[10px] font-bold">Pifia</span>';
         } else if (e.diceRoll.hitOutcome === 'pending') {
@@ -931,10 +933,10 @@ import HandoutManager from '../dm/HandoutManager.astro';
         }
         extraBoxHtml = `
           <div class="p-2 rounded-lg bg-[#10141d] border border-amber-500/30 flex items-center justify-between text-xs my-1 gap-2 flex-wrap">
-            <span class="text-[#94a3b8]">${e.diceRoll.formula}</span>
+            <span class="text-[#94a3b8]">${esc(e.diceRoll.formula)}</span>
             <div class="flex items-center gap-2">
               ${outcomeBadge}
-              <span class="font-headline font-bold text-amber-400 text-sm">Resultado: ${e.diceRoll.result}</span>
+              <span class="font-headline font-bold text-amber-400 text-sm">Resultado: ${esc(e.diceRoll.result)}</span>
             </div>
           </div>
         `;
@@ -944,7 +946,7 @@ import HandoutManager from '../dm/HandoutManager.astro';
           extraBoxHtml = `
             <div class="p-2 rounded-lg bg-amber-500/15 border border-amber-500/40 flex items-center gap-1.5 my-1 text-amber-300 font-headline font-bold text-xs tracking-wider uppercase">
               <span class="material-symbols-outlined text-[16px] text-amber-400">military_tech</span>
-              <span>${milestoneBanner}</span>
+              <span>${esc(milestoneBanner)}</span>
             </div>
           `;
         }
@@ -954,7 +956,7 @@ import HandoutManager from '../dm/HandoutManager.astro';
         <div class="flex items-center justify-between gap-2 text-xs">
           <span class="font-headline font-bold text-[#f1f5f9] flex items-center gap-1.5 truncate">
             ${isStatusEvent ? '<span class="material-symbols-outlined text-[14px] text-amber-400">info</span>' : ''}
-            <span>${e.title}</span>
+            <span>${esc(e.title)}</span>
           </span>
           <div class="flex items-center gap-1.5 shrink-0">
             <span class="text-[10px] text-[#64748b] font-label">
@@ -964,7 +966,7 @@ import HandoutManager from '../dm/HandoutManager.astro';
               <button
                 type="button"
                 class="party-delete-entry-btn w-5 h-5 rounded hover:bg-rose-500/20 text-[#64748b] hover:text-rose-400 flex items-center justify-center transition-colors cursor-pointer"
-                data-id="${e.id}"
+                data-id="${esc(e.id)}"
                 title="Eliminar entrada de la crónica"
                 aria-label="Eliminar entrada"
               >
@@ -973,12 +975,12 @@ import HandoutManager from '../dm/HandoutManager.astro';
             ` : ''}
           </div>
         </div>
-        <p class="text-xs text-[#cbd5e1] leading-relaxed whitespace-pre-wrap">${e.content}</p>
+        <p class="text-xs text-[#cbd5e1] leading-relaxed whitespace-pre-wrap">${esc(e.content)}</p>
         ${extraBoxHtml}
         <div class="flex items-center justify-between gap-2 pt-1 border-t border-[#222f42]/60 text-[10px] text-[#64748b]">
-          <span>${e.authorName || 'Mesa'}</span>
+          <span>${esc(e.authorName || 'Mesa')}</span>
           <div class="flex items-center gap-1">
-            ${(e.tags || []).map(t => `<span class="px-1.5 py-0.5 rounded border ${badgeStyle}">${t}</span>`).join('')}
+            ${(e.tags || []).map(t => `<span class="px-1.5 py-0.5 rounded border ${badgeStyle}">${esc(t)}</span>`).join('')}
           </div>
         </div>
       `;

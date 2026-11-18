@@ -103,6 +103,26 @@
     </div>
   </div>
 
+  <!-- Sección de Enemigos, Monstruos y Criaturas en el Mapa -->
+  <div class="space-y-1.5 pt-2 border-t border-[#222f42]/60">
+    <div class="flex items-center justify-between text-[10px] uppercase font-bold text-[#64748b] tracking-wider px-1">
+      <span class="flex items-center gap-1.5">
+        <span class="material-symbols-outlined text-[15px] text-rose-400">swords</span>
+        <span>Enemigos y Criaturas en el mapa</span>
+      </span>
+      <span id="token-monsters-count" class="text-rose-400/80">0 criaturas</span>
+    </div>
+
+    <div
+      id="token-monsters-container"
+      class="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-[#222f42]"
+    >
+      <div class="p-2 text-center text-[#64748b] text-[11px] col-span-full">
+        No hay monstruos ni criaturas desplegadas en este mapa.
+      </div>
+    </div>
+  </div>
+
   <!-- Formulario Modal / Panel de Edición de Token -->
   <div
     id="token-editor-modal"
@@ -313,6 +333,7 @@
     updateToken,
     removeToken,
     subscribeMap,
+    subscribeDmOnly,
     addSecretToken,
     updateSecretToken,
     removeSecretToken,
@@ -322,7 +343,21 @@
   import { canPerform, normalizeStatus } from '../../scripts/vtt/sessionStatus.ts';
   import { snapToGrid } from '../../scripts/vtt/geometry.ts';
   import { showConfirm, showAlert, showForm } from '../../scripts/ui/notify.ts';
-  import { newTokenId } from '../../scripts/vtt/tokens.ts';
+  import { escapeHtml as esc } from '../../scripts/dnd/catalog.ts';
+
+  // Los nombres, avatares y colores de tokens y fichas los escriben los usuarios (en la nube, otros
+  // jugadores): todo lo que se interpola en innerHTML pasa por esc(). El color va dentro de un
+  // style, donde escapar no alcanza, así que solo se acepta un hex.
+  function safeColor(value: unknown, fallback: string): string {
+    return typeof value === 'string' && /^#[0-9a-f]{3,8}$/i.test(value) ? value : fallback;
+  }
+  import {
+    newTokenId,
+    buildCompanionToken,
+    findCharacterToken,
+    findMissingTokenOwners,
+    resolveTokenOwner,
+  } from '../../scripts/vtt/tokens.ts';
   import type { Token, MapDoc } from '../../scripts/models/map.ts';
   import { lockBodyScroll, unlockBodyScroll } from '../../scripts/ui/scrollLock.ts';
 
@@ -340,6 +375,8 @@
     const listCount = document.getElementById('token-list-count');
     const adventurersContainer = document.getElementById('token-adventurers-container');
     const adventurersCount = document.getElementById('token-adventurers-count');
+    const monstersContainer = document.getElementById('token-monsters-container');
+    const monstersCount = document.getElementById('token-monsters-count');
 
     // Modal y formulario
     const modal = document.getElementById('token-editor-modal');
@@ -371,6 +408,7 @@
     let currentSecretTokens: Record<string, Token> = {};
     let isCurrentlySecret = false;
     let mapUnsub: (() => void) | null = null;
+    let dmOnlyUnsub: (() => void) | null = null;
 
     function getActiveCampaignId(): string | null {
       let cid = campaignStore.getActiveCampaignId();
@@ -435,7 +473,7 @@
       characters.forEach((c) => {
         const opt = document.createElement('option');
         opt.value = c.id;
-        opt.textContent = `${c.name} (${c.race || ''} ${c.characterClass || ''})`;
+        opt.textContent = `${c.name} (${c.race || ''} ${c.className || ''})`;
         fieldChar.appendChild(opt);
       });
     }
@@ -669,7 +707,11 @@
 
     // Escuchar selección de token desde el canvas Konva
     window.addEventListener('token-selected', ((e: CustomEvent) => {
-      const { tid, token, isSecret } = e.detail || {};
+      const { tid, token, isSecret, mapId } = e.detail || {};
+      const cid = getActiveCampaignId();
+      if (cid && mapId && (!currentMap || currentMap.id !== mapId)) {
+        bindMapTokens(cid, mapId);
+      }
       if (tid && token) {
         openModal(token, tid, undefined, Boolean(isSecret));
       }
@@ -712,8 +754,12 @@
       const size = Number(sizeRadio?.value || 1) as 1 | 2 | 3 | 4;
       const color = fieldColor?.value || '#3b82f6';
       const imageUrl = fieldImageUrl?.value.trim() || undefined;
-      const ownerUid = fieldOwner?.value || null;
       const characterId = fieldChar?.value || undefined;
+      // Sin dueño elegido a mano, un token vinculado hereda el usuario actual del personaje.
+      const ownerUid = resolveTokenOwner(
+        { ownerUid: fieldOwner?.value || null, characterId },
+        campaignStore.getCharactersForCampaign(cid)
+      );
 
       const tokenData: Token = {
         name,
@@ -797,6 +843,8 @@
             No hay miniaturas desplegadas en este mapa. Toca "+ Nuevo Token" para añadir una.
           </div>
         `;
+        renderAdventurers();
+        renderMonsters(tokens);
         return;
       }
 
@@ -810,13 +858,13 @@
           'shrink-0 flex items-center gap-2 px-2.5 py-1.5 rounded-xl bg-[#18202e] hover:bg-[#222f42] border border-[#222f42] hover:border-amber-500/50 text-[#cbd5e1] hover:text-[#f1f5f9] transition-all cursor-pointer shadow-xs select-none';
 
         const avatarHtml = tok.imageUrl
-          ? `<img src="${tok.imageUrl}" class="w-5 h-5 rounded-full object-cover border border-[#222f42]" />`
-          : `<span class="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold text-white border border-[#222f42]" style="background-color: ${tok.color || '#3b82f6'}">${(tok.name || 'T').substring(0, 1)}</span>`;
+          ? `<img src="${esc(tok.imageUrl)}" class="w-5 h-5 rounded-full object-cover border border-[#222f42]" />`
+          : `<span class="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold text-white border border-[#222f42]" style="background-color: ${safeColor(tok.color, '#3b82f6')}">${esc((tok.name || 'T').substring(0, 1))}</span>`;
 
         chip.innerHTML = `
           ${avatarHtml}
-          <span class="font-bold text-xs truncate max-w-[100px]">${tok.name}</span>
-          <span class="text-[9px] px-1 py-0.2 rounded bg-[#10141d] text-[#94a3b8] font-mono">${tok.size}×${tok.size}</span>
+          <span class="font-bold text-xs truncate max-w-[100px]">${esc(tok.name)}</span>
+          <span class="text-[9px] px-1 py-0.2 rounded bg-[#10141d] text-[#94a3b8] font-mono">${esc(tok.size)}×${esc(tok.size)}</span>
         `;
 
         chip.addEventListener('click', () => {
@@ -834,16 +882,16 @@
           'shrink-0 flex items-center gap-2 px-2.5 py-1.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/40 border-dashed text-amber-200 hover:text-amber-100 transition-all cursor-pointer shadow-xs select-none';
 
         const avatarHtml = tok.imageUrl
-          ? `<img src="${tok.imageUrl}" class="w-5 h-5 rounded-full object-cover border border-amber-500/50 opacity-75" />`
-          : `<span class="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold text-white border border-amber-500/50 opacity-75" style="background-color: ${tok.color || '#d97706'}">${(tok.name || 'T').substring(0, 1)}</span>`;
+          ? `<img src="${esc(tok.imageUrl)}" class="w-5 h-5 rounded-full object-cover border border-amber-500/50 opacity-75" />`
+          : `<span class="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold text-white border border-amber-500/50 opacity-75" style="background-color: ${safeColor(tok.color, '#d97706')}">${esc((tok.name || 'T').substring(0, 1))}</span>`;
 
         chip.innerHTML = `
           ${avatarHtml}
           <div class="flex items-center gap-1 min-w-0">
-            <span class="font-bold text-xs truncate max-w-[90px]">${tok.name}</span>
+            <span class="font-bold text-xs truncate max-w-[90px]">${esc(tok.name)}</span>
             <span class="text-[8px] font-bold px-1 py-0.5 rounded bg-amber-500/30 text-amber-300">OCULTO</span>
           </div>
-          <span class="text-[9px] px-1 py-0.2 rounded bg-[#10141d] text-[#94a3b8] font-mono">${tok.size}×${tok.size}</span>
+          <span class="text-[9px] px-1 py-0.2 rounded bg-[#10141d] text-[#94a3b8] font-mono">${esc(tok.size)}×${esc(tok.size)}</span>
         `;
 
         chip.addEventListener('click', () => {
@@ -854,6 +902,7 @@
       });
 
       renderAdventurers();
+      renderMonsters(tokens);
     }
 
     // Renderizar lista de aventureros de la campaña para despliegue rápido
@@ -887,12 +936,7 @@
       const tokens = currentMap?.tokens || {};
 
       characters.forEach((char) => {
-        const existingTokenEntry = Object.entries(tokens).find(
-          ([_, t]) =>
-            t.characterId === char.id ||
-            (char.userId && t.ownerUid === char.userId) ||
-            t.name.toLowerCase() === char.name.toLowerCase()
-        );
+        const existingTokenEntry = findCharacterToken(tokens, char.id);
 
         const card = document.createElement('div');
         card.className =
@@ -901,10 +945,10 @@
         const avatar = char.avatarUrl || '/characters/ch-1.avif';
         const infoHtml = `
           <div class="flex items-center gap-2 min-w-0">
-            <img src="${avatar}" alt="${char.name}" class="w-7 h-7 rounded-lg object-cover border border-[#222f42] shrink-0" />
+            <img src="${esc(avatar)}" alt="${esc(char.name)}" class="w-7 h-7 rounded-lg object-cover border border-[#222f42] shrink-0" />
             <div class="min-w-0">
-              <span class="block font-headline font-bold text-[#f1f5f9] truncate max-w-[95px]">${char.name}</span>
-              <span class="block text-[10px] text-[#94a3b8] truncate max-w-[95px]">${char.race || ''} ${char.characterClass || 'Aventurero'}</span>
+              <span class="block font-headline font-bold text-[#f1f5f9] truncate max-w-[95px]">${esc(char.name)}</span>
+              <span class="block text-[10px] text-[#94a3b8] truncate max-w-[95px]">${esc(char.race || '')} ${esc(char.className || 'Aventurero')}</span>
             </div>
           </div>
         `;
@@ -979,23 +1023,291 @@
         }
 
         adventurersContainer.appendChild(card);
+
+        // Miniaturas de Compañeros, Monturas e Invocaciones del personaje (Spec 13, H6)
+        const companions = (char as any).companions || [];
+        companions.forEach((comp: any) => {
+          const compCard = document.createElement('div');
+          compCard.className =
+            'flex items-center justify-between gap-2 p-1.5 pl-3 rounded-lg bg-[#0e131b] border border-[#1e293b] hover:border-[#334155] transition-all text-xs font-label ml-4 border-l-2 border-l-amber-500/60';
+
+          const existingCompTokenEntry = Object.entries(tokens).find(
+            ([_, t]) =>
+              t.companionId === comp.id ||
+              (t.characterId === char.id && t.name.toLowerCase().includes(comp.name.toLowerCase()))
+          );
+
+          const compTypeLabel = comp.type === 'familiar' ? 'Familiar' : comp.type === 'mount' ? 'Montura' : comp.type === 'summon' ? 'Invocación' : 'Compañero';
+          const compInfoHtml = `
+            <div class="flex items-center gap-1.5 min-w-0">
+              <span class="material-symbols-outlined text-[14px] text-amber-400">pets</span>
+              <div class="min-w-0">
+                <span class="block font-headline font-bold text-[#e2e8f0] truncate max-w-[95px]">${esc(comp.name)}</span>
+                <span class="block text-[9px] text-[#94a3b8] truncate">${compTypeLabel} (${esc(comp.size || 1)}x${esc(comp.size || 1)})</span>
+              </div>
+            </div>
+          `;
+
+          if (existingCompTokenEntry) {
+            const [compTid] = existingCompTokenEntry;
+            compCard.innerHTML = `
+              ${compInfoHtml}
+              <div class="flex items-center gap-1.5 shrink-0">
+                <span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                  En mapa
+                </span>
+                <button
+                  type="button"
+                  data-action="center"
+                  class="px-2 py-0.5 rounded bg-[#18202e] hover:bg-[#222f42] text-[#cbd5e1] hover:text-amber-300 text-[10px] font-bold transition-colors cursor-pointer"
+                  title="Centrar mapa en este compañero"
+                >
+                  Centrar
+                </button>
+              </div>
+            `;
+            compCard.querySelector('[data-action="center"]')?.addEventListener('click', () => {
+              window.dispatchEvent(new CustomEvent('map-center-token', { detail: { tid: compTid } }));
+            });
+          } else {
+            compCard.innerHTML = `
+              ${compInfoHtml}
+              <button
+                type="button"
+                data-action="deploy-companion"
+                class="px-2 py-0.5 rounded bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 hover:text-amber-200 text-[10px] font-bold transition-all active:scale-95 cursor-pointer shrink-0"
+                title="Desplegar miniatura de este compañero"
+              >
+                + Desplegar
+              </button>
+            `;
+            compCard.querySelector('[data-action="deploy-companion"]')?.addEventListener('click', async () => {
+              if (!currentMap) {
+                showAlert('No hay un mapa activo donde desplegar la miniatura.', { title: 'Sin Mapa' });
+                return;
+              }
+              if (!checkCanEdit()) {
+                showAlert('No puedes desplegar tokens con la partida terminada.', { title: 'Partida Terminada' });
+                return;
+              }
+
+              const grid = currentMap.grid || { size: 50, offsetX: 0, offsetY: 0, visible: true };
+              const centerX = currentMap.imageWidth ? currentMap.imageWidth / 2 : 400;
+              const centerY = currentMap.imageHeight ? currentMap.imageHeight / 2 : 400;
+              const snapped = snapToGrid({ x: centerX + 50, y: centerY }, grid);
+
+              const token = buildCompanionToken(
+                comp,
+                { id: char.id, name: char.name },
+                char.userId || '',
+                { x: snapped.x, y: snapped.y }
+              );
+
+              try {
+                const tid = newTokenId('tok-comp');
+                await addToken(cid, currentMap.id, token, tid);
+              } catch (err: any) {
+                console.error('[TokenEditor] Error desplegando compañero:', err);
+                showAlert(err?.message || 'Error al desplegar compañero.', { title: 'Error' });
+              }
+            });
+          }
+
+          adventurersContainer.appendChild(compCard);
+        });
       });
     }
 
-    // Suscribirse al mapa activo para actualizar la lista de tokens
+    // Renderizar lista de monstruos, oponentes y criaturas en el mapa actual
+    function renderMonsters(tokens: Record<string, Token>) {
+      if (!monstersContainer) return;
+      const cid = getActiveCampaignId();
+      if (!cid || !currentMap) {
+        monstersContainer.innerHTML = `
+          <div class="p-2.5 text-center text-[#64748b] text-[11px] col-span-full">
+            Sin mapa activo o seleccionado.
+          </div>
+        `;
+        if (monstersCount) monstersCount.textContent = '0 criaturas';
+        return;
+      }
+
+      const characters = campaignStore.getCharactersForCampaign(cid);
+      const charIds = new Set(characters.map((c) => c.id));
+      const compTokenIds = new Set(
+        characters.flatMap((c) => (c.companions || []).map((comp) => comp.tokenId).filter(Boolean))
+      );
+
+      const visibleEntries = Object.entries(tokens || {}).filter(([tid, tok]) => {
+        if (tok.characterId && charIds.has(tok.characterId)) return false;
+        if (compTokenIds.has(tid)) return false;
+        return true;
+      });
+
+      const secretEntries = Object.entries(currentSecretTokens || {}).filter(([tid, tok]) => {
+        if (tok.characterId && charIds.has(tok.characterId)) return false;
+        if (compTokenIds.has(tid)) return false;
+        return true;
+      });
+
+      const allMonsters = [
+        ...visibleEntries.map(([tid, tok]) => ({ tid, tok, isSecret: false })),
+        ...secretEntries.map(([tid, tok]) => ({ tid, tok, isSecret: true })),
+      ];
+
+      if (monstersCount) {
+        monstersCount.textContent = `${allMonsters.length} criatura${allMonsters.length === 1 ? '' : 's'}${secretEntries.length > 0 ? ` (${secretEntries.length} oculta${secretEntries.length === 1 ? '' : 's'})` : ''}`;
+      }
+
+      if (allMonsters.length === 0) {
+        monstersContainer.innerHTML = `
+          <div class="p-2.5 text-center text-[#64748b] text-[11px] col-span-full italic">
+            No hay monstruos ni criaturas desplegadas en este mapa. Usa "+ Enemigo" para colocar una.
+          </div>
+        `;
+        return;
+      }
+
+      monstersContainer.innerHTML = '';
+
+      allMonsters.forEach(({ tid, tok, isSecret }) => {
+        const card = document.createElement('div');
+        card.className =
+          'flex items-center justify-between gap-2 p-2 rounded-xl bg-[#141a24] border border-[#222f42] hover:border-[#334155] transition-all text-xs font-label';
+
+        const avatarHtml = tok.imageUrl
+          ? `<img src="${esc(tok.imageUrl)}" class="w-7 h-7 rounded-lg object-cover border ${isSecret ? 'border-amber-500/50 opacity-75' : 'border-rose-500/40'} shrink-0" />`
+          : `<span class="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold text-white border ${isSecret ? 'border-amber-500/50' : 'border-rose-500/40'} shrink-0" style="background-color: ${safeColor(tok.color, '#ef4444')}">${esc((tok.name || 'E').substring(0, 1))}</span>`;
+
+        card.innerHTML = `
+          <div class="flex items-center gap-2 min-w-0">
+            ${avatarHtml}
+            <div class="min-w-0">
+              <div class="flex items-center gap-1.5 flex-wrap">
+                <span class="block font-headline font-bold text-[#f1f5f9] truncate max-w-[105px]">${esc(tok.name)}</span>
+                <span class="text-[9px] px-1 py-0.2 rounded bg-[#10141d] text-[#94a3b8] font-mono">${esc(tok.size)}×${esc(tok.size)}</span>
+                ${isSecret ? '<span class="text-[8px] font-bold px-1 py-0.2 rounded bg-amber-500/30 text-amber-300">OCULTO</span>' : ''}
+              </div>
+              <span class="block text-[10px] text-[#64748b] font-mono">(${Math.round(tok.x || 0)}, ${Math.round(tok.y || 0)})</span>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-1 shrink-0">
+            <button
+              type="button"
+              data-action="center"
+              class="px-2 py-1 rounded-lg bg-[#18202e] hover:bg-[#222f42] text-[#cbd5e1] hover:text-amber-300 text-[10px] font-bold transition-colors cursor-pointer"
+              title="Centrar mapa en este token"
+            >
+              Centrar
+            </button>
+            <button
+              type="button"
+              data-action="edit"
+              class="w-6 h-6 rounded-lg bg-[#18202e] hover:bg-[#222f42] text-[#94a3b8] hover:text-[#f1f5f9] flex items-center justify-center transition-colors cursor-pointer"
+              title="Configurar token"
+            >
+              <span class="material-symbols-outlined text-[13px]">settings</span>
+            </button>
+            <button
+              type="button"
+              data-action="delete"
+              class="w-6 h-6 rounded-lg bg-[#18202e] hover:bg-rose-500/20 text-rose-400 hover:text-rose-300 flex items-center justify-center transition-colors cursor-pointer"
+              title="Eliminar del mapa"
+            >
+              <span class="material-symbols-outlined text-[13px]">delete</span>
+            </button>
+          </div>
+        `;
+
+        card.querySelector('[data-action="center"]')?.addEventListener('click', () => {
+          window.dispatchEvent(new CustomEvent('map-center-token', { detail: { tid } }));
+        });
+
+        card.querySelector('[data-action="edit"]')?.addEventListener('click', () => {
+          openModal(tok, tid, undefined, isSecret);
+        });
+
+        card.querySelector('[data-action="delete"]')?.addEventListener('click', async () => {
+          if (!currentMap) return;
+          const ok = await showConfirm(`¿Eliminar la miniatura de "${tok.name}" del mapa?`, {
+            title: 'Eliminar Token',
+            kind: 'warning',
+            confirmText: 'Eliminar',
+          });
+          if (!ok) return;
+          try {
+            if (isSecret) {
+              await removeSecretToken(cid, currentMap.id, tid);
+            } else {
+              await removeToken(cid, currentMap.id, tid);
+            }
+          } catch (err: any) {
+            showAlert(`Error al eliminar token: ${err?.message || err}`, { kind: 'error' });
+          }
+        });
+
+        monstersContainer.appendChild(card);
+      });
+    }
+
+    // Suscribirse al mapa activo o seleccionado para actualizar la lista de tokens
     function bindMapTokens(cid: string, mid: string) {
       if (mapUnsub) {
         mapUnsub();
         mapUnsub = null;
       }
+      if (dmOnlyUnsub) {
+        dmOnlyUnsub();
+        dmOnlyUnsub = null;
+      }
       mapUnsub = subscribeMap(cid, mid, (map) => {
         currentMap = map;
         if (map) {
           renderChips(map.tokens || {});
+          void healTokenOwners();
         } else {
           renderChips({});
         }
       });
+      // Solo el DM puede leer private/dmOnly. Si un jugador abre esa suscripción, las reglas la
+      // rechazan y Firestore 10.x queda en "INTERNAL ASSERTION FAILED: Unexpected state", lo que
+      // corta todos los demás onSnapshot de la página. Si el rol cambia, campaigns-updated
+      // vuelve a llamar a bindMapTokens.
+      if (campaignStore.isCurrentUserDm(cid)) {
+        dmOnlyUnsub = subscribeDmOnly(cid, mid, (dmOnly) => {
+          currentSecretTokens = dmOnly.secretTokens || {};
+          renderChips(currentMap?.tokens || {});
+        });
+      } else {
+        currentSecretTokens = {};
+      }
+    }
+
+    // Completa el dueño de tokens de personaje que quedaron sin ownerUid (p. ej. desplegados
+    // antes de que la ficha estuviera vinculada a un usuario). Solo rellena huecos: nunca
+    // pisa un dueño elegido a mano. Al quedar asignado deja de figurar, así que no hay bucle.
+    const healingOwners = new Set<string>();
+    async function healTokenOwners() {
+      const cid = getActiveCampaignId();
+      const map = currentMap;
+      if (!cid || !map || !checkCanEdit()) return;
+      const fixes = findMissingTokenOwners(
+        map.tokens || {},
+        campaignStore.getCharactersForCampaign(cid)
+      ).filter(({ tid }) => !healingOwners.has(`${map.id}/${tid}`));
+
+      for (const { tid, ownerUid } of fixes) {
+        const key = `${map.id}/${tid}`;
+        healingOwners.add(key);
+        try {
+          await updateToken(cid, map.id, tid, { ownerUid });
+        } catch (err) {
+          console.warn('[TokenEditor] No se pudo asignar el dueño del token:', tid, err);
+        } finally {
+          healingOwners.delete(key);
+        }
+      }
     }
 
     function checkActiveMap() {
@@ -1005,10 +1317,14 @@
       const mid = camp?.activeMapId;
       if (mid) {
         bindMapTokens(cid, mid);
-      } else {
+      } else if (!currentMap) {
         if (mapUnsub) {
           mapUnsub();
           mapUnsub = null;
+        }
+        if (dmOnlyUnsub) {
+          dmOnlyUnsub();
+          dmOnlyUnsub = null;
         }
         currentMap = null;
         renderChips({});
@@ -1021,7 +1337,20 @@
     window.addEventListener('active-map-changed', () => checkActiveMap());
     window.addEventListener('campaigns-updated', () => checkActiveMap());
     window.addEventListener('active-campaign-changed', () => checkActiveMap());
-    window.addEventListener('characters-updated', () => renderAdventurers());
+    window.addEventListener('open-dm-map', ((e: CustomEvent<{ cid: string; mid: string }>) => {
+      if (e.detail?.cid && e.detail?.mid) {
+        bindMapTokens(e.detail.cid, e.detail.mid);
+      }
+    }) as EventListener);
+    window.addEventListener('map-stage-loaded', ((e: CustomEvent<{ cid: string; mid: string; map: MapDoc }>) => {
+      if (e.detail?.cid && e.detail?.mid) {
+        bindMapTokens(e.detail.cid, e.detail.mid);
+      }
+    }) as EventListener);
+    window.addEventListener('all-characters-updated', () => {
+      renderAdventurers();
+      void healTokenOwners();
+    });
   }
 
   if (typeof document !== 'undefined') {

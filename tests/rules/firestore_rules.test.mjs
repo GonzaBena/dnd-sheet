@@ -105,6 +105,13 @@ test('cada uno edita solo su perfil y sin campos extra', async () => {
   await assertSucceeds(getDoc(doc(db(STRANGER), 'users', PLAYER)));
 });
 
+test('un usuario puede borrar su propio perfil pero no el de otros', async () => {
+  await assertSucceeds(setDoc(doc(db(PLAYER), 'users', PLAYER), { name: 'Elena' }));
+  await assertFails(deleteDoc(doc(db(STRANGER), 'users', PLAYER)));
+  await assertFails(deleteDoc(doc(anon(), 'users', PLAYER)));
+  await assertSucceeds(deleteDoc(doc(db(PLAYER), 'users', PLAYER)));
+});
+
 test('las notas personales son privadas', async () => {
   const note = { id: 'n1', authorUid: PLAYER, visibility: 'player', title: 'x', content: 'y', timestamp: 1, tags: [] };
   await assertSucceeds(setDoc(doc(db(PLAYER), 'users', PLAYER, 'notes', 'n1'), note));
@@ -216,6 +223,7 @@ test('el dueño escribe recursos, efectos e imagen de objetos; el DM no (Spec 07
   await assertSucceeds(updateDoc(doc(db(PLAYER), 'characters', 'char-player'), sheet));
   await assertFails(updateDoc(doc(db(DM), 'characters', 'char-player'), { activeEffects: [] }));
   await assertFails(updateDoc(doc(db(DM), 'characters', 'char-player'), { resources: [] }));
+  await assertFails(updateDoc(doc(db(DM), 'characters', 'char-player'), { hitDice: { total: 5, remaining: 5, die: 'd10' } }));
   // Regresión: el DM sigue pudiendo escribir PG e inspiración.
   await assertSucceeds(updateDoc(doc(db(DM), 'characters', 'char-player'), { hp: { current: 5, max: 20, temp: 0 }, hpRev: 1, inspiration: true, updatedAt: 4 }));
 });

@@ -79,12 +79,21 @@ export async function migrateLocalData(db: Firestore, me: AppUser): Promise<Migr
   };
 
   const localUserId = localStorage.getItem(KEYS.currentUser) || 'user-me';
-  const isMine = (ownerId?: string) => !ownerId || ownerId === localUserId;
+  const isMine = (ownerId?: string) => !ownerId || ownerId === localUserId || ownerId === me.id;
 
-  const campaigns = (readJson<Campaign[]>(KEYS.campaigns) || [])
-    .filter(c => c && (c.dmId === localUserId || c.creatorId === localUserId));
-  const characters = (readJson<CharacterData[]>(KEYS.characters) || [])
+  const rawCampaigns = readJson<Campaign[]>(KEYS.campaigns) || [];
+  const campaigns = rawCampaigns.filter(c => c && (c.dmId === localUserId || c.creatorId === localUserId || c.dmId === me.id || c.creatorId === me.id));
+  let characters = (readJson<CharacterData[]>(KEYS.characters) || [])
     .filter(c => c && isMine(c.userId));
+
+  // Incorporar la ficha activa si no está en la lista de personajes
+  const activeLocal = readJson<CharacterData>(KEYS.activeCharacter) || readJson<CharacterData>('dnd_character_v1');
+  if (activeLocal && activeLocal.name && isMine(activeLocal.userId)) {
+    if (!characters.some(c => c.id === activeLocal.id || c.name === activeLocal.name)) {
+      characters.push(activeLocal);
+    }
+  }
+
   const defaultIds = new Set(defaultJournal.map(e => e.id));
   const entries = (readJson<JournalEntry[]>(KEYS.journal) || [])
     .filter(e => e && !defaultIds.has(e.id));
@@ -94,13 +103,16 @@ export async function migrateLocalData(db: Firestore, me: AppUser): Promise<Migr
     return null;
   }
 
-  const accepted = await showConfirm(
-    `• ${campaigns.length} campaña(s) donde sos DM o creador\n` +
-    `• ${characters.length} personaje(s)\n` +
-    `• ${entries.length} entrada(s) del diario\n\n` +
-    `Se guarda una copia local por las dudas.`,
-    { title: '¿Importar los datos de este navegador a tu cuenta?', confirmText: 'Importar', cancelText: 'No, empezar de cero' }
-  );
+  const isOnlySingleCharacter = campaigns.length === 0 && characters.length <= 1 && entries.length === 0;
+  const accepted = isOnlySingleCharacter
+    ? true
+    : await showConfirm(
+        `• ${campaigns.length} campaña(s) donde sos DM o creador\n` +
+        `• ${characters.length} personaje(s)\n` +
+        `• ${entries.length} entrada(s) del diario\n\n` +
+        `Se guarda una copia local por las dudas.`,
+        { title: '¿Importar los datos de este navegador a tu cuenta?', confirmText: 'Importar', cancelText: 'No, empezar de cero' }
+      );
   if (!accepted) {
     backupLocalKeys();
     await markDone();

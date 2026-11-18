@@ -20,6 +20,7 @@ function handleSnapshot(cid: string, combat: Combat | null) {
   if (campaignStore.isCurrentUserDm(cid)) return;
   // Una sola escritura por snapshot (tick + marca). El store aplica la regla de "no descontar si la ronda retrocede".
   characterStore.syncEffectsRound(cid, combat.round);
+  characterStore.syncCombatTurn(combat);
 }
 
 function resubscribe() {

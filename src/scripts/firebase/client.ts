@@ -51,7 +51,14 @@ export function getFirebase(): Promise<FirebaseClient> {
   if (!clientPromise) {
     clientPromise = (async () => {
       const { initializeApp, getApps } = await import('firebase/app');
-      const { getAuth, connectAuthEmulator } = await import('firebase/auth');
+      const {
+        getAuth,
+        initializeAuth,
+        indexedDBLocalPersistence,
+        browserLocalPersistence,
+        browserPopupRedirectResolver,
+        connectAuthEmulator,
+      } = await import('firebase/auth');
       const {
         initializeFirestore,
         getFirestore,
@@ -62,7 +69,15 @@ export function getFirebase(): Promise<FirebaseClient> {
       const { getDatabase, connectDatabaseEmulator } = await import('firebase/database');
 
       const app = getApps()[0] || initializeApp(firebaseConfig);
-      const auth = getAuth(app);
+      let auth: Auth;
+      try {
+        auth = initializeAuth(app, {
+          persistence: [indexedDBLocalPersistence, browserLocalPersistence],
+          popupRedirectResolver: browserPopupRedirectResolver,
+        });
+      } catch (_) {
+        auth = getAuth(app);
+      }
 
       let db: Firestore;
       try {

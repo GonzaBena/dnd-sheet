@@ -82,6 +82,7 @@
 
   let currentCid: string | null = null;
   let unsubscribe: (() => void) | null = null;
+  let subscribedAsDm = false;
   let items: Handout[] = [];
 
   function getCid(): string | null {
@@ -280,14 +281,24 @@
   function init() {
     const cid = getCid();
     if (!cid) return;
-    if (cid !== currentCid) {
+    // El listado completo de handouts es solo para el DM: si un jugador abre esta consulta, las
+    // reglas la rechazan y Firestore 10.x queda en "INTERNAL ASSERTION FAILED", lo que corta el
+    // resto de la sincronización en vivo. Se vuelve a evaluar en cada campaigns-updated.
+    const isDm = campaignStore.isCurrentUserDm(cid);
+    if (cid !== currentCid || isDm !== subscribedAsDm) {
       unsubscribe?.();
+      unsubscribe = null;
       currentCid = cid;
+      subscribedAsDm = isDm;
       items = [];
-      unsubscribe = subscribeHandouts(cid, true, '', (list) => {
-        items = list;
+      if (isDm) {
+        unsubscribe = subscribeHandouts(cid, true, '', (list) => {
+          items = list;
+          render();
+        });
+      } else {
         render();
-      });
+      }
     }
     applyLocks();
   }

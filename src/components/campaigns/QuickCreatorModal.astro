@@ -527,6 +527,7 @@ const lblCls = 'text-[#94a3b8] block mb-1 text-xs font-bold';
   import { showAlert } from '../../scripts/ui/notify';
   import { campaignStore } from '../../scripts/state/campaignStore';
   import { initSteps } from '../../scripts/ui/modalSteps';
+  import { telemetry } from '../../scripts/analytics/telemetry';
   import {
     QUICK_RACES,
     QUICK_CLASSES,
@@ -889,6 +890,7 @@ const lblCls = 'text-[#94a3b8] block mb-1 text-xs font-bold';
   window.addEventListener('open-quick-creator-modal', ((e: CustomEvent<{ targetCampaignId?: string | null }>) => {
     currentTargetCampaignId = e.detail?.targetCampaignId ?? null;
     resetQuickCreator();
+    telemetry.track('character_creator_open', { creatorType: 'quick' });
     if (dialog && !dialog.open) {
       dialog.showModal();
     }
@@ -919,6 +921,11 @@ const lblCls = 'text-[#94a3b8] block mb-1 text-xs font-bold';
 
     try {
       const created = campaignStore.createCharacter(charData, currentTargetCampaignId);
+      telemetry.track('character_creator_complete', {
+        creatorType: 'quick',
+        race: created.race,
+        className: created.className,
+      });
       showAlert(
         `¡${created.name} (${created.race} • ${created.className} • ${selectedBackground.name} Nvl. ${created.level}) está listo para la aventura!`,
         { kind: 'success', title: 'Personaje creado' }

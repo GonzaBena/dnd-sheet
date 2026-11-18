@@ -11,6 +11,7 @@ export interface Resource {
   rechargeOn: RechargeOn;
   source?: string; // 'wildShape' | 'feature:<id>' | 'custom'
   values?: number[]; // dados guardados (RF-235); longitud <= max
+  dieType?: string; // tipo de dado a generar en descanso largo (ej. 'd20' para Portento)
 }
 
 export const SPELL_LEVELS = [1, 2, 3, 4, 5, 6, 7, 8, 9] as const;

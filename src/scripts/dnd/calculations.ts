@@ -2,6 +2,7 @@ import type { CharacterData, StatBlock, SkillItem } from '../models/character';
 import { migrateSlots, migrateResources } from './resources.ts';
 import { migrateAttuned } from './equipment.ts';
 import { migrateArmorClass } from './ac.ts';
+import { syncHitDicePools } from './rests.ts';
 import { computeStat, ABILITY_KEYS, resolveModifierValue, STAT_MAX_LIMIT, STAT_MIN_LIMIT } from './stats.ts';
 import { collectModifiers } from './effects.ts';
 import { getSpellSlotsForClass, getSpellcastingAbilityForClass } from './spellSlots.ts';
@@ -149,13 +150,11 @@ export function recalculateCharacter(char: CharacterData): CharacterData {
   if (!Array.isArray(char.proficiencies.weapons)) char.proficiencies.weapons = [];
   // Spec 08, Fase D (FD-6): `armorClass` pasa a ser un override; si coincide con el cálculo se limpia.
   migrateArmorClass(char);
-  // 1 dado de golpe por nivel: si el total quedó atrás (nivel cambiado por otra vía), se alinea.
-  // DECISION: los dados ganados llegan sin gastar y los sobrantes se recortan; idempotente.
-  if (char.hitDice && Number.isFinite(char.level) && char.level >= 1 && char.hitDice.total !== char.level) {
-    const diff = char.level - char.hitDice.total;
-    char.hitDice.total = char.level;
-    char.hitDice.remaining = Math.max(0, Math.min(char.level, char.hitDice.remaining + Math.max(diff, 0)));
-  }
+  // Spec 10, Fase A: Sincronización de dados de golpe (monoclass y multiclass) alineada al nivel.
+  syncHitDicePools(char);
+  // Spec 11, Fase A: Estado volátil de turno para combate.
+  if (!char.turnState) char.turnState = { usedModifiers: [] };
+  if (!Array.isArray(char.turnState.usedModifiers)) char.turnState.usedModifiers = [];
   // DECISION (FD-9): `armorNote` ya no es la descripción automática. La nota que traía el personaje de
   // ejemplo se limpia (exacta, para no tocar notas escritas por el usuario).
   if (char.armorNote === 'Cuero tach. + Escudo') char.armorNote = '';
@@ -320,20 +319,20 @@ export function recalculateCharacter(char: CharacterData): CharacterData {
       classPreset: 'custom',
       sectionOrder: {
         col1: ['abilities', 'saves', 'skills', 'features'],
-        col2: ['weapons', 'wildshape', 'currency', 'backpack', 'spells'],
-        unifiedOrder: ['abilities', 'saves', 'skills', 'features', 'weapons', 'wildshape', 'currency', 'backpack', 'spells']
+        col2: ['weapons', 'wildshape', 'companions', 'currency', 'backpack', 'spells'],
+        unifiedOrder: ['abilities', 'saves', 'skills', 'features', 'weapons', 'wildshape', 'companions', 'currency', 'backpack', 'spells']
       },
       collapsedSections: []
     };
   }
 
   // Ensure sectionOrder and collapsedSections are defined
-  const knownSections = ['abilities', 'saves', 'skills', 'features', 'weapons', 'wildshape', 'currency', 'backpack', 'spells'];
+  const knownSections = ['abilities', 'saves', 'skills', 'features', 'weapons', 'wildshape', 'companions', 'currency', 'backpack', 'spells'];
 
   if (!char.layoutConfig.sectionOrder || !Array.isArray(char.layoutConfig.sectionOrder.col1) || !Array.isArray(char.layoutConfig.sectionOrder.col2)) {
     char.layoutConfig.sectionOrder = {
       col1: ['abilities', 'saves', 'skills', 'features'],
-      col2: ['weapons', 'wildshape', 'currency', 'backpack', 'spells'],
+      col2: ['weapons', 'wildshape', 'companions', 'currency', 'backpack', 'spells'],
       unifiedOrder: [...knownSections]
     };
   } else {

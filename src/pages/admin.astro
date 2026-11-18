@@ -1,0 +1,419 @@
+---
+// src/pages/admin.astro
+// Panel de control, métricas y telemetría de producto para el administrador.
+import BaseLayout from '../layouts/BaseLayout.astro';
+import SiteFooter from '../components/layout/SiteFooter.astro';
+---
+
+<BaseLayout title="Panel de Analíticas y Control — Crónicas del Aventurero">
+  <main class="w-full min-h-screen bg-[#0a0d12] text-[#f1f5f9] pt-8 pb-16 px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto space-y-8">
+    
+    <!-- Top Header Bar -->
+    <header class="flex flex-wrap items-center justify-between gap-4 pb-6 border-b border-[#222f42]">
+      <div class="flex items-center gap-3">
+        <a
+          href="/"
+          class="w-10 h-10 rounded-xl bg-[#18202e] border border-[#222f42] hover:border-amber-500/50 flex items-center justify-center text-amber-400 hover:text-amber-300 transition-all cursor-pointer shadow-xs"
+          title="Volver a la portada de campañas"
+        >
+          <span class="material-symbols-outlined text-[20px]">arrow_back</span>
+        </a>
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-amber-500 text-[20px]">admin_panel_settings</span>
+            <h1 class="text-xl sm:text-2xl font-headline font-bold text-[#f1f5f9] tracking-tight">
+              Panel de Analíticas y Fricción
+            </h1>
+          </div>
+          <p class="text-xs text-[#94a3b8] font-label">
+            Métricas de adquisición, embudos de abandono y grabaciones de sesión
+          </p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2.5">
+        <span class="px-3 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 text-xs font-mono font-bold flex items-center gap-1.5 shadow-xs">
+          <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+          <span id="admin-user-display">elgonzatron@gmail.com</span>
+        </span>
+      </div>
+    </header>
+
+    <!-- Estado: Cargando sesión -->
+    <div id="admin-loading" class="py-24 text-center space-y-3">
+      <div class="inline-flex p-3 rounded-2xl bg-[#18202e] text-amber-400 border border-amber-500/30 shadow-lg animate-spin">
+        <span class="material-symbols-outlined text-3xl">progress_activity</span>
+      </div>
+      <p class="text-sm font-label text-[#94a3b8]">Verificando permisos de administrador…</p>
+    </div>
+
+    <!-- Estado: Acceso Denegado -->
+    <div id="admin-unauthorized" class="hidden py-20 text-center space-y-4 max-w-md mx-auto">
+      <div class="w-16 h-16 rounded-2xl bg-rose-500/15 text-rose-400 border border-rose-500/30 flex items-center justify-center mx-auto shadow-lg">
+        <span class="material-symbols-outlined text-3xl">lock</span>
+      </div>
+      <div class="space-y-1">
+        <h2 class="text-xl font-headline font-bold text-[#f1f5f9]">Acceso Restringido</h2>
+        <p class="text-xs text-[#94a3b8] leading-relaxed">
+          Esta sección está reservada exclusivamente para el administrador del proyecto (<strong class="text-amber-400">elgonzatron@gmail.com</strong>).
+        </p>
+      </div>
+      <div class="pt-2">
+        <a
+          href="/"
+          class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-[#0a0d12] font-headline font-bold text-xs shadow-md transition-all active:scale-95"
+        >
+          <span class="material-symbols-outlined text-[16px]">home</span>
+          <span>Volver al Grimorio</span>
+        </a>
+      </div>
+    </div>
+
+    <!-- Estado: Contenido del Dashboard Autorizado -->
+    <div id="admin-content" class="hidden space-y-8 animate-fade-in">
+
+      <!-- Status Banner de Telemetría -->
+      <section class="p-5 sm:p-6 rounded-2xl bg-[#121721] border border-[#222f42] shadow-lg flex flex-wrap items-center justify-between gap-4">
+        <div class="flex items-center gap-3.5">
+          <div id="telemetry-status-icon" class="w-12 h-12 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 flex items-center justify-center shrink-0">
+            <span class="material-symbols-outlined text-[24px]">sensors</span>
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <h3 class="text-sm font-headline font-bold text-[#f1f5f9]">Pipeline de PostHog</h3>
+              <span id="telemetry-status-badge" class="px-2 py-0.5 rounded-md text-[10px] font-mono font-bold uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                Activo
+              </span>
+            </div>
+            <p id="telemetry-status-desc" class="text-xs text-[#94a3b8] mt-0.5">
+              Capturando vistas, clics, abandonos en creadores y grabaciones de sesión (Replays).
+            </p>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <button
+            type="button"
+            id="btn-admin-test-event"
+            class="px-4 py-2 rounded-xl bg-[#18202e] hover:bg-[#222f42] border border-amber-500/40 hover:border-amber-500/80 text-amber-300 hover:text-amber-200 text-xs font-bold font-headline flex items-center gap-2 transition-all cursor-pointer shadow-xs active:scale-95"
+          >
+            <span class="material-symbols-outlined text-[16px]">bolt</span>
+            <span>Disparar Evento de Prueba</span>
+          </button>
+        </div>
+      </section>
+
+      <!-- KPI Cards: Métricas de Base de Datos -->
+      <section class="space-y-3">
+        <h2 class="text-xs font-bold text-[#64748b] uppercase tracking-wider font-label flex items-center gap-2">
+          <span class="material-symbols-outlined text-[16px] text-amber-500">database</span>
+          <span>Volumen en Base de Datos</span>
+        </h2>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <!-- Tarjeta Campañas -->
+          <div class="p-5 rounded-2xl bg-[#121721] border border-[#222f42] shadow-md space-y-1">
+            <span class="text-[11px] font-label font-bold text-[#94a3b8] uppercase tracking-wider block">Campañas Locales / Activas</span>
+            <div class="flex items-baseline gap-2">
+              <span id="kpi-campaigns-count" class="text-3xl font-headline font-bold text-amber-400">0</span>
+              <span class="text-xs text-[#64748b] font-label">mesas registradas</span>
+            </div>
+          </div>
+
+          <!-- Tarjeta Personajes -->
+          <div class="p-5 rounded-2xl bg-[#121721] border border-[#222f42] shadow-md space-y-1">
+            <span class="text-[11px] font-label font-bold text-[#94a3b8] uppercase tracking-wider block">Aventureros en Memoria</span>
+            <div class="flex items-baseline gap-2">
+              <span id="kpi-characters-count" class="text-3xl font-headline font-bold text-[#cbd5e1]">0</span>
+              <span class="text-xs text-[#64748b] font-label">fichas creadas</span>
+            </div>
+          </div>
+
+          <!-- Tarjeta Sesión Nube -->
+          <div class="p-5 rounded-2xl bg-[#121721] border border-[#222f42] shadow-md space-y-1">
+            <span class="text-[11px] font-label font-bold text-[#94a3b8] uppercase tracking-wider block">Modo de Conexión</span>
+            <div class="flex items-baseline gap-2">
+              <span id="kpi-cloud-status" class="text-2xl font-headline font-bold text-emerald-400">Firebase Cloud</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Accesos Rápidos a PostHog (Grabaciones & Embudos) -->
+      <section class="space-y-3">
+        <h2 class="text-xs font-bold text-[#64748b] uppercase tracking-wider font-label flex items-center gap-2">
+          <span class="material-symbols-outlined text-[16px] text-amber-500">analytics</span>
+          <span>Detección de Fricción en PostHog</span>
+        </h2>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <!-- Session Replays -->
+          <a
+            id="link-posthog-replays"
+            href="https://us.posthog.com/replay"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="group p-5 rounded-2xl bg-[#121721] hover:bg-[#18202e] border border-[#222f42] hover:border-amber-500/50 shadow-md transition-all flex flex-col justify-between space-y-4"
+          >
+            <div class="space-y-2">
+              <div class="w-10 h-10 rounded-xl bg-amber-500/15 text-amber-400 border border-amber-500/30 flex items-center justify-center group-hover:scale-105 transition-transform">
+                <span class="material-symbols-outlined text-[20px]">videocam</span>
+              </div>
+              <h3 class="font-headline font-bold text-sm text-[#f1f5f9] group-hover:text-amber-300 transition-colors flex items-center gap-1.5">
+                <span>Grabaciones de Sesión (Replays)</span>
+                <span class="material-symbols-outlined text-[14px]">open_in_new</span>
+              </h3>
+              <p class="text-xs text-[#94a3b8] leading-relaxed">
+                Mirá la pantalla en video de los usuarios para ver dónde dudan, qué botones tocan y cuándo cierran la pestaña.
+              </p>
+            </div>
+            <span class="text-[11px] font-label font-bold text-amber-400/90 group-hover:underline">Abrir Grabaciones →</span>
+          </a>
+
+          <!-- Embudos de Conversión -->
+          <a
+            id="link-posthog-funnels"
+            href="https://us.posthog.com/insights"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="group p-5 rounded-2xl bg-[#121721] hover:bg-[#18202e] border border-[#222f42] hover:border-amber-500/50 shadow-md transition-all flex flex-col justify-between space-y-4"
+          >
+            <div class="space-y-2">
+              <div class="w-10 h-10 rounded-xl bg-sky-500/15 text-sky-400 border border-sky-500/30 flex items-center justify-center group-hover:scale-105 transition-transform">
+                <span class="material-symbols-outlined text-[20px]">filter_alt</span>
+              </div>
+              <h3 class="font-headline font-bold text-sm text-[#f1f5f9] group-hover:text-sky-300 transition-colors flex items-center gap-1.5">
+                <span>Embudos (Funnels)</span>
+                <span class="material-symbols-outlined text-[14px]">open_in_new</span>
+              </h3>
+              <p class="text-xs text-[#94a3b8] leading-relaxed">
+                Analizá la tasa de abandono paso a paso: Landing → Clic en Demo → Registro → Creación de Ficha.
+              </p>
+            </div>
+            <span class="text-[11px] font-label font-bold text-sky-400/90 group-hover:underline">Abrir Insights →</span>
+          </a>
+
+          <!-- Eventos en Vivo & Errores -->
+          <a
+            id="link-posthog-activity"
+            href="https://us.posthog.com/events"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="group p-5 rounded-2xl bg-[#121721] hover:bg-[#18202e] border border-[#222f42] hover:border-amber-500/50 shadow-md transition-all flex flex-col justify-between space-y-4"
+          >
+            <div class="space-y-2">
+              <div class="w-10 h-10 rounded-xl bg-rose-500/15 text-rose-400 border border-rose-500/30 flex items-center justify-center group-hover:scale-105 transition-transform">
+                <span class="material-symbols-outlined text-[20px]">monitoring</span>
+              </div>
+              <h3 class="font-headline font-bold text-sm text-[#f1f5f9] group-hover:text-rose-300 transition-colors flex items-center gap-1.5">
+                <span>Eventos en Vivo & Rage Clicks</span>
+                <span class="material-symbols-outlined text-[14px]">open_in_new</span>
+              </h3>
+              <p class="text-xs text-[#94a3b8] leading-relaxed">
+                Seguí en tiempo real cada clic compulsivo (rage click), tiradas de dados y errores de JavaScript capturados.
+              </p>
+            </div>
+            <span class="text-[11px] font-label font-bold text-rose-400/90 group-hover:underline">Ver Eventos en Vivo →</span>
+          </a>
+        </div>
+      </section>
+
+      <!-- Tabla Guía de Eventos Clave -->
+      <section class="p-6 rounded-2xl bg-[#121721] border border-[#222f42] shadow-lg space-y-4">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-amber-500 text-[18px]">rule</span>
+            <h3 class="text-sm font-headline font-bold text-[#f1f5f9]">Eventos Clave Instrumentados</h3>
+          </div>
+          <span class="text-xs text-[#94a3b8] font-label">Búscalos con estos nombres en PostHog</span>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs font-label">
+            <thead>
+              <tr class="border-b border-[#222f42] text-[#64748b]">
+                <th class="py-2 px-3">Evento</th>
+                <th class="py-2 px-3">Momento de Disparo</th>
+                <th class="py-2 px-3">Qué te enseña</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-[#1e2638]">
+              <tr>
+                <td class="py-2.5 px-3 font-mono text-amber-300">landing_cta_demo_click</td>
+                <td class="py-2.5 px-3 text-[#cbd5e1]">Clic en "Probar Demo sin Registro"</td>
+                <td class="py-2.5 px-3 text-[#94a3b8]">Cuántos visitantes prefieren jugar antes de registrarse</td>
+              </tr>
+              <tr>
+                <td class="py-2.5 px-3 font-mono text-amber-300">auth_modal_open</td>
+                <td class="py-2.5 px-3 text-[#cbd5e1]">Apertura de la ventana de login</td>
+                <td class="py-2.5 px-3 text-[#94a3b8]">Intención real de inicio de sesión o registro</td>
+              </tr>
+              <tr>
+                <td class="py-2.5 px-3 font-mono text-amber-300">character_creator_step</td>
+                <td class="py-2.5 px-3 text-[#cbd5e1]">Cambio de paso (Raza, Clase, Atributos...)</td>
+                <td class="py-2.5 px-3 text-[#94a3b8]">Progreso dentro del formulario guiado</td>
+              </tr>
+              <tr>
+                <td class="py-2.5 px-3 font-mono text-rose-300">character_creator_abandon</td>
+                <td class="py-2.5 px-3 text-[#cbd5e1]">Cierre del creador antes de guardar</td>
+                <td class="py-2.5 px-3 text-[#94a3b8]">En qué paso exacto se traban o desisten</td>
+              </tr>
+              <tr>
+                <td class="py-2.5 px-3 font-mono text-rose-400">rage_click</td>
+                <td class="py-2.5 px-3 text-[#cbd5e1]">3 o más clics rápidos en el mismo botón</td>
+                <td class="py-2.5 px-3 text-[#94a3b8]">Frustración: el usuario siente que el botón no responde</td>
+              </tr>
+              <tr>
+                <td class="py-2.5 px-3 font-mono text-rose-400">ui_error</td>
+                <td class="py-2.5 px-3 text-[#cbd5e1]">Excepción de JavaScript en el navegador</td>
+                <td class="py-2.5 px-3 text-[#94a3b8]">Bugs en vivo antes de que los usuarios los reporten</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+    </div>
+
+  </main>
+  <SiteFooter />
+</BaseLayout>
+
+<script>
+  import { cloudSession } from '../scripts/data/cloudSync';
+  import { userStore } from '../scripts/state/userStore';
+  import { campaignStore } from '../scripts/state/campaignStore';
+  import { isAdmin, ADMIN_EMAIL } from '../scripts/auth/adminAuth';
+  import { telemetry } from '../scripts/analytics/telemetry';
+  import { showAlert } from '../scripts/ui/notify';
+
+  const loadingEl = document.getElementById('admin-loading');
+  const unauthorizedEl = document.getElementById('admin-unauthorized');
+  const contentEl = document.getElementById('admin-content');
+  const userDisplayEl = document.getElementById('admin-user-display');
+
+  const telemetryIcon = document.getElementById('telemetry-status-icon');
+  const telemetryBadge = document.getElementById('telemetry-status-badge');
+  const telemetryDesc = document.getElementById('telemetry-status-desc');
+  const btnTestEvent = document.getElementById('btn-admin-test-event');
+
+  const kpiCampaigns = document.getElementById('kpi-campaigns-count');
+  const kpiCharacters = document.getElementById('kpi-characters-count');
+  const kpiCloudStatus = document.getElementById('kpi-cloud-status');
+
+  const linkReplays = document.getElementById('link-posthog-replays') as HTMLAnchorElement | null;
+  const linkFunnels = document.getElementById('link-posthog-funnels') as HTMLAnchorElement | null;
+  const linkActivity = document.getElementById('link-posthog-activity') as HTMLAnchorElement | null;
+
+  function updatePostHogLinks() {
+    const host = telemetry.getHost();
+    const isEu = host.includes('eu.i.posthog.com') || host.includes('eu.posthog.com');
+    const base = isEu ? 'https://eu.posthog.com' : 'https://us.posthog.com';
+
+    if (linkReplays) linkReplays.href = `${base}/replay`;
+    if (linkFunnels) linkFunnels.href = `${base}/insights`;
+    if (linkActivity) linkActivity.href = `${base}/events`;
+  }
+
+  function checkAccess() {
+    const user = userStore.getCurrentUser();
+    const isAuthedAdmin = isAdmin(user);
+
+    loadingEl?.classList.add('hidden');
+
+    if (isAuthedAdmin) {
+      unauthorizedEl?.classList.add('hidden');
+      contentEl?.classList.remove('hidden');
+      if (userDisplayEl) userDisplayEl.textContent = user.email || ADMIN_EMAIL;
+      renderAdminDashboard();
+    } else {
+      contentEl?.classList.add('hidden');
+      unauthorizedEl?.classList.remove('hidden');
+    }
+  }
+
+  function renderAdminDashboard() {
+    // 1. Pipeline status
+    const isConfigured = telemetry.isConfigured();
+    if (telemetryBadge && telemetryIcon && telemetryDesc) {
+      if (isConfigured) {
+        telemetryBadge.textContent = 'Activo';
+        telemetryBadge.className = 'px-2 py-0.5 rounded-md text-[10px] font-mono font-bold uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-500/30';
+        telemetryIcon.className = 'w-12 h-12 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 flex items-center justify-center shrink-0';
+        telemetryDesc.textContent = 'Capturando visitas, embudos y grabaciones de pantalla sin costo de Firestore.';
+      } else {
+        telemetryBadge.textContent = 'Sin Clave (.env)';
+        telemetryBadge.className = 'px-2 py-0.5 rounded-md text-[10px] font-mono font-bold uppercase tracking-wider bg-amber-500/20 text-amber-300 border border-amber-500/30';
+        telemetryIcon.className = 'w-12 h-12 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-400 flex items-center justify-center shrink-0';
+        telemetryDesc.textContent = 'La telemetría está lista pero inactiva. Agregá PUBLIC_POSTHOG_KEY=phc_... en .env para activar grabaciones.';
+      }
+    }
+
+    updatePostHogLinks();
+
+    // 2. Base de datos
+    const campaigns = campaignStore.getCampaigns();
+    if (kpiCampaigns) kpiCampaigns.textContent = String(campaigns.length);
+
+    const allChars = campaignStore.getAllCharacters();
+    if (kpiCharacters) kpiCharacters.textContent = String(allChars.length);
+
+    if (kpiCloudStatus) {
+      kpiCloudStatus.textContent = cloudSession.isCloud() ? 'Firebase Cloud' : 'Modo Local';
+    }
+  }
+
+  // Disparar evento de prueba
+  btnTestEvent?.addEventListener('click', async () => {
+    if (!btnTestEvent) return;
+    btnTestEvent.setAttribute('disabled', 'true');
+    const originalText = btnTestEvent.innerHTML;
+    btnTestEvent.innerHTML = `<span class="material-symbols-outlined text-[16px] animate-spin">progress_activity</span><span>Enviando…</span>`;
+
+    try {
+      // 1. Envío al SDK
+      telemetry.track('admin_test_event', {
+        source: 'admin_dashboard',
+        tester: ADMIN_EMAIL,
+        timestamp: Date.now(),
+      });
+
+      // 2. Envío directo HTTP a la API de PostHog para verificación
+      const res = await telemetry.sendDirectTestEvent('admin_test_event', {
+        source: 'admin_dashboard_direct',
+        tester: ADMIN_EMAIL,
+        timestamp: Date.now(),
+      });
+
+      if (res.ok) {
+        showAlert('¡Evento de prueba recibido por PostHog (HTTP 200 Ok)! Podés verlo de inmediato en la sección "Eventos en Vivo" (Events).', {
+          kind: 'success',
+          title: 'Telemetría Confirmada',
+        });
+      } else {
+        showAlert(`Aviso de PostHog: ${res.error || 'Código ' + res.status}`, {
+          kind: 'error',
+          title: 'Aviso de Telemetría',
+        });
+      }
+    } catch (err: any) {
+      showAlert(`Error al enviar evento: ${err?.message || err}`, { kind: 'error' });
+    } finally {
+      btnTestEvent.removeAttribute('disabled');
+      btnTestEvent.innerHTML = originalText;
+    }
+  });
+
+  // Inicialización y escucha de cambios de sesión y datos
+  cloudSession.ready().then(() => {
+    checkAccess();
+  });
+
+  window.addEventListener('cloud-session-changed', () => {
+    checkAccess();
+  });
+
+  campaignStore.subscribe(() => {
+    renderAdminDashboard();
+  });
+</script>

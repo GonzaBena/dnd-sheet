@@ -4,7 +4,7 @@
 ---
 
 <div class="rounded-xl bg-[#121721] border border-[#222f42] p-5 shadow-sm" id="armor-section">
-  <div class="flex items-center justify-between mb-4 select-none">
+  <div class="flex items-center justify-between mb-4 select-none section-header-bar">
     <h3 class="text-sm font-headline font-bold text-[#f1f5f9] uppercase tracking-wider flex items-center gap-1.5">
       <span class="material-symbols-outlined text-amber-500 text-[18px]">shield</span>
       <span>Armaduras y Equipo Puesto</span>
@@ -264,5 +264,17 @@
   render(characterStore.get());
   window.addEventListener('character-updated', ((e: CustomEvent) => {
     render(e.detail.character);
+  }) as EventListener);
+
+  window.addEventListener('item-action', ((e: CustomEvent) => {
+    const { entryId, action } = e.detail || {};
+    if (action !== 'drop' && action !== 'unequip') return;
+    const char = characterStore.get();
+    const item = (char.inventory || []).find((i: any) => i.id === entryId);
+    if (item && item.equipped) {
+      characterStore.unequipItem(entryId);
+      showAlert(`Se desequipó ${item.name}.`, { kind: 'info' });
+      render(characterStore.get());
+    }
   }) as EventListener);
 </script>

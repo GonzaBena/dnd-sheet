@@ -22,8 +22,9 @@ import { journalStore, getEntryVisibility, withVisibility } from '../state/journ
 import { userStore } from '../state/userStore.ts';
 import { recalculateCharacter } from '../dnd/calculations.ts';
 import { getFirebase, isFirebaseConfigured } from '../firebase/client.ts';
-import { onAuthChange, signOut as authSignOut, toAppUser } from '../firebase/authService.ts';
-import { normalizeInviteCode } from '../utils/ids.ts';
+import { onAuthChange, signOut as authSignOut, deleteCurrentUser, toAppUser } from '../firebase/authService.ts';
+import { normalizeInviteCode, slugify } from '../utils/ids.ts';
+import { defaultCharacter } from '../data/defaultCharacter.ts';
 import { toPlain, type DocChanges } from './cloudTypes.ts';
 import { migrateLocalData } from './migrateLocalData.ts';
 import { startRoomSync } from './roomService.ts';
@@ -84,7 +85,25 @@ class CloudSession {
   /** Se resuelve en modo local enseguida, o cuando hay sesión y llegaron los primeros datos. */
   public ready(): Promise<void> {
     this.start();
-    return this.readyPromise;
+    if (this.state === 'ready' || this.state === 'signed-out' || this.state === 'local') {
+      return Promise.resolve();
+    }
+    return new Promise(resolve => {
+      const handler = (e: any) => {
+        const s = e.detail?.state;
+        if (s === 'ready' || s === 'signed-out' || s === 'local') {
+          if (typeof window !== 'undefined') {
+            window.removeEventListener('cloud-session-changed', handler);
+          }
+          resolve();
+        }
+      };
+      if (typeof window !== 'undefined') {
+        window.addEventListener('cloud-session-changed', handler);
+      } else {
+        resolve();
+      }
+    });
   }
 
   public isCloud(): boolean {
@@ -117,6 +136,10 @@ class CloudSession {
 
     onAuthChange(user => {
       if (user) {
+        try {
+          localStorage.setItem('dnd_cloud_authed', '1');
+          localStorage.removeItem('dnd_demo_mode');
+        } catch (_) {}
         this.handleSignIn(user).catch(err => {
           console.error('[CloudSync] Error al iniciar la sesión en la nube', err);
           this.reportError(err);
@@ -125,23 +148,70 @@ class CloudSession {
         });
       } else if (this.uid) {
         // Cerró sesión en otra pestaña: se recarga para limpiar todo el estado en memoria.
+        try {
+          localStorage.removeItem('dnd_cloud_authed');
+          localStorage.removeItem('dnd_demo_mode');
+        } catch (_) {}
         window.location.reload();
       } else {
+        try {
+          localStorage.removeItem('dnd_cloud_authed');
+        } catch (_) {}
         this.setState('signed-out');
         this.resolveReady();
       }
     }).catch(err => {
       console.error('[CloudSync] No se pudo inicializar Firebase', err);
       this.reportError(err);
+      try {
+        localStorage.removeItem('dnd_cloud_authed');
+      } catch (_) {}
       this.setState('signed-out');
       this.resolveReady();
     });
   }
 
   public async signOut() {
+    try {
+      localStorage.removeItem('dnd_cloud_authed');
+      localStorage.removeItem('dnd_demo_mode');
+    } catch (_) {}
     this.flushCharacters();
     await authSignOut();
     window.location.reload();
+  }
+
+  public async deleteAccount(): Promise<void> {
+    const uid = this.uid;
+    if (!uid) return;
+    this.flushCharacters();
+
+    try {
+      localStorage.removeItem('dnd_cloud_authed');
+      localStorage.removeItem('dnd_demo_mode');
+    } catch (_) {}
+
+    // 1. Borrar perfil en Firestore si está disponible
+    if (this.db && this.fs) {
+      try {
+        const userRef = this.fs.doc(this.db, 'users', uid);
+        await this.fs.deleteDoc(userRef);
+      } catch (err) {
+        console.warn('[CloudSync] No se pudo borrar el perfil en Firestore:', err);
+      }
+    }
+
+    // 2. Borrar credenciales de Firebase Auth
+    await deleteCurrentUser();
+
+    // 3. Limpiar almacenamiento local
+    try {
+      localStorage.clear();
+      sessionStorage.clear();
+    } catch {}
+
+    // 4. Redirigir a inicio
+    window.location.href = '/';
   }
 
   // ---------------------------------------------------------------------------
@@ -149,7 +219,17 @@ class CloudSession {
   // ---------------------------------------------------------------------------
 
   private async handleSignIn(user: User) {
-    if (this.uid === user.uid) return;
+    if (this.uid === user.uid) {
+      try {
+        localStorage.setItem('dnd_cloud_authed', '1');
+        localStorage.removeItem('dnd_demo_mode');
+      } catch (_) {}
+      if (this.state !== 'ready') {
+        this.setState('ready');
+      }
+      this.resolveReady();
+      return;
+    }
     this.setState('loading');
 
     try {
@@ -188,7 +268,29 @@ class CloudSession {
       // Sala RTDB del VTT (/rooms/{liveRoomId}) de cada campaña donde el usuario es DM.
       startRoomSync(() => this.uid);
 
-      if (migration?.activeCharacter) {
+      const myRemoteChars = campaignStore.getAllCharacters().filter(c => campaignStore.isCharacterOwner(c, me.id));
+      if (myRemoteChars.length === 0) {
+        let charToUpload = characterStore.get();
+        if (!charToUpload || !charToUpload.name) {
+          charToUpload = defaultCharacter;
+        }
+        const newCharId = `char-${me.id.substring(0, 6)}-${slugify(charToUpload.name || 'atlas')}-${Math.random().toString(36).substring(2, 6)}`;
+        const uploadedChar: CharacterData = {
+          ...toPlain(charToUpload),
+          id: newCharId,
+          userId: me.id,
+          playerName: me.name,
+          campaignId: null,
+          updatedAt: Date.now(),
+        };
+        try {
+          const charRef = this.fs!.doc(this.db!, 'characters', newCharId);
+          await this.fs!.setDoc(charRef, toPlain(uploadedChar));
+          characterStore.loadCharacter(uploadedChar, true);
+        } catch (e) {
+          console.warn('[CloudSync] No se pudo guardar personaje inicial en Firestore', e);
+        }
+      } else if (migration?.activeCharacter) {
         characterStore.loadCharacter(migration.activeCharacter, true);
       } else {
         const active = characterStore.get();
@@ -526,7 +628,7 @@ class CloudSession {
         batch.set(fs.doc(db, 'invites', data.inviteCode), { campaignId: id, createdBy: uid, createdAt: Date.now() });
         this.inviteCodes.set(id, data.inviteCode);
       }
-      this.commit(batch);
+      this.commit(batch, `create:campaigns/${id}`);
     }
 
     for (const { id, fields, removedKeys } of changes.updates) {
@@ -540,7 +642,7 @@ class CloudSession {
         if (previous && previous !== fields.inviteCode) batch.delete(fs.doc(db, 'invites', previous));
         this.inviteCodes.set(id, fields.inviteCode);
       }
-      this.commit(batch);
+      this.commit(batch, `update:campaigns/${id}`);
     }
 
     for (const id of changes.deletes) {
@@ -549,7 +651,7 @@ class CloudSession {
       if (code) batch.delete(fs.doc(db, 'invites', code));
       batch.delete(fs.doc(db, 'campaigns', id));
       this.inviteCodes.delete(id);
-      this.commit(batch);
+      this.commit(batch, `delete:campaigns/${id}`);
     }
   }
 
@@ -559,13 +661,13 @@ class CloudSession {
 
     for (const { id, data } of changes.creates) {
       this.flushCharacter(id);
-      fs.setDoc(fs.doc(db, 'characters', id), { ...data, updatedAt: Date.now() }).catch(err => this.onWriteError(err));
+      fs.setDoc(fs.doc(db, 'characters', id), { ...data, updatedAt: Date.now() }).catch(err => this.onWriteError(err, `create:characters/${id}`));
     }
 
     // Los cambios de la ficha (cada click de PG, etc.) se agrupan con debounce por personaje.
     for (const { id, fields, removedKeys } of changes.updates) {
       const known = campaignStore.getCharacter(id);
-      const isOwner = !known || !known.userId || known.userId === this.uid;
+      const isOwner = !known || !known.userId || known.userId === this.uid || (this.uid && known.userId === 'user-me');
       let effectiveFields = fields;
       let effectiveRemoved = removedKeys;
       // Sobre fichas ajenas el DM solo puede escribir la inspiración por esta vía (los PG van por mutateHp).
@@ -593,7 +695,7 @@ class CloudSession {
       const pending = this.pendingCharacters.get(id);
       if (pending) clearTimeout(pending.timer);
       this.pendingCharacters.delete(id);
-      fs.deleteDoc(fs.doc(db, 'characters', id)).catch(err => this.onWriteError(err));
+      fs.deleteDoc(fs.doc(db, 'characters', id)).catch(err => this.onWriteError(err, `delete:characters/${id}`));
     }
   }
 
@@ -609,7 +711,7 @@ class CloudSession {
     const payload: Record<string, any> = { ...pending.fields, updatedAt: now };
     pending.removedKeys.forEach(k => { payload[k] = fs.deleteField(); });
     fs.updateDoc(fs.doc(this.db, 'characters', id), payload)
-      .catch(err => this.onWriteError(err))
+      .catch(err => this.onWriteError(err, `update:characters/${id}`))
       .finally(() => {
         const cur = (this.inFlightCharacters.get(id) || 1) - 1;
         if (cur <= 0) this.inFlightCharacters.delete(id);
@@ -659,9 +761,11 @@ class CloudSession {
 
   private writeDmEvent(event: DmEvent) {
     if (!this.fs || !this.db) return;
+    const camp = campaignStore.getCampaign(event.campaignId);
+    if (!camp || camp.status !== 'active') return;
     this.seenDmEvents.add(event.id);
     this.fs.setDoc(this.fs.doc(this.db, 'campaigns', event.campaignId, 'dm_events', event.id), toPlain(event))
-      .catch(err => this.onWriteError(err));
+      .catch(err => console.warn(`[CloudSync] No se pudo emitir dm_event [${event.campaignId}/${event.id}]`, err));
   }
 
   private writeJournalEntry(entry: JournalEntry) {
@@ -671,7 +775,21 @@ class CloudSession {
     let visibility = getEntryVisibility(entry);
 
     if (campaignId && campaignStore.getCampaign(campaignId)) {
+      const camp = campaignStore.getCampaign(campaignId)!;
       const isDm = campaignStore.isCurrentUserDm(campaignId);
+      const isActive = camp.status === 'active';
+
+      // En Firestore (firestore.rules), la creación de entradas en /campaigns/{cid}/journal
+      // exige canPlay() (partida 'active') para los jugadores.
+      // Si la partida está pausada o terminada:
+      // - El DM solo puede escribir notas secretas (visibility == 'dm') o eventos de sistema (status).
+      // - Las entradas 'party' (como cambios de equipo, descansos, etc.) no se pueden escribir en la bitácora
+      //   remota de la mesa hasta que la partida esté activa.
+      if (!isActive) {
+        if (!isDm) return;
+        if (visibility !== 'dm' && (entry as any).systemEvent !== 'status') return;
+      }
+
       // Solo el DM puede escribir entradas 'dm'; si no lo es, queda como nota de jugador.
       if (visibility === 'dm' && !isDm) visibility = 'player';
       // Un "mensaje al DM" escrito por el propio DM es una nota de DM.
@@ -680,7 +798,9 @@ class CloudSession {
       delete (data as any).isDmOnly;
       delete (data as any).isPlayerOnly;
       delete (data as any).isForDm;
-      fs.setDoc(fs.doc(this.db, 'campaigns', campaignId, 'journal', entry.id), data).catch(err => this.onWriteError(err));
+      fs.setDoc(fs.doc(this.db, 'campaigns', campaignId, 'journal', entry.id), data).catch(err => {
+        console.warn(`[CloudSync] No se pudo guardar entrada en bitácora [journal:${campaignId}/${entry.id}]`, err);
+      });
     } else {
       // Sin campaña no hay DM: lo restringido queda como nota personal.
       if (visibility !== 'party') visibility = 'player';
@@ -689,25 +809,35 @@ class CloudSession {
       delete (data as any).isPlayerOnly;
       delete (data as any).isForDm;
       delete (data as any).campaignId;
-      fs.setDoc(fs.doc(this.db, 'users', this.uid, 'notes', entry.id), data).catch(err => this.onWriteError(err));
+      fs.setDoc(fs.doc(this.db, 'users', this.uid, 'notes', entry.id), data).catch(err => {
+        console.warn(`[CloudSync] No se pudo guardar nota personal [notes:${this.uid}/${entry.id}]`, err);
+      });
     }
   }
 
   private removeJournalEntry(entry: JournalEntry) {
     if (!this.fs || !this.db || !this.uid) return;
     const campaignId = entry.campaignId || campaignStore.getActiveCampaignId();
+    if (campaignId && campaignStore.getCampaign(campaignId)) {
+      const camp = campaignStore.getCampaign(campaignId);
+      const isDm = camp ? campaignStore.isCurrentUserDm(campaignId) : false;
+      const isActive = camp ? camp.status === 'active' : false;
+      if (!isActive && !isDm) return;
+    }
     const ref = campaignId && campaignStore.getCampaign(campaignId)
       ? this.fs.doc(this.db, 'campaigns', campaignId, 'journal', entry.id)
       : this.fs.doc(this.db, 'users', this.uid, 'notes', entry.id);
-    this.fs.deleteDoc(ref).catch(err => this.onWriteError(err));
+    this.fs.deleteDoc(ref).catch(err => {
+      console.warn(`[CloudSync] No se pudo eliminar entrada en bitácora [delete:${campaignId ? `journal:${campaignId}` : `notes:${this.uid}`}/${entry.id}]`, err);
+    });
   }
 
-  private commit(batch: { commit(): Promise<void> }) {
-    batch.commit().catch(err => this.onWriteError(err));
+  private commit(batch: { commit(): Promise<void> }, context?: string) {
+    batch.commit().catch(err => this.onWriteError(err, context));
   }
 
-  private onWriteError(err: any) {
-    console.error('[CloudSync] Escritura rechazada', err);
+  private onWriteError(err: any, context?: string) {
+    console.error(`[CloudSync] Escritura rechazada${context ? ` [${context}]` : ''}`, err);
     this.reportError(err);
   }
 

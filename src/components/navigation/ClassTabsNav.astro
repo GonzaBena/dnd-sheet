@@ -4,7 +4,7 @@
 
 <nav class="w-full mb-6 p-1.5 rounded-2xl bg-[#121721] border border-[#222f42] shadow-md flex items-center gap-1.5" id="class-tabs-bar">
   <!-- Scrollable tabs area (only the buttons scroll, never overlapping the configure button) -->
-  <div class="flex-1 min-w-0 overflow-x-auto no-scrollbar flex items-center gap-1 flex-nowrap pr-2" id="tab-buttons-list">
+  <div class="flex-1 min-w-0 overflow-x-auto no-scrollbar flex items-center gap-1.5 flex-nowrap pr-2" id="tab-buttons-list">
     <!-- Tab: Todo -->
     <button
       type="button"
@@ -161,6 +161,7 @@
     const secFeatures = document.getElementById('section-features');
     const secWeapons = document.getElementById('section-weapons');
     const secWildShape = document.getElementById('section-wildshape');
+    const secCompanions = document.getElementById('section-companions');
     const secCurrency = document.getElementById('section-currency');
     const secBackpack = document.getElementById('section-backpack');
     const secSpells = document.getElementById('section-spells');
@@ -190,6 +191,7 @@
     
     setVis(secWeapons, (showAll && cfg.showWeapons) || tab === 'combat');
     setVis(secWildShape, cfg.showWildShape && (showAll || tab === 'wildshape'));
+    setVis(secCompanions, showAll || tab === 'combat' || tab === 'spells');
     setVis(secCurrency, true); // Monedas vive ahora en VitalsGrid arriba del todo
     setVis(secBackpack, (showAll && cfg.showInventory) || tab === 'inventory');
     setVis(document.getElementById('section-armor'), (showAll && cfg.showInventory) || tab === 'inventory');
@@ -249,18 +251,18 @@
           if (hasB3Col1 && hasB3Col2) {
             b3Col1.classList.remove('hidden');
             b3Col2.classList.remove('hidden');
-            b3Col1.className = 'space-y-5 w-full';
-            b3Col2.className = 'space-y-5 w-full';
+            b3Col1.className = 'flex flex-col gap-5 w-full';
+            b3Col2.className = 'flex flex-col gap-5 w-full';
             block3.className = 'grid grid-cols-1 lg:grid-cols-2 gap-6 items-start';
           } else if (hasB3Col1 && !hasB3Col2) {
             b3Col2.classList.add('hidden');
             b3Col1.classList.remove('hidden');
-            b3Col1.className = 'space-y-5 w-full max-w-4xl mx-auto col-span-full';
+            b3Col1.className = 'flex flex-col gap-5 w-full col-span-full';
             block3.className = 'grid grid-cols-1 gap-6 items-start';
           } else if (!hasB3Col1 && hasB3Col2) {
             b3Col1.classList.add('hidden');
             b3Col2.classList.remove('hidden');
-            b3Col2.className = 'space-y-5 w-full max-w-4xl mx-auto col-span-full';
+            b3Col2.className = 'flex flex-col gap-5 w-full col-span-full';
             block3.className = 'grid grid-cols-1 gap-6 items-start';
           }
         }

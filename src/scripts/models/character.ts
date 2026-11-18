@@ -1,6 +1,15 @@
 import type { Resource, SlotState } from './resource.ts';
 import type { ActiveEffect, Modifier } from './effect.ts';
 import type { FeatType } from './catalog.ts';
+import type { HitDie } from '../dnd/hitDice.ts';
+
+export type { HitDie };
+
+export interface HitDicePool {
+  die: HitDie;
+  total: number;
+  remaining: number;
+}
 
 export interface StatBlock {
   score: number;
@@ -141,11 +150,33 @@ export interface WildShapeForm {
   attacks: { name: string; bonus: string; damage: string }[];
 }
 
+// Compañeros e Invocaciones (Spec 13, H6)
+export type CompanionType = 'familiar' | 'mount' | 'companion' | 'summon' | 'sidekick';
+
+export interface CharacterCompanion {
+  id: string;
+  name: string;
+  type: CompanionType;
+  size: 1 | 2 | 3 | 4; // 1: Mediano/Pequeño, 2: Grande, 3: Enorme, 4: Gigantesco
+  hp: {
+    current: number;
+    max: number;
+  };
+  armorClass?: number;
+  speedFt?: number;
+  avatarUrl?: string;
+  notes?: string;
+  /** ID del token en el mapa activo si está desplegado actualmente */
+  tokenId?: string;
+}
+
 export interface SectionOrderConfig {
   col1: string[];
   col2: string[];
   unifiedOrder?: string[];
 }
+
+export type SheetViewMode = 'standard' | 'table';
 
 export interface LayoutConfig {
   activeTab: 'all' | 'combat' | 'skills' | 'spells' | 'wildshape' | 'inventory' | 'journal';
@@ -158,6 +189,8 @@ export interface LayoutConfig {
   classPreset?: 'custom' | 'wizard' | 'druid' | 'fighter' | 'rogue' | 'cleric';
   sectionOrder?: SectionOrderConfig;
   collapsedSections?: string[];
+  /** Modo de vista de la hoja: 'standard' (3 bloques completos) o 'table' (Mesa física reducida, Spec 14, H7). */
+  viewMode?: SheetViewMode;
 }
 
 export interface CharacterData {
@@ -200,6 +233,7 @@ export interface CharacterData {
     total: number;
     remaining: number;
     die: string;
+    pools?: HitDicePool[];
   };
   
   stats: {
@@ -252,9 +286,19 @@ export interface CharacterData {
     activeForm: WildShapeForm | null;
   };
 
+  /** Criaturas subordinadas: familiares, monturas, compañeros animales e invocaciones (Spec 13, H6). */
+  companions?: CharacterCompanion[];
+
   layoutConfig?: LayoutConfig;
   
   quickSlotItemId?: string | null;
+
+  /** Estado del turno en combate (Spec 11, H4 & Spec 12, H5): modificadores y reacción. */
+  turnState?: {
+    usedModifiers?: string[];
+    /** Indica si la única reacción del asalto fue consumida */
+    reactionUsed?: boolean;
+  };
 
   features: {
     id?: string;

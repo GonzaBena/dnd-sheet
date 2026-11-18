@@ -1,0 +1,169 @@
+---
+// src/pages/privacidad.astro
+// Política de Privacidad de Crónicas del Aventurero
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Header from '../components/layout/Header.astro';
+import SiteFooter from '../components/layout/SiteFooter.astro';
+---
+
+<BaseLayout
+  title="Política de Privacidad — Crónicas del Aventurero"
+  description="Conocé cómo protegemos tu información y datos de juego en Crónicas del Aventurero. Transparencia total, sin venta de datos a terceros."
+>
+  <Header />
+
+  <main class="w-full pt-28 pb-20 bg-[#0a0d12] min-h-screen text-[#cbd5e1] font-body">
+    <!-- Glow decorative effects -->
+    <div class="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="absolute -top-16 left-1/2 -translate-x-1/2 w-96 h-96 bg-amber-500/10 rounded-full blur-[120px] pointer-events-none"></div>
+
+      <!-- Header de la página legal -->
+      <div class="relative z-10 space-y-3 pb-8 border-b border-[#222f42] mb-10">
+        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 text-xs font-label uppercase tracking-wider font-bold">
+          <span class="material-symbols-outlined text-[16px]">shield</span>
+          <span>Transparencia y Seguridad</span>
+        </div>
+        <h1 class="text-3xl sm:text-4xl font-headline font-bold text-[#f1f5f9] tracking-tight">
+          Política de Privacidad
+        </h1>
+        <p class="text-xs text-[#94a3b8] font-label">
+          Última actualización: Noviembre de 2026 • Versión 1.0 (Alpha Abierta)
+        </p>
+      </div>
+
+      <!-- Contenido en bloques estilizados -->
+      <article class="relative z-10 space-y-8 text-sm leading-relaxed">
+        <!-- 1. Compromiso -->
+        <section class="space-y-3 bg-[#121721] p-6 rounded-2xl border border-[#222f42]">
+          <h2 class="text-lg font-headline font-bold text-[#f1f5f9] flex items-center gap-2">
+            <span class="text-amber-400 font-mono text-sm">01.</span>
+            <span>Nuestro Compromiso con tu Privacidad</span>
+          </h2>
+          <p>
+            En <strong>Crónicas del Aventurero</strong> consideramos que tu privacidad es un valor innegociable. Somos una plataforma diseñada por y para jugadores de rol, creada para enriquecer tus partidas de <em>Dungeons & Dragons 5e</em>. Esta política describe de forma clara y transparente qué datos recopilamos, cómo los utilizamos y cómo aseguramos su protección.
+          </p>
+          <p class="text-xs text-amber-300/90 font-medium">
+            Nunca vendemos, alquilamos ni compartimos tu información personal con empresas de publicidad o corredores de datos.
+          </p>
+        </section>
+
+        <!-- 2. Datos que recopilamos -->
+        <section class="space-y-4 bg-[#121721] p-6 rounded-2xl border border-[#222f42]">
+          <h2 class="text-lg font-headline font-bold text-[#f1f5f9] flex items-center gap-2">
+            <span class="text-amber-400 font-mono text-sm">02.</span>
+            <span>Información que Recopilamos</span>
+          </h2>
+          <p>
+            Recopilamos únicamente la información mínima e indispensable para el funcionamiento técnico de tu mesa de juego:
+          </p>
+          <ul class="list-disc pl-5 space-y-2 text-xs text-[#94a3b8]">
+            <li>
+              <strong class="text-[#f1f5f9]">Datos de Cuenta:</strong> Si decidís crear una cuenta o iniciar sesión mediante Google o correo electrónico, almacenamos tu dirección de email, tu nombre para mostrar público elegido y el identificador único (UID) generado por el servicio de autenticación.
+            </li>
+            <li>
+              <strong class="text-[#f1f5f9]">Datos de Juego y Campañas:</strong> Fichas de personajes que crees o importes (atributos, inventario, puntos de golpe, conjuros, notas), campañas en las que participes, registros de tiradas de dados en vivo y anotaciones en la bitácora de la mesa.
+            </li>
+            <li>
+              <strong class="text-[#f1f5f9]">Modo Demo (Sin Registro):</strong> Si explorás la aplicación en modo demo sin iniciar sesión, <strong>no se envía ningún dato a nuestros servidores</strong>. Toda la información de tu personaje temporal se almacena exclusivamente en la memoria local (<code>localStorage</code>) de tu navegador web.
+            </li>
+          </ul>
+        </section>
+
+        <!-- 3. Finalidad -->
+        <section class="space-y-3 bg-[#121721] p-6 rounded-2xl border border-[#222f42]">
+          <h2 class="text-lg font-headline font-bold text-[#f1f5f9] flex items-center gap-2">
+            <span class="text-amber-400 font-mono text-sm">03.</span>
+            <span>Finalidad del Uso de los Datos</span>
+          </h2>
+          <p>
+            La información recopilada se utiliza con los siguientes propósitos exclusivos:
+          </p>
+          <ul class="list-disc pl-5 space-y-2 text-xs text-[#94a3b8]">
+            <li>Sincronizar en tiempo real el estado de la partida entre el celular o PC de los jugadores y la pantalla táctica del Dungeon Master.</li>
+            <li>Permitirte acceder a tus personajes desde cualquier dispositivo mediante el inicio de sesión seguro.</li>
+            <li>Garantizar las reglas de propiedad y seguridad (por ejemplo, que sólo el propietario de una ficha pueda editar sus valores en una campaña compartida).</li>
+            <li>Prevenir abusos, ataques automatizados o accesos no autorizados a las salas de juego.</li>
+          </ul>
+        </section>
+
+        <!-- 4. Proveedores tecnológicos -->
+        <section class="space-y-3 bg-[#121721] p-6 rounded-2xl border border-[#222f42]">
+          <h2 class="text-lg font-headline font-bold text-[#f1f5f9] flex items-center gap-2">
+            <span class="text-amber-400 font-mono text-sm">04.</span>
+            <span>Proveedores e Infraestructura</span>
+          </h2>
+          <p>
+            Para brindar un servicio confiable y de baja latencia utilizamos la infraestructura de <strong>Google Firebase (Google Cloud Platform)</strong>:
+          </p>
+          <ul class="list-disc pl-5 space-y-2 text-xs text-[#94a3b8]">
+            <li><strong class="text-[#f1f5f9]">Firebase Authentication:</strong> Gestión de contraseñas con hashing criptográfico y flujo de OAuth de Google.</li>
+            <li><strong class="text-[#f1f5f9]">Cloud Firestore & Realtime Database:</strong> Base de datos segura alojada en servidores de Google protegida por reglas de seguridad granulares a nivel de usuario.</li>
+          </ul>
+          <p class="text-xs text-[#94a3b8]">
+            Google procesa estos datos de acuerdo con sus estrictas políticas de seguridad y cumplimiento de la nube (ISO 27001, SOC 2, GDPR).
+          </p>
+        </section>
+
+        <!-- 5. Cookies y Almacenamiento Local -->
+        <section class="space-y-3 bg-[#121721] p-6 rounded-2xl border border-[#222f42]">
+          <h2 class="text-lg font-headline font-bold text-[#f1f5f9] flex items-center gap-2">
+            <span class="text-amber-400 font-mono text-sm">05.</span>
+            <span>Cookies y Almacenamiento Local</span>
+          </h2>
+          <p>
+            No utilizamos cookies de seguimiento publicitario ni píxeles de rastreo de redes sociales. Únicamente utilizamos tecnologías esenciales de almacenamiento local (<code>localStorage</code>) para:
+          </p>
+          <ul class="list-disc pl-5 space-y-2 text-xs text-[#94a3b8]">
+            <li>Mantener activa tu sesión iniciada entre visitas.</li>
+            <li>Recordar tus preferencias de interfaz (pestañas activas, secciones colapsadas, tiradas de dados).</li>
+            <li>Almacenar temporalmente los datos del modo demo en tu propio navegador.</li>
+          </ul>
+        </section>
+
+        <!-- 6. Tus derechos y eliminación -->
+        <section class="space-y-3 bg-[#121721] p-6 rounded-2xl border border-[#222f42]">
+          <h2 class="text-lg font-headline font-bold text-[#f1f5f9] flex items-center gap-2">
+            <span class="text-amber-400 font-mono text-sm">06.</span>
+            <span>Tus Derechos y Eliminación de Cuenta</span>
+          </h2>
+          <p>
+            Podés en cualquier momento:
+          </p>
+          <ul class="list-disc pl-5 space-y-2 text-xs text-[#94a3b8]">
+            <li>Exportar tus personajes en formato JSON estándar desde el menú de opciones de tu ficha.</li>
+            <li>Eliminar cualquiera de tus personajes o campañas directamente desde la interfaz.</li>
+            <li>Solicitar la eliminación completa y definitiva de tu cuenta y todos los datos asociados enviando un correo a <strong>contacto@gonzabena.com.ar</strong>. Tu solicitud será procesada en un plazo máximo de 72 horas.</li>
+          </ul>
+        </section>
+
+        <!-- 7. Contacto -->
+        <section class="space-y-3 bg-[#121721] p-6 rounded-2xl border border-[#222f42]">
+          <h2 class="text-lg font-headline font-bold text-[#f1f5f9] flex items-center gap-2">
+            <span class="text-amber-400 font-mono text-sm">07.</span>
+            <span>Contacto y Consultas</span>
+          </h2>
+          <p>
+            Si tenés dudas, sugerencias o requerimientos respecto al tratamiento de tus datos, podés contactarnos directamente a través de:
+          </p>
+          <div class="p-3.5 rounded-xl bg-[#0a0d12] border border-[#222f42] text-xs space-y-1">
+            <p><strong class="text-[#f1f5f9]">Correo electrónico:</strong> <a href="mailto:contacto@gonzabena.com.ar" class="text-amber-400 hover:underline">contacto@gonzabena.com.ar</a></p>
+            <p><strong class="text-[#f1f5f9]">Proyecto:</strong> Crónicas del Aventurero — Plataforma para mesas de D&D 5e</p>
+          </div>
+        </section>
+      </article>
+
+      <!-- Botón de regreso -->
+      <div class="mt-12 text-center">
+        <a
+          href="/"
+          class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#121721] hover:bg-amber-500/15 border border-[#222f42] hover:border-amber-500/40 text-[#f1f5f9] hover:text-amber-300 text-xs font-headline font-bold transition-all shadow-xs"
+        >
+          <span class="material-symbols-outlined text-[16px]">arrow_back</span>
+          <span>Volver a la Portada</span>
+        </a>
+      </div>
+    </div>
+  </main>
+
+  <SiteFooter />
+</BaseLayout>

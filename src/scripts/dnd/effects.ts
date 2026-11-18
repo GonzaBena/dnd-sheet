@@ -110,6 +110,22 @@ export function expireOnRest(
   return { effects: kept, expired };
 }
 
+/** Quita los efectos de duración `untilNextTurn` (usado al comenzar el turno del personaje). */
+export function expireUntilNextTurn(
+  effects: ActiveEffect[]
+): { effects: ActiveEffect[]; expired: ActiveEffect[] } {
+  const kept: ActiveEffect[] = [];
+  const expired: ActiveEffect[] = [];
+  for (const e of effects) {
+    if (e.duration.kind === 'untilNextTurn') {
+      expired.push(e);
+    } else {
+      kept.push(e);
+    }
+  }
+  return { effects: kept, expired };
+}
+
 /** FB-5: coincidencia exacta o por prefijo con punto (`save` coincide con `save.dex`). No evalúa `when`. */
 export function collectModifiers(
   char: { activeEffects?: ActiveEffect[]; inventory?: InventoryItem[]; features?: any[] },
@@ -148,6 +164,8 @@ export function describeDuration(d: EffectDuration): string {
       return 'concentración';
     case 'untilUsed':
       return 'hasta usarse';
+    case 'untilNextTurn':
+      return 'hasta tu próximo turno';
     case 'indefinite':
       return 'indefinido';
   }

@@ -85,12 +85,24 @@
         <div id="ws-hp-bar" class="bg-gradient-to-r from-emerald-600 to-emerald-400 h-full transition-all duration-300 rounded-full" style="width: 100%"></div>
       </div>
 
-      <!-- Quick Beast damage/heal buttons -->
+      <!-- Quick Beast damage/heal buttons [-] and [+] -->
       <div class="flex items-center justify-end gap-1.5 pt-1">
-        <button id="ws-sub-5" class="px-2 py-0.5 rounded bg-[#18202e] border border-[#222f42] hover:border-rose-500/50 text-xs font-bold text-rose-400 cursor-pointer">-5</button>
-        <button id="ws-sub-1" class="px-2 py-0.5 rounded bg-[#18202e] border border-[#222f42] hover:border-rose-500/50 text-xs font-bold text-rose-400 cursor-pointer">-1</button>
-        <button id="ws-add-1" class="px-2 py-0.5 rounded bg-[#18202e] border border-[#222f42] hover:border-emerald-500/50 text-xs font-bold text-emerald-400 cursor-pointer">+1</button>
-        <button id="ws-add-5" class="px-2 py-0.5 rounded bg-[#18202e] border border-[#222f42] hover:border-emerald-500/50 text-xs font-bold text-emerald-400 cursor-pointer">+5</button>
+        <button
+          type="button"
+          id="ws-sub-btn"
+          class="w-6 h-6 rounded bg-[#18202e] border border-[#222f42] hover:border-rose-500/50 text-xs font-bold font-mono text-rose-400 flex items-center justify-center cursor-pointer"
+          title="Dañar Forma Salvaje"
+        >
+          <span class="material-symbols-outlined text-[14px]">remove</span>
+        </button>
+        <button
+          type="button"
+          id="ws-add-btn"
+          class="w-6 h-6 rounded bg-[#18202e] border border-[#222f42] hover:border-emerald-500/50 text-xs font-bold font-mono text-emerald-400 flex items-center justify-center cursor-pointer"
+          title="Curar Forma Salvaje"
+        >
+          <span class="material-symbols-outlined text-[14px]">add</span>
+        </button>
       </div>
     </div>
 
@@ -112,6 +124,8 @@
 
 <script>
   import { showAlert } from '../../scripts/ui/notify';
+  // Nombres, daños y notas los escribe el usuario: todo lo que va a innerHTML pasa por esc().
+  import { escapeHtml as esc } from '../../scripts/dnd/catalog';
   import { characterStore } from '../../scripts/state/characterStore';
   import { openModal } from '../../scripts/animations/modalAnimations';
 
@@ -197,12 +211,12 @@
           btn.className = 'p-2 rounded-lg bg-[#18202e] border border-[#222f42] flex items-center justify-between';
           btn.innerHTML = `
             <div>
-              <strong class="text-[#f1f5f9] block">${atk.name}</strong>
-              <span class="text-[10px] text-emerald-400">${atk.damage}</span>
+              <strong class="text-[#f1f5f9] block">${esc(atk.name)}</strong>
+              <span class="text-[10px] text-emerald-400">${esc(atk.damage)}</span>
             </div>
             <button class="roll-beast-atk px-2.5 py-1 rounded bg-emerald-500/20 text-emerald-300 font-bold hover:bg-emerald-500 hover:text-[#0a0d12] transition-colors cursor-pointer flex items-center gap-1 text-[11px]">
               <span class="material-symbols-outlined text-[13px]">casino</span>
-              <span>${atk.bonus}</span>
+              <span>${esc(atk.bonus)}</span>
             </button>
           `;
 
@@ -254,11 +268,23 @@
     }
   }
 
-  // Quick Beast HP adjustments
-  document.getElementById('ws-sub-5')?.addEventListener('click', () => characterStore.modifyWildShapeHp(-5));
-  document.getElementById('ws-sub-1')?.addEventListener('click', () => characterStore.modifyWildShapeHp(-1));
-  document.getElementById('ws-add-1')?.addEventListener('click', () => characterStore.modifyWildShapeHp(1));
-  document.getElementById('ws-add-5')?.addEventListener('click', () => characterStore.modifyWildShapeHp(5));
+  // Quick Beast HP adjustments [-] and [+]
+  document.getElementById('ws-sub-btn')?.addEventListener('click', () => {
+    const valStr = prompt('¿Cuántos puntos de daño recibe la forma salvaje?');
+    if (!valStr) return;
+    const amount = parseInt(valStr.trim(), 10);
+    if (!isNaN(amount) && amount > 0) {
+      characterStore.modifyWildShapeHp(-amount);
+    }
+  });
+  document.getElementById('ws-add-btn')?.addEventListener('click', () => {
+    const valStr = prompt('¿Cuántos puntos de vida recupera la forma salvaje?');
+    if (!valStr) return;
+    const amount = parseInt(valStr.trim(), 10);
+    if (!isNaN(amount) && amount > 0) {
+      characterStore.modifyWildShapeHp(amount);
+    }
+  });
 
   // Revert
   revertBtn?.addEventListener('click', () => {

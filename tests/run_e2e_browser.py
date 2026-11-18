@@ -73,11 +73,20 @@ with sync_playwright() as p:
     context.add_init_script("window.__DND_FORCE_LOCAL__ = true; try { localStorage.setItem('dnd_force_local', '1'); } catch(e) {}")
     page = context.new_page()
 
+    # Manejador global único para diálogos tipo prompt (daño/curación)
+    dialog_response = ["5"]
+    def handle_global_dialog(d):
+        try:
+            d.accept(dialog_response[0])
+        except Exception:
+            pass
+    page.on("dialog", handle_global_dialog)
+
     # -------------------------------------------------------------------------
     # 1. PÁGINA PRINCIPAL (/) - GESTOR DE CAMPAÑAS Y PERSONAJES
     # -------------------------------------------------------------------------
     def test_index_buttons():
-        page.goto(f"{BASE}/", wait_until="domcontentloaded")
+        page.goto(f"{BASE}/?demo=1", wait_until="domcontentloaded")
         page.wait_for_selector("#btn-create-campaign-top", timeout=8000)
 
         # Abrir y cerrar modal Crear Campaña
@@ -108,6 +117,7 @@ with sync_playwright() as p:
         page.click("#btn-nav-compendium-top")
         page.wait_for_selector("#compendium-modal:not(.hidden)", timeout=5000)
         page.click("#compendium-close-btn")
+        page.evaluate("try { localStorage.removeItem('dnd_demo_mode'); } catch(e) {}")
         return "Index buttons OK"
 
     record("E2E Browser [/]: Botones de Crear Campaña, Crear Personaje (Rápido/Manual) y Compendio", test_index_buttons)
@@ -177,8 +187,9 @@ with sync_playwright() as p:
         page.wait_for_selector("#player-sheet-workspace:not(.hidden)", timeout=8000)
         page.wait_for_function("document.getElementById('current-hp-num')?.textContent?.trim() === '8'", timeout=5000)
 
-        # Clic en -5 PG (#hp-sub-5): 8 -> 3
-        page.click("#hp-sub-5")
+        # Clic en [-] (#hp-sub-btn) con prompt 5: 8 -> 3
+        dialog_response[0] = "5"
+        page.click("#hp-sub-btn")
         page.wait_for_function("document.getElementById('current-hp-num')?.textContent?.trim() === '3'", timeout=5000)
 
         # Esperar 700ms para asegurar que ninguna sincronización ni debounce revierta 3 -> 8
@@ -193,12 +204,14 @@ with sync_playwright() as p:
         hp_after_reload = page.locator("#current-hp-num").inner_text().strip()
         assert hp_after_reload == "3", f"El PG no persistió tras recargar: se esperaba 3, se obtuvo {hp_after_reload}"
 
-        # Probar -1 (#hp-sub-1 -> 2), +1 (#hp-add-1 -> 3), +5 (#hp-add-5 -> 8)
-        page.click("#hp-sub-1")
+        # Probar restar 1 (#hp-sub-btn -> 2), sumar 1 (#hp-add-btn -> 3), sumar 5 (#hp-add-btn -> 8)
+        dialog_response[0] = "1"
+        page.click("#hp-sub-btn")
         page.wait_for_function("document.getElementById('current-hp-num')?.textContent?.trim() === '2'", timeout=5000)
-        page.click("#hp-add-1")
+        page.click("#hp-add-btn")
         page.wait_for_function("document.getElementById('current-hp-num')?.textContent?.trim() === '3'", timeout=5000)
-        page.click("#hp-add-5")
+        dialog_response[0] = "5"
+        page.click("#hp-add-btn")
         page.wait_for_function("document.getElementById('current-hp-num')?.textContent?.trim() === '8'", timeout=5000)
 
         # Probar botones de modales y secciones de la ficha del jugador con selectores exactos
@@ -301,30 +314,36 @@ with sync_playwright() as p:
 
         page.goto(f"{BASE}/campaigns?campaign=camp-test-dm", wait_until="domcontentloaded")
         page.wait_for_selector("#dm-control-workspace:not(.hidden)", timeout=8000)
-        page.wait_for_selector("#grimoire-players-grid .hp-btn", timeout=5000)
 
-        # 1. Probar botones -5, -1, +1, +5 del DM en la tarjeta de aventurero del Grimorio
-        page.click('#grimoire-players-grid .hp-btn[data-delta="-5"]')
+        page.wait_for_selector("#grimoire-players-grid .hp-sub-btn", timeout=5000)
+
+        # 1. Probar botones [-] y [+] del DM en la tarjeta de aventurero del Grimorio
+        dialog_response[0] = "5"
+        page.click('#grimoire-players-grid .hp-sub-btn')
+        page.wait_for_timeout(200)
         hp_in_store = page.evaluate("""() => {
             const chars = JSON.parse(localStorage.getItem('dnd_all_characters_v1') || '[]');
             return chars.find(c => c.id === 'char-test-kaeroc')?.hp?.current;
         }""")
-        assert hp_in_store == 35, f"El botón -5 del Grimorio no restó 5 PG (esperado 35, obtenido {hp_in_store})"
+        assert hp_in_store == 35, f"El botón [-] del Grimorio no restó 5 PG (esperado 35, obtenido {hp_in_store})"
 
-        page.click('#grimoire-players-grid .hp-btn[data-delta="-1"]')
+        dialog_response[0] = "1"
+        page.click('#grimoire-players-grid .hp-sub-btn')
+        page.wait_for_timeout(200)
         hp_in_store = page.evaluate("""() => {
             const chars = JSON.parse(localStorage.getItem('dnd_all_characters_v1') || '[]');
             return chars.find(c => c.id === 'char-test-kaeroc')?.hp?.current;
         }""")
-        assert hp_in_store == 34, f"El botón -1 del Grimorio no restó 1 PG (esperado 34, obtenido {hp_in_store})"
+        assert hp_in_store == 34, f"El botón [-] del Grimorio no restó 1 PG (esperado 34, obtenido {hp_in_store})"
 
-        page.click('#grimoire-players-grid .hp-btn[data-delta="1"]')
-        page.click('#grimoire-players-grid .hp-btn[data-delta="5"]')
+        dialog_response[0] = "6"
+        page.click('#grimoire-players-grid .hp-add-btn')
+        page.wait_for_timeout(200)
         hp_in_store = page.evaluate("""() => {
             const chars = JSON.parse(localStorage.getItem('dnd_all_characters_v1') || '[]');
             return chars.find(c => c.id === 'char-test-kaeroc')?.hp?.current;
         }""")
-        assert hp_in_store == 40, f"Los botones +1/+5 del Grimorio no sumaron PG (esperado 40, obtenido {hp_in_store})"
+        assert hp_in_store == 40, f"El botón [+] del Grimorio no sumó PG (esperado 40, obtenido {hp_in_store})"
 
         # Botón Inspirar en Grimorio
         page.click('#grimoire-players-grid .inspire-btn')
@@ -340,14 +359,15 @@ with sync_playwright() as p:
         page.uncheck("#dm-init-monster-add-token")
         page.click("#dm-modal-confirm-start-btn")
 
-        page.wait_for_selector("#dm-combatants-container .dm-hp-delta-btn", timeout=5000)
+        page.wait_for_selector("#dm-combatants-container .dm-hp-sub-btn", timeout=5000)
 
-        # 3. Probar botones -5 y -1 en CombatTracker sobre el personaje JUGADOR (PJ)
+        # 3. Probar botones [-] en CombatTracker sobre el personaje JUGADOR (PJ)
         pc_id = page.evaluate("""() => {
             const combat = JSON.parse(localStorage.getItem('dnd_combat_camp-test-dm'));
             return combat.combatants.find(c => c.isPlayer).id;
         }""")
-        page.click(f'#dm-combatant-{pc_id} .dm-hp-delta-btn[data-delta="-5"]')
+        dialog_response[0] = "5"
+        page.click(f'#dm-combatant-{pc_id} .dm-hp-sub-btn')
         page.wait_for_function(f"document.getElementById('dm-hp-num-{pc_id}')?.textContent?.trim() === '35'", timeout=5000)
 
         combat_pc_hp = page.evaluate("""() => {
@@ -360,20 +380,22 @@ with sync_playwright() as p:
         }""")
         dom_pc_hp = page.locator(f"#dm-hp-num-{pc_id}").inner_text().strip()
         assert combat_pc_hp == 35 and char_pc_hp == 35 and dom_pc_hp == "35", (
-            f"El botón -5 del CombatTracker sobre PJ falló: combat={combat_pc_hp}, char={char_pc_hp}, dom={dom_pc_hp}"
+            f"El botón [-] del CombatTracker sobre PJ falló: combat={combat_pc_hp}, char={char_pc_hp}, dom={dom_pc_hp}"
         )
 
-        page.click(f'#dm-combatant-{pc_id} .dm-hp-delta-btn[data-delta="-1"]')
+        dialog_response[0] = "1"
+        page.click(f'#dm-combatant-{pc_id} .dm-hp-sub-btn')
         page.wait_for_function(f"document.getElementById('dm-hp-num-{pc_id}')?.textContent?.trim() === '34'", timeout=5000)
         dom_pc_hp_2 = page.locator(f"#dm-hp-num-{pc_id}").inner_text().strip()
-        assert dom_pc_hp_2 == "34", f"El botón -1 del CombatTracker sobre PJ falló: dom={dom_pc_hp_2}"
+        assert dom_pc_hp_2 == "34", f"El botón [-] del CombatTracker sobre PJ falló: dom={dom_pc_hp_2}"
 
-        # 4. Probar botones -5, -1, +1, +5 sobre el NPC (Orco Jefe)
+        # 4. Probar botón [-] sobre el NPC (Orco Jefe)
         npc_id = page.evaluate("""() => {
             const combat = JSON.parse(localStorage.getItem('dnd_combat_camp-test-dm'));
             return combat.combatants.find(c => !c.isPlayer).id;
         }""")
-        page.click(f'#dm-combatant-{npc_id} .dm-hp-delta-btn[data-delta="-5"]')
+        dialog_response[0] = "5"
+        page.click(f'#dm-combatant-{npc_id} .dm-hp-sub-btn')
         page.wait_for_function(f"document.getElementById('dm-hp-num-{npc_id}')?.textContent?.trim() === '20'", timeout=5000)
         assert page.locator(f"#dm-hp-num-{npc_id}").inner_text().strip() == "20"
 

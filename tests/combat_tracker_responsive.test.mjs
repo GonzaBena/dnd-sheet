@@ -31,7 +31,7 @@ test('CombatTracker responsive layout & anti-overflow checks', () => {
 
   // 4. Combatant name truncates and has tooltip
   assert.ok(
-    content.includes('title="${c.name}"'),
+    content.includes('title="${escapeHtml(c.name)}"'),
     'Combatant name must include tooltip with full name'
   );
   assert.ok(

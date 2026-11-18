@@ -49,12 +49,12 @@ test('Section Reordering, Collapsing & Layout Tests', async (t) => {
     assert.ok(char.layoutConfig);
     assert.ok(char.layoutConfig.sectionOrder);
     assert.deepEqual(char.layoutConfig.sectionOrder.col1, ['abilities', 'saves', 'skills', 'features']);
-    assert.deepEqual(char.layoutConfig.sectionOrder.col2, ['weapons', 'wildshape', 'currency', 'backpack', 'spells']);
+    assert.deepEqual(char.layoutConfig.sectionOrder.col2, ['weapons', 'wildshape', 'companions', 'currency', 'backpack', 'spells']);
     assert.deepEqual(char.layoutConfig.collapsedSections, []);
   });
 
-  await t.test('2. SECTIONS_META defines all 9 modular sections', () => {
-    assert.equal(ALL_SECTION_IDS.length, 9);
+  await t.test('2. SECTIONS_META defines all 11 modular sections', () => {
+    assert.equal(ALL_SECTION_IDS.length, 11);
     for (const secId of ALL_SECTION_IDS) {
       assert.ok(SECTIONS_META[secId]);
       assert.ok(SECTIONS_META[secId].name);
@@ -65,19 +65,19 @@ test('Section Reordering, Collapsing & Layout Tests', async (t) => {
   await t.test('3. characterStore.updateSectionOrder updates and persists custom column order', () => {
     characterStore.updateSectionOrder({
       col1: ['spells', 'weapons', 'abilities'],
-      col2: ['saves', 'skills', 'features', 'wildshape', 'currency', 'backpack']
+      col2: ['saves', 'skills', 'features', 'wildshape', 'companions', 'currency', 'backpack']
     });
 
     const updated = characterStore.get();
     assert.deepEqual(updated.layoutConfig.sectionOrder.col1, ['spells', 'weapons', 'abilities']);
-    assert.deepEqual(updated.layoutConfig.sectionOrder.col2, ['saves', 'skills', 'features', 'wildshape', 'currency', 'backpack']);
+    assert.deepEqual(updated.layoutConfig.sectionOrder.col2, ['saves', 'skills', 'features', 'wildshape', 'companions', 'currency', 'backpack']);
   });
 
-  await t.test('4. characterStore.resetSectionOrder reverts to default 4/5 column distribution', () => {
+  await t.test('4. characterStore.resetSectionOrder reverts to default 4/6 column distribution', () => {
     characterStore.resetSectionOrder();
     const reset = characterStore.get();
     assert.deepEqual(reset.layoutConfig.sectionOrder.col1, ['abilities', 'saves', 'skills', 'features']);
-    assert.deepEqual(reset.layoutConfig.sectionOrder.col2, ['weapons', 'wildshape', 'currency', 'backpack', 'spells']);
+    assert.deepEqual(reset.layoutConfig.sectionOrder.col2, ['weapons', 'wildshape', 'companions', 'currency', 'backpack', 'spells']);
   });
 
   await t.test('5. characterStore.toggleSectionCollapsed toggles individual section collapse', () => {
@@ -97,7 +97,8 @@ test('Section Reordering, Collapsing & Layout Tests', async (t) => {
   await t.test('6. characterStore.setAllSectionsCollapsed collapses or expands all sections in bulk', () => {
     characterStore.setAllSectionsCollapsed(true);
     const collapsedAll = characterStore.get().layoutConfig.collapsedSections;
-    assert.equal(collapsedAll.length, 9);
+    assert.equal(collapsedAll.length, 11);
+    assert.equal(characterStore.isSectionCollapsed('armor'), true);
     assert.equal(characterStore.isSectionCollapsed('weapons'), true);
     assert.equal(characterStore.isSectionCollapsed('backpack'), true);
 
@@ -134,7 +135,7 @@ test('Section Reordering, Collapsing & Layout Tests', async (t) => {
     assert.ok(recalculated.layoutConfig);
     assert.ok(recalculated.layoutConfig.sectionOrder);
     assert.equal(recalculated.layoutConfig.sectionOrder.col1.length, 4);
-    assert.equal(recalculated.layoutConfig.sectionOrder.col2.length, 5);
+    assert.equal(recalculated.layoutConfig.sectionOrder.col2.length, 6);
     assert.deepEqual(recalculated.layoutConfig.collapsedSections, []);
   });
 
@@ -174,7 +175,8 @@ test('Section Reordering, Collapsing & Layout Tests', async (t) => {
 
     const fixed = recalculateCharacter(partialOrderChar);
     const allAssigned = new Set([...fixed.layoutConfig.sectionOrder.col1, ...fixed.layoutConfig.sectionOrder.col2]);
-    for (const sec of ALL_SECTION_IDS) {
+    // `armor` vive fijo en el bloque 2 y no forma parte de las columnas reordenables.
+    for (const sec of ALL_SECTION_IDS.filter((id) => id !== 'armor')) {
       assert.ok(allAssigned.has(sec), `Expected section ${sec} to be assigned`);
     }
   });
@@ -183,29 +185,29 @@ test('Section Reordering, Collapsing & Layout Tests', async (t) => {
     characterStore.resetSectionOrder();
     const char = characterStore.get();
     assert.ok(Array.isArray(char.layoutConfig.sectionOrder.unifiedOrder));
-    assert.equal(char.layoutConfig.sectionOrder.unifiedOrder.length, 9);
+    assert.equal(char.layoutConfig.sectionOrder.unifiedOrder.length, 10);
     assert.equal(char.layoutConfig.sectionOrder.unifiedOrder[0], 'abilities');
 
     // Updating with a unifiedOrder
-    const newUnified = ['spells', 'weapons', 'abilities', 'saves', 'skills', 'features', 'wildshape', 'currency', 'backpack'];
+    const newUnified = ['spells', 'weapons', 'abilities', 'saves', 'skills', 'features', 'wildshape', 'companions', 'currency', 'backpack'];
     characterStore.updateSectionOrder({
       unifiedOrder: newUnified
     });
 
     const updated = characterStore.get();
     assert.deepEqual(updated.layoutConfig.sectionOrder.unifiedOrder, newUnified);
-    // col1 gets first 4, col2 gets remaining 5
+    // col1 gets first 4, col2 gets remaining 6
     assert.deepEqual(updated.layoutConfig.sectionOrder.col1, ['spells', 'weapons', 'abilities', 'saves']);
-    assert.deepEqual(updated.layoutConfig.sectionOrder.col2, ['skills', 'features', 'wildshape', 'currency', 'backpack']);
+    assert.deepEqual(updated.layoutConfig.sectionOrder.col2, ['skills', 'features', 'wildshape', 'companions', 'currency', 'backpack']);
 
     // Updating with col1/col2 automatically updates unifiedOrder
     characterStore.updateSectionOrder({
       col1: ['features', 'skills'],
-      col2: ['abilities', 'saves', 'weapons', 'wildshape', 'currency', 'backpack', 'spells']
+      col2: ['abilities', 'saves', 'weapons', 'wildshape', 'companions', 'currency', 'backpack', 'spells']
     });
     const updated2 = characterStore.get();
     assert.deepEqual(updated2.layoutConfig.sectionOrder.unifiedOrder, [
-      'features', 'skills', 'abilities', 'saves', 'weapons', 'wildshape', 'currency', 'backpack', 'spells'
+      'features', 'skills', 'abilities', 'saves', 'weapons', 'wildshape', 'companions', 'currency', 'backpack', 'spells'
     ]);
   });
 
@@ -225,7 +227,7 @@ test('Section Reordering, Collapsing & Layout Tests', async (t) => {
     };
     const fixed = recalculateCharacter(legacy);
     assert.ok(Array.isArray(fixed.layoutConfig.sectionOrder.unifiedOrder));
-    assert.equal(fixed.layoutConfig.sectionOrder.unifiedOrder.length, 9);
+    assert.equal(fixed.layoutConfig.sectionOrder.unifiedOrder.length, 10);
     // Preserves custom col1 and col2 order at the front
     assert.equal(fixed.layoutConfig.sectionOrder.unifiedOrder[0], 'weapons');
     assert.equal(fixed.layoutConfig.sectionOrder.unifiedOrder[1], 'spells');

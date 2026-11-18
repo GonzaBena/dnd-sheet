@@ -72,6 +72,25 @@
         </div>
       </div>
 
+      <!-- Banner de Ventaja / Desventaja Explicada (Spec 11, H4) -->
+      <div
+        id="dice-advantage-banner"
+        class="hidden p-2.5 rounded-xl border text-xs flex flex-col gap-1 shadow-xs"
+      >
+        <div class="flex items-center justify-between gap-2">
+          <div class="flex items-center gap-1.5 font-bold" id="dice-adv-title">
+            <span class="material-symbols-outlined text-[16px]" id="dice-adv-icon">star</span>
+            <span id="dice-adv-text">Tirada con Ventaja</span>
+          </div>
+          <span id="dice-adv-badge" class="px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase">
+            2d20
+          </span>
+        </div>
+        <p id="dice-adv-reasons" class="text-[11px] leading-snug">
+          Explicación de las causas de la tirada.
+        </p>
+      </div>
+
       <!-- 1. OBJETIVO Y CLASE DE DIFICULTAD (CD / CA) - ¡PRIMERO! -->
       <div id="dice-target-container" class="hidden p-3 rounded-xl bg-[#18202e] border border-[#222f42] space-y-2.5 shadow-sm">
         <div class="flex items-center justify-between">
@@ -347,6 +366,9 @@
   import { characterStore } from '../../scripts/state/characterStore';
   import { applyDamageToCombatant, getCurrentCombat } from '../../scripts/data/combatService';
   import { applyHpAction } from '../../scripts/ui/hpActions.ts';
+  // Etiquetas, nombres de objetivo, fórmulas y tipos de daño vienen de armas, conjuros y combatientes
+  // que escriben los usuarios: todo lo que va a innerHTML pasa por esc().
+  import { escapeHtml as esc } from '../../scripts/dnd/catalog';
 
   const modal = document.getElementById('dice-roller-modal');
   const backdrop = document.getElementById('modal-backdrop');
@@ -394,6 +416,14 @@
   const rollSaveDmgBtn = document.getElementById('dice-roll-save-dmg-btn');
   const rollSaveDmgLabel = document.getElementById('dice-roll-save-dmg-label');
 
+  // Banner de Ventaja / Desventaja (Spec 11, H4)
+  const advBanner = document.getElementById('dice-advantage-banner');
+  const advTitle = document.getElementById('dice-adv-title');
+  const advIcon = document.getElementById('dice-adv-icon');
+  const advText = document.getElementById('dice-adv-text');
+  const advBadge = document.getElementById('dice-adv-badge');
+  const advReasons = document.getElementById('dice-adv-reasons');
+
   interface FollowUpDamageSpec {
     count: number;
     die: number;
@@ -401,6 +431,9 @@
     damageType?: string;
     weaponOrSpellName?: string;
     label?: string;
+    combinedFormula?: string;
+    extraDiceList?: { count: number; die: number; mod: number; type: string; name: string }[];
+    selectedModifiers?: any[];
   }
 
   interface SaveInfoSpec {
@@ -436,7 +469,46 @@
     isDamageRoll?: boolean;
     followUpDamage?: FollowUpDamageSpec;
     saveInfo?: SaveInfoSpec;
+    advantageInfo?: any;
+    advantageState?: 'normal' | 'advantage' | 'disadvantage';
   } = { label: 'Tirada de dados', tag: '#Tirada', isDmRoll: false, isSecret: false };
+
+  function updateAdvantageBannerUi(adv?: any) {
+    if (!advBanner) return;
+    if (!adv || (adv.state === 'normal' && !adv.isCanceled)) {
+      advBanner.classList.add('hidden');
+      return;
+    }
+    advBanner.classList.remove('hidden');
+    if (adv.state === 'advantage') {
+      advBanner.className = 'p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/40 text-emerald-200 text-xs flex flex-col gap-1 shadow-xs';
+      if (advIcon) advIcon.textContent = 'star';
+      if (advText) advText.textContent = 'Tirada con Ventaja (2d20 - Mayor)';
+      if (advBadge) {
+        advBadge.className = 'px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase bg-emerald-500/20 text-emerald-300 border border-emerald-500/40';
+        advBadge.textContent = 'Ventaja';
+      }
+      if (advReasons) advReasons.textContent = adv.summaryText;
+    } else if (adv.state === 'disadvantage') {
+      advBanner.className = 'p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/40 text-rose-200 text-xs flex flex-col gap-1 shadow-xs';
+      if (advIcon) advIcon.textContent = 'warning';
+      if (advText) advText.textContent = 'Tirada con Desventaja (2d20 - Menor)';
+      if (advBadge) {
+        advBadge.className = 'px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase bg-rose-500/20 text-rose-300 border border-rose-500/40';
+        advBadge.textContent = 'Desventaja';
+      }
+      if (advReasons) advReasons.textContent = adv.summaryText;
+    } else if (adv.isCanceled) {
+      advBanner.className = 'p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/40 text-amber-200 text-xs flex flex-col gap-1 shadow-xs';
+      if (advIcon) advIcon.textContent = 'balance';
+      if (advText) advText.textContent = 'Ventaja y Desventaja Neutralizadas';
+      if (advBadge) {
+        advBadge.className = 'px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase bg-amber-500/20 text-amber-300 border border-amber-500/40';
+        advBadge.textContent = 'Normal';
+      }
+      if (advReasons) advReasons.textContent = adv.summaryText;
+    }
+  }
 
   function applyLockState(lockDie: boolean, lockCount: boolean) {
     const banner = document.getElementById('dice-locked-banner');
@@ -588,7 +660,7 @@
           const { targetName, targetDc, isPendingDm } = getEffectiveTargetAndDc();
 
           if (selectedDie === 20) {
-            const tgtLabel = targetName ? ` a ${targetName}` : '';
+            const tgtLabel = targetName ? ` a ${esc(targetName)}` : '';
             if (targetDc !== null) {
               if (total >= targetDc) {
                 physicalFeedback.innerHTML = `<span class="px-2.5 py-1 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-bold">🎯 ¡Impacta${tgtLabel}! (${total} vs CA/CD ${targetDc})</span>`;
@@ -662,8 +734,8 @@
       );
 
       optionsHtml += `
-        <option value="${c.name}" data-id="${c.id}" data-ac="${c.ac || ''}" ${isSelected ? 'selected' : ''}>
-          ${c.isPlayer ? '🛡️ PJ: ' : '💀 '}${c.name} ${c.ac ? `(CA ${c.ac})` : ''}
+        <option value="${esc(c.name)}" data-id="${esc(c.id)}" data-ac="${esc(c.ac || '')}" ${isSelected ? 'selected' : ''}>
+          ${c.isPlayer ? '🛡️ PJ: ' : '💀 '}${esc(c.name)} ${c.ac ? `(CA ${c.ac})` : ''}
         </option>
       `;
     });
@@ -831,7 +903,49 @@
     rollBtn?.classList.add('opacity-60', 'pointer-events-none');
     summaryText.innerHTML = '<span class="text-amber-400 font-bold animate-pulse">¡Los dados están girando...!</span>';
 
-    animateJackpotRoll(reelsContainer, selectedDie, selectedCount, mod, (res) => {
+    const hasAdv = selectedDie === 20 && rollContext.advantageState === 'advantage';
+    const hasDisadv = selectedDie === 20 && rollContext.advantageState === 'disadvantage';
+    const isAdvOrDisadv = hasAdv || hasDisadv;
+    const countToRoll = isAdvOrDisadv ? 2 : selectedCount;
+
+    animateJackpotRoll(reelsContainer, selectedDie, countToRoll, mod, (rawRes) => {
+      let res = rawRes;
+      if (isAdvOrDisadv && rawRes.rolls.length === 2) {
+        const [r1, r2] = rawRes.rolls;
+        const chosen = hasAdv ? Math.max(r1, r2) : Math.min(r1, r2);
+        const discarded = hasAdv ? Math.min(r1, r2) : Math.max(r1, r2);
+        const isCrit = chosen === 20;
+        const isFumble = chosen === 1;
+        const total = chosen + mod;
+
+        // Marcado visual en los tambores de la ruleta (Spec 11, H4)
+        const boxes = reelsContainer?.querySelectorAll<HTMLElement>('.w-16, .w-12');
+        if (boxes && boxes.length === 2) {
+          const chosenIdx = rawRes.rolls[0] === chosen ? 0 : 1;
+          const discardedIdx = chosenIdx === 0 ? 1 : 0;
+          boxes[chosenIdx].classList.add('border-emerald-400', 'ring-2', 'ring-emerald-400/50');
+          const badge = document.createElement('span');
+          badge.className = 'absolute top-1 right-1 text-[8px] bg-emerald-500/30 text-emerald-300 px-1 rounded font-bold uppercase';
+          badge.textContent = 'Elegido';
+          boxes[chosenIdx].appendChild(badge);
+
+          boxes[discardedIdx].classList.add('opacity-40');
+          const strike = document.createElement('div');
+          strike.className = 'absolute inset-0 flex items-center justify-center pointer-events-none';
+          strike.innerHTML = '<div class="w-full h-0.5 bg-rose-500/70 rotate-45"></div>';
+          boxes[discardedIdx].appendChild(strike);
+        }
+
+        res = {
+          total,
+          rolls: [chosen],
+          modifier: mod,
+          dieType: 20,
+          isCrit,
+          isFumble,
+        };
+      }
+
       lastResult = res;
       rollBtn?.removeAttribute('disabled');
       rollBtn?.classList.remove('opacity-60', 'pointer-events-none');
@@ -842,6 +956,22 @@
   function triggerFollowUpDamage(isCritical: boolean) {
     const f = rollContext.followUpDamage;
     if (!f) return;
+
+    // Spec 11, H4: Consumo condicional de modificadores al confirmar impacto
+    if (Array.isArray(f.selectedModifiers) && f.selectedModifiers.length > 0) {
+      for (const mod of f.selectedModifiers) {
+        if (mod.resourceCost?.consumeTiming === 'onHit') {
+          if (mod.resourceCost.resourceId) {
+            characterStore.spendResource(mod.resourceCost.resourceId, mod.resourceCost.amount || 1);
+          } else if (typeof mod.resourceCost.spellSlotLevel === 'number') {
+            characterStore.useSpellSlot(mod.resourceCost.spellSlotLevel);
+          }
+        }
+        if (mod.oncePerTurn) {
+          characterStore.markTurnModifierUsed(mod.id);
+        }
+      }
+    }
 
     const dmgCount = isCritical ? f.count * 2 : f.count;
     selectedDie = f.die;
@@ -882,8 +1012,10 @@
     }
 
     const modStr = f.modifier !== 0 ? `${f.modifier >= 0 ? '+' : ''}${f.modifier}` : '';
-    const normalFormula = `${f.count}d${f.die}${modStr}`;
-    const critFormula = `${f.count * 2}d${f.die}${modStr}`;
+    const normalFormula = f.combinedFormula || `${f.count}d${f.die}${modStr}`;
+    const critFormula = f.extraDiceList && f.extraDiceList.length > 0
+      ? `${f.count * 2}d${f.die}${f.extraDiceList.map((ed: any) => ` + ${ed.count * 2}d${ed.die}`).join('')}${modStr}`
+      : `${f.count * 2}d${f.die}${modStr}`;
     const { targetName, targetDc, isPendingDm } = targetInfo;
 
     if (res.isCrit) {
@@ -891,7 +1023,7 @@
       followUpContainer.innerHTML = `
         <div class="flex items-center justify-between text-xs text-amber-300 font-bold">
           <span>🔥 ¡20 Natural! ¡Impacto Crítico Automático!</span>
-          <span class="font-mono text-amber-200">${critFormula} ${f.damageType}</span>
+          <span class="font-mono text-amber-200">${esc(critFormula)} ${esc(f.damageType)}</span>
         </div>
         <button
           type="button"
@@ -899,7 +1031,7 @@
           class="w-full py-2 px-3 rounded-lg bg-gradient-to-r from-rose-600 to-amber-500 hover:brightness-110 text-[#0a0d12] font-headline font-extrabold text-xs flex items-center justify-center gap-1.5 shadow-md cursor-pointer transition-all"
         >
           <span class="material-symbols-outlined text-[16px]">local_fire_department</span>
-          <span>¡Lanzar Daño Crítico Ahora! (${critFormula})</span>
+          <span>¡Lanzar Daño Crítico Ahora! (${esc(critFormula)})</span>
         </button>
       `;
       followUpContainer.classList.remove('hidden');
@@ -919,7 +1051,7 @@
           id="dice-chain-dmg-btn"
           class="px-2.5 py-1 rounded-lg bg-[#10141d] hover:bg-rose-500/20 border border-[#222f42] hover:border-rose-500/40 text-[#94a3b8] hover:text-rose-300 font-bold text-[11px] shrink-0 cursor-pointer transition-colors self-start"
         >
-          Tirar daño de todas formas (${normalFormula})
+          Tirar daño de todas formas (${esc(normalFormula)})
         </button>
       `;
       followUpContainer.classList.remove('hidden');
@@ -932,7 +1064,7 @@
         followUpContainer.innerHTML = `
           <div class="flex items-center justify-between text-xs text-emerald-300 font-bold">
             <span>🎯 ¡Acierto! Superó la dificultad (${res.total} vs CD/CA ${targetDc})</span>
-            <span class="font-mono text-emerald-200">${normalFormula} ${f.damageType}</span>
+            <span class="font-mono text-emerald-200">${esc(normalFormula)} ${esc(f.damageType)}</span>
           </div>
           <button
             type="button"
@@ -940,7 +1072,7 @@
             class="w-full py-2 px-3 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-[#06120b] font-headline font-extrabold text-xs flex items-center justify-center gap-1.5 shadow-md cursor-pointer transition-all"
           >
             <span class="material-symbols-outlined text-[16px]">swords</span>
-            <span>¡Acertaste! Lanzar Daño (${normalFormula} ${f.damageType})</span>
+            <span>¡Acertaste! Lanzar Daño (${esc(normalFormula)} ${esc(f.damageType)})</span>
           </button>
         `;
         followUpContainer.classList.remove('hidden');
@@ -974,7 +1106,7 @@
       followUpContainer.innerHTML = `
         <div class="flex items-center justify-between text-xs text-amber-300 font-bold">
           <span>⏳ Ataque: ${res.total} al impacto • Pendiente de resolución del DM</span>
-          <span class="font-mono text-amber-200">${normalFormula} ${f.damageType}</span>
+          <span class="font-mono text-amber-200">${esc(normalFormula)} ${esc(f.damageType)}</span>
         </div>
         <div class="flex items-center gap-1.5 flex-wrap pt-1">
           <input
@@ -1076,13 +1208,13 @@
     if (saveInfo && saveInfo.isRollingEnemySave && res.dieType === 20) {
       if (res.total >= saveInfo.dc) {
         hitOutcome = 'hit';
-        targetHitEvaluation = `<span class="text-sky-300 font-bold block text-xs mt-0.5">🛡️ ¡El enemigo SUPERA la Salvación de ${saveInfo.ability}! (${res.total} vs CD ${saveInfo.dc}) → Mitad de daño / Efecto reducido</span>`;
+        targetHitEvaluation = `<span class="text-sky-300 font-bold block text-xs mt-0.5">🛡️ ¡El enemigo SUPERA la Salvación de ${esc(saveInfo.ability)}! (${res.total} vs CD ${saveInfo.dc}) → Mitad de daño / Efecto reducido</span>`;
       } else {
         hitOutcome = 'miss';
-        targetHitEvaluation = `<span class="text-rose-400 font-bold block text-xs mt-0.5">💥 ¡El enemigo FALLA la Salvación de ${saveInfo.ability}! (${res.total} vs CD ${saveInfo.dc}) → ¡Recibe el Daño/Efecto Completo!</span>`;
+        targetHitEvaluation = `<span class="text-rose-400 font-bold block text-xs mt-0.5">💥 ¡El enemigo FALLA la Salvación de ${esc(saveInfo.ability)}! (${res.total} vs CD ${saveInfo.dc}) → ¡Recibe el Daño/Efecto Completo!</span>`;
       }
     } else if (res.dieType === 20) {
-      const tgtLabel = targetName ? ` contra ${targetName}` : '';
+      const tgtLabel = targetName ? ` contra ${esc(targetName)}` : '';
       if (res.isCrit) {
         hitOutcome = 'crit';
         targetHitEvaluation = `<span class="text-amber-400 font-bold block text-xs mt-0.5">🎯 ¡Impacto Crítico Automático!${tgtLabel} (20 Natural)</span>`;
@@ -1105,7 +1237,7 @@
 
     const halfDmgOnSaveHtml = saveInfo && !saveInfo.isRollingEnemySave && res.dieType !== 20
       ? `<div class="mt-1 px-2.5 py-1 rounded-lg bg-sky-500/15 border border-sky-500/30 text-[11px] text-sky-200 flex items-center justify-center gap-3">
-           <span>💥 <strong>Si falla (CD ${saveInfo.dc} ${saveInfo.ability}):</strong> ${res.total} daño</span>
+           <span>💥 <strong>Si falla (CD ${saveInfo.dc} ${esc(saveInfo.ability)}):</strong> ${res.total} daño</span>
            <span>•</span>
            <span>🛡️ <strong>Si supera:</strong> ${Math.floor(res.total / 2)} daño (mitad)</span>
          </div>`
@@ -1126,7 +1258,7 @@
       ? '<span class="px-1.5 py-0.2 rounded bg-amber-500/15 text-amber-300 border border-amber-500/30 text-[9px] font-bold inline-flex items-center gap-1 mr-1"><span>🖐️</span><span>Dado Físico</span></span>'
       : '';
 
-    const targetLabel = targetName ? `<span class="text-rose-300 font-bold"> ➜ ${targetName}</span>` : '';
+    const targetLabel = targetName ? `<span class="text-rose-300 font-bold"> ➜ ${esc(targetName)}</span>` : '';
 
     if (summaryText && !isPhysical) {
       summaryText.innerHTML = `
@@ -1137,7 +1269,7 @@
         ${specialTag}
         ${targetHitEvaluation}
         <div class="mt-0.5">
-          <span class="text-[#cbd5e1] text-xs">${rollContext.label}${targetLabel} [${rollDetails}]${modDetails} = </span>
+          <span class="text-[#cbd5e1] text-xs">${esc(rollContext.label)}${targetLabel} [${rollDetails}]${modDetails} = </span>
           <strong class="text-xl font-headline font-bold ${res.isCrit ? 'text-amber-400' : 'text-[#f1f5f9]'}">${res.total}</strong>
         </div>
         ${halfDmgOnSaveHtml}
@@ -1402,6 +1534,8 @@
       isDamageRoll: isDmg,
       followUpDamage: detail.followUpDamage,
       saveInfo: detail.saveInfo ? { ...detail.saveInfo } : undefined,
+      advantageInfo: detail.advantageInfo,
+      advantageState: detail.advantageInfo?.state || detail.advantageState || 'normal',
     };
 
     if (customTargetInput) {
@@ -1428,7 +1562,7 @@
         followUpContainer.innerHTML = `
           <span class="text-[#94a3b8] text-[11px] flex items-center gap-1">
             <span class="material-symbols-outlined text-[14px] text-amber-400">swords</span>
-            <span>Paso 1: Impacto (d20) → Paso 2: <strong>${normalFormula} ${f.damageType}</strong></span>
+            <span>Paso 1: Impacto (d20) → Paso 2: <strong>${esc(normalFormula)} ${esc(f.damageType)}</strong></span>
           </span>
           <button
             type="button"
@@ -1448,6 +1582,7 @@
       }
     }
     updateSaveBannerUi(rollContext.saveInfo);
+    updateAdvantageBannerUi(rollContext.advantageInfo);
     applyLockState(lockDie, lockCount);
 
     if (countDisplay) countDisplay.textContent = String(selectedCount);
@@ -1464,7 +1599,7 @@
 
     if (summaryText) {
       const { targetName, targetDc, isPendingDm } = getEffectiveTargetAndDc();
-      const targetTxt = targetName ? ` contra <strong class="text-rose-300">${targetName}</strong>` : '';
+      const targetTxt = targetName ? ` contra <strong class="text-rose-300">${esc(targetName)}</strong>` : '';
       const dcTxt = targetDc !== null
         ? ` <span class="text-amber-300 font-bold">(CD/CA ${targetDc})</span>`
         : isPendingDm
@@ -1473,7 +1608,7 @@
       const followTxt = rollContext.followUpDamage
         ? ` <span class="text-emerald-400 font-bold"><br/>• Paso 1: Impacto (d20) → Paso 2: Daño (${rollContext.followUpDamage.count}d${rollContext.followUpDamage.die})</span>`
         : '';
-      summaryText.innerHTML = `<span class="text-[#94a3b8] text-xs">Preparado para: <strong class="text-amber-300">${rollContext.label}</strong>${targetTxt}${dcTxt}${followTxt} ${isSecretVal ? '<span class="text-purple-300 font-bold">(Secreta 🔒)</span>' : ''}</span>`;
+      summaryText.innerHTML = `<span class="text-[#94a3b8] text-xs">Preparado para: <strong class="text-amber-300">${esc(rollContext.label)}</strong>${targetTxt}${dcTxt}${followTxt} ${isSecretVal ? '<span class="text-purple-300 font-bold">(Secreta 🔒)</span>' : ''}</span>`;
     }
 
     const currentBackdrop = backdrop || (document.getElementById('modal-backdrop') as HTMLElement | null);

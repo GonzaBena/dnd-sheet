@@ -554,11 +554,11 @@ export async function advanceTurn(cid: string): Promise<void> {
       const snap = await tx.get(ref);
       const combat = snap.exists() ? (snap.data() as Combat) : undefined;
       if (!combat || !combat.active) return;
-      const next = peekNext(combat);
-      if (!next) return;
+      const updated = nextTurn(combat);
       tx.update(ref, {
-        turnIndex: next.index,
-        round: next.round,
+        turnIndex: updated.turnIndex,
+        round: updated.round,
+        combatants: updated.combatants.map(c => toPlain(c)),
         updatedAt: Date.now(),
       });
     });
@@ -621,4 +621,25 @@ export async function duplicateCombatantInCombat(
 
   const updated = duplicateCombatant(current, combatantId, count);
   await saveCombat(cid, updated);
+}
+
+/**
+ * Alterna o fija el estado de la reacción de un combatiente en el asalto actual (Spec 12, H5).
+ */
+export async function toggleCombatantReaction(
+  cid: string,
+  combatantId: string,
+  reactionUsed?: boolean
+): Promise<void> {
+  const current = getCurrentCombat(cid);
+  if (!current) return;
+
+  const combatant = current.combatants.find((c) => c.id === combatantId);
+  if (!combatant) return;
+
+  const nextVal = reactionUsed !== undefined ? reactionUsed : !combatant.reactionUsed;
+  combatant.reactionUsed = nextVal;
+  current.updatedAt = Date.now();
+
+  await saveCombat(cid, current);
 }

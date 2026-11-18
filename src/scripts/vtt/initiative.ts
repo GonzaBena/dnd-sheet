@@ -84,23 +84,30 @@ export function removeCombatant(combat: Combat, id: string): Combat {
 
 /**
  * Avanza al siguiente turno. Al pasar del último combatiente, vuelve al inicio y suma la ronda.
+ * Al entrar al turno del combatiente, su reacción se restablece automáticamente (SRD 5.1 / Spec 12).
  */
 export function nextTurn(combat: Combat): Combat {
   if (combat.combatants.length === 0) return combat;
 
-  const nextIndex = combat.turnIndex + 1;
+  let nextRound = combat.round;
+  let nextIndex = combat.turnIndex + 1;
   if (nextIndex >= combat.combatants.length) {
-    return {
-      ...combat,
-      round: combat.round + 1,
-      turnIndex: 0,
-      updatedAt: Date.now(),
-    };
+    nextRound = combat.round + 1;
+    nextIndex = 0;
   }
+
+  const updatedCombatants = combat.combatants.map((c, idx) => {
+    if (idx === nextIndex && c.reactionUsed) {
+      return { ...c, reactionUsed: false };
+    }
+    return c;
+  });
 
   return {
     ...combat,
+    round: nextRound,
     turnIndex: nextIndex,
+    combatants: updatedCombatants,
     updatedAt: Date.now(),
   };
 }

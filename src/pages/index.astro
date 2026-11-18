@@ -12,6 +12,10 @@ import DmPanelModal from '../components/dm/DmPanelModal.astro';
 import CompendiumModal from '../components/modals/CompendiumModal.astro';
 import ItemDetailModal from '../components/modals/ItemDetailModal.astro';
 import SpellDetailModal from '../components/modals/SpellDetailModal.astro';
+import LandingHero from '../components/landing/LandingHero.astro';
+import LandingFeatures from '../components/landing/LandingFeatures.astro';
+import SiteFooter from '../components/layout/SiteFooter.astro';
+import DeleteAccountModal from '../components/modals/DeleteAccountModal.astro';
 ---
 
 <BaseLayout>
@@ -34,6 +38,28 @@ import SpellDetailModal from '../components/modals/SpellDetailModal.astro';
 
       <!-- Desktop Quick Actions (>= 640px) -->
       <div class="hidden sm:flex items-center gap-2 shrink-0">
+        <!-- Visitor actions (visibles sin sesión) -->
+        <a
+          href="/campaigns?demo=1"
+          id="btn-nav-demo-top"
+          class="px-4 py-2 rounded-lg bg-[#18202e] border border-amber-500/40 hover:border-amber-500/80 text-amber-300 hover:text-amber-200 text-xs font-bold font-headline flex items-center gap-2 transition-all shadow-xs whitespace-nowrap"
+          title="Probar hoja de personaje interactiva sin registro"
+        >
+          <span class="material-symbols-outlined text-[16px]">casino</span>
+          <span>Probar Demo</span>
+        </a>
+
+        <button
+          type="button"
+          id="btn-nav-auth-top"
+          class="px-4 py-2 rounded-lg bg-gradient-to-r from-amber-600 to-amber-500 hover:brightness-110 text-[#0a0d12] text-xs font-bold font-headline flex items-center gap-2 transition-all shadow-xs cursor-pointer whitespace-nowrap"
+          title="Iniciar sesión o crear cuenta"
+        >
+          <span class="material-symbols-outlined text-[16px] font-bold">login</span>
+          <span>Iniciar Sesión</span>
+        </button>
+
+        <!-- Compendio (siempre accesible) -->
         <button
           type="button"
           id="btn-nav-compendium-top"
@@ -44,10 +70,11 @@ import SpellDetailModal from '../components/modals/SpellDetailModal.astro';
           <span class="material-symbols-outlined text-[18px] text-amber-400">menu_book</span>
         </button>
 
+        <!-- Authenticated actions (ocultas sin sesión) -->
         <a
           href="/campaigns"
           id="btn-nav-active-sheet"
-          class="w-9 h-9 rounded-lg bg-[#18202e] border border-amber-500/30 hover:border-amber-500/70 text-[#cbd5e1] hover:text-amber-300 transition-all flex items-center justify-center active:scale-95 cursor-pointer shadow-xs shrink-0"
+          class="hidden w-9 h-9 rounded-lg bg-[#18202e] border border-amber-500/30 hover:border-amber-500/70 text-[#cbd5e1] hover:text-amber-300 transition-all items-center justify-center active:scale-95 cursor-pointer shadow-xs shrink-0"
           title="Abrir hoja de personaje o grimorio activo"
           aria-label="Abrir hoja de personaje o grimorio activo"
         >
@@ -68,31 +95,90 @@ import SpellDetailModal from '../components/modals/SpellDetailModal.astro';
         <button
           type="button"
           id="btn-create-campaign-top"
-          class="w-9 h-9 rounded-lg bg-gradient-to-r from-amber-600 via-amber-500 to-amber-600 hover:from-amber-500 hover:to-amber-400 text-[#0a0d12] font-bold flex items-center justify-center shadow-[0_0_15px_rgba(245,158,11,0.35)] active:scale-95 transition-all cursor-pointer shrink-0"
+          class="hidden w-9 h-9 rounded-lg bg-gradient-to-r from-amber-600 via-amber-500 to-amber-600 hover:from-amber-500 hover:to-amber-400 text-[#0a0d12] font-bold items-center justify-center shadow-[0_0_15px_rgba(245,158,11,0.35)] active:scale-95 transition-all cursor-pointer shrink-0"
           title="Nueva Campaña"
           aria-label="Nueva Campaña"
         >
           <span class="material-symbols-outlined text-[20px] font-bold">add</span>
         </button>
 
-        <button
-          type="button"
-          id="btn-signout-top"
-          class="hidden w-9 h-9 rounded-lg bg-[#18202e] border border-[#222f42] hover:border-rose-500/50 text-[#94a3b8] hover:text-rose-300 transition-all items-center justify-center active:scale-95 cursor-pointer shadow-xs shrink-0"
-          title="Cerrar sesión"
-          aria-label="Cerrar sesión"
-        >
-          <span class="material-symbols-outlined text-[18px]">logout</span>
-        </button>
+        <!-- Settings / Account Menu Trigger (>= 640px) -->
+        <div class="relative" id="nav-settings-wrapper">
+          <button
+            type="button"
+            id="btn-nav-settings-top"
+            class="hidden w-9 h-9 rounded-lg bg-[#18202e] border border-amber-500/30 hover:border-amber-500/70 text-[#cbd5e1] hover:text-amber-300 transition-all items-center justify-center active:scale-95 cursor-pointer shadow-xs shrink-0"
+            title="Ajustes de cuenta y sesión"
+            aria-label="Ajustes de cuenta y sesión"
+          >
+            <span class="material-symbols-outlined text-[18px]">settings</span>
+          </button>
+
+          <!-- Settings Dropdown Menu -->
+          <div
+            id="nav-settings-menu"
+            class="hidden absolute right-0 mt-2 w-56 rounded-xl bg-[#121721] border border-[#222f42] shadow-[0_12px_36px_rgba(0,0,0,0.85)] z-50 overflow-hidden text-xs font-label py-1"
+          >
+            <!-- User Info Header -->
+            <div class="px-3.5 py-2.5 bg-[#18202e] border-b border-[#222f42]">
+              <span class="text-[10px] text-[#64748b] uppercase tracking-wider font-bold block">Cuenta</span>
+              <span id="nav-settings-user-name" class="font-headline font-bold text-sm text-[#f1f5f9] truncate block">Aventurero</span>
+              <span id="nav-settings-user-email" class="text-[10px] text-[#94a3b8] truncate block"></span>
+            </div>
+
+            <!-- Option Admin (solo visible para elgonzatron@gmail.com) -->
+            <a
+              href="/admin"
+              id="btn-admin-link-top"
+              class="hidden w-full text-left px-3.5 py-2 text-amber-400 hover:bg-[#18202e] hover:text-amber-300 items-center gap-2.5 transition-colors cursor-pointer"
+            >
+              <span class="material-symbols-outlined text-[16px] text-amber-400">admin_panel_settings</span>
+              <span>Panel de Analíticas</span>
+            </a>
+
+            <!-- Option 1: Cerrar Sesión -->
+            <button
+              type="button"
+              id="btn-signout-top"
+              class="w-full text-left px-3.5 py-2 text-[#e2e8f0] hover:bg-[#18202e] hover:text-amber-400 flex items-center gap-2.5 transition-colors cursor-pointer"
+            >
+              <span class="material-symbols-outlined text-[16px] text-cyan-400">logout</span>
+              <span>Cerrar sesión</span>
+            </button>
+
+            <div class="h-px bg-[#222f42] my-1"></div>
+
+            <!-- Option 2: Eliminar Cuenta -->
+            <button
+              type="button"
+              id="btn-delete-account-top"
+              class="w-full text-left px-3.5 py-2 text-rose-400 hover:bg-rose-950/30 hover:text-rose-300 flex items-center gap-2.5 transition-colors cursor-pointer"
+            >
+              <span class="material-symbols-outlined text-[16px]">person_remove</span>
+              <span>Eliminar cuenta...</span>
+            </button>
+          </div>
+        </div>
       </div>
 
       <!-- Mobile Quick Actions (< 640px) -->
       <div class="flex sm:hidden items-center gap-2 shrink-0">
-        <!-- Direct Quick Link to Active Game / Create -->
+        <!-- Visitor Quick Demo (< 640px) -->
+        <a
+          href="/campaigns?demo=1"
+          id="btn-nav-mobile-demo"
+          class="px-2.5 py-1.5 rounded-lg bg-[#18202e] border border-amber-500/40 text-amber-300 text-xs font-bold font-headline flex items-center gap-1 shadow-xs"
+          title="Probar Demo sin Registro"
+        >
+          <span class="material-symbols-outlined text-[16px]">casino</span>
+          <span>Demo</span>
+        </a>
+
+        <!-- Direct Quick Link to Active Game / Create (solo logueado) -->
         <a
           href="/campaigns"
           id="btn-nav-mobile-active-sheet"
-          class="w-9 h-9 rounded-lg bg-[#18202e] border border-amber-500/30 text-[#cbd5e1] flex items-center justify-center active:scale-95 cursor-pointer shadow-xs shrink-0"
+          class="hidden w-9 h-9 rounded-lg bg-[#18202e] border border-amber-500/30 text-[#cbd5e1] items-center justify-center active:scale-95 cursor-pointer shadow-xs shrink-0"
           title="Abrir hoja de personaje o grimorio activo"
           aria-label="Abrir hoja de personaje o grimorio activo"
         >
@@ -114,9 +200,15 @@ import SpellDetailModal from '../components/modals/SpellDetailModal.astro';
   </header>
 
   <!-- Main Viewport Area -->
-  <main class="w-full pt-24 sm:pt-28 pb-20 bg-[#0a0d12] min-h-screen">
-    <!-- Atmospheric Ambient Lighting Elements -->
-    <div class="relative w-full overflow-hidden px-4 sm:px-6 lg:px-10 max-w-7xl mx-auto space-y-8">
+  <main class="w-full pt-16 sm:pt-20 pb-20 bg-[#0a0d12] min-h-screen">
+    <!-- VISTA PÚBLICA / LANDING PAGE (Visitantes sin sesión) -->
+    <div id="landing-view" class="w-full">
+      <LandingHero />
+      <LandingFeatures />
+    </div>
+
+    <!-- VISTA PRIVADA / DASHBOARD DE CAMPAÑAS (Usuarios autenticados) -->
+    <div id="campaigns-dashboard-view" class="hidden relative w-full overflow-hidden px-4 sm:px-6 lg:px-10 max-w-7xl mx-auto space-y-8 pt-6">
       <div class="absolute -top-32 left-1/4 w-96 h-96 bg-amber-500/10 rounded-full blur-[110px] pointer-events-none"></div>
       <div class="absolute top-96 right-10 w-96 h-96 bg-rose-600/10 rounded-full blur-[120px] pointer-events-none"></div>
 
@@ -198,6 +290,9 @@ import SpellDetailModal from '../components/modals/SpellDetailModal.astro';
     </div>
   </main>
 
+  <!-- Global Footer -->
+  <SiteFooter />
+
   <!-- Mobile Navigation Drawer & Backdrop -->
   <div id="mobile-nav-backdrop" class="hidden fixed inset-0 bg-black/80 backdrop-blur-xs z-50 transition-opacity"></div>
   <aside
@@ -233,11 +328,41 @@ import SpellDetailModal from '../components/modals/SpellDetailModal.astro';
 
     <!-- Drawer Body -->
     <div class="p-3.5 space-y-2 flex-1 font-label text-xs">
-      <!-- Active Sheet / Grimoire Highlight Card -->
+      <!-- Visitor Actions (visibles sin sesión) -->
+      <a
+        href="/campaigns?demo=1"
+        id="drawer-item-demo"
+        class="p-3 rounded-xl bg-gradient-to-r from-amber-500/20 via-[#18202e] to-transparent border border-amber-500/40 hover:border-amber-500/80 flex items-center gap-3 text-[#f1f5f9] transition-all cursor-pointer group shadow-xs"
+      >
+        <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-amber-500 to-amber-600 text-[#0a0d12] flex items-center justify-center font-bold shadow-md shrink-0">
+          <span class="material-symbols-outlined text-[18px] text-[#0a0d12] font-bold">casino</span>
+        </div>
+        <div class="min-w-0 flex-1">
+          <span class="text-[9px] uppercase font-bold text-amber-400 block tracking-wider">Sin Registro</span>
+          <strong class="text-xs text-[#f1f5f9] font-headline font-bold truncate block">Probar Modo Demo</strong>
+        </div>
+        <span class="material-symbols-outlined text-[16px] text-amber-400/60 group-hover:translate-x-0.5 transition-transform">arrow_forward</span>
+      </a>
+
+      <button
+        type="button"
+        id="drawer-item-auth"
+        class="w-full text-left p-2.5 rounded-xl bg-[#121721] hover:bg-[#18202e] border border-amber-500/40 flex items-center gap-3 transition-colors text-[#f1f5f9] cursor-pointer"
+      >
+        <div class="w-8 h-8 rounded-lg bg-amber-500 text-[#0a0d12] flex items-center justify-center font-bold shrink-0 shadow-sm">
+          <span class="material-symbols-outlined text-[17px] font-bold">login</span>
+        </div>
+        <div class="min-w-0 flex-1">
+          <strong class="text-xs font-bold block text-amber-300">Entrar / Crear Cuenta</strong>
+          <span class="text-[11px] text-[#94a3b8] block truncate">Sincroniza tus mesas en la nube</span>
+        </div>
+      </button>
+
+      <!-- Active Sheet / Grimoire Highlight Card (visible autenticado) -->
       <a
         href="/campaigns"
         id="drawer-item-active-sheet"
-        class="p-3 rounded-xl bg-gradient-to-r from-amber-500/15 via-[#18202e] to-transparent border border-amber-500/40 hover:border-amber-500/80 flex items-center gap-3 text-[#f1f5f9] transition-all cursor-pointer group shadow-xs"
+        class="hidden p-3 rounded-xl bg-gradient-to-r from-amber-500/15 via-[#18202e] to-transparent border border-amber-500/40 hover:border-amber-500/80 items-center gap-3 text-[#f1f5f9] transition-all cursor-pointer group shadow-xs"
       >
         <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-amber-500 to-amber-600 text-[#0a0d12] flex items-center justify-center font-bold shadow-md shrink-0" id="drawer-active-icon-box">
           <span class="material-symbols-outlined text-[18px] text-[#0a0d12] font-bold" id="drawer-active-icon">crown</span>
@@ -301,14 +426,34 @@ import SpellDetailModal from '../components/modals/SpellDetailModal.astro';
 
     <!-- Drawer Footer -->
     <div class="p-3.5 border-t border-[#222f42] space-y-2.5 bg-[#10141d]">
+      <!-- Panel Admin (Mobile) -->
+      <a
+        href="/admin"
+        id="drawer-item-admin"
+        class="hidden w-full p-2.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-300 items-center justify-center gap-2 text-xs font-bold transition-colors cursor-pointer"
+      >
+        <span class="material-symbols-outlined text-[16px]">admin_panel_settings</span>
+        <span>Panel de Analíticas</span>
+      </a>
+
       <!-- Cerrar Sesión (Cloud) -->
       <button
         type="button"
         id="drawer-item-signout"
-        class="hidden w-full p-2.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 text-rose-300 items-center justify-center gap-2 text-xs font-bold transition-colors cursor-pointer"
+        class="hidden w-full p-2.5 rounded-xl bg-[#18202e] hover:bg-[#222f42] border border-[#222f42] text-[#94a3b8] hover:text-[#f1f5f9] items-center justify-center gap-2 text-xs font-bold transition-colors cursor-pointer"
       >
         <span class="material-symbols-outlined text-[16px]">logout</span>
         <span>Cerrar Sesión</span>
+      </button>
+
+      <!-- Eliminar Cuenta (Cloud) -->
+      <button
+        type="button"
+        id="drawer-item-delete-account"
+        class="hidden w-full p-2.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 text-rose-300 items-center justify-center gap-2 text-xs font-bold transition-colors cursor-pointer"
+      >
+        <span class="material-symbols-outlined text-[16px]">person_remove</span>
+        <span>Eliminar Cuenta</span>
       </button>
 
       <div class="text-center text-[10px] text-[#64748b]">
@@ -329,6 +474,7 @@ import SpellDetailModal from '../components/modals/SpellDetailModal.astro';
   <CompendiumModal />
   <ItemDetailModal />
   <SpellDetailModal />
+  <DeleteAccountModal />
 </BaseLayout>
 
 <script>
@@ -345,6 +491,7 @@ import SpellDetailModal from '../components/modals/SpellDetailModal.astro';
   import { characterStore } from '../scripts/state/characterStore';
   import { userStore } from '../scripts/state/userStore';
   import { cloudSession } from '../scripts/data/cloudSync';
+  import { isAdmin } from '../scripts/auth/adminAuth';
   import { normalizeStatus } from '../scripts/vtt/sessionStatus';
   import { openSideDrawer, closeSideDrawer } from '../scripts/animations/modalAnimations';
 
@@ -974,19 +1121,164 @@ import SpellDetailModal from '../components/modals/SpellDetailModal.astro';
     }));
   });
 
-  // Sesión en la nube: unirse con código y cerrar sesión
+  // Sesión en la nube: alternancia entre Landing Page y Dashboard de Campañas
+  const landingView = document.getElementById('landing-view');
+  const dashboardView = document.getElementById('campaigns-dashboard-view');
+  const demoTopBtn = document.getElementById('btn-nav-demo-top');
+  const authTopBtn = document.getElementById('btn-nav-auth-top');
+  const createCampaignTopBtn = document.getElementById('btn-create-campaign-top');
+  const activeSheetBtn = document.getElementById('btn-nav-active-sheet');
+  const mobileDemoBtn = document.getElementById('btn-nav-mobile-demo');
+  const mobileActiveSheetBtn = document.getElementById('btn-nav-mobile-active-sheet');
+
+  const drawerDemoBtn = document.getElementById('drawer-item-demo');
+  const drawerAuthBtn = document.getElementById('drawer-item-auth');
+  const drawerCreateCampBtn = document.getElementById('drawer-item-create-campaign');
+  const drawerActiveSheetBtn = document.getElementById('drawer-item-active-sheet');
+  const drawerUserStatus = document.getElementById('drawer-user-status-text');
+
   const joinBtn = document.getElementById('btn-join-campaign-top');
+  const navSettingsBtn = document.getElementById('btn-nav-settings-top');
+  const navSettingsMenu = document.getElementById('nav-settings-menu');
+  const navSettingsUserName = document.getElementById('nav-settings-user-name');
+  const navSettingsUserEmail = document.getElementById('nav-settings-user-email');
+  const adminLinkTop = document.getElementById('btn-admin-link-top');
+  const drawerAdminLink = document.getElementById('drawer-item-admin');
   const signOutBtn = document.getElementById('btn-signout-top');
+  const deleteAccountTopBtn = document.getElementById('btn-delete-account-top');
   const drawerJoinBtn = document.getElementById('drawer-item-join-campaign');
   const drawerSignOutBtn = document.getElementById('drawer-item-signout');
+  const drawerDeleteAccountBtn = document.getElementById('drawer-item-delete-account');
+
+  function syncLandingVsDashboard(state: string) {
+    const params = new URLSearchParams(window.location.search);
+    const forceLanding = params.get('landing') === '1';
+    const isDemoParam = params.get('demo') === '1';
+    if (isDemoParam) {
+      try { localStorage.setItem('dnd_demo_mode', '1'); } catch (_) {}
+    }
+    const isDemo = isDemoParam || (typeof localStorage !== 'undefined' && localStorage.getItem('dnd_demo_mode') === '1');
+    const wasAuthed = typeof localStorage !== 'undefined' && localStorage.getItem('dnd_cloud_authed') === '1';
+    const isAuthed = cloudSession.isCloud()
+      ? (((state === 'ready') || (state === 'loading' && wasAuthed)) && !forceLanding)
+      : (!forceLanding && (campaignStore.getCampaigns().length > 0 || isDemo));
+
+    if (landingView) {
+      landingView.classList.toggle('hidden', isAuthed);
+    }
+    if (dashboardView) {
+      dashboardView.classList.toggle('hidden', !isAuthed);
+    }
+
+    // Header buttons (Desktop)
+    demoTopBtn?.classList.toggle('hidden', isAuthed);
+    demoTopBtn?.classList.toggle('flex', !isAuthed);
+    authTopBtn?.classList.toggle('hidden', isAuthed);
+    authTopBtn?.classList.toggle('flex', !isAuthed);
+
+    createCampaignTopBtn?.classList.toggle('hidden', !isAuthed);
+    createCampaignTopBtn?.classList.toggle('flex', isAuthed);
+    activeSheetBtn?.classList.toggle('hidden', !isAuthed);
+    activeSheetBtn?.classList.toggle('flex', isAuthed);
+
+    joinBtn?.classList.toggle('hidden', !isAuthed || !cloudSession.isCloud());
+    joinBtn?.classList.toggle('flex', isAuthed && cloudSession.isCloud());
+    navSettingsBtn?.classList.toggle('hidden', !isAuthed || !cloudSession.isCloud());
+    navSettingsBtn?.classList.toggle('flex', isAuthed && cloudSession.isCloud());
+
+    if (isAuthed && cloudSession.isCloud()) {
+      const user = userStore.getCurrentUser();
+      const userIsAdmin = isAdmin(user);
+      if (navSettingsUserName) navSettingsUserName.textContent = user.name || 'Aventurero';
+      if (navSettingsUserEmail) navSettingsUserEmail.textContent = user.email || '';
+      adminLinkTop?.classList.toggle('hidden', !userIsAdmin);
+      adminLinkTop?.classList.toggle('flex', userIsAdmin);
+      drawerAdminLink?.classList.toggle('hidden', !userIsAdmin);
+      drawerAdminLink?.classList.toggle('flex', userIsAdmin);
+    } else {
+      adminLinkTop?.classList.add('hidden');
+      drawerAdminLink?.classList.add('hidden');
+      navSettingsMenu?.classList.add('hidden');
+    }
+
+    // Header buttons (Mobile)
+    mobileDemoBtn?.classList.toggle('hidden', isAuthed);
+    mobileDemoBtn?.classList.toggle('flex', !isAuthed);
+    mobileActiveSheetBtn?.classList.toggle('hidden', !isAuthed);
+    mobileActiveSheetBtn?.classList.toggle('flex', isAuthed);
+
+    // Drawer items
+    drawerDemoBtn?.classList.toggle('hidden', isAuthed);
+    drawerAuthBtn?.classList.toggle('hidden', isAuthed);
+    drawerCreateCampBtn?.classList.toggle('hidden', !isAuthed);
+    drawerActiveSheetBtn?.classList.toggle('hidden', !isAuthed);
+    drawerJoinBtn?.classList.toggle('hidden', !isAuthed || !cloudSession.isCloud());
+    drawerSignOutBtn?.classList.toggle('hidden', !isAuthed || !cloudSession.isCloud());
+    drawerDeleteAccountBtn?.classList.toggle('hidden', !isAuthed || !cloudSession.isCloud());
+    drawerDeleteAccountBtn?.classList.toggle('flex', isAuthed && cloudSession.isCloud());
+
+    if (drawerUserStatus) {
+      if (cloudSession.isCloud()) {
+        drawerUserStatus.textContent = isAuthed ? 'Sesión en la Nube' : 'Sin Sesión';
+      } else {
+        drawerUserStatus.textContent = 'Modo Local';
+      }
+    }
+
+    if (isAuthed) {
+      renderView();
+    }
+  }
+
+  authTopBtn?.addEventListener('click', () => {
+    window.dispatchEvent(new CustomEvent('open-auth-modal', { detail: { mode: 'login' } }));
+  });
+
+  drawerAuthBtn?.addEventListener('click', () => {
+    closeNavDrawer();
+    window.dispatchEvent(new CustomEvent('open-auth-modal', { detail: { mode: 'login' } }));
+  });
+
+  navSettingsBtn?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    navSettingsMenu?.classList.toggle('hidden');
+  });
+
+  document.addEventListener('click', (e) => {
+    if (!navSettingsMenu?.classList.contains('hidden') && !navSettingsMenu?.contains(e.target as Node)) {
+      navSettingsMenu?.classList.add('hidden');
+    }
+  });
+
+  signOutBtn?.addEventListener('click', () => {
+    navSettingsMenu?.classList.add('hidden');
+    cloudSession.signOut();
+  });
+
+  deleteAccountTopBtn?.addEventListener('click', () => {
+    navSettingsMenu?.classList.add('hidden');
+    window.dispatchEvent(new CustomEvent('open-delete-account-modal'));
+  });
 
   if (cloudSession.isCloud()) {
-    [joinBtn, signOutBtn, drawerJoinBtn, drawerSignOutBtn].forEach(btn => {
-      btn?.classList.remove('hidden');
-      btn?.classList.add('flex');
+    const wasAuthed = typeof localStorage !== 'undefined' && localStorage.getItem('dnd_cloud_authed') === '1';
+    if (wasAuthed) {
+      // Si sabemos que estaba autenticado, evitamos el parpadeo de la landing mostrándolo como sesión activa
+      syncLandingVsDashboard('ready');
+    } else {
+      syncLandingVsDashboard(cloudSession.state);
+    }
+
+    cloudSession.ready().then(() => {
+      syncLandingVsDashboard(cloudSession.state);
     });
+
+    window.addEventListener('cloud-session-changed', ((e: CustomEvent<{ state: string }>) => {
+      syncLandingVsDashboard(e.detail.state);
+    }) as EventListener);
+  } else {
+    syncLandingVsDashboard('local');
   }
-  signOutBtn?.addEventListener('click', () => cloudSession.signOut());
 
   // Mobile Navigation Drawer interactions
   const mobileMenuBtn = document.getElementById('btn-nav-mobile-menu');
@@ -1029,6 +1321,11 @@ import SpellDetailModal from '../components/modals/SpellDetailModal.astro';
   drawerSignOutBtn?.addEventListener('click', () => {
     closeNavDrawer();
     cloudSession.signOut();
+  });
+
+  drawerDeleteAccountBtn?.addEventListener('click', () => {
+    closeNavDrawer();
+    window.dispatchEvent(new CustomEvent('open-delete-account-modal'));
   });
 
   async function joinWithCode(code: string) {

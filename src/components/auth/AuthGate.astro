@@ -5,14 +5,25 @@
 
 <div id="auth-gate" class="hidden fixed inset-0 z-[80] flex items-center justify-center p-4 bg-[#0a0d12]/95 backdrop-blur-sm">
   <div class="w-full max-w-sm rounded-2xl bg-[#121721] border border-[#222f42] shadow-[0_20px_60px_rgba(0,0,0,0.95)] overflow-hidden">
-    <div class="p-5 bg-gradient-to-r from-[#18202e] via-[#1b2434] to-[#18202e] border-b border-[#222f42] flex items-center gap-3">
-      <div class="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center border border-amber-500/40 shadow-[0_0_12px_rgba(245,158,11,0.25)]">
-        <span class="material-symbols-outlined text-[22px]">casino</span>
+    <div class="p-5 bg-gradient-to-r from-[#18202e] via-[#1b2434] to-[#18202e] border-b border-[#222f42] flex items-center justify-between gap-3">
+      <div class="flex items-center gap-3 min-w-0">
+        <div class="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center border border-amber-500/40 shadow-[0_0_12px_rgba(245,158,11,0.25)] shrink-0">
+          <span class="material-symbols-outlined text-[22px]">casino</span>
+        </div>
+        <div class="min-w-0">
+          <h2 id="auth-title" class="font-headline font-bold text-base text-[#f1f5f9] truncate">Entrá a tu mesa</h2>
+          <span id="auth-subtitle" class="text-[11px] text-[#94a3b8] truncate block">Tus campañas y fichas, en todos tus dispositivos</span>
+        </div>
       </div>
-      <div>
-        <h2 id="auth-title" class="font-headline font-bold text-base text-[#f1f5f9]">Entrá a tu mesa</h2>
-        <span class="text-[11px] text-[#94a3b8]">Tus campañas y fichas, en todos tus dispositivos</span>
-      </div>
+      <button
+        type="button"
+        id="auth-close-btn"
+        class="w-8 h-8 rounded-lg text-[#94a3b8] hover:text-[#f1f5f9] hover:bg-[#18202e] border border-transparent hover:border-[#222f42] flex items-center justify-center transition-all cursor-pointer shrink-0"
+        aria-label="Cerrar ventana de acceso"
+        title="Cerrar"
+      >
+        <span class="material-symbols-outlined text-[18px]">close</span>
+      </button>
     </div>
 
     <div id="auth-loading" class="p-6 text-center text-xs text-[#94a3b8] flex items-center justify-center gap-2">
@@ -21,24 +32,26 @@
     </div>
 
     <div id="auth-body" class="hidden p-5 space-y-4 text-xs font-label">
-      <button
-        type="button"
-        id="auth-google-btn"
-        class="w-full py-2.5 rounded-xl bg-[#f1f5f9] hover:bg-white text-[#0a0d12] font-bold flex items-center justify-center gap-2 transition-all cursor-pointer active:scale-[0.98]"
-      >
-        <svg width="16" height="16" viewBox="0 0 48 48" aria-hidden="true">
-          <path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.8 2.4 30.3 0 24 0 14.6 0 6.6 5.4 2.6 13.3l7.9 6.1C12.4 13.7 17.7 9.5 24 9.5z"/>
-          <path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.6 3-2.3 5.5-4.8 7.2l7.7 6c4.5-4.2 6.9-10.3 6.9-17.7z"/>
-          <path fill="#FBBC05" d="M10.5 28.6c-.5-1.4-.8-3-.8-4.6s.3-3.2.8-4.6l-7.9-6.1C1 16.6 0 20.2 0 24s1 7.4 2.6 10.7l7.9-6.1z"/>
-          <path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.7-6c-2.2 1.5-5 2.3-8.2 2.3-6.3 0-11.6-4.2-13.5-10l-7.9 6.1C6.6 42.6 14.6 48 24 48z"/>
-        </svg>
-        <span>Continuar con Google</span>
-      </button>
+      <div id="auth-oauth-section" class="space-y-4">
+        <button
+          type="button"
+          id="auth-google-btn"
+          class="w-full py-2.5 rounded-xl bg-[#f1f5f9] hover:bg-white text-[#0a0d12] font-bold flex items-center justify-center gap-2 transition-all cursor-pointer active:scale-[0.98]"
+        >
+          <svg width="16" height="16" viewBox="0 0 48 48" aria-hidden="true">
+            <path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.8 2.4 30.3 0 24 0 14.6 0 6.6 5.4 2.6 13.3l7.9 6.1C12.4 13.7 17.7 9.5 24 9.5z"/>
+            <path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.6 3-2.3 5.5-4.8 7.2l7.7 6c4.5-4.2 6.9-10.3 6.9-17.7z"/>
+            <path fill="#FBBC05" d="M10.5 28.6c-.5-1.4-.8-3-.8-4.6s.3-3.2.8-4.6l-7.9-6.1C1 16.6 0 20.2 0 24s1 7.4 2.6 10.7l7.9-6.1z"/>
+            <path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.7-6c-2.2 1.5-5 2.3-8.2 2.3-6.3 0-11.6-4.2-13.5-10l-7.9 6.1C6.6 42.6 14.6 48 24 48z"/>
+          </svg>
+          <span>Continuar con Google</span>
+        </button>
 
-      <div class="flex items-center gap-2 text-[10px] text-[#64748b] uppercase tracking-wider font-bold">
-        <span class="flex-1 h-px bg-[#222f42]"></span>
-        <span>o con email</span>
-        <span class="flex-1 h-px bg-[#222f42]"></span>
+        <div class="flex items-center gap-2 text-[10px] text-[#64748b] uppercase tracking-wider font-bold">
+          <span class="flex-1 h-px bg-[#222f42]"></span>
+          <span>o con email</span>
+          <span class="flex-1 h-px bg-[#222f42]"></span>
+        </div>
       </div>
 
       <form id="auth-email-form" class="space-y-3" novalidate>
@@ -67,9 +80,13 @@
         </button>
       </form>
 
-      <div class="flex items-center justify-between text-[11px]">
+      <div id="auth-standard-links" class="flex items-center justify-between text-[11px]">
         <button type="button" id="auth-toggle-mode" class="text-amber-400 hover:text-amber-300 font-bold cursor-pointer">Crear cuenta</button>
         <button type="button" id="auth-forgot" class="text-[#94a3b8] hover:text-[#f1f5f9] cursor-pointer">Olvidé mi contraseña</button>
+      </div>
+
+      <div id="auth-forgot-links" class="hidden text-center text-[11px]">
+        <button type="button" id="auth-back-to-login" class="text-amber-400 hover:text-amber-300 font-bold cursor-pointer">← Volver a iniciar sesión</button>
       </div>
     </div>
   </div>
@@ -79,6 +96,7 @@
 
 <script>
   import { cloudSession } from '../../scripts/data/cloudSync';
+  import { telemetry } from '../../scripts/analytics/telemetry';
   import {
     signInWithGoogle, signInWithEmail, signUpWithEmail, sendPasswordReset, describeAuthError,
   } from '../../scripts/firebase/authService';
@@ -87,19 +105,25 @@
   const loading = document.getElementById('auth-loading');
   const body = document.getElementById('auth-body');
   const title = document.getElementById('auth-title');
+  const subtitle = document.getElementById('auth-subtitle');
+  const oauthSection = document.getElementById('auth-oauth-section');
   const form = document.getElementById('auth-email-form') as HTMLFormElement;
   const nameRow = document.getElementById('auth-name-row');
   const nameInp = document.getElementById('auth-name') as HTMLInputElement;
   const emailInp = document.getElementById('auth-email') as HTMLInputElement;
+  const passwordRow = document.getElementById('auth-password-row');
   const passwordInp = document.getElementById('auth-password') as HTMLInputElement;
   const submitBtn = document.getElementById('auth-submit') as HTMLButtonElement;
+  const standardLinks = document.getElementById('auth-standard-links');
   const toggleBtn = document.getElementById('auth-toggle-mode');
   const forgotBtn = document.getElementById('auth-forgot');
+  const forgotLinks = document.getElementById('auth-forgot-links');
+  const backToLoginBtn = document.getElementById('auth-back-to-login');
   const errorEl = document.getElementById('auth-error');
   const infoEl = document.getElementById('auth-info');
   const toast = document.getElementById('cloud-toast');
 
-  let mode: 'login' | 'signup' = 'login';
+  let mode: 'login' | 'signup' | 'forgot' = 'login';
   let toastTimer: ReturnType<typeof setTimeout> | undefined;
 
   function showToast(message: string, kind: 'error' | 'ok' = 'ok') {
@@ -120,27 +144,99 @@
     el.classList.toggle('hidden', !text);
   }
 
-  function setMode(next: 'login' | 'signup') {
+  function setMode(next: 'login' | 'signup' | 'forgot') {
     mode = next;
     nameRow?.classList.toggle('hidden', mode !== 'signup');
-    if (title) title.textContent = mode === 'signup' ? 'Creá tu cuenta' : 'Entrá a tu mesa';
-    submitBtn.textContent = mode === 'signup' ? 'Crear cuenta' : 'Iniciar sesión';
-    if (toggleBtn) toggleBtn.textContent = mode === 'signup' ? 'Ya tengo cuenta' : 'Crear cuenta';
+    passwordRow?.classList.toggle('hidden', mode === 'forgot');
+    oauthSection?.classList.toggle('hidden', mode === 'forgot');
+    standardLinks?.classList.toggle('hidden', mode === 'forgot');
+    forgotLinks?.classList.toggle('hidden', mode !== 'forgot');
+
+    if (title) {
+      if (mode === 'signup') title.textContent = 'Creá tu cuenta';
+      else if (mode === 'forgot') title.textContent = 'Recuperar contraseña';
+      else title.textContent = 'Entrá a tu mesa';
+    }
+
+    if (subtitle) {
+      if (mode === 'signup') subtitle.textContent = 'Comenzá tu aventura en segundos';
+      else if (mode === 'forgot') subtitle.textContent = 'Te enviaremos un correo para cambiar tu clave';
+      else subtitle.textContent = 'Tus campañas y fichas, en todos tus dispositivos';
+    }
+
+    if (submitBtn) {
+      if (mode === 'signup') submitBtn.textContent = 'Crear cuenta';
+      else if (mode === 'forgot') submitBtn.textContent = 'Enviar enlace de recuperación';
+      else submitBtn.textContent = 'Iniciar sesión';
+    }
+
+    if (toggleBtn) {
+      toggleBtn.textContent = mode === 'signup' ? 'Ya tengo cuenta' : 'Crear cuenta';
+    }
+
     passwordInp.autocomplete = mode === 'signup' ? 'new-password' : 'current-password';
     setMessage(errorEl, '');
     setMessage(infoEl, '');
   }
 
+  function isPublicOrDemoView(): boolean {
+    if (typeof window === 'undefined') return false;
+    const path = window.location.pathname;
+    const isRoot = path === '/' || path === '/index.html';
+    const isDemo = new URLSearchParams(window.location.search).get('demo') === '1' || localStorage.getItem('dnd_demo_mode') === '1';
+    return isRoot || isDemo;
+  }
+
   function render(state: string) {
     if (!gate) return;
-    // El modal de autenticación solo debe mostrarse cuando el usuario no tiene sesión activa.
-    // Durante 'loading' transitorio al navegar entre páginas, no se muestra para no interrumpir al usuario.
-    const visible = state === 'signed-out';
-    gate.classList.toggle('hidden', !visible);
-    gate.classList.toggle('flex', visible);
+    // En la página principal (Landing) o en modo demo, no bloqueamos la vista completa automáticamente.
+    // El usuario puede abrir el modal explícitamente cuando desee iniciar sesión o guardar en la nube.
+    const autoBlock = state === 'signed-out' && !isPublicOrDemoView();
+    gate.classList.toggle('hidden', !autoBlock);
+    gate.classList.toggle('flex', autoBlock);
     loading?.classList.toggle('hidden', state !== 'loading');
     body?.classList.toggle('hidden', state !== 'signed-out');
-    if (state === 'signed-out') emailInp?.focus();
+    if (autoBlock) emailInp?.focus();
+  }
+
+  // Cierre del modal con botón (✕) o clic en el backdrop
+  const closeBtn = document.getElementById('auth-close-btn');
+  closeBtn?.addEventListener('click', () => {
+    gate?.classList.add('hidden');
+    gate?.classList.remove('flex');
+  });
+
+  gate?.addEventListener('click', (e) => {
+    if (e.target === gate) {
+      gate.classList.add('hidden');
+      gate.classList.remove('flex');
+    }
+  });
+
+  // Apertura bajo demanda desde cualquier parte de la aplicación
+  window.addEventListener('open-auth-modal', ((e: CustomEvent<{ mode?: 'login' | 'signup' | 'forgot' }>) => {
+    if (!gate) return;
+    const nextMode = e.detail?.mode || 'login';
+    telemetry.track('auth_modal_open', { mode: nextMode });
+    setMode(nextMode);
+    gate.classList.remove('hidden');
+    gate.classList.add('flex');
+    body?.classList.remove('hidden');
+    loading?.classList.add('hidden');
+    emailInp?.focus();
+  }) as EventListener);
+
+  function handlePostAuthSuccess(method = 'email') {
+    telemetry.track('auth_success', { method });
+    try {
+      localStorage.removeItem('dnd_demo_mode');
+      localStorage.setItem('dnd_cloud_authed', '1');
+    } catch (_) {}
+    gate?.classList.add('hidden');
+    gate?.classList.remove('flex');
+    cloudSession.ready().then(() => {
+      window.dispatchEvent(new CustomEvent('cloud-session-changed', { detail: { state: 'ready' } }));
+    });
   }
 
   async function run(action: () => Promise<void>) {
@@ -149,8 +245,10 @@
     submitBtn.disabled = true;
     try {
       await action();
-    } catch (err) {
-      setMessage(errorEl, describeAuthError(err));
+    } catch (err: any) {
+      const errMsg = describeAuthError(err);
+      telemetry.track('ui_error', { errorMessage: errMsg, source: 'auth' });
+      setMessage(errorEl, errMsg);
     } finally {
       submitBtn.disabled = false;
     }
@@ -164,25 +262,32 @@
   }
   cloudSession.start();
 
-  document.getElementById('auth-google-btn')?.addEventListener('click', () => run(signInWithGoogle));
+  document.getElementById('auth-google-btn')?.addEventListener('click', () => run(async () => {
+    await signInWithGoogle();
+    handlePostAuthSuccess('google');
+  }));
 
   toggleBtn?.addEventListener('click', () => setMode(mode === 'login' ? 'signup' : 'login'));
 
-  forgotBtn?.addEventListener('click', () => run(async () => {
-    if (!emailInp.value.trim()) {
-      throw { code: 'auth/invalid-email' };
-    }
-    await sendPasswordReset(emailInp.value);
-    setMessage(infoEl, 'Te enviamos un email para restablecer la contraseña.');
-  }));
+  forgotBtn?.addEventListener('click', () => setMode('forgot'));
+
+  backToLoginBtn?.addEventListener('click', () => setMode('login'));
 
   form?.addEventListener('submit', (e) => {
     e.preventDefault();
     run(async () => {
       if (mode === 'signup') {
         await signUpWithEmail(nameInp.value, emailInp.value, passwordInp.value);
+        handlePostAuthSuccess('signup');
+      } else if (mode === 'forgot') {
+        if (!emailInp.value.trim()) {
+          throw { code: 'auth/invalid-email' };
+        }
+        await sendPasswordReset(emailInp.value);
+        setMessage(infoEl, '¡Listo! Te enviamos un correo con las instrucciones para restablecer tu contraseña. Revisá tu bandeja de entrada o spam.');
       } else {
         await signInWithEmail(emailInp.value, passwordInp.value);
+        handlePostAuthSuccess();
       }
     });
   });

@@ -1,113 +1,369 @@
 ---
 // src/components/modals/RestModal.astro
+// Modal interactivo de descanso corto y largo con tiradas táctiles y soporte multiclase (Spec 10, Fases B y C).
+// Optimizado para pantallas anchas (max-w-3xl / max-w-4xl) con grid responsivo.
 ---
 
-<div id="rest-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
-  <div class="modal-content w-full max-w-sm sm:max-w-md rounded-2xl bg-[#121721] border border-amber-500/40 shadow-[0_20px_60px_rgba(0,0,0,0.95)] overflow-hidden flex flex-col">
+<div id="rest-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4">
+  <div class="modal-content w-full max-w-xl md:max-w-3xl lg:max-w-4xl rounded-2xl bg-[#121721] border border-amber-500/40 shadow-[0_25px_70px_rgba(0,0,0,0.95)] overflow-hidden flex flex-col max-h-[92vh] transition-all">
     <!-- Header -->
-    <div class="p-4 bg-amber-500/10 border-b border-[#222f42] flex items-center justify-between">
-      <div class="flex items-center gap-2.5">
-        <div class="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center border border-amber-500/30">
-          <span class="material-symbols-outlined text-[20px]">bedtime</span>
+    <div class="p-4 sm:px-6 bg-gradient-to-r from-amber-500/15 via-amber-500/5 to-transparent border-b border-[#222f42] flex items-center justify-between shrink-0">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center border border-amber-500/30 shadow-xs shrink-0">
+          <span class="material-symbols-outlined text-[24px]">bedtime</span>
         </div>
         <div>
-          <h3 class="font-headline font-bold text-base text-[#f1f5f9]">Tomar un Descanso</h3>
-          <span class="text-[10px] text-amber-400/90">Elige el tipo de descanso para tu personaje</span>
+          <h3 class="font-headline font-bold text-base sm:text-lg text-[#f1f5f9] leading-tight">Descanso y Recuperación</h3>
+          <span class="block text-[11px] text-amber-400/90 font-medium mt-0.5">Reglas oficiales D&D 5e (SRD 5.1) · Mesa Virtual y Presencial</span>
         </div>
       </div>
       <button
         type="button"
         id="rest-modal-close-x"
-        class="w-7 h-7 rounded-lg bg-[#10141d] border border-[#222f42] hover:border-amber-500/50 text-[#94a3b8] hover:text-white flex items-center justify-center text-xs transition-colors cursor-pointer"
+        class="w-8 h-8 rounded-lg bg-[#10141d] border border-[#222f42] hover:border-amber-500/50 text-[#94a3b8] hover:text-white flex items-center justify-center text-xs transition-colors cursor-pointer shrink-0"
         aria-label="Cerrar modal"
       >
-        <span class="material-symbols-outlined text-[16px]">close</span>
+        <span class="material-symbols-outlined text-[18px]">close</span>
       </button>
     </div>
 
-    <!-- Body / Options -->
-    <div class="p-5 space-y-3.5">
-      <!-- Option 1: Descanso Corto -->
-      <div class="p-4 rounded-xl bg-[#18202e] border border-[#222f42] hover:border-amber-500/40 transition-colors flex flex-col gap-2.5">
-        <div class="flex items-start justify-between gap-3">
-          <div class="flex items-center gap-2.5">
-            <span class="material-symbols-outlined text-amber-400 text-[20px]">hourglass_bottom</span>
-            <div>
-              <h4 class="font-headline font-bold text-sm text-[#f1f5f9]">Descanso Corto (1 hora)</h4>
-              <p class="text-[11px] text-[#94a3b8] leading-tight">Gasta 1 Dado de Golpe para curar puntos de golpe.</p>
+    <!-- Tabs: Descanso Corto vs Descanso Largo -->
+    <div class="p-3 sm:px-6 border-b border-[#222f42] flex items-center gap-3 shrink-0 bg-[#0d1117]">
+      <button
+        type="button"
+        id="rest-tab-short-btn"
+        class="flex-1 py-2.5 px-4 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all cursor-pointer bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-xs"
+      >
+        <span class="material-symbols-outlined text-[18px]">hourglass_bottom</span>
+        <span>Descanso Corto (1 hora)</span>
+      </button>
+      <button
+        type="button"
+        id="rest-tab-long-btn"
+        class="flex-1 py-2.5 px-4 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all cursor-pointer bg-[#18202e] text-[#94a3b8] border border-[#222f42] hover:text-[#f1f5f9] hover:border-slate-600"
+      >
+        <span class="material-symbols-outlined text-[18px]">hotel</span>
+        <span>Descanso Largo (8 horas)</span>
+      </button>
+    </div>
+
+    <!-- Scrollable Content Area -->
+    <div class="p-4 sm:p-6 overflow-y-auto custom-scrollbar">
+      <!-- ========================================== -->
+      <!-- VIEW 1: DESCANSO CORTO                     -->
+      <!-- ========================================== -->
+      <div id="rest-view-short">
+        <div class="space-y-4 md:space-y-0 md:grid md:grid-cols-12 md:gap-6 items-start">
+        <!-- Columna Izquierda (5 cols): Salud, CON y Reservas -->
+        <div class="space-y-4 md:col-span-5">
+          <!-- Vitals & Health Preview Bar -->
+          <div class="p-4 sm:p-5 rounded-xl bg-[#18202e] border border-[#222f42] space-y-3.5">
+            <div class="flex flex-wrap items-center justify-between gap-2.5">
+              <div class="flex items-center gap-2">
+                <span class="material-symbols-outlined text-emerald-400 text-[20px]">vital_signs</span>
+                <span class="text-xs sm:text-sm font-bold text-[#f1f5f9]">Salud del Personaje</span>
+              </div>
+              <div class="flex items-center gap-2 text-xs font-mono font-bold">
+                <span id="short-hp-preview" class="text-emerald-400">0 / 0 PG</span>
+                <span id="short-con-pill" class="px-2 py-0.5 rounded-md bg-[#10141d] border border-amber-500/30 text-amber-300 text-[10px]" title="Modificador de Constitución sumado por cada dado tirado">CON: +0</span>
+              </div>
+            </div>
+
+            <!-- Animated Health Progress Bar -->
+            <div class="relative w-full h-4 rounded-full bg-[#10141d] border border-[#222f42] overflow-hidden">
+              <div id="short-hp-bar-current" class="absolute top-0 left-0 h-full bg-emerald-600 transition-all duration-300" style="width: 0%;"></div>
+              <div id="short-hp-bar-healed" class="absolute top-0 left-0 h-full bg-emerald-400/50 transition-all duration-300" style="width: 0%;"></div>
+            </div>
+            <div class="flex items-center justify-between gap-2 text-xs text-[#94a3b8]">
+              <span id="short-hp-sub-status">Gasta dados para curarte</span>
+              <span id="short-healed-counter" class="text-emerald-400 font-bold font-mono">+0 PG curados</span>
             </div>
           </div>
-          <span id="rest-modal-hitdice-badge" class="px-2 py-0.5 rounded bg-[#10141d] text-amber-300 font-bold text-[10px] border border-amber-500/30 shrink-0">
-            0/0 d8
-          </span>
+
+          <!-- Reservas de Dados de Golpe Disponibles -->
+          <div class="p-4 sm:p-5 rounded-xl bg-[#18202e] border border-[#222f42] space-y-3.5">
+            <div class="flex items-center justify-between gap-2">
+              <label class="text-xs font-bold text-[#cbd5e1] flex items-center gap-1.5">
+                <span class="material-symbols-outlined text-amber-400 text-[18px]">casino</span>
+                <span>Dados Disponibles</span>
+              </label>
+              <span id="short-total-dice-badge" class="text-[11px] font-mono text-amber-300 font-bold px-2 py-0.5 rounded-md bg-[#10141d] border border-[#222f42]">0 dados</span>
+            </div>
+
+            <!-- Pool Selector Pills (Flex-wrap para llenar el espacio limpiamente) -->
+            <div id="short-pools-container" class="flex flex-wrap gap-2.5">
+              <!-- Renderizado dinámico -->
+            </div>
+            <p class="text-[11px] text-[#94a3b8] leading-normal pt-1">
+              Toca el tipo de dado que deseas gastar para realizar la siguiente tirada.
+            </p>
+          </div>
         </div>
-        <button
-          type="button"
-          id="rest-modal-short-btn"
-          class="w-full py-2 rounded-lg bg-[#10141d] hover:bg-amber-500/20 text-amber-300 hover:text-amber-200 border border-amber-500/30 font-bold text-xs transition-all active:scale-95 cursor-pointer flex items-center justify-center gap-1.5"
-        >
-          <span class="material-symbols-outlined text-[15px]">vital_signs</span>
-          <span>Realizar Descanso Corto</span>
-        </button>
+
+        <!-- Columna Derecha (7 cols): Acción de Tirada + Historial -->
+        <div class="space-y-4 md:col-span-7">
+          <!-- Modo de Entrada: Virtual vs Físico -->
+          <div class="p-4 sm:p-5 rounded-xl bg-[#18202e] border border-[#222f42] space-y-4">
+            <div class="flex flex-wrap items-center justify-between gap-3 border-b border-[#222f42] pb-3">
+              <span class="text-xs sm:text-sm font-bold text-[#f1f5f9] flex items-center gap-2">
+                <span class="material-symbols-outlined text-amber-400 text-[18px]">play_circle</span>
+                <span>Tirar Dado de Golpe</span>
+              </span>
+              <div class="flex items-center gap-1.5 p-1 rounded-xl bg-[#10141d] border border-[#222f42] text-[11px]">
+                <button type="button" id="short-mode-virtual-btn" class="px-3 py-1 rounded-lg font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 cursor-pointer transition-all">Tirada Virtual</button>
+                <button type="button" id="short-mode-manual-btn" class="px-3 py-1 rounded-lg text-[#94a3b8] hover:text-[#f1f5f9] border border-transparent cursor-pointer transition-all">Dado en Mesa</button>
+              </div>
+            </div>
+
+            <!-- Tirada Virtual -->
+            <div id="short-virtual-panel" class="space-y-3.5">
+              <button
+                type="button"
+                id="short-roll-one-btn"
+                class="w-full py-3.5 px-5 rounded-xl bg-gradient-to-r from-amber-600 via-amber-500 to-amber-600 hover:from-amber-500 hover:to-amber-400 text-[#0a0d12] font-bold text-xs sm:text-sm transition-all active:scale-95 shadow-[0_0_15px_rgba(245,158,11,0.25)] cursor-pointer flex items-center justify-center gap-2.5"
+              >
+                <span class="material-symbols-outlined text-[20px]">casino</span>
+                <span id="short-roll-btn-label">Tirar 1 Dado de Golpe</span>
+              </button>
+              <p class="text-xs text-[#94a3b8] text-center leading-relaxed">
+                Tira el dado seleccionado, suma automáticamente tu Constitución y previsualiza la curación antes de decidir si gastas otro.
+              </p>
+            </div>
+
+            <!-- Entrada Manual (Física) -->
+            <div id="short-manual-panel" class="hidden space-y-3">
+              <div class="flex items-center gap-3">
+                <input
+                  type="number"
+                  id="short-manual-roll-input"
+                  class="flex-1 px-4 py-2.5 rounded-xl bg-[#10141d] border border-[#222f42] focus:border-amber-500/60 text-sm font-mono text-center text-[#f1f5f9] outline-none"
+                  placeholder="Número obtenido en la mesa (1 a 12)"
+                  min="1"
+                  max="12"
+                />
+                <button
+                  type="button"
+                  id="short-manual-apply-btn"
+                  class="px-5 py-2.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 font-bold text-xs active:scale-95 transition-all cursor-pointer shrink-0"
+                >
+                  Sumar a Salud
+                </button>
+              </div>
+              <p class="text-[11px] text-[#94a3b8] italic leading-relaxed">
+                Escribe el resultado numérico que salió en tus dados físicos. El sistema le sumará tu bono de CON automáticamente.
+              </p>
+            </div>
+
+            <!-- Aviso de Tope de Salud alcanzado -->
+            <div id="short-full-hp-notice" class="hidden p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs font-bold flex items-center gap-2.5">
+              <span class="material-symbols-outlined text-[19px] text-emerald-400 shrink-0">check_circle</span>
+              <span>¡Tu salud ya está al 100%! No necesitas gastar más dados.</span>
+            </div>
+          </div>
+
+          <!-- Historial de Dados Tirados en esta pausa -->
+          <div id="short-history-wrapper" class="hidden p-4 sm:p-5 rounded-xl bg-[#18202e] border border-[#222f42] space-y-3">
+            <div class="flex items-center justify-between border-b border-[#222f42] pb-2">
+              <span class="text-xs font-bold uppercase tracking-wider text-[#94a3b8] flex items-center gap-1.5">
+                <span class="material-symbols-outlined text-[16px] text-amber-400">history</span>
+                <span>Historial de Tiradas</span>
+              </span>
+              <span class="text-[11px] text-[#64748b] font-mono">En esta pausa</span>
+            </div>
+            <div id="short-history-list" class="space-y-2 max-h-48 overflow-y-auto custom-scrollbar pr-1"></div>
+          </div>
+        </div>
+        </div>
       </div>
 
-      <!-- Option 2: Descanso Largo -->
-      <div class="p-4 rounded-xl bg-[#18202e] border border-[#222f42] hover:border-amber-500/40 transition-colors flex flex-col gap-2.5">
-        <div class="flex items-start justify-between gap-3">
-          <div class="flex items-center gap-2.5">
-            <span class="material-symbols-outlined text-amber-400 text-[20px]">hotel</span>
-            <div>
-              <h4 class="font-headline font-bold text-sm text-[#f1f5f9]">Descanso Largo (8 horas)</h4>
-              <p class="text-[11px] text-[#94a3b8] leading-tight">Restaura PG al 100%, espacios de conjuro y dados de golpe.</p>
+      <!-- ========================================== -->
+      <!-- VIEW 2: DESCANSO LARGO                     -->
+      <!-- ========================================== -->
+      <div id="rest-view-long" class="hidden">
+        <div class="space-y-4 md:space-y-0 md:grid md:grid-cols-12 md:gap-6 items-start">
+        <!-- Columna Izquierda (5 cols): Beneficios automáticos -->
+        <div class="space-y-4 md:col-span-5">
+          <div class="p-4 sm:p-5 rounded-xl bg-[#18202e] border border-[#222f42] space-y-3.5">
+            <div class="flex items-center gap-2.5 text-amber-400 font-bold text-xs sm:text-sm border-b border-[#222f42] pb-2.5">
+              <span class="material-symbols-outlined text-[20px]">auto_awesome</span>
+              <span>Efectos del Descanso de 8 horas</span>
+            </div>
+            <ul class="text-xs text-[#cbd5e1] space-y-2.5">
+              <li class="flex items-start gap-3 p-2.5 rounded-xl bg-[#10141d]/70 border border-[#222f42]">
+                <div class="w-7 h-7 rounded-lg bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 flex items-center justify-center shrink-0 mt-0.5">
+                  <span class="material-symbols-outlined text-[16px]">favorite</span>
+                </div>
+                <div class="min-w-0 leading-snug">
+                  <strong class="text-emerald-400 font-bold block text-xs">100% de Salud</strong>
+                  <span class="text-[11px] text-[#94a3b8]">Restaura todos tus PG al máximo y limpia PG temporales.</span>
+                </div>
+              </li>
+              <li class="flex items-start gap-3 p-2.5 rounded-xl bg-[#10141d]/70 border border-[#222f42]">
+                <div class="w-7 h-7 rounded-lg bg-sky-500/15 text-sky-400 border border-sky-500/30 flex items-center justify-center shrink-0 mt-0.5">
+                  <span class="material-symbols-outlined text-[16px]">auto_fix_high</span>
+                </div>
+                <div class="min-w-0 leading-snug">
+                  <strong class="text-sky-300 font-bold block text-xs">Espacios de Conjuro</strong>
+                  <span class="text-[11px] text-[#94a3b8]">Se restablecen todas las ranuras gastadas (niveles 1 a 9 y de pacto).</span>
+                </div>
+              </li>
+              <li class="flex items-start gap-3 p-2.5 rounded-xl bg-[#10141d]/70 border border-[#222f42]">
+                <div class="w-7 h-7 rounded-lg bg-amber-500/15 text-amber-400 border border-amber-500/30 flex items-center justify-center shrink-0 mt-0.5">
+                  <span class="material-symbols-outlined text-[16px]">flare</span>
+                </div>
+                <div class="min-w-0 leading-snug">
+                  <strong class="text-amber-300 font-bold block text-xs">Recursos y Facultades</strong>
+                  <span class="text-[11px] text-[#94a3b8]">Se reinician los recursos diarios de descanso corto o largo.</span>
+                </div>
+              </li>
+              <li class="flex items-start gap-3 p-2.5 rounded-xl bg-[#10141d]/70 border border-[#222f42]">
+                <div class="w-7 h-7 rounded-lg bg-rose-500/15 text-rose-400 border border-rose-500/30 flex items-center justify-center shrink-0 mt-0.5">
+                  <span class="material-symbols-outlined text-[16px]">hourglass_disabled</span>
+                </div>
+                <div class="min-w-0 leading-snug">
+                  <strong class="text-rose-300 font-bold block text-xs">Efectos Activos</strong>
+                  <span class="text-[11px] text-[#94a3b8]">Expiran los efectos temporales que duran "hasta descanso".</span>
+                </div>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Columna Derecha (7 cols): Dados de Golpe y Portento -->
+        <div class="space-y-4 md:col-span-7">
+          <!-- Recuperación de Dados de Golpe con soporte Multiclase -->
+          <div class="p-4 sm:p-5 rounded-xl bg-[#18202e] border border-[#222f42] space-y-3.5">
+            <div class="flex flex-wrap items-center justify-between gap-3 border-b border-[#222f42] pb-2.5">
+              <div class="flex items-center gap-2.5 text-xs sm:text-sm font-bold text-[#f1f5f9]">
+                <span class="material-symbols-outlined text-amber-400 text-[18px]">casino</span>
+                <span>Recuperación de Dados de Golpe</span>
+              </div>
+              <span id="long-recovery-quota-badge" class="px-2.5 py-1 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[11px] font-bold font-mono">
+                Cuota: +0 dados máx.
+              </span>
+            </div>
+            <p class="text-[11px] text-[#94a3b8] leading-relaxed">
+              Regla oficial D&D 5e: Recuperas hasta la mitad de tus dados de golpe máximos (mínimo 1). Puedes ajustar qué dados recuperar:
+            </p>
+
+            <!-- Asignación por pool -->
+            <div id="long-multiclass-recovery-list" class="space-y-2.5 pt-1">
+              <!-- Renderizado dinámico -->
             </div>
           </div>
-          <span class="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-300 font-bold text-[10px] border border-emerald-500/30 shrink-0">
-            100% PG
-          </span>
+
+          <!-- Portento / Dados Guardados (si el PJ tiene recursos con dieType) -->
+          <div id="long-portent-box" class="hidden p-4 sm:p-5 rounded-xl bg-purple-950/25 border border-purple-500/40 space-y-3">
+            <div class="flex items-center justify-between gap-3 border-b border-purple-500/30 pb-2.5">
+              <div class="flex items-center gap-2.5 text-purple-300 font-bold text-xs sm:text-sm">
+                <span class="material-symbols-outlined text-[20px] text-purple-400">psychology</span>
+                <span>Portento de Adivinación</span>
+              </div>
+              <span class="px-2.5 py-0.5 rounded-lg bg-purple-500/20 text-purple-200 border border-purple-500/40 text-[11px] font-mono">Tiradas d20</span>
+            </div>
+            <p class="text-xs text-purple-200/80 leading-relaxed">
+              Al confirmar el descanso largo, el sistema generará automáticamente tus tiradas de d20 para el nuevo día y las guardará en tu ficha para sustituir tiradas de ataque, salvaciones o pruebas.
+            </p>
+          </div>
         </div>
-        <button
-          type="button"
-          id="rest-modal-long-btn"
-          class="w-full py-2 rounded-lg bg-gradient-to-r from-amber-600 to-amber-500 text-[#0a0d12] hover:brightness-110 font-bold text-xs transition-all active:scale-95 shadow-[0_0_12px_rgba(245,158,11,0.25)] cursor-pointer flex items-center justify-center gap-1.5"
-        >
-          <span class="material-symbols-outlined text-[15px]">bedtime</span>
-          <span>Completar Descanso Largo</span>
-        </button>
+        </div>
       </div>
     </div>
 
-    <!-- Footer with clear CANCEL button -->
-    <div class="p-4 bg-[#18202e] border-t border-[#222f42] flex items-center justify-end">
+    <!-- Footer Actions -->
+    <div class="p-4 sm:px-6 bg-[#18202e] border-t border-[#222f42] flex items-center justify-between gap-4 shrink-0">
       <button
         type="button"
         id="rest-modal-cancel-btn"
-        class="px-5 py-2 rounded-xl bg-[#121721] border border-[#222f42] text-[#94a3b8] hover:text-[#f1f5f9] hover:border-slate-600 cursor-pointer text-xs font-medium transition-colors"
+        class="px-5 py-2.5 rounded-xl bg-[#121721] border border-[#222f42] text-[#94a3b8] hover:text-[#f1f5f9] hover:border-slate-600 cursor-pointer text-xs font-semibold transition-colors"
       >
-        Cancelar (No descansar)
+        Cancelar
+      </button>
+
+      <!-- Botón de Confirmación según la vista activa -->
+      <button
+        type="button"
+        id="rest-confirm-short-btn"
+        class="flex-1 sm:flex-none sm:min-w-[240px] py-2.5 px-5 rounded-xl bg-gradient-to-r from-amber-600 via-amber-500 to-amber-600 hover:from-amber-500 hover:to-amber-400 text-[#0a0d12] font-bold text-xs sm:text-sm shadow-[0_0_15px_rgba(245,158,11,0.25)] active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-2"
+      >
+        <span class="material-symbols-outlined text-[18px]">check_circle</span>
+        <span>Confirmar Descanso Corto</span>
+      </button>
+
+      <button
+        type="button"
+        id="rest-confirm-long-btn"
+        class="hidden flex-1 sm:flex-none sm:min-w-[240px] py-2.5 px-5 rounded-xl bg-gradient-to-r from-amber-600 via-amber-500 to-amber-600 hover:from-amber-500 hover:to-amber-400 text-[#0a0d12] font-bold text-xs sm:text-sm shadow-[0_0_15px_rgba(245,158,11,0.25)] active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-2"
+      >
+        <span class="material-symbols-outlined text-[18px]">hotel</span>
+        <span>Completar Descanso Largo</span>
       </button>
     </div>
   </div>
 </div>
 
 <script>
-  import { showAlert } from '../../scripts/ui/notify';
   import { openModal, closeModal } from '../../scripts/animations/modalAnimations';
   import { characterStore } from '../../scripts/state/characterStore';
+  import {
+    getHitDicePools,
+    calculateHitDieHeal,
+    calculateMaxHitDiceRecovery,
+    suggestHitDiceRecovery,
+    getDieFaces,
+  } from '../../scripts/dnd/rests';
+  import type { HitDie, HitDicePool } from '../../scripts/models/character';
+  import type { SpentHitDie } from '../../scripts/models/rest';
+  import { showAlert } from '../../scripts/ui/notify';
 
   const modal = document.getElementById('rest-modal');
   const backdrop = document.getElementById('modal-backdrop');
   const closeX = document.getElementById('rest-modal-close-x');
   const cancelBtn = document.getElementById('rest-modal-cancel-btn');
-  const shortBtn = document.getElementById('rest-modal-short-btn');
-  const longBtn = document.getElementById('rest-modal-long-btn');
-  const hitDiceBadge = document.getElementById('rest-modal-hitdice-badge');
 
-  function updateBadge() {
-    const char = characterStore.get();
-    if (hitDiceBadge && char?.hitDice) {
-      hitDiceBadge.textContent = `${char.hitDice.remaining}/${char.hitDice.total} ${char.hitDice.die}`;
-    }
-  }
+  // Tabs
+  const tabShortBtn = document.getElementById('rest-tab-short-btn');
+  const tabLongBtn = document.getElementById('rest-tab-long-btn');
+  const viewShort = document.getElementById('rest-view-short');
+  const viewLong = document.getElementById('rest-view-long');
+  const confirmShortBtn = document.getElementById('rest-confirm-short-btn');
+  const confirmLongBtn = document.getElementById('rest-confirm-long-btn');
+
+  // Short Rest State & UI Elements
+  let activeTab: 'short' | 'long' = 'short';
+  let shortPools: HitDicePool[] = [];
+  let selectedDie: HitDie = 'd8';
+  let sessionSpentDice: SpentHitDie[] = [];
+  let conMod = 0;
+  let charHpMax = 1;
+  let charHpInitial = 0;
+
+  const hpPreview = document.getElementById('short-hp-preview');
+  const conPill = document.getElementById('short-con-pill');
+  const hpBarCurrent = document.getElementById('short-hp-bar-current');
+  const hpBarHealed = document.getElementById('short-hp-bar-healed');
+  const hpSubStatus = document.getElementById('short-hp-sub-status');
+  const healedCounter = document.getElementById('short-healed-counter');
+  const poolsContainer = document.getElementById('short-pools-container');
+  const totalDiceBadge = document.getElementById('short-total-dice-badge');
+
+  const modeVirtualBtn = document.getElementById('short-mode-virtual-btn');
+  const modeManualBtn = document.getElementById('short-mode-manual-btn');
+  const virtualPanel = document.getElementById('short-virtual-panel');
+  const manualPanel = document.getElementById('short-manual-panel');
+  const rollOneBtn = document.getElementById('short-roll-one-btn');
+  const rollBtnLabel = document.getElementById('short-roll-btn-label');
+  const manualRollInput = document.getElementById('short-manual-roll-input') as HTMLInputElement | null;
+  const manualApplyBtn = document.getElementById('short-manual-apply-btn');
+  const fullHpNotice = document.getElementById('short-full-hp-notice');
+  const historyWrapper = document.getElementById('short-history-wrapper');
+  const historyList = document.getElementById('short-history-list');
+
+  // Long Rest UI Elements
+  const longQuotaBadge = document.getElementById('long-recovery-quota-badge');
+  const longMulticlassList = document.getElementById('long-multiclass-recovery-list');
+  const longPortentBox = document.getElementById('long-portent-box');
+  let customRecoveryMap: Partial<Record<HitDie, number>> = {};
 
   function hideModal() {
     if (modal && backdrop) {
@@ -118,30 +374,297 @@
   closeX?.addEventListener('click', hideModal);
   cancelBtn?.addEventListener('click', hideModal);
 
-  // Short rest handler
-  shortBtn?.addEventListener('click', () => {
+  function switchTab(tab: 'short' | 'long') {
+    activeTab = tab;
+    if (tab === 'short') {
+      tabShortBtn?.classList.add('bg-amber-500/20', 'text-amber-300', 'border-amber-500/40');
+      tabShortBtn?.classList.remove('bg-[#18202e]', 'text-[#94a3b8]', 'border-[#222f42]');
+      tabLongBtn?.classList.remove('bg-amber-500/20', 'text-amber-300', 'border-amber-500/40');
+      tabLongBtn?.classList.add('bg-[#18202e]', 'text-[#94a3b8]', 'border-[#222f42]');
+
+      viewShort?.classList.remove('hidden');
+      viewLong?.classList.add('hidden');
+      confirmShortBtn?.classList.remove('hidden');
+      confirmLongBtn?.classList.add('hidden');
+    } else {
+      tabLongBtn?.classList.add('bg-amber-500/20', 'text-amber-300', 'border-amber-500/40');
+      tabLongBtn?.classList.remove('bg-[#18202e]', 'text-[#94a3b8]', 'border-[#222f42]');
+      tabShortBtn?.classList.remove('bg-amber-500/20', 'text-amber-300', 'border-amber-500/40');
+      tabShortBtn?.classList.add('bg-[#18202e]', 'text-[#94a3b8]', 'border-[#222f42]');
+
+      viewLong?.classList.remove('hidden');
+      viewShort?.classList.add('hidden');
+      confirmLongBtn?.classList.remove('hidden');
+      confirmShortBtn?.classList.add('hidden');
+      renderLongView();
+    }
+  }
+
+  tabShortBtn?.addEventListener('click', () => switchTab('short'));
+  tabLongBtn?.addEventListener('click', () => switchTab('long'));
+
+  // Switch virtual / manual roll mode
+  modeVirtualBtn?.addEventListener('click', () => {
+    modeVirtualBtn.classList.add('bg-amber-500/20', 'text-amber-300', 'border-amber-500/30');
+    modeVirtualBtn.classList.remove('text-[#94a3b8]', 'border-transparent');
+    modeManualBtn?.classList.remove('bg-amber-500/20', 'text-amber-300', 'border-amber-500/30');
+    modeManualBtn?.classList.add('text-[#94a3b8]', 'border-transparent');
+    virtualPanel?.classList.remove('hidden');
+    manualPanel?.classList.add('hidden');
+  });
+
+  modeManualBtn?.addEventListener('click', () => {
+    modeManualBtn.classList.add('bg-amber-500/20', 'text-amber-300', 'border-amber-500/30');
+    modeManualBtn.classList.remove('text-[#94a3b8]', 'border-transparent');
+    modeVirtualBtn?.classList.remove('bg-amber-500/20', 'text-amber-300', 'border-amber-500/30');
+    modeVirtualBtn?.classList.add('text-[#94a3b8]', 'border-transparent');
+    manualPanel?.classList.remove('hidden');
+    virtualPanel?.classList.add('hidden');
+  });
+
+  function initShortRestState() {
     const char = characterStore.get();
-    if (char.hitDice.remaining <= 0) {
-      showAlert('No te quedan Dados de Golpe disponibles para gastar. Necesitas un Descanso Largo.', { kind: 'warning' });
+    if (!char) return;
+
+    conMod = char.stats?.con?.modifier ?? 0;
+    charHpMax = Math.max(1, char.hp?.max || 1);
+    charHpInitial = char.hp?.current || 0;
+    sessionSpentDice = [];
+
+    shortPools = getHitDicePools(char);
+    const firstAvail = shortPools.find((p) => p.remaining > 0);
+    selectedDie = firstAvail?.die || shortPools[0]?.die || 'd8';
+
+    renderShortView();
+  }
+
+  function getEffectiveCurrentHp(): number {
+    const healed = sessionSpentDice.reduce((acc, d) => acc + d.total, 0);
+    return Math.min(charHpMax, charHpInitial + healed);
+  }
+
+  function renderShortView() {
+    const effectiveHp = getEffectiveCurrentHp();
+    const healedTotal = effectiveHp - charHpInitial;
+    const isFullHp = effectiveHp >= charHpMax;
+
+    if (hpPreview) hpPreview.textContent = `${effectiveHp} / ${charHpMax} PG`;
+    if (conPill) conPill.textContent = `CON: ${conMod >= 0 ? `+${conMod}` : conMod}`;
+
+    const currentPct = Math.min(100, (charHpInitial / charHpMax) * 100);
+    const effectivePct = Math.min(100, (effectiveHp / charHpMax) * 100);
+
+    if (hpBarCurrent) hpBarCurrent.style.width = `${currentPct}%`;
+    if (hpBarHealed) hpBarHealed.style.width = `${effectivePct}%`;
+
+    if (healedCounter) healedCounter.textContent = `+${healedTotal} PG curados`;
+    if (hpSubStatus) {
+      hpSubStatus.textContent = isFullHp ? '¡Salud al 100%!' : `Salud previa: ${charHpInitial} PG`;
+    }
+
+    // Render Pools
+    const totalRemaining = shortPools.reduce((acc, p) => acc + p.remaining, 0);
+    if (totalDiceBadge) totalDiceBadge.textContent = `${totalRemaining} dados disponibles`;
+
+    if (poolsContainer) {
+      poolsContainer.innerHTML = '';
+      shortPools.forEach((pool) => {
+        const isSelected = pool.die === selectedDie;
+        const isEmpty = pool.remaining <= 0;
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = `flex-1 min-w-[120px] p-3.5 rounded-xl border flex flex-col items-center justify-center gap-1.5 transition-all cursor-pointer ${
+          isSelected
+            ? 'bg-amber-500/20 border-amber-500/60 text-amber-200 shadow-xs ring-1 ring-amber-500/40'
+            : isEmpty
+            ? 'bg-[#10141d]/50 border-[#222f42] text-[#64748b] opacity-60'
+            : 'bg-[#10141d] border-[#222f42] hover:border-slate-500 text-[#cbd5e1]'
+        }`;
+        btn.innerHTML = `
+          <div class="flex items-center gap-1.5 font-headline font-bold text-sm uppercase">
+            <span class="material-symbols-outlined text-[16px] text-amber-400">casino</span>
+            <span>${pool.die}</span>
+          </div>
+          <span class="text-xs font-mono font-bold ${isEmpty ? 'text-rose-400/80' : 'text-amber-300'}">
+            ${pool.remaining} / ${pool.total} disponibles
+          </span>
+        `;
+        if (!isEmpty) {
+          btn.addEventListener('click', () => {
+            selectedDie = pool.die;
+            renderShortView();
+          });
+        }
+        poolsContainer.appendChild(btn);
+      });
+    }
+
+    if (rollBtnLabel) rollBtnLabel.textContent = `Tirar 1 Dado (${selectedDie})`;
+
+    const selectedPool = shortPools.find((p) => p.die === selectedDie);
+    const noDice = !selectedPool || selectedPool.remaining <= 0;
+    const disableRoll = noDice || isFullHp;
+
+    if (rollOneBtn) {
+      (rollOneBtn as HTMLButtonElement).disabled = disableRoll;
+      rollOneBtn.classList.toggle('opacity-50', disableRoll);
+      rollOneBtn.classList.toggle('cursor-not-allowed', disableRoll);
+    }
+    if (manualApplyBtn) {
+      (manualApplyBtn as HTMLButtonElement).disabled = disableRoll;
+      manualApplyBtn.classList.toggle('opacity-50', disableRoll);
+    }
+    fullHpNotice?.classList.toggle('hidden', !isFullHp);
+
+    // Historial
+    if (historyWrapper && historyList) {
+      if (sessionSpentDice.length > 0) {
+        historyWrapper.classList.remove('hidden');
+        historyList.innerHTML = sessionSpentDice
+          .map((d, i) => `
+            <div class="flex items-center justify-between gap-3 text-xs px-3.5 py-2.5 rounded-xl bg-[#10141d] border border-[#222f42]">
+              <div class="flex items-center gap-2.5 min-w-0">
+                <span class="w-6 h-6 rounded-md bg-amber-500/10 text-amber-400 border border-amber-500/20 font-bold font-mono text-[10px] flex items-center justify-center shrink-0">#${i + 1}</span>
+                <span class="text-[#cbd5e1] font-mono text-xs truncate">Dado ${d.die} (sacó ${d.roll} ${conMod >= 0 ? `+ ${conMod}` : `- ${Math.abs(conMod)}`} CON)</span>
+              </div>
+              <span class="font-bold font-mono text-emerald-400 text-xs shrink-0">+${d.total} PG</span>
+            </div>
+          `)
+          .join('');
+      } else {
+        historyWrapper.classList.add('hidden');
+      }
+    }
+  }
+
+  function handleRoll(rollValue?: number) {
+    const pool = shortPools.find((p) => p.die === selectedDie);
+    if (!pool || pool.remaining <= 0) {
+      showAlert(`No te quedan dados de tipo ${selectedDie}. Elige otro tipo de dado.`, { kind: 'warning' });
       return;
     }
-    const res = characterStore.shortRest(1);
-    showAlert(`¡Descanso Corto completado! Has gastado 1 Dado de Golpe y recuperado +${res.healed} PG.`, { kind: 'success', title: 'Descanso corto' });
+    if (getEffectiveCurrentHp() >= charHpMax) {
+      showAlert('Tu salud ya está al máximo. No necesitas gastar más dados.', { kind: 'info' });
+      return;
+    }
+
+    const spent = calculateHitDieHeal(selectedDie, conMod, rollValue);
+    pool.remaining -= 1;
+    sessionSpentDice.push(spent);
+
+    renderShortView();
+  }
+
+  rollOneBtn?.addEventListener('click', () => handleRoll());
+
+  manualApplyBtn?.addEventListener('click', () => {
+    if (!manualRollInput) return;
+    const val = parseInt(manualRollInput.value, 10);
+    const maxFaces = getDieFaces(selectedDie);
+    if (isNaN(val) || val < 1 || val > maxFaces) {
+      showAlert(`Por favor ingresa un número válido entre 1 y ${maxFaces} para tu ${selectedDie}.`, { kind: 'warning' });
+      return;
+    }
+    handleRoll(val);
+    manualRollInput.value = '';
+  });
+
+  // Confirmar descanso corto
+  confirmShortBtn?.addEventListener('click', () => {
+    const spentPayload = sessionSpentDice.map((d) => ({ die: d.die, roll: d.roll }));
+    characterStore.executeShortRest(spentPayload);
     hideModal();
   });
 
-  // Long rest handler
-  longBtn?.addEventListener('click', () => {
-    characterStore.longRest();
-    showAlert(`¡Descanso Largo completado! Tus PG están al 100% (${characterStore.get().hp.max}/${characterStore.get().hp.max}) y todos los recursos restaurados.`, { kind: 'success', title: 'Descanso largo' });
+  // ==========================================
+  // LONG REST LOGIC
+  // ==========================================
+  function renderLongView() {
+    const char = characterStore.get();
+    if (!char) return;
+
+    const pools = getHitDicePools(char);
+    const totalDice = pools.reduce((acc, p) => acc + p.total, 0);
+    const quota = calculateMaxHitDiceRecovery(totalDice);
+
+    if (longQuotaBadge) longQuotaBadge.textContent = `Cuota: +${quota} dados máx.`;
+
+    // Asignación sugerida por defecto
+    const suggested = suggestHitDiceRecovery(pools, quota);
+    customRecoveryMap = {};
+    suggested.forEach((s) => {
+      customRecoveryMap[s.die] = s.count;
+    });
+
+    renderMulticlassLongList(pools, quota);
+
+    const hasPortent = char.resources?.some((r) => r.dieType === 'd20');
+    longPortentBox?.classList.toggle('hidden', !hasPortent);
+  }
+
+  function renderMulticlassLongList(pools: HitDicePool[], quota: number) {
+    if (!longMulticlassList) return;
+    longMulticlassList.innerHTML = '';
+
+    pools.forEach((pool) => {
+      const currentAssigned = customRecoveryMap[pool.die] || 0;
+      const spent = Math.max(0, pool.total - pool.remaining);
+
+      const row = document.createElement('div');
+      row.className = 'flex flex-wrap items-center justify-between p-3.5 rounded-xl bg-[#10141d] border border-[#222f42] text-xs gap-3';
+      row.innerHTML = `
+        <div class="flex items-center gap-3 min-w-0">
+          <div class="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center font-headline font-bold text-amber-300 text-sm uppercase shrink-0">
+            ${pool.die}
+          </div>
+          <div class="min-w-0">
+            <span class="text-xs font-bold text-[#f1f5f9] block">Dado de Golpe ${pool.die.toUpperCase()}</span>
+            <span class="text-[11px] text-[#94a3b8] block">${pool.remaining} de ${pool.total} disponibles (${spent} gastados)</span>
+          </div>
+        </div>
+        <div class="flex items-center gap-2.5 shrink-0 ml-auto">
+          <span class="text-[10px] text-[#64748b] uppercase tracking-wider font-bold">Recuperar:</span>
+          <div class="flex items-center gap-1.5 p-1 rounded-xl bg-[#18202e] border border-[#222f42]">
+            <button type="button" class="btn-dec-dice w-7 h-7 rounded-lg bg-[#121721] hover:bg-[#222f42] border border-[#222f42] font-bold text-xs flex items-center justify-center cursor-pointer active:scale-95 text-[#cbd5e1] transition-colors" title="Restar 1 dado">−</button>
+            <span class="font-bold font-mono text-amber-300 w-7 text-center text-sm">${currentAssigned}</span>
+            <button type="button" class="btn-inc-dice w-7 h-7 rounded-lg bg-[#121721] hover:bg-[#222f42] border border-[#222f42] font-bold text-xs flex items-center justify-center cursor-pointer active:scale-95 text-[#cbd5e1] transition-colors" title="Sumar 1 dado">+</button>
+          </div>
+        </div>
+      `;
+
+      row.querySelector('.btn-dec-dice')?.addEventListener('click', () => {
+        if (currentAssigned > 0) {
+          customRecoveryMap[pool.die] = currentAssigned - 1;
+          renderMulticlassLongList(pools, quota);
+        }
+      });
+
+      row.querySelector('.btn-inc-dice')?.addEventListener('click', () => {
+        const sumAssigned = Object.values(customRecoveryMap).reduce((acc, c) => acc + (c || 0), 0);
+        if (sumAssigned < quota && currentAssigned < spent) {
+          customRecoveryMap[pool.die] = currentAssigned + 1;
+          renderMulticlassLongList(pools, quota);
+        } else if (sumAssigned >= quota) {
+          showAlert(`No puedes recuperar más de ${quota} dados en este descanso largo.`, { kind: 'warning' });
+        }
+      });
+
+      longMulticlassList.appendChild(row);
+    });
+  }
+
+  confirmLongBtn?.addEventListener('click', () => {
+    characterStore.executeLongRest({ customDiceRecovery: customRecoveryMap });
     hideModal();
   });
 
   // Listen to open event
-  window.addEventListener('open-rest-modal', () => {
-    updateBadge();
+  window.addEventListener('open-rest-modal', ((e: CustomEvent<{ mode?: 'short' | 'long' }>) => {
+    initShortRestState();
+    const mode = e.detail?.mode || 'short';
+    switchTab(mode);
     if (modal && backdrop) {
       openModal(modal, backdrop);
     }
-  });
+  }) as EventListener);
 </script>

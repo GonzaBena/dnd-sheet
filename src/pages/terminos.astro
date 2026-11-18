@@ -1,0 +1,160 @@
+---
+// src/pages/terminos.astro
+// Términos y Condiciones de Uso de Crónicas del Aventurero
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Header from '../components/layout/Header.astro';
+import SiteFooter from '../components/layout/SiteFooter.astro';
+---
+
+<BaseLayout
+  title="Términos y Condiciones — Crónicas del Aventurero"
+  description="Términos de servicio y condiciones de uso de Crónicas del Aventurero. Conoce las reglas, licencias y derechos de nuestra comunidad rolera."
+>
+  <Header />
+
+  <main class="w-full pt-28 pb-20 bg-[#0a0d12] min-h-screen text-[#cbd5e1] font-body">
+    <!-- Glow decorative effects -->
+    <div class="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="absolute -top-16 left-1/2 -translate-x-1/2 w-96 h-96 bg-amber-500/10 rounded-full blur-[120px] pointer-events-none"></div>
+
+      <!-- Header de la página legal -->
+      <div class="relative z-10 space-y-3 pb-8 border-b border-[#222f42] mb-10">
+        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 text-xs font-label uppercase tracking-wider font-bold">
+          <span class="material-symbols-outlined text-[16px]">gavel</span>
+          <span>Marco Legal y Normas</span>
+        </div>
+        <h1 class="text-3xl sm:text-4xl font-headline font-bold text-[#f1f5f9] tracking-tight">
+          Términos y Condiciones de Uso
+        </h1>
+        <p class="text-xs text-[#94a3b8] font-label">
+          Última actualización: Noviembre de 2026 • Versión 1.0 (Alpha Abierta)
+        </p>
+      </div>
+
+      <!-- Contenido en bloques estilizados -->
+      <article class="relative z-10 space-y-8 text-sm leading-relaxed">
+        <!-- 1. Aceptación -->
+        <section class="space-y-3 bg-[#121721] p-6 rounded-2xl border border-[#222f42]">
+          <h2 class="text-lg font-headline font-bold text-[#f1f5f9] flex items-center gap-2">
+            <span class="text-amber-400 font-mono text-sm">01.</span>
+            <span>Aceptación de los Términos</span>
+          </h2>
+          <p>
+            Al acceder, navegar o utilizar la aplicación web <strong>Crónicas del Aventurero</strong> (en adelante, "la Plataforma"), aceptas de forma plena y sin reservas estos Términos y Condiciones de Uso. Si no estás de acuerdo con alguna de las disposiciones aquí establecidas, te rogamos abstenerte de utilizar la plataforma.
+          </p>
+        </section>
+
+        <!-- 2. Objeto y Naturaleza del Servicio -->
+        <section class="space-y-3 bg-[#121721] p-6 rounded-2xl border border-[#222f42]">
+          <h2 class="text-lg font-headline font-bold text-[#f1f5f9] flex items-center gap-2">
+            <span class="text-amber-400 font-mono text-sm">02.</span>
+            <span>Naturaleza del Servicio</span>
+          </h2>
+          <p>
+            <strong>Crónicas del Aventurero</strong> es una herramienta digital gratuita y abierta diseñada para facilitar la organización, desarrollo y seguimiento de partidas de rol de mesa basadas en el sistema <em>Dungeons & Dragons 5ª Edición (5e)</em>. La plataforma provee hojas de personaje interactivas, simulador de tiradas de dados, sincronización en tiempo real y herramientas tácticas para el Dungeon Master.
+          </p>
+          <p class="text-xs text-[#94a3b8]">
+            El acceso básico a la plataforma es 100% gratuito tanto para jugadores como para directores de juego.
+          </p>
+        </section>
+
+        <!-- 3. Propiedad Intelectual y Atribución SRD 5.1 -->
+        <section class="space-y-4 bg-[#121721] p-6 rounded-2xl border border-[#222f42]">
+          <h2 class="text-lg font-headline font-bold text-[#f1f5f9] flex items-center gap-2">
+            <span class="text-amber-400 font-mono text-sm">03.</span>
+            <span>Propiedad Intelectual y Licencia Abierta SRD 5.1</span>
+          </h2>
+          <p>
+            Gran parte de los hechizos, reglas, razas, monstruos, clases y objetos mágicos incluidos en el compendio de la plataforma provienen del <strong>System Reference Document 5.1 (“SRD 5.1”)</strong> publicado por <strong>Wizards of the Coast LLC</strong>.
+          </p>
+          <div class="p-4 rounded-xl bg-[#0a0d12] border border-[#222f42] text-xs leading-relaxed space-y-2">
+            <p>
+              Dicho material se utiliza de conformidad con la licencia internacional <strong>Creative Commons Attribution 4.0 International (CC-BY-4.0)</strong>, otorgada públicamente por Wizards of the Coast LLC en enero de 2023.
+            </p>
+            <p class="text-[#94a3b8]">
+              <em>Dungeons & Dragons</em> y <em>D&D</em> son marcas comerciales registradas propiedad de Wizards of the Coast LLC. <strong>Crónicas del Aventurero</strong> es un proyecto independiente sin afiliación, patrocinio ni respaldo comercial oficial por parte de Wizards of the Coast LLC.
+            </p>
+          </div>
+        </section>
+
+        <!-- 4. Contenidos de los Usuarios -->
+        <section class="space-y-3 bg-[#121721] p-6 rounded-2xl border border-[#222f42]">
+          <h2 class="text-lg font-headline font-bold text-[#f1f5f9] flex items-center gap-2">
+            <span class="text-amber-400 font-mono text-sm">04.</span>
+            <span>Contenido y Personajes de los Usuarios</span>
+          </h2>
+          <p>
+            Tú conservas todos los derechos de propiedad intelectual sobre los nombres originales, historias de trasfondo, imágenes personalizadas, campañas y notas creadas o cargadas en la plataforma.
+          </p>
+          <p>
+            Al ingresar contenido en campañas compartidas, otorgas a los demás participantes de tu mesa la licencia limitada para visualizar dicho material con el único fin de llevar a cabo la partida de rol. Te comprometes a no subir imágenes ni textos que infrinjan derechos de terceros, sean de contenido pornográfico ilegal o inciten al odio.
+          </p>
+        </section>
+
+        <!-- 5. Disponibilidad y Responsabilidad -->
+        <section class="space-y-3 bg-[#121721] p-6 rounded-2xl border border-[#222f42]">
+          <h2 class="text-lg font-headline font-bold text-[#f1f5f9] flex items-center gap-2">
+            <span class="text-amber-400 font-mono text-sm">05.</span>
+            <span>Disponibilidad del Servicio y Copias de Seguridad</span>
+          </h2>
+          <p>
+            La plataforma se proporciona "tal como está" (<em>as is</em>) y "según disponibilidad". Aunque implementamos redundancia mediante la infraestructura de Google Cloud y pruebas automáticas exhaustivas, no garantizamos que el servicio funcione de forma ininterrumpida o libre de errores.
+          </p>
+          <div class="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/25 text-xs text-amber-200">
+            <strong>Recomendación para Aventureros:</strong> Recomendamos a todos los jugadores exportar periódicamente una copia de seguridad en formato JSON de sus personajes mediante la opción <em>"Exportar Ficha (.json)"</em> para conservarla en sus archivos personales.
+          </div>
+        </section>
+
+        <!-- 6. Cuentas y Seguridad -->
+        <section class="space-y-3 bg-[#121721] p-6 rounded-2xl border border-[#222f42]">
+          <h2 class="text-lg font-headline font-bold text-[#f1f5f9] flex items-center gap-2">
+            <span class="text-amber-400 font-mono text-sm">06.</span>
+            <span>Seguridad de la Cuenta</span>
+          </h2>
+          <p>
+            Eres responsable de custodiar las credenciales de acceso a tu cuenta (correo y contraseña o cuenta vinculada de Google). La plataforma implementa validación estricta de permisos de lectura y escritura para que únicamente los miembros autorizados de una campaña puedan interactuar en la misma.
+          </p>
+        </section>
+
+        <!-- 7. Modificaciones -->
+        <section class="space-y-3 bg-[#121721] p-6 rounded-2xl border border-[#222f42]">
+          <h2 class="text-lg font-headline font-bold text-[#f1f5f9] flex items-center gap-2">
+            <span class="text-amber-400 font-mono text-sm">07.</span>
+            <span>Modificaciones a estos Términos</span>
+          </h2>
+          <p>
+            Nos reservamos el derecho de modificar estos Términos y Condiciones en cualquier momento para reflejar actualizaciones normativas o mejoras en las funcionalidades del producto. Los cambios sustanciales serán notificados mediante anuncios visibles en la portada de la plataforma.
+          </p>
+        </section>
+
+        <!-- 8. Contacto -->
+        <section class="space-y-3 bg-[#121721] p-6 rounded-2xl border border-[#222f42]">
+          <h2 class="text-lg font-headline font-bold text-[#f1f5f9] flex items-center gap-2">
+            <span class="text-amber-400 font-mono text-sm">08.</span>
+            <span>Canal de Dudas y Notificaciones</span>
+          </h2>
+          <p>
+            Para cualquier consulta sobre estos Términos, podés escribir a nuestro buzón oficial:
+          </p>
+          <div class="p-3.5 rounded-xl bg-[#0a0d12] border border-[#222f42] text-xs space-y-1">
+            <p><strong class="text-[#f1f5f9]">Correo electrónico:</strong> <a href="mailto:contacto@gonzabena.com.ar" class="text-amber-400 hover:underline">contacto@gonzabena.com.ar</a></p>
+            <p><strong class="text-[#f1f5f9]">Responsable:</strong> Equipo de desarrollo de Crónicas del Aventurero</p>
+          </div>
+        </section>
+      </article>
+
+      <!-- Botón de regreso -->
+      <div class="mt-12 text-center">
+        <a
+          href="/"
+          class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#121721] hover:bg-amber-500/15 border border-[#222f42] hover:border-amber-500/40 text-[#f1f5f9] hover:text-amber-300 text-xs font-headline font-bold transition-all shadow-xs"
+        >
+          <span class="material-symbols-outlined text-[16px]">arrow_back</span>
+          <span>Volver a la Portada</span>
+        </a>
+      </div>
+    </div>
+  </main>
+
+  <SiteFooter />
+</BaseLayout>

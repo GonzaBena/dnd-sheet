@@ -66,7 +66,7 @@ function removeListener(name: string, handler: EventListener): void {
   }
 }
 
-function getLocalMaps(cid: string): MapDoc[] {
+export function getLocalMaps(cid: string): MapDoc[] {
   const storage = getStorage();
   if (!storage) return [];
   try {
@@ -82,7 +82,11 @@ function saveLocalMaps(cid: string, maps: MapDoc[]): void {
   const storage = getStorage();
   if (!storage) return;
   try {
-    storage.setItem(LOCAL_MAPS_KEY_PREFIX + cid, JSON.stringify(maps));
+    const key = LOCAL_MAPS_KEY_PREFIX + cid;
+    const json = JSON.stringify(maps);
+    // Sin cambios no hay evento: así ningún listener que recargue mapas puede entrar en bucle (bug #18).
+    if (storage.getItem(key) === json) return;
+    storage.setItem(key, json);
     dispatchEvent('maps-updated', { cid });
   } catch (e) {
     console.warn('[mapService] Error guardando mapas locales:', e);
@@ -127,6 +131,24 @@ function checkCanPrepare(cid: string): void {
   if (!canPerform('dmPrepare', 'dm', status)) {
     throw new Error('No puedes preparar mapas con la partida en el estado actual.');
   }
+}
+
+/**
+ * Un jugador (ni DM ni creador) solo puede crear, editar o borrar el token de **su propio** compañero.
+ * Las reglas no pueden deducir qué token cambió a partir de affectedKeys(), así que, igual que al
+ * mover, el cliente escribe lastMove = { tokenId, by, at } y la regla valida contra ese token.
+ * Para el DM o el creador devuelve {}: sus escrituras no cambian (en paused no pueden escribir lastMove).
+ */
+async function playerTokenMarker(cid: string, tid: string, now: number): Promise<Record<string, any>> {
+  if (!isFirebaseConfigured() || campaignStore.isCurrentUserDm(cid)) return {};
+  const { auth } = await getFirebase();
+  const uid = auth?.currentUser?.uid;
+  const campaign = campaignStore.getCampaign(cid);
+  if (!uid || campaign?.creatorId === uid || campaign?.dmId === uid) return {};
+  if (normalizeStatus(campaign?.status) !== 'active') {
+    throw new Error('Solo puedes desplegar o retirar a tus compañeros con la partida iniciada.');
+  }
+  return { lastMove: { tokenId: tid, by: uid, at: now } };
 }
 
 // La niebla se puede preparar con la partida activa o en pausa (dmPrepare).
@@ -345,6 +367,7 @@ export async function addToken(
 
   const tid = specifiedId || newTokenId();
   const now = Date.now();
+  const marker = await playerTokenMarker(cid, tid, now);
 
   const cleanToken: Record<string, any> = {};
   for (const [k, v] of Object.entries(token)) {
@@ -371,6 +394,7 @@ export async function addToken(
       const fs = await import('firebase/firestore');
       await fs.updateDoc(fs.doc(db, 'campaigns', cid, 'maps', mid), {
         [`tokens.${tid}`]: cleanToken,
+        ...marker,
         updatedAt: now,
       });
     } catch (err) {
@@ -412,6 +436,7 @@ export async function updateToken(
   checkCanPrepare(cid);
 
   const now = Date.now();
+  const marker = await playerTokenMarker(cid, tid, now);
 
   // Actualizar caché local
   const maps = getLocalMaps(cid);
@@ -436,7 +461,7 @@ export async function updateToken(
     try {
       const { db } = await getFirebase();
       const fs = await import('firebase/firestore');
-      const updatePayload: Record<string, any> = { updatedAt: now };
+      const updatePayload: Record<string, any> = { ...marker, updatedAt: now };
       for (const [key, val] of Object.entries(patch)) {
         if (val === undefined) {
           updatePayload[`tokens.${tid}.${key}`] = fs.deleteField();
@@ -479,6 +504,7 @@ export async function removeToken(cid: string, mid: string, tid: string): Promis
   checkCanPrepare(cid);
 
   const now = Date.now();
+  const marker = await playerTokenMarker(cid, tid, now);
 
   // Actualizar caché local
   const maps = getLocalMaps(cid);
@@ -497,6 +523,7 @@ export async function removeToken(cid: string, mid: string, tid: string): Promis
       const fs = await import('firebase/firestore');
       await fs.updateDoc(fs.doc(db, 'campaigns', cid, 'maps', mid), {
         [`tokens.${tid}`]: fs.deleteField(),
+        ...marker,
         updatedAt: now,
       });
     } catch (err) {

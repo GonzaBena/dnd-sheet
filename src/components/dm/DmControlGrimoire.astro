@@ -146,13 +146,13 @@ import HandoutManager from './HandoutManager.astro';
     </div>
 
     <!-- COMBAT TRACKER -->
-    <div class="lg:col-span-5 xl:col-span-4 min-w-0" data-index-section="Combate" data-index-icon="swords" data-index-order="20">
+    <div class="lg:col-span-5 xl:col-span-4 min-w-0 space-y-4" data-index-section="Combate" data-index-icon="swords" data-index-order="20">
       <CombatTracker />
     </div>
   </div>
 
   <!-- [tokens, miembros] -->
-  <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+  <div id="grimoire-tokens-roster-row" class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
     <!-- Gestión y edición de tokens tácticos (Fase 3: T-30) -->
     <div class="lg:col-span-7 xl:col-span-8 min-w-0" data-index-section="Tokens" data-index-icon="token" data-index-order="30">
       <TokenEditor />
@@ -319,6 +319,8 @@ import HandoutManager from './HandoutManager.astro';
   import { subscribeNotes } from '../../scripts/data/notesService.ts';
   import { applyHpAction } from '../../scripts/ui/hpActions.ts';
   import { initTabs } from '../../scripts/ui/tabs.ts';
+  // Títulos, contenido, autores, etiquetas y tiradas de la bitácora los escriben los usuarios: van por esc().
+  import { escapeHtml as esc } from '../../scripts/dnd/catalog.ts';
 
   /** Valida que se pueda actuar como DM y avisa en vez de fallar en silencio. */
   function guardDmPlay(camp: any): boolean {
@@ -404,13 +406,13 @@ import HandoutManager from './HandoutManager.astro';
             <div class="flex items-center justify-between gap-2">
               <div class="flex items-center gap-2.5 min-w-0">
                 <div class="relative w-10 h-10 rounded-xl overflow-hidden shrink-0 border border-amber-500/40 bg-[#10141d]">
-                  <img src="${char.avatarUrl || '/characters/ch-1.avif'}" alt="${char.name}" class="w-full h-full object-cover" onerror="this.onerror=null;this.src='/characters/ch-1.avif';" />
+                  <img src="${esc(char.avatarUrl || '/characters/ch-1.avif')}" alt="${esc(char.name)}" class="w-full h-full object-cover" onerror="this.onerror=null;this.src='/characters/ch-1.avif';" />
                 </div>
                 <div class="min-w-0">
-                  <h4 class="font-headline font-bold text-sm text-[#f1f5f9] truncate">${char.name}</h4>
+                  <h4 class="font-headline font-bold text-sm text-[#f1f5f9] truncate">${esc(char.name)}</h4>
                   <div class="text-[11px] text-[#94a3b8] truncate">
-                    <span class="text-amber-400 font-bold">${char.className} Nvl. ${char.level}</span> •
-                    <span class="text-[#cbd5e1]">${char.playerName || 'Jugador'}</span>
+                    <span class="text-amber-400 font-bold">${esc(char.className)} Nvl. ${char.level}</span> •
+                    <span class="text-[#cbd5e1]">${esc(char.playerName || 'Jugador')}</span>
                   </div>
                 </div>
               </div>
@@ -428,11 +430,13 @@ import HandoutManager from './HandoutManager.astro';
               <div class="w-full h-2 rounded-full bg-[#10141d] overflow-hidden">
                 <div class="h-full ${hpColor} transition-all duration-300" style="width: ${hpPercent}%"></div>
               </div>
-              <div class="grid grid-cols-4 gap-1.5 pt-0.5">
-                <button type="button" class="hp-btn py-1 rounded-md bg-rose-950/60 hover:bg-rose-900 border border-rose-800/80 text-rose-300 font-bold text-[11px] active:scale-95 transition-all cursor-pointer" data-id="${char.id}" data-delta="-5" aria-label="Restar 5 PG a ${char.name}">-5</button>
-                <button type="button" class="hp-btn py-1 rounded-md bg-rose-950/60 hover:bg-rose-900 border border-rose-800/80 text-rose-300 font-bold text-[11px] active:scale-95 transition-all cursor-pointer" data-id="${char.id}" data-delta="-1" aria-label="Restar 1 PG a ${char.name}">-1</button>
-                <button type="button" class="hp-btn py-1 rounded-md bg-emerald-950/60 hover:bg-emerald-900 border border-emerald-800/80 text-emerald-300 font-bold text-[11px] active:scale-95 transition-all cursor-pointer" data-id="${char.id}" data-delta="1" aria-label="Sumar 1 PG a ${char.name}">+1</button>
-                <button type="button" class="hp-btn py-1 rounded-md bg-emerald-950/60 hover:bg-emerald-900 border border-emerald-800/80 text-emerald-300 font-bold text-[11px] active:scale-95 transition-all cursor-pointer" data-id="${char.id}" data-delta="5" aria-label="Sumar 5 PG a ${char.name}">+5</button>
+              <div class="grid grid-cols-2 gap-2 pt-0.5">
+                <button type="button" class="hp-sub-btn py-1 rounded-lg bg-rose-950/60 hover:bg-rose-900 border border-rose-800/80 text-rose-300 font-bold text-xs flex items-center justify-center gap-1 active:scale-95 transition-all cursor-pointer" data-id="${char.id}" aria-label="Restar PG a ${esc(char.name)}">
+                  <span class="material-symbols-outlined text-[15px]">remove</span> Dañar
+                </button>
+                <button type="button" class="hp-add-btn py-1 rounded-lg bg-emerald-950/60 hover:bg-emerald-900 border border-emerald-800/80 text-emerald-300 font-bold text-xs flex items-center justify-center gap-1 active:scale-95 transition-all cursor-pointer" data-id="${char.id}" aria-label="Sumar PG a ${esc(char.name)}">
+                  <span class="material-symbols-outlined text-[15px]">add</span> Curar
+                </button>
               </div>
             </div>
 
@@ -454,16 +458,27 @@ import HandoutManager from './HandoutManager.astro';
             </div>
           `;
 
-          // HP Adjustments
-          card.querySelectorAll('.hp-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-              if (!guardDmPlay(camp)) return;
-
-              const delta = parseInt(btn.getAttribute('data-delta') || '0');
-              // Atómico sobre el valor del servidor; si se rechaza, vuelve al valor anterior con aviso.
-              applyHpAction(char.id, { kind: 'delta', amount: delta }, { actor: 'dm', campaignId: camp.id });
+          // HP Adjustments [-] y [+]
+          card.querySelector('.hp-sub-btn')?.addEventListener('click', () => {
+            if (!guardDmPlay(camp)) return;
+            const valStr = prompt(`¿Cuántos puntos de daño aplicar a ${char.name}?`);
+            if (!valStr) return;
+            const amount = parseInt(valStr.trim(), 10);
+            if (!isNaN(amount) && amount > 0) {
+              applyHpAction(char.id, { kind: 'delta', amount: -amount }, { actor: 'dm', campaignId: camp.id });
               renderGrimoire();
-            });
+            }
+          });
+
+          card.querySelector('.hp-add-btn')?.addEventListener('click', () => {
+            if (!guardDmPlay(camp)) return;
+            const valStr = prompt(`¿Cuántos puntos de curación aplicar a ${char.name}?`);
+            if (!valStr) return;
+            const amount = parseInt(valStr.trim(), 10);
+            if (!isNaN(amount) && amount > 0) {
+              applyHpAction(char.id, { kind: 'delta', amount }, { actor: 'dm', campaignId: camp.id });
+              renderGrimoire();
+            }
           });
 
           // Inspiration Toggle
@@ -534,7 +549,7 @@ import HandoutManager from './HandoutManager.astro';
     setDisabled(document.getElementById('grimoire-short-rest-btn'), !canPlay);
     setDisabled(document.getElementById('grimoire-long-rest-btn'), !canPlay);
     // PG e inspiración en tarjetas de aventureros
-    document.querySelectorAll<HTMLElement>('.hp-btn').forEach(btn => setDisabled(btn, !canPlay));
+    document.querySelectorAll<HTMLElement>('.hp-sub-btn, .hp-add-btn').forEach(btn => setDisabled(btn, !canPlay));
     document.querySelectorAll<HTMLElement>('.inspire-btn').forEach(btn => setDisabled(btn, !canPlay));
     // Formulario de bitácora: las notas secretas también se escriben con la partida en pausa (preparación)
     const canPrepare = isDm && canPerform('dmPrepare', 'dm', s);
@@ -547,6 +562,8 @@ import HandoutManager from './HandoutManager.astro';
     journalFeed.innerHTML = '';
 
     const filtered = entries.filter(e => {
+      // Modo local: el store guarda las entradas de todas las campañas juntas.
+      if (e.campaignId && e.campaignId !== campaignId) return false;
       if (activeFilter === 'all') return true;
       if (activeFilter === '#Privado') return ['dm', 'to_dm'].includes(getEntryVisibility(e));
       return e.tags?.includes(activeFilter);
@@ -574,7 +591,7 @@ import HandoutManager from './HandoutManager.astro';
         if (t === '#Combate') tagColor = 'bg-rose-500/20 text-rose-300 border-rose-500/40';
         if (t === '#Tirada') tagColor = 'bg-indigo-500/20 text-indigo-300 border-indigo-500/40';
         if (t === '#Privado') tagColor = 'bg-purple-500/20 text-purple-300 border-purple-500/40 font-bold';
-        return `<span class="px-2 py-0.5 rounded text-[10px] border ${tagColor}">${t}</span>`;
+        return `<span class="px-2 py-0.5 rounded text-[10px] border ${tagColor}">${esc(t)}</span>`;
       }).join(' ');
 
       let extraHtml = '';
@@ -583,9 +600,9 @@ import HandoutManager from './HandoutManager.astro';
         if (entry.diceRoll.hitOutcome === 'crit') {
           outcomeBadge = '<span class="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[10px] font-bold">¡Crítico!</span>';
         } else if (entry.diceRoll.hitOutcome === 'hit') {
-          outcomeBadge = `<span class="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[10px] font-bold">Acierto${entry.diceRoll.targetDc ? ` vs CD ${entry.diceRoll.targetDc}` : ''}</span>`;
+          outcomeBadge = `<span class="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[10px] font-bold">Acierto${entry.diceRoll.targetDc ? ` vs CD ${esc(entry.diceRoll.targetDc)}` : ''}</span>`;
         } else if (entry.diceRoll.hitOutcome === 'miss') {
-          outcomeBadge = `<span class="px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/40 text-[10px] font-bold">Fallo${entry.diceRoll.targetDc ? ` vs CD ${entry.diceRoll.targetDc}` : ''}</span>`;
+          outcomeBadge = `<span class="px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/40 text-[10px] font-bold">Fallo${entry.diceRoll.targetDc ? ` vs CD ${esc(entry.diceRoll.targetDc)}` : ''}</span>`;
         } else if (entry.diceRoll.hitOutcome === 'fumble') {
           outcomeBadge = '<span class="px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/40 text-[10px] font-bold">Pifia</span>';
         } else if (entry.diceRoll.hitOutcome === 'pending') {
@@ -593,10 +610,10 @@ import HandoutManager from './HandoutManager.astro';
         }
         extraHtml = `
           <div class="p-2 rounded bg-[#10141d] border border-amber-500/30 flex items-center justify-between text-xs my-1 gap-2 flex-wrap">
-            <span class="text-[#94a3b8]">${entry.diceRoll.formula}</span>
+            <span class="text-[#94a3b8]">${esc(entry.diceRoll.formula)}</span>
             <div class="flex items-center gap-2">
               ${outcomeBadge}
-              <span class="font-headline font-bold text-amber-400 text-xs">Resultado: ${entry.diceRoll.result}</span>
+              <span class="font-headline font-bold text-amber-400 text-xs">Resultado: ${esc(entry.diceRoll.result)}</span>
             </div>
           </div>
         `;
@@ -606,7 +623,7 @@ import HandoutManager from './HandoutManager.astro';
           extraHtml = `
             <div class="p-1.5 rounded bg-amber-500/15 border border-amber-500/30 text-amber-300 font-bold text-xs my-1 flex items-center gap-1.5">
               <span>⭐</span>
-              <span>${milestoneBanner}</span>
+              <span>${esc(milestoneBanner)}</span>
             </div>
           `;
         }
@@ -615,16 +632,16 @@ import HandoutManager from './HandoutManager.astro';
       card.innerHTML = `
         <div class="flex items-center justify-between gap-2">
           <div class="flex items-center gap-1.5 flex-wrap">
-            <h5 class="font-headline font-bold text-sm text-[#f1f5f9]">${entry.title}</h5>
+            <h5 class="font-headline font-bold text-sm text-[#f1f5f9]">${esc(entry.title)}</h5>
             ${isPrivate ? '<span class="px-1.5 py-0.2 rounded bg-purple-500/30 text-purple-200 text-[9px] font-bold uppercase border border-purple-400/40">🔒 Solo DM</span>' : ''}
-            ${isForDm ? `<span class="px-1.5 py-0.2 rounded bg-purple-500/30 text-purple-200 text-[9px] font-bold uppercase border border-purple-400/40">📨 De ${entry.authorName || 'un jugador'}</span>` : ''}
+            ${isForDm ? `<span class="px-1.5 py-0.2 rounded bg-purple-500/30 text-purple-200 text-[9px] font-bold uppercase border border-purple-400/40">📨 De ${esc(entry.authorName || 'un jugador')}</span>` : ''}
           </div>
           <div class="flex items-center gap-1.5 shrink-0">
             <span class="text-[10px] text-[#64748b] font-label">${entry.timestamp ? new Date(entry.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}</span>
             <button
               type="button"
               class="grimoire-delete-note-btn w-6 h-6 rounded-md bg-[#10141d] border border-[#222f42] hover:border-rose-500/50 text-[#94a3b8] hover:text-rose-400 flex items-center justify-center transition-colors cursor-pointer"
-              data-id="${entry.id}"
+              data-id="${esc(entry.id)}"
               title="Eliminar esta nota de la bitácora"
               aria-label="Eliminar nota"
             >
@@ -632,10 +649,10 @@ import HandoutManager from './HandoutManager.astro';
             </button>
           </div>
         </div>
-        <p class="text-[#cbd5e1] text-xs leading-relaxed whitespace-pre-wrap">${entry.content}</p>
+        <p class="text-[#cbd5e1] text-xs leading-relaxed whitespace-pre-wrap">${esc(entry.content)}</p>
         ${extraHtml}
         <div class="flex items-center justify-between gap-2 pt-1 border-t border-[#222f42]/60 font-label text-[10px]">
-          <span class="text-[#64748b]">Autor: <strong class="text-[#94a3b8]">${entry.authorName || 'Dungeon Master'}</strong></span>
+          <span class="text-[#64748b]">Autor: <strong class="text-[#94a3b8]">${esc(entry.authorName || 'Dungeon Master')}</strong></span>
           <div class="flex items-center gap-1">${tagsHtml}</div>
         </div>
       `;
@@ -841,7 +858,11 @@ import HandoutManager from './HandoutManager.astro';
       return;
     }
 
-    if (!content) return;
+    if (!content) {
+      showAlert('Escribí el contenido de la entrada antes de publicarla.', { kind: 'warning', title: 'Entrada vacía' });
+      descInput?.focus();
+      return;
+    }
 
     // Detect tags in content
     const detectedTags = content.match(/#[A-Za-z0-9_ÁÉÍÓÚáéíóúñÑ]+/g) || [];
@@ -932,5 +953,6 @@ import HandoutManager from './HandoutManager.astro';
     const activeCampId = campaignStore.getActiveCampaignId();
     if (activeCampId) renderJournalFeed(activeCampId);
   });
+
   applyStatusLocks();
 </script>

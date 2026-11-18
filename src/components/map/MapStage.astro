@@ -8,6 +8,7 @@
 
 import FogTools from '../dm/FogTools.astro';
 import TokenInfoCard from './TokenInfoCard.astro';
+import TheaterOfTheMindStage from './TheaterOfTheMindStage.astro';
 
 interface Props {
   mode?: 'dm' | 'player';
@@ -33,8 +34,35 @@ const { mode = 'player', class: className = '', id } = Astro.props;
     class="w-full h-full relative z-0 origin-center cursor-grab active:cursor-grabbing"
   ></div>
 
+  <!-- Contenedor alternativo de Teatro de la Mente (Spec 14, H7, Fase C) -->
+  <div data-totm-container class="hidden w-full h-full relative z-10 pt-14 pb-4 px-2 sm:px-4 overflow-y-auto">
+    <TheaterOfTheMindStage />
+  </div>
+
   <!-- Barra de estado y cabecera del mapa (top-left) -->
   <div class="absolute top-3 left-3 z-20 flex items-center gap-2 pointer-events-none isolate">
+    <!-- Selector de Modo de Escenario: [ Cuadrícula | Teatro de la Mente ] -->
+    <div class="pointer-events-auto flex items-center gap-0.5 sm:gap-1 p-0.5 rounded-xl bg-[#10141d]/90 backdrop-blur-md border border-[#222f42] text-xs font-headline shadow-md">
+      <button
+        type="button"
+        data-stage-view-grid
+        class="px-2 py-1 rounded-lg text-[10px] font-bold transition-all cursor-pointer flex items-center gap-1 bg-amber-500/20 text-amber-300 border border-amber-500/40"
+        title="Cuadrícula 2D con tokens"
+      >
+        <span class="material-symbols-outlined text-[13px]">grid_on</span>
+        <span class="hidden sm:inline">Cuadrícula</span>
+      </button>
+      <button
+        type="button"
+        data-stage-view-totm
+        class="px-2 py-1 rounded-lg text-[10px] font-bold transition-all cursor-pointer flex items-center gap-1 text-[#94a3b8] hover:text-[#f1f5f9]"
+        title="Modo Teatro de la Mente (sin cuadrícula)"
+      >
+        <span class="material-symbols-outlined text-[13px]">theater_comedy</span>
+        <span class="hidden sm:inline">Teatro</span>
+      </button>
+    </div>
+
     {mode === 'dm' ? (
       <div class="relative pointer-events-auto isolate flex items-center gap-2" data-map-dropdown-wrapper>
         <button
@@ -150,7 +178,7 @@ const { mode = 'player', class: className = '', id } = Astro.props;
 
   <!-- Controles flotantes de navegación (bottom-right) (T-22) -->
   <!-- Controles de navegación y cuadrícula (bottom-right) -->
-  <div class="absolute bottom-3 right-3 z-10 flex items-center gap-1.5 p-1.5 rounded-xl bg-[#10141d]/85 backdrop-blur-md border border-[#222f42] shadow-xl isolate">
+  <div data-grid-nav-controls class="absolute bottom-3 right-3 z-10 flex items-center gap-1.5 p-1.5 rounded-xl bg-[#10141d]/85 backdrop-blur-md border border-[#222f42] shadow-xl isolate">
     <span
       data-zoom-indicator
       class="text-[11px] font-mono font-bold text-[#94a3b8] px-2 py-1 select-none"
@@ -209,7 +237,7 @@ const { mode = 'player', class: className = '', id } = Astro.props;
 
   <!-- Barra de Herramientas de Niebla del DM (bottom-left) (Fase 4: T-40, T-41) -->
   {mode === 'dm' && (
-    <div class="[@media(orientation:portrait)_and_(max-width:639px)]:hidden absolute z-20 pointer-events-auto bottom-14 left-3 right-3 sm:bottom-3 sm:right-auto sm:max-w-[calc(100%-13rem)] overflow-x-auto rounded-2xl [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+    <div data-fog-tools-wrapper class="[@media(orientation:portrait)_and_(max-width:639px)]:hidden absolute z-20 pointer-events-auto bottom-14 left-3 right-3 sm:bottom-3 sm:right-auto sm:max-w-[calc(100%-13rem)] overflow-x-auto rounded-2xl [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
       <FogTools />
     </div>
   )}
@@ -319,6 +347,47 @@ const { mode = 'player', class: className = '', id } = Astro.props;
 
       const mode = (root.getAttribute('data-mode') || 'player') as 'dm' | 'player';
       const canvasContainer = root.querySelector<HTMLElement>('[data-canvas-container]');
+      const totmContainer = root.querySelector<HTMLElement>('[data-totm-container]');
+      const gridBtn = root.querySelector<HTMLButtonElement>('[data-stage-view-grid]');
+      const totmBtn = root.querySelector<HTMLButtonElement>('[data-stage-view-totm]');
+      const mapDropdownWrapper = root.querySelector<HTMLElement>('[data-map-dropdown-wrapper]');
+      const gridNavControls = root.querySelector<HTMLElement>('[data-grid-nav-controls]');
+      const fogToolsWrapper = root.querySelector<HTMLElement>('[data-fog-tools-wrapper]');
+
+      function setStageViewMode(sm: 'grid' | 'totm') {
+        const isTotm = sm === 'totm';
+        if (totmContainer) totmContainer.classList.toggle('hidden', !isTotm);
+        if (canvasContainer) canvasContainer.classList.toggle('hidden', isTotm);
+        if (mapDropdownWrapper) mapDropdownWrapper.classList.toggle('hidden', isTotm);
+        if (gridNavControls) gridNavControls.classList.toggle('hidden', isTotm);
+        if (fogToolsWrapper) fogToolsWrapper.classList.toggle('hidden', isTotm);
+        const hud = root.querySelector<HTMLElement>('[data-player-character-hud]');
+        if (hud) hud.classList.toggle('hidden', isTotm);
+
+        if (isTotm) {
+          totmBtn?.classList.add('bg-amber-500/20', 'text-amber-300', 'border', 'border-amber-500/40');
+          totmBtn?.classList.remove('text-[#94a3b8]');
+          gridBtn?.classList.remove('bg-amber-500/20', 'text-amber-300', 'border', 'border-amber-500/40');
+          gridBtn?.classList.add('text-[#94a3b8]');
+          window.dispatchEvent(new CustomEvent('totm-refresh'));
+        } else {
+          gridBtn?.classList.add('bg-amber-500/20', 'text-amber-300', 'border', 'border-amber-500/40');
+          gridBtn?.classList.remove('text-[#94a3b8]');
+          totmBtn?.classList.remove('bg-amber-500/20', 'text-amber-300', 'border', 'border-amber-500/40');
+          totmBtn?.classList.add('text-[#94a3b8]');
+        }
+
+        try { localStorage.setItem('dnd_stage_mode', sm); } catch (_) {}
+      }
+
+      gridBtn?.addEventListener('click', () => setStageViewMode('grid'));
+      totmBtn?.addEventListener('click', () => setStageViewMode('totm'));
+
+      const savedStage = typeof localStorage !== 'undefined' ? (localStorage.getItem('dnd_stage_mode') as 'grid' | 'totm') : null;
+      if (savedStage === 'totm') {
+        setStageViewMode('totm');
+      }
+
       const titleEl = root.querySelector<HTMLElement>('[data-map-title]');
       const activeBadgeEl = root.querySelector<HTMLElement>('[data-active-badge]');
       const activateBtn = root.querySelector<HTMLButtonElement>('[data-map-activate-btn]');
@@ -646,7 +715,7 @@ const { mode = 'player', class: className = '', id } = Astro.props;
       }) as EventListener);
 
       controller.addEventListener('token-select', ((e: CustomEvent) => {
-        window.dispatchEvent(new CustomEvent('token-selected', { detail: e.detail }));
+        window.dispatchEvent(new CustomEvent('token-selected', { detail: { ...e.detail, mapId: currentMapId } }));
         showTokenCard(e.detail?.tid);
       }) as EventListener);
 
@@ -1005,6 +1074,14 @@ const { mode = 'player', class: className = '', id } = Astro.props;
 
           emptyOverlay?.classList.add('hidden');
           updateTitle(map);
+          const stageCid = getActiveCampaignId();
+          if (stageCid && map?.id) {
+            window.dispatchEvent(
+              new CustomEvent('map-stage-loaded', {
+                detail: { cid: stageCid, mid: map.id, map },
+              })
+            );
+          }
 
           // Mismo mapa ya cargado: actualizar grilla, tokens y niebla sin reiniciar el stage
           if (currentMapId === map.id) {

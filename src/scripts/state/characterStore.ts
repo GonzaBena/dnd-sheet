@@ -1,4 +1,4 @@
-import type { CharacterData, SectionOrderConfig } from '../models/character.ts';
+import type { CharacterData, SectionOrderConfig, CharacterCompanion } from '../models/character.ts';
 import { defaultCharacter } from '../data/defaultCharacter.ts';
 import { getRandomCharacterAvatar, isBrokenAvatarUrl } from '../data/characterAvatars.ts';
 import { recalculateCharacter, calculateLevelUpHpGain } from '../dnd/calculations.ts';
@@ -9,12 +9,23 @@ import type { Resource } from '../models/resource.ts';
 import type { ActiveEffect } from '../models/effect.ts';
 import { buildAttackFromWeapon, upsertAttack } from '../dnd/weaponAttack.ts';
 import { getArmorClass } from '../dnd/ac.ts';
-import { addEffect, removeEffect, tickRounds, expireOnRest, roundDelta, type AddResult } from '../dnd/effects.ts';
+import { addEffect, removeEffect, tickRounds, expireOnRest, expireUntilNextTurn, roundDelta, type AddResult } from '../dnd/effects.ts';
+import {
+  executeShortRestLogic,
+  executeLongRestLogic,
+  consumeSavedDie,
+  getHitDicePools,
+} from '../dnd/rests.ts';
+import type { HitDie } from '../models/character.ts';
+import type { ShortRestResult, LongRestResult, LongRestOptions } from '../models/rest.ts';
 import { journalStore } from './journalStore.ts';
 import { campaignStore } from './campaignStore.ts';
 import { userStore } from './userStore.ts';
 import { generateCharacterSyncId } from '../utils/ids.ts';
 import { applyHpOp, describeHpChange, normalizeHp, sameHp, type HitPoints, type HpOp } from '../dnd/hp.ts';
+import { evaluateConcentrationOnDamage } from '../dnd/concentration.ts';
+import { executeReaction, findAvailableReactions } from '../dnd/reactions.ts';
+import type { ReactionExecutionResult, ReactionTriggerPayload } from '../models/reaction.ts';
 
 const STORAGE_KEY = 'dnd_active_character_v1';
 
@@ -45,7 +56,13 @@ class CharacterStoreManager {
       const { id, hp } = e.detail || ({} as any);
       if (!id || !hp || id !== this.character?.id) return;
       if (sameHp(this.character.hp, hp)) return;
+      const prevCurrent = this.character.hp.current;
       this.character.hp = { ...hp };
+      if (prevCurrent > hp.current) {
+        const dmg = prevCurrent - hp.current;
+        this.checkConcentrationOnDamage(dmg);
+        this.checkReactionsOnDamage(dmg);
+      }
       this.saveAndNotify(false, true);
     }) as EventListener);
     setTimeout(() => {
@@ -121,6 +138,12 @@ class CharacterStoreManager {
   }
 
   private saveAndNotify(broadcast = true, fromRemote = false) {
+    if (campaignStore.isCloudMode()) {
+      const currentUid = userStore.getCurrentUser().id;
+      if (currentUid && (!this.character.userId || this.character.userId === 'user-me')) {
+        this.character.userId = currentUid;
+      }
+    }
     this.character = recalculateCharacter(this.character);
     if (!fromRemote) {
       (this.character as any).updatedAt = Date.now();
@@ -166,6 +189,11 @@ class CharacterStoreManager {
         this.character.hp = { ...mutation.optimistic };
         this.saveAndNotify(false, true);
       }
+      if (mutation.before.current > mutation.optimistic.current) {
+        const dmg = mutation.before.current - mutation.optimistic.current;
+        this.checkConcentrationOnDamage(dmg);
+        this.checkReactionsOnDamage(dmg);
+      }
       void mutation.done.then(change => { if (change) log(change); });
       return { before: mutation.before, after: mutation.optimistic };
     }
@@ -176,9 +204,39 @@ class CharacterStoreManager {
     const before = normalizeHp(this.character.hp);
     const after = applyHpOp(before, op);
     this.character.hp = after;
+    if (before.current > after.current) {
+      const dmg = before.current - after.current;
+      this.checkConcentrationOnDamage(dmg);
+      this.checkReactionsOnDamage(dmg);
+    }
     this.saveAndNotify();
     log({ before, after });
     return { before, after };
+  }
+
+  public checkConcentrationOnDamage(damageTaken: number): void {
+    const check = evaluateConcentrationOnDamage(this.character, damageTaken);
+    if (check && typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('concentration-check-required', { detail: check }));
+    }
+  }
+
+  public checkReactionsOnDamage(damageTaken: number, damageType?: string): void {
+    if (damageTaken <= 0 || !this.isReactionAvailable()) return;
+    const trigger: ReactionTriggerPayload = {
+      triggerType: 'damage_taken',
+      targetCharacterId: this.character.id,
+      damageAmount: damageTaken,
+      damageType,
+    };
+    const reactions = findAvailableReactions(this.character, trigger).filter((r) => r.canExecute);
+    if (reactions.length > 0 && typeof window !== 'undefined') {
+      window.dispatchEvent(
+        new CustomEvent('show-reaction-prompt', {
+          detail: { trigger, reactions },
+        })
+      );
+    }
   }
 
   public modifyHp(delta: number, silent: boolean = false): { current: number; max: number; old: number } {
@@ -625,6 +683,90 @@ class CharacterStoreManager {
     this.saveAndNotify();
   }
 
+  // ---- Combate en la Hoja: Turnos, Modificadores y Reacciones (Spec 11, H4 & Spec 12, H5) ----
+
+  private lastSyncedCombatKey: string | null = null;
+
+  public resetTurn(options?: { forceResetReaction?: boolean }): void {
+    if (!this.character.turnState) this.character.turnState = {};
+    this.character.turnState.usedModifiers = [];
+
+    const isInCampaign = Boolean(this.character.campaignId);
+    if (!isInCampaign || options?.forceResetReaction) {
+      this.character.turnState.reactionUsed = false;
+      const { effects, expired } = expireUntilNextTurn(this.character.activeEffects);
+      this.character.activeEffects = effects;
+      this.saveAndNotify();
+      this.emitEffectsExpired(expired);
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('character-reaction-changed', {
+          detail: { characterId: this.character.id, reactionUsed: false }
+        }));
+      }
+    } else {
+      this.saveAndNotify();
+    }
+  }
+
+  public markTurnModifierUsed(id: string): void {
+    if (!this.character.turnState) this.character.turnState = { usedModifiers: [] };
+    if (!Array.isArray(this.character.turnState.usedModifiers)) this.character.turnState.usedModifiers = [];
+    if (!this.character.turnState.usedModifiers.includes(id)) {
+      this.character.turnState.usedModifiers.push(id);
+      this.saveAndNotify();
+    }
+  }
+
+  public isTurnModifierUsed(id: string): boolean {
+    return Boolean(this.character.turnState?.usedModifiers?.includes(id));
+  }
+
+  public isReactionAvailable(): boolean {
+    return !Boolean(this.character.turnState?.reactionUsed);
+  }
+
+  public useReaction(name?: string): boolean {
+    if (!this.character.turnState) this.character.turnState = {};
+    this.character.turnState.reactionUsed = true;
+    this.saveAndNotify();
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('character-reaction-changed', {
+        detail: { characterId: this.character.id, reactionUsed: true, name }
+      }));
+    }
+    return true;
+  }
+
+  public resetReaction(): void {
+    if (!this.character.turnState) this.character.turnState = {};
+    this.character.turnState.reactionUsed = false;
+    const { effects, expired } = expireUntilNextTurn(this.character.activeEffects);
+    this.character.activeEffects = effects;
+    this.saveAndNotify();
+    this.emitEffectsExpired(expired);
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('character-reaction-changed', {
+        detail: { characterId: this.character.id, reactionUsed: false }
+      }));
+    }
+  }
+
+  public executeReaction(
+    reactionId: string,
+    options?: { spellSlotLevel?: number; damageTaken?: number; triggerPayload?: any }
+  ): ReactionExecutionResult {
+    const { updatedCharacter, result } = executeReaction(this.character, reactionId, options);
+    this.character = updatedCharacter;
+    this.saveAndNotify();
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('character-reaction-changed', {
+        detail: { characterId: this.character.id, reactionUsed: true, reactionName: result.reactionName }
+      }));
+    }
+    journalStore.log(result.reactionName, result.logMessage, ['#Combate', '#Reacción']);
+    return result;
+  }
+
   // ---- Efectos activos (Spec 07, Fase B) ----
 
   private emitEffectsExpired(expired: ActiveEffect[]) {
@@ -679,6 +821,26 @@ class CharacterStoreManager {
     this.saveAndNotify();
     this.emitEffectsExpired(expired);
     return expired;
+  }
+
+  /**
+   * Sincroniza el turno de combate con el personaje: si es su turno, restablece su reacción y modificadores.
+   */
+  public syncCombatTurn(combat: { active: boolean; round?: number; turnIndex: number; combatants: { characterId?: string }[] }): void {
+    if (!combat || !combat.active || !this.character?.id) return;
+    const currentCombatant = combat.combatants[combat.turnIndex];
+    const currentKey = `${combat.round ?? 1}-${combat.turnIndex}-${currentCombatant?.characterId ?? ''}`;
+    if (this.lastSyncedCombatKey === currentKey) return;
+    this.lastSyncedCombatKey = currentKey;
+
+    if (currentCombatant && currentCombatant.characterId === this.character.id) {
+      this.resetTurn({ forceResetReaction: true });
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('combat-turn-started', {
+          detail: { characterId: this.character.id, round: combat.round, turnIndex: combat.turnIndex }
+        }));
+      }
+    }
   }
 
   private expireEffectsOnRest(rest: 'short' | 'long'): ActiveEffect[] {
@@ -890,36 +1052,33 @@ class CharacterStoreManager {
     );
   }
 
-  public shortRest(hitDiceToSpend: number = 1): { healed: number; remainingDice: number } {
-    const available = this.character.hitDice.remaining;
-    const spend = Math.min(available, hitDiceToSpend);
-    let healed = 0;
-    if (spend > 0) {
-      this.character.hitDice.remaining -= spend;
-      // D&D 5e: Hit die roll or average + CON mod (min 1 healed per hit die)
-      const conMod = this.character.stats.con?.modifier ?? 0;
-      const dieSize = parseInt(this.character.hitDice.die.replace(/\D/g, '')) || 10;
-      const avgRoll = Math.floor(dieSize / 2) + 1;
-      healed = Math.max(1, spend * Math.max(1, avgRoll + conMod));
-      this.modifyHp(healed, true); // Silent to avoid double log
-    }
-    // Recursos con reinicio en descanso corto (incluye Forma Salvaje, migrada al registro).
-    // Si wildShape aún no está en el registro, se restaura directo (fuente vieja).
-    if (this.character.wildShape && !this.character.resources.some((r) => r.id === 'wildShape')) {
-      this.character.wildShape.usesRemaining = this.character.wildShape.usesTotal;
-    }
-    const recoveredShort = this.applyRestToResources('short');
-    const expiredShort = this.expireEffectsOnRest('short');
+  public executeShortRest(spentDice: { die: HitDie; roll?: number }[]): ShortRestResult {
+    const { char, result } = executeShortRestLogic(this.character, { spent: spentDice });
+    this.character = char;
     this.saveAndNotify();
-    this.emitEffectsExpired(expiredShort);
-
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('short-rest-completed', { detail: result }));
+    }
+    const spentText = result.spentDice.map((d) => `${d.die} (sacó ${d.roll} + ${d.conMod} CON = ${d.total} PG)`).join(', ');
     journalStore.log(
       'Descanso Corto completado',
-      `Descanso de 1 hora completado. Gastado ${spend} Dado de Golpe (${this.character.hitDice.die}). Recuperados +${healed} PG (Salud actual: ${this.character.hp.current}/${this.character.hp.max}). Dados restantes: ${this.character.hitDice.remaining}/${this.character.hitDice.total}. Usos de Forma Salvaje restaurados al máximo.${recoveredShort.length ? ` Recursos recuperados: ${recoveredShort.join(', ')}.` : ''}${expiredShort.length ? ` Efectos terminados: ${expiredShort.map((e) => e.name).join(', ')}.` : ''}`,
+      `Descanso de 1 hora completado. Curados +${result.healedHp} PG (Salud actual: ${this.character.hp.current}/${this.character.hp.max}). Dados gastados: ${spentText || 'Ninguno'}. Dados restantes: ${result.remainingDiceTotal}/${this.character.hitDice.total}.${result.recoveredResources.length ? ` Recursos recuperados: ${result.recoveredResources.join(', ')}.` : ''}${result.expiredEffects.length ? ` Efectos terminados: ${result.expiredEffects.join(', ')}.` : ''}`,
       ['#Descanso']
     );
+    return result;
+  }
 
-    return { healed, remainingDice: this.character.hitDice.remaining };
+  public shortRest(hitDiceToSpend: number = 1): { healed: number; remainingDice: number } {
+    const pools = getHitDicePools(this.character);
+    const availablePool = pools.find((p) => p.remaining > 0);
+    const die = (availablePool?.die || this.character.hitDice?.die || 'd10') as HitDie;
+    const count = Math.min(availablePool?.remaining ?? 0, hitDiceToSpend);
+    const spentList: { die: HitDie }[] = [];
+    for (let i = 0; i < count; i++) {
+      spentList.push({ die });
+    }
+    const res = this.executeShortRest(spentList);
+    return { healed: res.healedHp, remainingDice: res.remainingDiceTotal };
   }
 
   /**
@@ -942,32 +1101,42 @@ class CharacterStoreManager {
     );
   }
 
-  public longRest() {
-    this.changeHp({ kind: 'full' }, false);
-    // Restore half hit dice (min 1)
-    const restoreDice = Math.max(1, Math.floor(this.character.hitDice.total / 2));
-    this.character.hitDice.remaining = Math.min(this.character.hitDice.total, this.character.hitDice.remaining + restoreDice);
-    // Restore all spell slots
-    if (this.character.spellcasting?.slots) {
-      for (const n of Object.keys(this.character.spellcasting.slots)) {
-        this.character.spellcasting.slots[Number(n)].used = 0;
-      }
-    }
-    // Restore Wild Shape uses
-    if (this.character.wildShape) {
-      this.character.wildShape.usesRemaining = this.character.wildShape.usesTotal;
-      this.character.wildShape.activeForm = null;
-    }
-    const recoveredLong = this.applyRestToResources('long');
-    const expiredLong = this.expireEffectsOnRest('long');
+  public executeLongRest(options: LongRestOptions = {}): LongRestResult {
+    const { char, result } = executeLongRestLogic(this.character, options);
+    this.character = char;
     this.saveAndNotify();
-    this.emitEffectsExpired(expiredLong);
-
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('long-rest-completed', { detail: result }));
+    }
+    const diceText = result.recoveredDice.map((d) => `+${d.count} ${d.die}`).join(', ');
+    const portentText = result.savedDiceRolled.length
+      ? ` Portento obtenido: ${result.savedDiceRolled.map((p) => `${p.resourceName} [${p.values.join(', ')}]`).join(', ')}.`
+      : '';
     journalStore.log(
       'Descanso Largo completado',
-      `Descanso de 8 horas completado. Salud restaurada al 100% (${this.character.hp.max}/${this.character.hp.max} PG). Recuperados +${restoreDice} Dados de Golpe (${this.character.hitDice.remaining}/${this.character.hitDice.total}). Todos los espacios de conjuro y formas salvajes restablecidos.${recoveredLong.length ? ` Recursos recuperados: ${recoveredLong.join(', ')}.` : ''}${expiredLong.length ? ` Efectos terminados: ${expiredLong.map((e) => e.name).join(', ')}.` : ''}`,
+      `Descanso de 8 horas completado. Salud restaurada al 100% (${this.character.hp.max}/${this.character.hp.max} PG). Recuperados Dados de Golpe: ${diceText || '0'} (${result.remainingDiceTotal}/${this.character.hitDice.total}). Todos los espacios de conjuro y formas salvajes restablecidos.${portentText}${result.recoveredResources.length ? ` Recursos recuperados: ${result.recoveredResources.join(', ')}.` : ''}${result.expiredEffects.length ? ` Efectos terminados: ${result.expiredEffects.join(', ')}.` : ''}`,
       ['#Descanso']
     );
+    return result;
+  }
+
+  public longRest(): LongRestResult {
+    return this.executeLongRest();
+  }
+
+  public consumePortentDie(resourceId: string, valueOrIndex: number | { index: number }) {
+    if (!Array.isArray(this.character.resources)) return null;
+    const rIndex = this.character.resources.findIndex((r) => r.id === resourceId);
+    if (rIndex === -1) return null;
+    const { resource, value } = consumeSavedDie(this.character.resources[rIndex], valueOrIndex);
+    this.character.resources[rIndex] = resource;
+    this.saveAndNotify();
+    journalStore.log(
+      'Dado de Portento utilizado',
+      `Se utilizó el dado guardado [${value}] de ${resource.name}. Usos restantes: ${resource.max - resource.used}/${resource.max}.`,
+      ['#Recursos']
+    );
+    return { resource, value };
   }
 
   public updateLayoutConfig(updates: Partial<CharacterData['layoutConfig']>) {
@@ -1008,7 +1177,7 @@ class CharacterStoreManager {
         col2 = unified.slice(4);
       } else {
         col1 = this.character.layoutConfig?.sectionOrder?.col1 ? [...this.character.layoutConfig.sectionOrder.col1] : ['abilities', 'saves', 'skills', 'features'];
-        col2 = this.character.layoutConfig?.sectionOrder?.col2 ? [...this.character.layoutConfig.sectionOrder.col2] : ['weapons', 'wildshape', 'currency', 'backpack', 'spells'];
+        col2 = this.character.layoutConfig?.sectionOrder?.col2 ? [...this.character.layoutConfig.sectionOrder.col2] : ['weapons', 'wildshape', 'companions', 'currency', 'backpack', 'spells'];
       }
     }
 
@@ -1027,8 +1196,8 @@ class CharacterStoreManager {
   public resetSectionOrder() {
     this.updateSectionOrder({
       col1: ['abilities', 'saves', 'skills', 'features'],
-      col2: ['weapons', 'wildshape', 'currency', 'backpack', 'spells'],
-      unifiedOrder: ['abilities', 'saves', 'skills', 'features', 'weapons', 'wildshape', 'currency', 'backpack', 'spells']
+      col2: ['weapons', 'wildshape', 'companions', 'currency', 'backpack', 'spells'],
+      unifiedOrder: ['abilities', 'saves', 'skills', 'features', 'weapons', 'wildshape', 'companions', 'currency', 'backpack', 'spells']
     });
   }
 
@@ -1054,7 +1223,7 @@ class CharacterStoreManager {
 
   public setAllSectionsCollapsed(collapsed: boolean) {
     if (!this.character.layoutConfig) this.updateLayoutConfig({});
-    const allSections = ['abilities', 'saves', 'skills', 'features', 'weapons', 'wildshape', 'currency', 'backpack', 'spells'];
+    const allSections = ['abilities', 'saves', 'skills', 'features', 'weapons', 'wildshape', 'companions', 'currency', 'backpack', 'spells', 'armor'];
     this.character.layoutConfig!.collapsedSections = collapsed ? [...allSections] : [];
     this.saveAndNotify();
   }
@@ -1069,6 +1238,18 @@ class CharacterStoreManager {
       this.character.layoutConfig.activeTab = tab;
       this.saveAndNotify();
     }
+  }
+
+  public setViewMode(mode: 'standard' | 'table') {
+    if (!this.character.layoutConfig) this.updateLayoutConfig({});
+    if (this.character.layoutConfig) {
+      this.character.layoutConfig.viewMode = mode;
+      this.saveAndNotify();
+    }
+  }
+
+  public getViewMode(): 'standard' | 'table' {
+    return this.character.layoutConfig?.viewMode || 'standard';
   }
 
   public applyClassPreset(preset: 'wizard' | 'druid' | 'fighter' | 'rogue' | 'cleric' | 'custom') {
@@ -1245,6 +1426,68 @@ class CharacterStoreManager {
       console.error('Failed to import JSON', e);
     }
     return false;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Compañeros e Invocaciones (Spec 13, H6)
+  // ---------------------------------------------------------------------------
+
+  public getCompanions(): CharacterCompanion[] {
+    return this.character.companions ? [...this.character.companions] : [];
+  }
+
+  public addCompanion(data: Omit<CharacterCompanion, 'id'> & { id?: string }): string {
+    if (!this.character.companions) {
+      this.character.companions = [];
+    }
+    const id = data.id || `comp-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 6)}`;
+    const newCompanion: CharacterCompanion = {
+      ...data,
+      id,
+      size: data.size || 1,
+      hp: {
+        current: Math.max(0, data.hp?.current ?? data.hp?.max ?? 1),
+        max: Math.max(1, data.hp?.max ?? 1),
+      },
+    };
+    this.character.companions.push(newCompanion);
+    this.saveAndNotify();
+    return id;
+  }
+
+  public updateCompanion(companionId: string, patch: Partial<CharacterCompanion>): void {
+    if (!this.character.companions) return;
+    const idx = this.character.companions.findIndex((c) => c.id === companionId);
+    if (idx === -1) return;
+
+    const existing = this.character.companions[idx];
+    const updated = { ...existing, ...patch };
+    if (patch.hp) {
+      const max = Math.max(1, patch.hp.max ?? existing.hp.max);
+      const current = Math.max(0, Math.min(patch.hp.current ?? existing.hp.current, max));
+      updated.hp = { current, max };
+    }
+    this.character.companions[idx] = updated;
+    this.saveAndNotify();
+  }
+
+  public removeCompanion(companionId: string): void {
+    if (!this.character.companions) return;
+    this.character.companions = this.character.companions.filter((c) => c.id !== companionId);
+    this.saveAndNotify();
+  }
+
+  public linkCompanionToken(companionId: string, tokenId: string | null): void {
+    if (!this.character.companions) return;
+    const comp = this.character.companions.find((c) => c.id === companionId);
+    if (comp) {
+      if (tokenId) {
+        comp.tokenId = tokenId;
+      } else {
+        delete comp.tokenId;
+      }
+      this.saveAndNotify();
+    }
   }
 
   public exportJson(): string {

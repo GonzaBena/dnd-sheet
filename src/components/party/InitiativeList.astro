@@ -95,9 +95,14 @@ import { isOwnedBy } from '../../scripts/vtt/initiative';
             <span class="material-symbols-outlined text-[15px] text-amber-400">straighten</span>
             <span>Distancia al Objetivo:</span>
           </label>
-          <div class="flex items-center gap-1 font-mono text-xs font-bold text-amber-300">
-            <span id="party-modal-distance-display">5</span>
-            <span class="text-[10px] text-[#94a3b8]">pies</span>
+          <div class="flex items-center gap-1.5">
+            <span id="party-distance-source-badge" class="hidden px-2 py-0.5 rounded text-[10px] font-medium bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+              🎯 Medido en mapa
+            </span>
+            <div class="flex items-center gap-1 font-mono text-xs font-bold text-amber-300">
+              <span id="party-modal-distance-display">5</span>
+              <span class="text-[10px] text-[#94a3b8]">pies</span>
+            </div>
           </div>
         </div>
 
@@ -162,6 +167,8 @@ import { isOwnedBy } from '../../scripts/vtt/initiative';
 
 <script>
   import anime from 'animejs';
+  // Nombres de combatientes, armas y objetos los escriben los usuarios: todo lo que va a innerHTML pasa por esc().
+  import { escapeHtml as esc } from '../../scripts/dnd/catalog';
   import { subscribeCombat, getCurrentCombat } from '../../scripts/data/combatService.ts';
   import { isOwnedBy } from '../../scripts/vtt/initiative';
   import { visibleHp } from '../../scripts/vtt/initiative.ts';
@@ -171,18 +178,24 @@ import { isOwnedBy } from '../../scripts/vtt/initiative';
     getSpellRangeFeet,
     getItemReachFeet,
     validateActionForDistance,
+    resolveCombatantDistance,
   } from '../../scripts/vtt/tacticalCombat.ts';
+  import { watchActiveMap } from '../../scripts/data/mapService.ts';
   import { campaignStore } from '../../scripts/state/campaignStore.ts';
   import { characterStore } from '../../scripts/state/characterStore.ts';
   import { userStore } from '../../scripts/state/userStore.ts';
   import { getArmorClass } from '../../scripts/dnd/ac.ts';
   import { animateHpBar } from '../../scripts/animations/hpAnimations.ts';
   import type { Combat, Combatant } from '../../scripts/models/combat.ts';
+  import type { MapDoc } from '../../scripts/models/map.ts';
 
   let currentCampaignId: string | null = null;
   let unsubscribe: (() => void) | null = null;
+  let mapUnsubscribe: (() => void) | null = null;
   let previousHpMap = new Map<string, number>();
   let previousTurnIndex = -1;
+  let lastCombat: Combat | null = null;
+  let currentActiveMap: MapDoc | null = null;
 
   // Estado del modal de ataque y distancia táctica (pies)
   let activeTarget: { id: string; name: string; ac?: number } | null = null;
@@ -203,6 +216,7 @@ import { isOwnedBy } from '../../scripts/vtt/initiative';
   const attackCustomBtn = document.getElementById('party-attack-custom-roll-btn');
   const distancePresetsContainer = document.getElementById('party-distance-presets');
   const distanceDisplayEl = document.getElementById('party-modal-distance-display');
+  const distanceSourceBadgeEl = document.getElementById('party-distance-source-badge');
 
   function init() {
     const params = new URLSearchParams(window.location.search);
@@ -213,14 +227,22 @@ import { isOwnedBy } from '../../scripts/vtt/initiative';
         unsubscribe();
         unsubscribe = null;
       }
+      if (mapUnsubscribe) {
+        mapUnsubscribe();
+        mapUnsubscribe = null;
+      }
       currentCampaignId = cid;
       unsubscribe = subscribeCombat(cid, (combat) => {
         renderCombat(combat);
+      });
+      mapUnsubscribe = watchActiveMap(cid, (map) => {
+        currentActiveMap = map;
       });
     }
   }
 
   function renderCombat(combat: Combat | null) {
+    lastCombat = combat;
     if (!combat || !combat.active || combat.combatants.length === 0) {
       if (roundBadgeEl) roundBadgeEl.classList.add('hidden');
       if (roundBadgeEl) roundBadgeEl.classList.remove('flex');
@@ -311,8 +333,8 @@ import { isOwnedBy } from '../../scripts/vtt/initiative';
 
             <!-- Avatar del combatiente -->
             <img
-              src="${liveChar?.avatarUrl || c.avatarUrl || (c.isPlayer ? '/characters/ch-1.avif' : '/characters/ch-3.avif')}"
-              alt="${displayName}"
+              src="${esc(liveChar?.avatarUrl || c.avatarUrl || (c.isPlayer ? '/characters/ch-1.avif' : '/characters/ch-3.avif'))}"
+              alt="${esc(displayName)}"
               class="w-8 h-8 rounded-lg object-cover border border-[#222f42] shrink-0 bg-[#10141d]"
               onerror="this.onerror=null;this.src='/characters/ch-1.avif';"
             />
@@ -320,8 +342,8 @@ import { isOwnedBy } from '../../scripts/vtt/initiative';
             <!-- Nombre e identificadores -->
             <div class="min-w-0">
               <div class="flex items-center gap-1.5 flex-wrap">
-                <span class="text-xs font-bold text-[#f1f5f9] truncate" title="${displayName}">
-                  ${displayName}
+                <span class="text-xs font-bold text-[#f1f5f9] truncate" title="${esc(displayName)}">
+                  ${esc(displayName)}
                 </span>
                 ${
                   isOwnCharacter
@@ -365,9 +387,9 @@ import { isOwnedBy } from '../../scripts/vtt/initiative';
                   type="button"
                   class="party-attack-target-btn inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-rose-500/20 border border-rose-500/40 hover:bg-rose-500/30 text-rose-300 text-xs font-bold transition-all cursor-pointer shadow-xs active:scale-95 whitespace-nowrap shrink-0"
                   data-target-id="${c.id}"
-                  data-target-name="${displayName}"
+                  data-target-name="${esc(displayName)}"
                   data-target-ac="${displayAc || ''}"
-                  title="Declarar ataque contra ${displayName}"
+                  title="Declarar ataque contra ${esc(displayName)}"
                 >
                   <span class="material-symbols-outlined text-[14px] shrink-0">my_location</span>
                   <span>🎯 Atacar</span>
@@ -419,7 +441,7 @@ import { isOwnedBy } from '../../scripts/vtt/initiative';
                 return `
                 <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold border ${info.color}">
                   <span class="material-symbols-outlined text-[12px]">${info.icon}</span>
-                  <span>${info.name}</span>
+                  <span>${esc(info.name)}</span>
                 </span>
               `;
               })
@@ -480,10 +502,53 @@ import { isOwnedBy } from '../../scripts/vtt/initiative';
     modalTargetName.textContent = target.name;
     modalTargetAc.textContent = target.ac ? `CA: ${target.ac}` : 'CA: Oculta por DM';
 
-    // Restablecer preset a 5 pies al abrir
-    currentTargetDistanceFeet = 5;
-    if (distanceDisplayEl) distanceDisplayEl.textContent = '5';
-    updateDistancePresetButtons(5);
+    // Intentar calcular la distancia automáticamente desde el mapa activo
+    let calculatedDist = 5;
+    let fromMap = false;
+
+    if (lastCombat && lastCombat.combatants.length > 0) {
+      const actorCombatant = lastCombat.combatants[lastCombat.turnIndex];
+      const targetCombatant = lastCombat.combatants.find((c) => c.id === target.id);
+      if (actorCombatant && targetCombatant) {
+        let distResult = currentActiveMap ? resolveCombatantDistance(actorCombatant, targetCombatant, currentActiveMap) : null;
+        let isTotm = false;
+
+        // Si no hay mapa o tokens, probar zonas de Teatro de la Mente (Spec 14, H7)
+        if (!distResult) {
+          try {
+            const cid = campaignStore.getActiveCampaignId() || 'default';
+            const saved = localStorage.getItem(`dnd_totm_zones_${cid}`);
+            if (saved) {
+              const totmZones = JSON.parse(saved);
+              distResult = resolveCombatantDistance(actorCombatant, targetCombatant, null, totmZones);
+              if (distResult) isTotm = true;
+            }
+          } catch (_) {}
+        }
+
+        if (distResult) {
+          calculatedDist = distResult.feet;
+          fromMap = true;
+          if (distanceSourceBadgeEl) {
+            distanceSourceBadgeEl.textContent = isTotm
+              ? `🎭 Teatro de la mente (${distResult.feet} ft)`
+              : `🎯 Medido en mapa (${distResult.feet} ft)`;
+            distanceSourceBadgeEl.className = 'px-2 py-0.5 rounded text-[10px] font-medium bg-emerald-500/15 text-emerald-300 border border-emerald-500/30';
+            distanceSourceBadgeEl.classList.remove('hidden');
+          }
+        }
+      }
+    }
+
+    if (!fromMap && distanceSourceBadgeEl) {
+      distanceSourceBadgeEl.textContent = '✋ Manual (sin tokens en mapa)';
+      distanceSourceBadgeEl.className = 'px-2 py-0.5 rounded text-[10px] font-medium bg-slate-500/15 text-slate-300 border border-slate-500/30';
+      distanceSourceBadgeEl.classList.remove('hidden');
+    }
+
+    currentTargetDistanceFeet = calculatedDist;
+    if (distanceDisplayEl) distanceDisplayEl.textContent = String(calculatedDist);
+    updateDistancePresetButtons(calculatedDist);
 
     renderTacticalAttackActions(target, currentTargetDistanceFeet);
     attackModal.classList.remove('hidden');
@@ -509,6 +574,12 @@ import { isOwnedBy } from '../../scripts/vtt/initiative';
       currentTargetDistanceFeet = feet;
       if (distanceDisplayEl) distanceDisplayEl.textContent = String(feet);
       updateDistancePresetButtons(feet);
+
+      if (distanceSourceBadgeEl) {
+        distanceSourceBadgeEl.textContent = '✋ Ajuste manual';
+        distanceSourceBadgeEl.className = 'px-2 py-0.5 rounded text-[10px] font-medium bg-amber-500/15 text-amber-300 border border-amber-500/30';
+        distanceSourceBadgeEl.classList.remove('hidden');
+      }
 
       if (activeTarget) {
         renderTacticalAttackActions(activeTarget, currentTargetDistanceFeet);
@@ -574,10 +645,10 @@ import { isOwnedBy } from '../../scripts/vtt/initiative';
           item.innerHTML = `
             <div class="min-w-0">
               <div class="flex items-center gap-1.5 flex-wrap">
-                <span class="text-xs font-bold text-[#94a3b8] line-through truncate">${act.name}</span>
+                <span class="text-xs font-bold text-[#94a3b8] line-through truncate">${esc(act.name)}</span>
                 <span class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-rose-500/15 text-rose-400 border border-rose-500/25">${validation.badgeText}</span>
               </div>
-              <span class="text-[10px] text-[#64748b] font-mono">${reach.label} • ${act.damage || '1d8'} ${act.damageType || ''}</span>
+              <span class="text-[10px] text-[#64748b] font-mono">${reach.label} • ${esc(act.damage || '1d8')} ${esc(act.damageType || '')}</span>
             </div>
             <div class="flex items-center gap-1.5 shrink-0 opacity-30 pointer-events-none">
               <button type="button" disabled class="px-2.5 py-1.5 rounded-lg bg-[#18202e] text-[#64748b] text-[11px] font-bold">Ataque</button>
@@ -590,28 +661,28 @@ import { isOwnedBy } from '../../scripts/vtt/initiative';
           item.innerHTML = `
             <div class="min-w-0">
               <div class="flex items-center gap-1.5 flex-wrap">
-                <span class="text-xs font-bold text-[#f1f5f9] truncate">${act.name}</span>
+                <span class="text-xs font-bold text-[#f1f5f9] truncate">${esc(act.name)}</span>
                 <span class="px-1.5 py-0.2 rounded text-[9px] font-bold ${
                   validation.disadvantage
                     ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
                     : 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30'
                 }">${validation.disadvantage ? validation.badgeText : reach.label}</span>
               </div>
-              <span class="text-[10px] text-[#94a3b8] font-mono">${act.bonus || '+0'} • ${act.damage || '1d8'} ${act.damageType || ''}</span>
+              <span class="text-[10px] text-[#94a3b8] font-mono">${esc(act.bonus || '+0')} • ${esc(act.damage || '1d8')} ${esc(act.damageType || '')}</span>
             </div>
             <div class="flex items-center gap-1.5 shrink-0">
               <button
                 type="button"
                 class="party-modal-roll-atk px-2.5 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-[11px] font-bold transition-all cursor-pointer flex items-center gap-1 active:scale-95"
-                title="Tirar ataque d20 contra ${target.name}"
+                title="Tirar ataque d20 contra ${esc(target.name)}"
               >
                 <span>Ataque</span>
-                <span class="font-mono text-[10px]">(${act.bonus || '+0'})</span>
+                <span class="font-mono text-[10px]">(${esc(act.bonus || '+0')})</span>
               </button>
               <button
                 type="button"
                 class="party-modal-roll-dmg px-2 py-1.5 rounded-lg bg-[#10141d] hover:bg-[#222f42] text-[#cbd5e1] border border-[#222f42] text-[11px] font-bold transition-all cursor-pointer active:scale-95"
-                title="Tirar daño contra ${target.name}"
+                title="Tirar daño contra ${esc(target.name)}"
               >
                 <span>Daño</span>
               </button>
@@ -633,6 +704,10 @@ import { isOwnedBy } from '../../scripts/vtt/initiative';
                   targetName: target.name,
                   targetAc: target.ac,
                   isAttackRoll: true,
+                  advantageState: validation.disadvantage ? 'disadvantage' : 'normal',
+                  advantageInfo: validation.disadvantage
+                    ? { state: 'disadvantage', reasons: [validation.reason || 'Desventaja táctica por distancia'] }
+                    : undefined,
                   followUpDamage: {
                     count: dmgCount,
                     die: dmgDie,
@@ -697,7 +772,7 @@ import { isOwnedBy } from '../../scripts/vtt/initiative';
           item.innerHTML = `
             <div class="min-w-0">
               <div class="flex items-center gap-1.5 flex-wrap">
-                <span class="text-xs font-bold text-[#94a3b8] line-through truncate">${sp.name}</span>
+                <span class="text-xs font-bold text-[#94a3b8] line-through truncate">${esc(sp.name)}</span>
                 <span class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-rose-500/15 text-rose-400 border border-rose-500/25">${validation.badgeText}</span>
               </div>
               <span class="text-[10px] text-[#64748b] font-mono">${reach.label} • ${formula} ${sp.damageType || ''}</span>
@@ -712,7 +787,7 @@ import { isOwnedBy } from '../../scripts/vtt/initiative';
           item.innerHTML = `
             <div class="min-w-0">
               <div class="flex items-center gap-1.5 flex-wrap">
-                <span class="text-xs font-bold text-[#f1f5f9] truncate">${sp.name}</span>
+                <span class="text-xs font-bold text-[#f1f5f9] truncate">${esc(sp.name)}</span>
                 <span class="px-1.5 py-0.2 rounded text-[9px] font-bold ${
                   validation.disadvantage
                     ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
@@ -758,6 +833,10 @@ import { isOwnedBy } from '../../scripts/vtt/initiative';
                   targetName: target.name,
                   targetAc: target.ac,
                   isAttackRoll: true,
+                  advantageState: validation.disadvantage ? 'disadvantage' : 'normal',
+                  advantageInfo: validation.disadvantage
+                    ? { state: 'disadvantage', reasons: [validation.reason || 'Desventaja táctica por distancia'] }
+                    : undefined,
                   followUpDamage: {
                     count: dmgCount,
                     die: dmgDie,
@@ -813,10 +892,10 @@ import { isOwnedBy } from '../../scripts/vtt/initiative';
           el.innerHTML = `
             <div class="min-w-0">
               <div class="flex items-center gap-1.5 flex-wrap">
-                <span class="text-xs font-bold text-[#94a3b8] line-through truncate">${item.name}</span>
+                <span class="text-xs font-bold text-[#94a3b8] line-through truncate">${esc(item.name)}</span>
                 <span class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-rose-500/15 text-rose-400 border border-rose-500/25">${validation.badgeText}</span>
               </div>
-              <span class="text-[10px] text-[#64748b] font-mono">Cant: ${item.quantity} • ${reach.label}</span>
+              <span class="text-[10px] text-[#64748b] font-mono">Cant: ${esc(item.quantity)} • ${reach.label}</span>
             </div>
             <div class="flex items-center gap-1.5 shrink-0 opacity-30 pointer-events-none">
               <button type="button" disabled class="px-2.5 py-1.5 rounded-lg bg-[#18202e] text-[#64748b] text-[11px] font-bold">Usar</button>
@@ -827,10 +906,10 @@ import { isOwnedBy } from '../../scripts/vtt/initiative';
           el.innerHTML = `
             <div class="min-w-0">
               <div class="flex items-center gap-1.5 flex-wrap">
-                <span class="text-xs font-bold text-[#f1f5f9] truncate">${item.name}</span>
+                <span class="text-xs font-bold text-[#f1f5f9] truncate">${esc(item.name)}</span>
                 <span class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">${reach.label}</span>
               </div>
-              <span class="text-[10px] text-[#94a3b8] font-mono">Cant: ${item.quantity}${item.healAmount ? ` • Cura ${item.healAmount} PG` : ''}</span>
+              <span class="text-[10px] text-[#94a3b8] font-mono">Cant: ${esc(item.quantity)}${item.healAmount ? ` • Cura ${esc(item.healAmount)} PG` : ''}</span>
             </div>
             <div class="flex items-center gap-1.5 shrink-0">
               <button

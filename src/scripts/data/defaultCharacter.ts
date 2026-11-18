@@ -228,8 +228,8 @@ export const defaultCharacter: CharacterData = {
     classPreset: 'custom',
     sectionOrder: {
       col1: ['abilities', 'saves', 'skills', 'features'],
-      col2: ['weapons', 'wildshape', 'currency', 'backpack', 'spells'],
-      unifiedOrder: ['abilities', 'saves', 'skills', 'features', 'weapons', 'wildshape', 'currency', 'backpack', 'spells']
+      col2: ['weapons', 'wildshape', 'companions', 'currency', 'backpack', 'spells'],
+      unifiedOrder: ['abilities', 'saves', 'skills', 'features', 'weapons', 'wildshape', 'companions', 'currency', 'backpack', 'spells']
     },
     collapsedSections: []
   },

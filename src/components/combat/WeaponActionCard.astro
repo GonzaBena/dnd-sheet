@@ -13,6 +13,25 @@
     <div class="flex items-center gap-2">
       <button
         type="button"
+        id="toggle-reaction-btn"
+        class="text-[10px] font-bold px-2.5 py-1 rounded-lg border flex items-center gap-1 cursor-pointer transition-colors"
+        title="Alternar estado de reacción en este asalto"
+      >
+        <span class="material-symbols-outlined text-[13px]" id="reaction-badge-icon">bolt</span>
+        <span id="reaction-badge-text">Reacción</span>
+      </button>
+      <button
+        type="button"
+        id="reset-combat-turn-btn"
+        class="text-[10px] text-sky-400 hover:text-sky-300 font-bold bg-sky-500/10 hover:bg-sky-500/20 px-2.5 py-1 rounded-lg border border-sky-500/30 flex items-center gap-1 cursor-pointer transition-colors"
+        title="Reiniciar facultades de 1 vez por turno (Ataque Furtivo, etc.)"
+      >
+        <span class="material-symbols-outlined text-[13px]">restart_alt</span>
+        <span>Nuevo Turno</span>
+        <span id="turn-used-badge" class="hidden px-1.5 py-0.2 rounded bg-amber-500/30 text-amber-300 text-[9px] font-mono font-bold">1</span>
+      </button>
+      <button
+        type="button"
         id="open-add-weapon-btn"
         class="text-[10px] text-amber-400 hover:text-amber-300 font-bold bg-amber-500/10 hover:bg-amber-500/20 px-2.5 py-1 rounded-lg border border-amber-500/30 flex items-center gap-1 cursor-pointer transition-colors"
         title="Añadir nueva arma o ataque"
@@ -38,8 +57,24 @@
   <!-- Slot para barra de turno activo (TurnNotifier) -->
   <div data-turn-bar-slot class="hidden mb-3"></div>
 
-  <div class="section-body grid grid-cols-1 gap-3 items-start" id="weapon-actions-container">
-    <!-- Populated by JavaScript -->
+  <div class="section-body space-y-4">
+    <div class="grid grid-cols-1 gap-3 items-start" id="weapon-actions-container">
+      <!-- Populated by JavaScript -->
+    </div>
+
+    <!-- Subsección de Reacciones de Combate (Spec 12, H5) -->
+    <div class="pt-3 border-t border-[#222f42]/60" id="combat-reactions-section">
+      <div class="flex items-center justify-between mb-2.5">
+        <h4 class="text-xs font-headline font-bold text-amber-300 uppercase tracking-wider flex items-center gap-1.5">
+          <span class="material-symbols-outlined text-amber-400 text-[16px]">bolt</span>
+          <span>Reacciones de Combate</span>
+        </h4>
+        <span class="text-[10px] text-[#94a3b8] font-mono" id="reactions-count-badge">0 disponibles</span>
+      </div>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-2" id="combat-reactions-list">
+        <!-- Poblado dinámicamente -->
+      </div>
+    </div>
   </div>
 </div>
 
@@ -49,21 +84,64 @@
   import { attachSwipeToDelete } from '../../scripts/ui/swipeToDelete';
   import { SLOT_LABELS, validSlotsForAction } from '../../scripts/dnd/equipment';
   import { showAlert } from '../../scripts/ui/notify';
+  // Nombres, notas y etiquetas de armas los escribe el usuario: todo lo que va a innerHTML pasa por esc().
+  import { escapeHtml as esc } from '../../scripts/dnd/catalog';
+  import { getAvailableCombatModifiers, combineDamageModifiers, parseFormulaDice } from '../../scripts/dnd/combat';
+  import { evaluateAdvantage } from '../../scripts/dnd/advantage';
+  import { findAvailableReactions } from '../../scripts/dnd/reactions';
   import type { EquipSlot } from '../../scripts/models/character';
 
   const container = document.getElementById('weapon-actions-container');
   const addWeaponBtn = document.getElementById('open-add-weapon-btn');
+  const resetTurnBtn = document.getElementById('reset-combat-turn-btn');
+  const turnBadge = document.getElementById('turn-used-badge');
+  const toggleReactionBtn = document.getElementById('toggle-reaction-btn');
+  const reactionBadgeIcon = document.getElementById('reaction-badge-icon');
+  const reactionBadgeText = document.getElementById('reaction-badge-text');
+  const reactionsList = document.getElementById('combat-reactions-list');
+  const reactionsCountBadge = document.getElementById('reactions-count-badge');
+
+  toggleReactionBtn?.addEventListener('click', () => {
+    if (characterStore.isReactionAvailable()) {
+      characterStore.useReaction('Manual');
+      showAlert('Reacción marcada como gastada en este asalto.', { kind: 'info' });
+    } else {
+      characterStore.resetReaction();
+      showAlert('Reacción restablecida (disponible).', { kind: 'info' });
+    }
+  });
 
   addWeaponBtn?.addEventListener('click', () => {
     window.dispatchEvent(new CustomEvent('open-add-weapon-modal'));
   });
 
+  resetTurnBtn?.addEventListener('click', () => {
+    const char = characterStore.get();
+    characterStore.resetTurn();
+    if (char.campaignId) {
+      showAlert('Facultades de 1 vez por turno restablecidas. (En campaña, tu reacción y efectos se reinician automáticamente al inicio de tu turno en la iniciativa).', { kind: 'info' });
+    } else {
+      showAlert('Nuevo turno iniciado: facultades de 1 vez por turno y reacción restablecidas.', { kind: 'info' });
+    }
+  });
 
   const expandedWeapons = new Set<string>();
+  const selectedModsPerWeapon = new Map<string, Set<string>>();
 
   function renderWeapons(char: any) {
     if (!container) return;
     container.innerHTML = '';
+
+    // Actualizar indicador de facultades de 1 vez por turno usadas
+    const usedModsCount = (char.turnState?.usedModifiers || []).length;
+    if (turnBadge) {
+      if (usedModsCount > 0) {
+        turnBadge.textContent = String(usedModsCount);
+        turnBadge.classList.remove('hidden');
+      } else {
+        turnBadge.classList.add('hidden');
+      }
+    }
 
     char.actions.forEach((act: any) => {
       const wrapper = document.createElement('div');
@@ -81,27 +159,27 @@
       const card = document.createElement('div');
       card.className = 'relative p-2.5 rounded-xl bg-[#18202e] border border-transparent hover:border-amber-500/40 transition-colors flex flex-col gap-1.5 group cursor-grab active:cursor-grabbing';
       
-      const tagsHtml = (act.tags || []).map((t: string) => `<span class="px-2 py-0.5 rounded-full bg-[#10141d] border border-[#222f42] text-[10px] text-[#94a3b8] font-medium">${t}</span>`).join('');
+      const tagsHtml = (act.tags || []).map((t: string) => `<span class="px-2 py-0.5 rounded-full bg-[#10141d] border border-[#222f42] text-[10px] text-[#94a3b8] font-medium">${esc(t)}</span>`).join('');
 
       card.innerHTML = `
         <div class="flex flex-wrap items-center justify-between gap-2">
           <div class="flex-1 mr-2 flex items-center gap-2 truncate">
             <div class="truncate">
               <div class="flex items-center gap-2">
-                <span class="font-headline font-bold text-[#f1f5f9] text-sm">${act.name}</span>
+                <span class="font-headline font-bold text-[#f1f5f9] text-sm">${esc(act.name)}</span>
                 ${act.equipped ? `<span class="material-symbols-outlined text-[13px] text-emerald-400" title="Equipada">check_circle</span>` : ''}
-                ${act.isAuto !== false && act.ability && act.ability !== 'none' ? `<span class="text-[9px] text-[#38bdf8] bg-sky-500/10 border border-sky-500/30 px-1.5 py-0.2 rounded font-mono font-bold uppercase" title="Modificador vinculado a ${act.ability.toUpperCase()}">${act.ability.toUpperCase()}</span>` : ''}
+                ${act.isAuto !== false && act.ability && act.ability !== 'none' ? `<span class="text-[9px] text-[#38bdf8] bg-sky-500/10 border border-sky-500/30 px-1.5 py-0.2 rounded font-mono font-bold uppercase" title="Modificador vinculado a ${esc(act.ability.toUpperCase())}">${esc(act.ability.toUpperCase())}</span>` : ''}
               </div>
-              ${act.type ? `<span class="block text-[10px] text-amber-400 font-semibold uppercase tracking-wide leading-tight">${act.type}</span>` : ''}
-              <span class="text-xs text-[#94a3b8] font-label">Daño: <strong class="text-amber-300">${act.damage}</strong> (${act.damageType})</span>
+              ${act.type ? `<span class="block text-[10px] text-amber-400 font-semibold uppercase tracking-wide leading-tight">${esc(act.type)}</span>` : ''}
+              <span class="text-xs text-[#94a3b8] font-label">Daño: <strong class="text-amber-300">${esc(act.damage)}</strong> (${esc(act.damageType)})</span>
             </div>
           </div>
 
           <div class="flex items-center gap-1.5 shrink-0">
-            <button class="roll-atk-btn px-3 py-1.5 rounded-lg bg-gradient-to-r from-amber-600 to-amber-500 text-[#0a0d12] text-xs font-headline font-extrabold shadow-sm hover:brightness-110 active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer" title="Atacar con ${act.name} (${act.bonus} al impacto → ${act.damage} ${act.damageType})">
+            <button class="roll-atk-btn px-3 py-1.5 rounded-lg bg-gradient-to-r from-amber-600 to-amber-500 text-[#0a0d12] text-xs font-headline font-extrabold shadow-sm hover:brightness-110 active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer" title="Atacar con ${esc(act.name)} (${esc(act.bonus)} al impacto → ${esc(act.damage)} ${esc(act.damageType)})">
               <span class="material-symbols-outlined text-[15px]">swords</span>
               <span>Atacar</span>
-              <span class="px-1.5 py-0.2 rounded bg-[#0a0d12]/20 text-[#0a0d12] font-mono text-[10px] font-bold">${act.bonus}</span>
+              <span class="px-1.5 py-0.2 rounded bg-[#0a0d12]/20 text-[#0a0d12] font-mono text-[10px] font-bold">${esc(act.bonus)}</span>
             </button>
             <button class="expand-weapon-btn w-6 h-6 rounded hover:bg-[#10141d] text-[#64748b] hover:text-[#cbd5e1] flex items-center justify-center cursor-pointer transition-colors" title="Opciones, notas y equipar" aria-label="Mostrar u ocultar detalles">
               <span class="material-symbols-outlined text-[16px] transition-transform ${expandedWeapons.has(act.id) ? 'rotate-180 text-amber-400' : ''}">expand_more</span>
@@ -109,11 +187,14 @@
           </div>
         </div>
 
+        <!-- Modificadores de Combate y 1 vez por turno (Spec 11, H4) -->
+        <div class="weapon-mods-container pt-1 text-[10px]"></div>
+
         <div class="weapon-extra ${expandedWeapons.has(act.id) ? 'flex' : 'hidden'} flex-col gap-2 pt-2 border-t border-[#222f42]/60">
           ${act.notes ? `
             <div class="px-2.5 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-[11px] text-[#cbd5e1] flex items-start gap-1.5">
               <span class="material-symbols-outlined text-[14px] text-amber-400 shrink-0 mt-0.5">auto_awesome</span>
-              <span class="leading-relaxed"><strong class="text-amber-400/90 font-semibold">Efecto / Condición:</strong> ${act.notes}</span>
+              <span class="leading-relaxed"><strong class="text-amber-400/90 font-semibold">Efecto / Condición:</strong> ${esc(act.notes)}</span>
             </div>
           ` : ''}
           ${tagsHtml ? `<div class="flex flex-wrap gap-1.5">${tagsHtml}</div>` : ''}
@@ -225,6 +306,56 @@
         onTrigger: triggerWeaponDelete
       });
 
+      // Spec 11, H4: Modificadores al impacto y 1 vez por turno
+      const availableMods = getAvailableCombatModifiers(char, act);
+      if (!selectedModsPerWeapon.has(act.id)) {
+        selectedModsPerWeapon.set(act.id, new Set());
+      }
+      const curSelected = selectedModsPerWeapon.get(act.id)!;
+      const modsContainer = card.querySelector('.weapon-mods-container');
+
+      if (modsContainer && availableMods.length > 0) {
+        modsContainer.className = 'weapon-mods-container pt-1.5 pb-0.5 flex flex-wrap items-center gap-1.5 border-t border-[#222f42]/40 text-[10px]';
+        modsContainer.innerHTML = `
+          <span class="text-[#64748b] font-bold uppercase tracking-wider flex items-center gap-0.5">
+            <span class="material-symbols-outlined text-[12px] text-amber-400">bolt</span>
+            <span>Opciones:</span>
+          </span>
+        `;
+        availableMods.forEach((m) => {
+          if (m.usedThisTurn) {
+            const usedSpan = document.createElement('span');
+            usedSpan.className = 'px-1.5 py-0.5 rounded bg-[#10141d] border border-[#222f42] text-[#64748b] cursor-not-allowed opacity-60';
+            usedSpan.title = 'Ya utilizado en este turno (pulsa "Nuevo Turno" para reiniciar)';
+            usedSpan.textContent = `${m.name} (${m.formula}) • Usado`;
+            modsContainer.appendChild(usedSpan);
+          } else {
+            const chip = document.createElement('button');
+            chip.type = 'button';
+            const isActive = curSelected.has(m.id);
+            chip.className = `combat-mod-chip px-2 py-0.5 rounded transition-all cursor-pointer font-bold ${
+              isActive
+                ? 'bg-amber-500/30 text-amber-300 border border-amber-500/60 shadow-xs'
+                : 'bg-[#10141d] text-[#94a3b8] hover:text-[#f1f5f9] border border-[#222f42] hover:border-amber-500/40'
+            }`;
+            chip.textContent = `${m.name} (${m.formula})`;
+            chip.title = m.description;
+            chip.addEventListener('click', (e) => {
+              e.stopPropagation();
+              if (curSelected.has(m.id)) {
+                curSelected.delete(m.id);
+              } else {
+                curSelected.add(m.id);
+              }
+              renderWeapons(characterStore.get());
+            });
+            modsContainer.appendChild(chip);
+          }
+        });
+      } else if (modsContainer) {
+        modsContainer.remove();
+      }
+
       const parseDamageFormula = (dmgStr: string) => {
         const match = (dmgStr || '').match(/(\d+)d(\d+)(?:\s*([+-])\s*(\d+))?/);
         const count = match ? parseInt(match[1]) || 1 : 1;
@@ -238,21 +369,38 @@
       const triggerAtkRoll = (isSecret = false) => {
         const bonusNum = parseInt(act.bonus.replace(/[^0-9-]/g, '')) || 0;
         const dmg = parseDamageFormula(act.damage);
+        const curActiveMods = availableMods.filter(m => curSelected.has(m.id) && !m.usedThisTurn);
+
+        let extraAttackBonus = 0;
+        for (const m of curActiveMods) {
+          if (m.type === 'attack' || m.type === 'both') {
+            const parsed = parseFormulaDice(m.formula);
+            if (parsed && parsed.die === 0) extraAttackBonus += parsed.mod;
+          }
+        }
+
+        const combinedDmg = combineDamageModifiers(act.damage, act.damageType || 'Físico', curActiveMods);
+        const advInfo = evaluateAdvantage(char, { action: act, checkType: 'attack' });
+
         window.dispatchEvent(new CustomEvent('open-dice-roller', {
           detail: {
             die: 20,
             count: 1,
-            modifier: bonusNum,
+            modifier: bonusNum + extraAttackBonus,
             label: isSecret ? `Ataque Secreto con ${act.name}` : `Ataque con ${act.name}`,
             tag: isSecret ? '#Privado' : '#Combate',
             isSecret,
             isAttackRoll: true,
+            advantageInfo: advInfo,
             followUpDamage: {
               count: dmg.count,
               die: dmg.die,
               modifier: dmg.mod,
               damageType: act.damageType || 'Físico',
               weaponOrSpellName: act.name,
+              combinedFormula: combinedDmg.combinedFormula,
+              extraDiceList: combinedDmg.extraDiceList,
+              selectedModifiers: curActiveMods,
             }
           }
         }));
@@ -287,11 +435,88 @@
       wrapper.appendChild(card);
       container.appendChild(wrapper);
     });
+
+    renderReactions(char);
+  }
+
+  function renderReactions(char: any) {
+    const isAvail = !char.turnState?.reactionUsed;
+    if (toggleReactionBtn) {
+      if (isAvail) {
+        toggleReactionBtn.className = 'text-[10px] text-amber-300 hover:text-amber-200 font-bold bg-amber-500/15 hover:bg-amber-500/25 px-2.5 py-1 rounded-lg border border-amber-500/40 flex items-center gap-1 cursor-pointer transition-colors shadow-xs';
+        if (reactionBadgeText) reactionBadgeText.textContent = 'R. Lista';
+        if (reactionBadgeIcon) reactionBadgeIcon.className = 'material-symbols-outlined text-[13px] text-amber-400';
+      } else {
+        toggleReactionBtn.className = 'text-[10px] text-[#64748b] hover:text-[#94a3b8] font-bold bg-[#18202e] hover:bg-[#222f42] px-2.5 py-1 rounded-lg border border-[#222f42] flex items-center gap-1 cursor-pointer transition-colors';
+        if (reactionBadgeText) reactionBadgeText.textContent = 'R. Gastada';
+        if (reactionBadgeIcon) reactionBadgeIcon.className = 'material-symbols-outlined text-[13px] text-[#64748b]';
+      }
+    }
+
+    if (!reactionsList) return;
+    reactionsList.innerHTML = '';
+
+    const available = findAvailableReactions(char, { triggerType: 'manual', targetCharacterId: char.id });
+    if (reactionsCountBadge) {
+      const viableCount = available.filter(r => r.canExecute).length;
+      reactionsCountBadge.textContent = `${viableCount} ${viableCount === 1 ? 'disponible' : 'disponibles'}`;
+    }
+
+    if (available.length === 0) {
+      reactionsList.innerHTML = '<div class="text-[11px] text-[#64748b] italic py-1 col-span-2">No hay conjuros o rasgos de reacción configurados.</div>';
+      return;
+    }
+
+    available.forEach(r => {
+      const card = document.createElement('div');
+      card.className = `p-2.5 rounded-xl border text-xs flex flex-col justify-between gap-1.5 transition-all ${
+        r.canExecute
+          ? 'bg-[#18202e] border-[#222f42] hover:border-amber-500/40'
+          : 'bg-[#10141d]/70 border-[#222f42]/40 opacity-75'
+      }`;
+
+      card.innerHTML = `
+        <div>
+          <div class="flex items-center justify-between gap-1.5">
+            <span class="font-bold font-headline text-[#f1f5f9] truncate">${esc(r.name)}</span>
+            <span class="text-[9px] px-1.5 py-0.2 rounded font-mono ${
+              r.canExecute ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' : 'bg-[#18202e] text-[#64748b]'
+            }">${r.sourceType === 'spell' ? 'Conjuro' : r.sourceType === 'feature' ? 'Rasgo' : r.sourceType === 'item' ? 'Objeto' : 'Acción'}</span>
+          </div>
+          <p class="text-[10px] text-amber-200/80 mt-0.5 line-clamp-1 italic">${esc(r.triggerDescription)}</p>
+          <p class="text-[11px] text-[#94a3b8] mt-1 line-clamp-2">${esc(r.description)}</p>
+        </div>
+        <div class="flex items-center justify-between gap-2 mt-1 pt-1.5 border-t border-[#222f42]/40">
+          <span class="text-[10px] text-[#cbd5e1] font-mono truncate">${esc(r.effectSummary)}</span>
+          <button
+            type="button"
+            class="reaction-activate-btn px-2 py-1 rounded bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 text-[10px] font-bold border border-amber-500/40 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed shrink-0 transition-colors"
+            ${!r.canExecute ? 'disabled' : ''}
+            title="${r.canExecute ? 'Activar esta reacción' : esc(r.reasonDisabled || 'No disponible')}"
+          >
+            ⚡ Usar
+          </button>
+        </div>
+      `;
+
+      card.querySelector('.reaction-activate-btn')?.addEventListener('click', () => {
+        characterStore.executeReaction(r.id, {
+          spellSlotLevel: r.cost?.spellSlotLevel,
+        });
+        showAlert(`⚡ Reacción ${r.name} ejecutada.`, { kind: 'success' });
+      });
+
+      reactionsList.appendChild(card);
+    });
   }
 
   renderWeapons(characterStore.get());
 
   window.addEventListener('character-updated', ((e: CustomEvent) => {
     renderWeapons(e.detail.character);
+  }) as EventListener);
+
+  window.addEventListener('character-reaction-changed', (() => {
+    renderReactions(characterStore.get());
   }) as EventListener);
 </script>

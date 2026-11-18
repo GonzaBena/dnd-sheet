@@ -143,8 +143,8 @@ function ensureRoot(): HTMLDivElement {
   if (root && document.body.contains(root)) return root;
   root = document.createElement('div');
   root.id = 'app-dialog';
-  // Por encima de los modales (z-50) y debajo del login y los toasts.
-  root.className = 'hidden fixed inset-0 z-[85] items-center justify-center p-4 bg-black/70 backdrop-blur-xs';
+  // Por encima de todos los modales de la app (z-50 a z-[100]) y debajo de toasts críticos.
+  root.className = 'hidden fixed inset-0 z-[200] items-center justify-center p-4 bg-black/70 backdrop-blur-xs';
   document.body.appendChild(root);
   return root;
 }

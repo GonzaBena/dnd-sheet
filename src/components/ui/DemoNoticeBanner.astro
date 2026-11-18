@@ -1,0 +1,71 @@
+---
+// src/components/ui/DemoNoticeBanner.astro
+// Banner informativo para visitantes que exploran la hoja en Modo Demo sin cuenta.
+---
+
+<div
+  id="demo-notice-banner"
+  class="hidden mb-4 p-3.5 sm:p-4 rounded-xl bg-gradient-to-r from-amber-950/70 via-[#18202e] to-[#121721] border border-amber-500/50 text-xs font-label shadow-lg flex flex-col sm:flex-row items-center justify-between gap-3 animate-fade-in"
+  role="alert"
+>
+  <div class="flex items-center gap-3 min-w-0">
+    <div class="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/40 flex items-center justify-center shrink-0 shadow-sm">
+      <span class="material-symbols-outlined text-[22px]">explore</span>
+    </div>
+    <div class="space-y-0.5 min-w-0">
+      <div class="flex items-center gap-2 flex-wrap">
+        <strong class="font-headline text-[#f1f5f9] text-xs sm:text-sm">Estás explorando en Modo Demo</strong>
+        <span class="px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 text-[10px] uppercase font-bold border border-amber-500/30">Sin Registro</span>
+      </div>
+      <p class="text-[11px] text-[#cbd5e1] leading-relaxed">
+        Los cambios en la ficha, inventario y dados se guardan solo en este navegador. Creá tu cuenta gratis para jugar en tiempo real con tu mesa y guardar tus personajes en la nube.
+      </p>
+    </div>
+  </div>
+
+  <div class="flex items-center gap-2 shrink-0 w-full sm:w-auto justify-end flex-wrap">
+    <button
+      type="button"
+      id="btn-demo-random-char"
+      class="px-3 py-2 rounded-lg bg-[#18202e] hover:bg-amber-500/15 border border-[#222f42] hover:border-amber-500/40 text-amber-300 text-xs font-headline font-bold flex items-center gap-1.5 transition-all cursor-pointer active:scale-95 whitespace-nowrap"
+      title="Probar otro personaje prehecho al azar"
+    >
+      <span class="material-symbols-outlined text-[16px]">shuffle</span>
+      <span>Cambiar Personaje</span>
+    </button>
+
+    <button
+      type="button"
+      id="btn-demo-save-cloud"
+      class="px-4 py-2 rounded-lg bg-gradient-to-r from-amber-600 to-amber-500 hover:brightness-110 text-[#0a0d12] text-xs font-headline font-bold flex items-center gap-1.5 transition-all shadow-xs cursor-pointer active:scale-95 whitespace-nowrap"
+      title="Crear cuenta para guardar tus personajes en la nube"
+    >
+      <span class="material-symbols-outlined text-[16px] font-bold">cloud_upload</span>
+      <span>Guardar en la Nube</span>
+    </button>
+
+    <button
+      type="button"
+      id="btn-demo-banner-dismiss"
+      class="w-8 h-8 rounded-lg text-[#94a3b8] hover:text-[#f1f5f9] hover:bg-[#18202e] border border-transparent hover:border-[#222f42] flex items-center justify-center transition-colors cursor-pointer shrink-0"
+      title="Ocultar aviso"
+      aria-label="Ocultar aviso"
+    >
+      <span class="material-symbols-outlined text-[16px]">close</span>
+    </button>
+  </div>
+</div>
+
+<script>
+  document.getElementById('btn-demo-random-char')?.addEventListener('click', () => {
+    window.dispatchEvent(new CustomEvent('demo-change-random-character'));
+  });
+
+  document.getElementById('btn-demo-save-cloud')?.addEventListener('click', () => {
+    window.dispatchEvent(new CustomEvent('open-auth-modal', { detail: { mode: 'signup' } }));
+  });
+
+  document.getElementById('btn-demo-banner-dismiss')?.addEventListener('click', () => {
+    document.getElementById('demo-notice-banner')?.classList.add('hidden');
+  });
+</script>

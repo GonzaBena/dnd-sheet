@@ -53,6 +53,13 @@ export const SECTIONS_META: Record<string, SectionMeta> = {
     description: 'Bestiario y transformaciones druídicas',
     defaultCol: 'col2'
   },
+  companions: {
+    id: 'companions',
+    name: 'Compañeros e Invocaciones',
+    icon: 'pets',
+    description: 'Familiares, monturas y criaturas invocadas',
+    defaultCol: 'col2'
+  },
   currency: {
     id: 'currency',
     name: 'Monedas y Sintonización',
@@ -65,6 +72,13 @@ export const SECTIONS_META: Record<string, SectionMeta> = {
     name: 'Mochila y Pociones',
     icon: 'backpack',
     description: 'Inventario, consumibles y equipo',
+    defaultCol: 'col2'
+  },
+  armor: {
+    id: 'armor',
+    name: 'Armaduras y Equipo Puesto',
+    icon: 'shield',
+    description: 'Armadura, escudo y objetos puestos',
     defaultCol: 'col2'
   },
   spells: {
@@ -101,8 +115,8 @@ export function reorderSectionsDOM(char: CharacterData) {
 
   const order: SectionOrderConfig = char.layoutConfig?.sectionOrder || {
     col1: ['abilities', 'saves', 'skills', 'features'],
-    col2: ['weapons', 'wildshape', 'currency', 'backpack', 'spells'],
-    unifiedOrder: ['abilities', 'saves', 'skills', 'features', 'weapons', 'wildshape', 'currency', 'backpack', 'spells']
+    col2: ['weapons', 'wildshape', 'companions', 'currency', 'backpack', 'spells'],
+    unifiedOrder: ['abilities', 'saves', 'skills', 'features', 'weapons', 'wildshape', 'companions', 'currency', 'backpack', 'spells']
   };
 
   const isSingleColMode = typeof window !== 'undefined' && window.innerWidth < 1024;
@@ -200,8 +214,10 @@ export function jumpToSection(sectionId: string) {
       features: ['all', 'skills', 'combat'],
       weapons: ['all', 'combat'],
       wildshape: ['all', 'wildshape'],
+      companions: ['all', 'combat', 'spells'],
       currency: ['all', 'inventory'],
       backpack: ['all', 'inventory'],
+      armor: ['all', 'inventory'],
       spells: ['all', 'spells']
     };
 
