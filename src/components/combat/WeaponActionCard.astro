@@ -84,6 +84,8 @@
   import { attachSwipeToDelete } from '../../scripts/ui/swipeToDelete';
   import { SLOT_LABELS, validSlotsForAction } from '../../scripts/dnd/equipment';
   import { showAlert } from '../../scripts/ui/notify';
+  // Nombres, notas y etiquetas de armas los escribe el usuario: todo lo que va a innerHTML pasa por esc().
+  import { escapeHtml as esc } from '../../scripts/dnd/catalog';
   import { getAvailableCombatModifiers, combineDamageModifiers, parseFormulaDice } from '../../scripts/dnd/combat';
   import { evaluateAdvantage } from '../../scripts/dnd/advantage';
   import { findAvailableReactions } from '../../scripts/dnd/reactions';
@@ -157,27 +159,27 @@
       const card = document.createElement('div');
       card.className = 'relative p-2.5 rounded-xl bg-[#18202e] border border-transparent hover:border-amber-500/40 transition-colors flex flex-col gap-1.5 group cursor-grab active:cursor-grabbing';
       
-      const tagsHtml = (act.tags || []).map((t: string) => `<span class="px-2 py-0.5 rounded-full bg-[#10141d] border border-[#222f42] text-[10px] text-[#94a3b8] font-medium">${t}</span>`).join('');
+      const tagsHtml = (act.tags || []).map((t: string) => `<span class="px-2 py-0.5 rounded-full bg-[#10141d] border border-[#222f42] text-[10px] text-[#94a3b8] font-medium">${esc(t)}</span>`).join('');
 
       card.innerHTML = `
         <div class="flex flex-wrap items-center justify-between gap-2">
           <div class="flex-1 mr-2 flex items-center gap-2 truncate">
             <div class="truncate">
               <div class="flex items-center gap-2">
-                <span class="font-headline font-bold text-[#f1f5f9] text-sm">${act.name}</span>
+                <span class="font-headline font-bold text-[#f1f5f9] text-sm">${esc(act.name)}</span>
                 ${act.equipped ? `<span class="material-symbols-outlined text-[13px] text-emerald-400" title="Equipada">check_circle</span>` : ''}
-                ${act.isAuto !== false && act.ability && act.ability !== 'none' ? `<span class="text-[9px] text-[#38bdf8] bg-sky-500/10 border border-sky-500/30 px-1.5 py-0.2 rounded font-mono font-bold uppercase" title="Modificador vinculado a ${act.ability.toUpperCase()}">${act.ability.toUpperCase()}</span>` : ''}
+                ${act.isAuto !== false && act.ability && act.ability !== 'none' ? `<span class="text-[9px] text-[#38bdf8] bg-sky-500/10 border border-sky-500/30 px-1.5 py-0.2 rounded font-mono font-bold uppercase" title="Modificador vinculado a ${esc(act.ability.toUpperCase())}">${esc(act.ability.toUpperCase())}</span>` : ''}
               </div>
-              ${act.type ? `<span class="block text-[10px] text-amber-400 font-semibold uppercase tracking-wide leading-tight">${act.type}</span>` : ''}
-              <span class="text-xs text-[#94a3b8] font-label">Daño: <strong class="text-amber-300">${act.damage}</strong> (${act.damageType})</span>
+              ${act.type ? `<span class="block text-[10px] text-amber-400 font-semibold uppercase tracking-wide leading-tight">${esc(act.type)}</span>` : ''}
+              <span class="text-xs text-[#94a3b8] font-label">Daño: <strong class="text-amber-300">${esc(act.damage)}</strong> (${esc(act.damageType)})</span>
             </div>
           </div>
 
           <div class="flex items-center gap-1.5 shrink-0">
-            <button class="roll-atk-btn px-3 py-1.5 rounded-lg bg-gradient-to-r from-amber-600 to-amber-500 text-[#0a0d12] text-xs font-headline font-extrabold shadow-sm hover:brightness-110 active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer" title="Atacar con ${act.name} (${act.bonus} al impacto → ${act.damage} ${act.damageType})">
+            <button class="roll-atk-btn px-3 py-1.5 rounded-lg bg-gradient-to-r from-amber-600 to-amber-500 text-[#0a0d12] text-xs font-headline font-extrabold shadow-sm hover:brightness-110 active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer" title="Atacar con ${esc(act.name)} (${esc(act.bonus)} al impacto → ${esc(act.damage)} ${esc(act.damageType)})">
               <span class="material-symbols-outlined text-[15px]">swords</span>
               <span>Atacar</span>
-              <span class="px-1.5 py-0.2 rounded bg-[#0a0d12]/20 text-[#0a0d12] font-mono text-[10px] font-bold">${act.bonus}</span>
+              <span class="px-1.5 py-0.2 rounded bg-[#0a0d12]/20 text-[#0a0d12] font-mono text-[10px] font-bold">${esc(act.bonus)}</span>
             </button>
             <button class="expand-weapon-btn w-6 h-6 rounded hover:bg-[#10141d] text-[#64748b] hover:text-[#cbd5e1] flex items-center justify-center cursor-pointer transition-colors" title="Opciones, notas y equipar" aria-label="Mostrar u ocultar detalles">
               <span class="material-symbols-outlined text-[16px] transition-transform ${expandedWeapons.has(act.id) ? 'rotate-180 text-amber-400' : ''}">expand_more</span>
@@ -192,7 +194,7 @@
           ${act.notes ? `
             <div class="px-2.5 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-[11px] text-[#cbd5e1] flex items-start gap-1.5">
               <span class="material-symbols-outlined text-[14px] text-amber-400 shrink-0 mt-0.5">auto_awesome</span>
-              <span class="leading-relaxed"><strong class="text-amber-400/90 font-semibold">Efecto / Condición:</strong> ${act.notes}</span>
+              <span class="leading-relaxed"><strong class="text-amber-400/90 font-semibold">Efecto / Condición:</strong> ${esc(act.notes)}</span>
             </div>
           ` : ''}
           ${tagsHtml ? `<div class="flex flex-wrap gap-1.5">${tagsHtml}</div>` : ''}
@@ -476,21 +478,21 @@
       card.innerHTML = `
         <div>
           <div class="flex items-center justify-between gap-1.5">
-            <span class="font-bold font-headline text-[#f1f5f9] truncate">${r.name}</span>
+            <span class="font-bold font-headline text-[#f1f5f9] truncate">${esc(r.name)}</span>
             <span class="text-[9px] px-1.5 py-0.2 rounded font-mono ${
               r.canExecute ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' : 'bg-[#18202e] text-[#64748b]'
             }">${r.sourceType === 'spell' ? 'Conjuro' : r.sourceType === 'feature' ? 'Rasgo' : r.sourceType === 'item' ? 'Objeto' : 'Acción'}</span>
           </div>
-          <p class="text-[10px] text-amber-200/80 mt-0.5 line-clamp-1 italic">${r.triggerDescription}</p>
-          <p class="text-[11px] text-[#94a3b8] mt-1 line-clamp-2">${r.description}</p>
+          <p class="text-[10px] text-amber-200/80 mt-0.5 line-clamp-1 italic">${esc(r.triggerDescription)}</p>
+          <p class="text-[11px] text-[#94a3b8] mt-1 line-clamp-2">${esc(r.description)}</p>
         </div>
         <div class="flex items-center justify-between gap-2 mt-1 pt-1.5 border-t border-[#222f42]/40">
-          <span class="text-[10px] text-[#cbd5e1] font-mono truncate">${r.effectSummary}</span>
+          <span class="text-[10px] text-[#cbd5e1] font-mono truncate">${esc(r.effectSummary)}</span>
           <button
             type="button"
             class="reaction-activate-btn px-2 py-1 rounded bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 text-[10px] font-bold border border-amber-500/40 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed shrink-0 transition-colors"
             ${!r.canExecute ? 'disabled' : ''}
-            title="${r.canExecute ? 'Activar esta reacción' : (r.reasonDisabled || 'No disponible')}"
+            title="${r.canExecute ? 'Activar esta reacción' : esc(r.reasonDisabled || 'No disponible')}"
           >
             ⚡ Usar
           </button>

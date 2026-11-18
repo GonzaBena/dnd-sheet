@@ -1177,7 +1177,7 @@ class CharacterStoreManager {
         col2 = unified.slice(4);
       } else {
         col1 = this.character.layoutConfig?.sectionOrder?.col1 ? [...this.character.layoutConfig.sectionOrder.col1] : ['abilities', 'saves', 'skills', 'features'];
-        col2 = this.character.layoutConfig?.sectionOrder?.col2 ? [...this.character.layoutConfig.sectionOrder.col2] : ['weapons', 'wildshape', 'currency', 'backpack', 'spells'];
+        col2 = this.character.layoutConfig?.sectionOrder?.col2 ? [...this.character.layoutConfig.sectionOrder.col2] : ['weapons', 'wildshape', 'companions', 'currency', 'backpack', 'spells'];
       }
     }
 
@@ -1196,8 +1196,8 @@ class CharacterStoreManager {
   public resetSectionOrder() {
     this.updateSectionOrder({
       col1: ['abilities', 'saves', 'skills', 'features'],
-      col2: ['weapons', 'wildshape', 'currency', 'backpack', 'spells'],
-      unifiedOrder: ['abilities', 'saves', 'skills', 'features', 'weapons', 'wildshape', 'currency', 'backpack', 'spells']
+      col2: ['weapons', 'wildshape', 'companions', 'currency', 'backpack', 'spells'],
+      unifiedOrder: ['abilities', 'saves', 'skills', 'features', 'weapons', 'wildshape', 'companions', 'currency', 'backpack', 'spells']
     });
   }
 
@@ -1223,7 +1223,7 @@ class CharacterStoreManager {
 
   public setAllSectionsCollapsed(collapsed: boolean) {
     if (!this.character.layoutConfig) this.updateLayoutConfig({});
-    const allSections = ['abilities', 'saves', 'skills', 'features', 'weapons', 'wildshape', 'currency', 'backpack', 'spells', 'armor'];
+    const allSections = ['abilities', 'saves', 'skills', 'features', 'weapons', 'wildshape', 'companions', 'currency', 'backpack', 'spells', 'armor'];
     this.character.layoutConfig!.collapsedSections = collapsed ? [...allSections] : [];
     this.saveAndNotify();
   }
@@ -1436,11 +1436,11 @@ class CharacterStoreManager {
     return this.character.companions ? [...this.character.companions] : [];
   }
 
-  public addCompanion(data: Omit<CharacterCompanion, 'id'>): string {
+  public addCompanion(data: Omit<CharacterCompanion, 'id'> & { id?: string }): string {
     if (!this.character.companions) {
       this.character.companions = [];
     }
-    const id = `comp-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 6)}`;
+    const id = data.id || `comp-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 6)}`;
     const newCompanion: CharacterCompanion = {
       ...data,
       id,

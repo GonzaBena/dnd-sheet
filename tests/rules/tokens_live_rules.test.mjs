@@ -8,7 +8,8 @@ import {
   assertFails,
   assertSucceeds,
 } from '@firebase/rules-unit-testing';
-import { doc, getDoc, setDoc, updateDoc, setLogLevel } from 'firebase/firestore';
+import assert from 'node:assert/strict';
+import { doc, getDoc, setDoc, updateDoc, deleteField, setLogLevel } from 'firebase/firestore';
 import { ref, get, set, remove } from 'firebase/database';
 
 setLogLevel('silent');
@@ -231,6 +232,155 @@ test('F3-FS: DM en paused NO puede escribir lastMove (F0B-4, F3-2)', async () =>
       updatedAt: 2,
     })
   );
+});
+
+// ============================================================================
+// Tokens de compañeros desplegados por el jugador (bug #2 del reporte E2E, opción A)
+// ============================================================================
+
+const PLAYER_CHAR = 'char-player';
+const OTHER_CHAR = 'char-other';
+
+function companionToken(overrides = {}) {
+  return {
+    name: 'Archimedes (Elena)',
+    x: 200,
+    y: 200,
+    size: 1,
+    color: '#10b981',
+    ownerUid: PLAYER,
+    characterId: PLAYER_CHAR,
+    kind: 'companion',
+    companionId: 'comp-1',
+    ...overrides,
+  };
+}
+
+function deployWrite(tid, token, by = PLAYER) {
+  return { [`tokens.${tid}`]: token, lastMove: { tokenId: tid, by, at: Date.now() }, updatedAt: Date.now() };
+}
+
+function retireWrite(tid, by = PLAYER) {
+  return { [`tokens.${tid}`]: deleteField(), lastMove: { tokenId: tid, by, at: Date.now() }, updatedAt: Date.now() };
+}
+
+async function seedCharacters() {
+  await seedFirestore(async (fs) => {
+    await setDoc(doc(fs, 'characters', PLAYER_CHAR), { name: 'Elena', userId: PLAYER, campaignId: CID });
+    await setDoc(doc(fs, 'characters', OTHER_CHAR), { name: 'Brom', userId: OTHER, campaignId: CID });
+    await setDoc(doc(fs, 'characters', 'char-player-otra'), { name: 'Elena II', userId: PLAYER, campaignId: 'otra-campaña' });
+  });
+}
+
+test('Compañeros: el jugador despliega el token de su familiar en active', async () => {
+  await seedCharacters();
+  await assertSucceeds(updateDoc(mapRef(PLAYER), deployWrite('tok-comp1', companionToken())));
+  const snap = await getDoc(mapRef(DM));
+  assert.equal(snap.data().tokens['tok-comp1'].companionId, 'comp-1');
+  // Montura 2x2 e invocación también valen
+  await assertSucceeds(updateDoc(mapRef(PLAYER), deployWrite('tok-comp2', companionToken({ kind: 'mount', size: 2, companionId: 'comp-2' }))));
+  await assertSucceeds(updateDoc(mapRef(PLAYER), deployWrite('tok-comp3', companionToken({ kind: 'summon', companionId: 'comp-3' }))));
+});
+
+test('Compañeros: el jugador NO crea tokens que no sean de un compañero suyo', async () => {
+  await seedCharacters();
+  // A nombre de otro usuario o de una ficha ajena
+  await assertFails(updateDoc(mapRef(PLAYER), deployWrite('tok-x', companionToken({ ownerUid: OTHER }))));
+  await assertFails(updateDoc(mapRef(PLAYER), deployWrite('tok-x', companionToken({ characterId: OTHER_CHAR }))));
+  // Ficha propia pero de otra campaña, o inexistente
+  await assertFails(updateDoc(mapRef(PLAYER), deployWrite('tok-x', companionToken({ characterId: 'char-player-otra' }))));
+  await assertFails(updateDoc(mapRef(PLAYER), deployWrite('tok-x', companionToken({ characterId: 'no-existe' }))));
+  // Sin companionId o con un kind que no es de compañero (PJ, enemigo)
+  const { companionId, ...sinCompanion } = companionToken();
+  await assertFails(updateDoc(mapRef(PLAYER), deployWrite('tok-x', sinCompanion)));
+  await assertFails(updateDoc(mapRef(PLAYER), deployWrite('tok-x', companionToken({ kind: 'monster' }))));
+  // Campos extra o tamaño inválido
+  await assertFails(updateDoc(mapRef(PLAYER), deployWrite('tok-x', companionToken({ hidden: true }))));
+  await assertFails(updateDoc(mapRef(PLAYER), deployWrite('tok-x', companionToken({ size: 9 }))));
+  // Pisar un token existente
+  await assertFails(updateDoc(mapRef(PLAYER), deployWrite('t-other', companionToken())));
+  // lastMove de otro usuario o apuntando a otro token
+  await assertFails(updateDoc(mapRef(PLAYER), deployWrite('tok-x', companionToken(), OTHER)));
+  await assertFails(
+    updateDoc(mapRef(PLAYER), {
+      'tokens.tok-x': companionToken(),
+      lastMove: { tokenId: 't-player', by: PLAYER, at: 1 },
+      updatedAt: 1,
+    })
+  );
+  // Dos tokens a la vez
+  await assertFails(
+    updateDoc(mapRef(PLAYER), { ...deployWrite('tok-x', companionToken()), 'tokens.tok-y': companionToken({ companionId: 'c2' }) })
+  );
+  // Tocar otros campos del mapa en la misma escritura
+  await assertFails(updateDoc(mapRef(PLAYER), { ...deployWrite('tok-x', companionToken()), name: 'Hackeado' }));
+});
+
+test('Compañeros: el jugador NO despliega con la partida en paused', async () => {
+  await seedCharacters();
+  await seedFirestore(async (fs) => {
+    await updateDoc(doc(fs, 'campaigns', CID), { status: 'paused' });
+  });
+  await assertFails(updateDoc(mapRef(PLAYER), deployWrite('tok-comp1', companionToken())));
+});
+
+function editWrite(tid, fields, by = PLAYER) {
+  const w = { lastMove: { tokenId: tid, by, at: Date.now() }, updatedAt: Date.now() };
+  for (const [k, v] of Object.entries(fields)) w[`tokens.${tid}.${k}`] = v;
+  return w;
+}
+
+test('Compañeros: el jugador edita nombre, tamaño, tipo y color de su compañero desplegado', async () => {
+  await seedCharacters();
+  await seedFirestore(async (fs) => {
+    await updateDoc(doc(fs, 'campaigns', CID, 'maps', MID), { 'tokens.tok-mio': companionToken() });
+  });
+  await assertSucceeds(updateDoc(mapRef(PLAYER), editWrite('tok-mio', { name: 'Lechuza (Elena)', size: 2, kind: 'mount', color: '#f59e0b' })));
+  const t = (await getDoc(mapRef(DM))).data().tokens['tok-mio'];
+  assert.equal(t.name, 'Lechuza (Elena)');
+  assert.equal(t.size, 2);
+});
+
+test('Compañeros: el jugador NO edita tokens ajenos ni cambia dueño, ficha o compañero del suyo', async () => {
+  await seedCharacters();
+  await seedFirestore(async (fs) => {
+    await updateDoc(doc(fs, 'campaigns', CID, 'maps', MID), {
+      'tokens.tok-mio': companionToken(),
+      'tokens.tok-ajeno': companionToken({ ownerUid: OTHER, characterId: OTHER_CHAR, companionId: 'comp-o' }),
+    });
+  });
+  // Ajenos: compañero de otro, PJ propio sin companionId, enemigo del DM
+  await assertFails(updateDoc(mapRef(PLAYER), editWrite('tok-ajeno', { name: 'Robado' })));
+  await assertFails(updateDoc(mapRef(PLAYER), editWrite('t-player', { name: 'Elena la Grande' })));
+  await assertFails(updateDoc(mapRef(PLAYER), editWrite('t-dm', { name: 'Lich manso' })));
+  // Campos protegidos o inválidos del propio
+  await assertFails(updateDoc(mapRef(PLAYER), editWrite('tok-mio', { ownerUid: OTHER })));
+  await assertFails(updateDoc(mapRef(PLAYER), editWrite('tok-mio', { characterId: OTHER_CHAR })));
+  await assertFails(updateDoc(mapRef(PLAYER), editWrite('tok-mio', { companionId: 'otro' })));
+  await assertFails(updateDoc(mapRef(PLAYER), editWrite('tok-mio', { size: 7 })));
+  await assertFails(updateDoc(mapRef(PLAYER), editWrite('tok-mio', { kind: 'monster' })));
+  await assertFails(updateDoc(mapRef(PLAYER), editWrite('tok-mio', { hidden: true })));
+  // En paused no
+  await seedFirestore(async (fs) => {
+    await updateDoc(doc(fs, 'campaigns', CID), { status: 'paused' });
+  });
+  await assertFails(updateDoc(mapRef(PLAYER), editWrite('tok-mio', { name: 'Pausado' })));
+});
+
+test('Compañeros: el jugador retira su compañero, pero no tokens ajenos ni su propio PJ', async () => {
+  await seedCharacters();
+  await seedFirestore(async (fs) => {
+    await updateDoc(doc(fs, 'campaigns', CID, 'maps', MID), {
+      'tokens.tok-mio': companionToken(),
+      'tokens.tok-ajeno': companionToken({ ownerUid: OTHER, characterId: OTHER_CHAR, companionId: 'comp-o' }),
+    });
+  });
+  await assertFails(updateDoc(mapRef(PLAYER), retireWrite('tok-ajeno')));
+  await assertFails(updateDoc(mapRef(PLAYER), retireWrite('t-player')));
+  await assertFails(updateDoc(mapRef(PLAYER), retireWrite('t-dm')));
+  await assertSucceeds(updateDoc(mapRef(PLAYER), retireWrite('tok-mio')));
+  const snap = await getDoc(mapRef(DM));
+  assert.equal('tok-mio' in snap.data().tokens, false);
 });
 
 // ============================================================================

@@ -8,8 +8,9 @@
   class="rounded-xl bg-[#18202e]/70 border border-[#222f42] p-4 flex flex-col justify-between"
   aria-label="Compañeros e Invocaciones"
 >
-  <div class="flex items-center justify-between mb-3 border-b border-[#222f42] pb-2.5">
+  <div class="flex items-center justify-between mb-3 border-b border-[#222f42] pb-2.5 select-none section-header-bar">
     <div class="flex items-center gap-2">
+      <span class="section-drag-handle material-symbols-outlined text-[#64748b] hover:text-amber-400 cursor-grab text-[18px] transition-colors" title="Arrastrar para reordenar">drag_indicator</span>
       <span class="material-symbols-outlined text-amber-500 text-[18px]">pets</span>
       <h3 class="text-xs font-headline font-bold text-[#f1f5f9] uppercase tracking-wider">
         Compañeros e Invocaciones
@@ -18,19 +19,42 @@
         0
       </span>
     </div>
-    <button
-      type="button"
-      id="btn-add-companion"
-      class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-[11px] font-bold transition-all cursor-pointer active:scale-95 shadow-xs"
-      title="Añadir familiar, montura o criatura invocada"
-    >
-      <span class="material-symbols-outlined text-[14px]">add</span>
-      <span>Añadir</span>
-    </button>
+    <div class="flex items-center gap-1.5">
+      <button
+        type="button"
+        id="btn-quick-summon-familiar"
+        class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 border border-sky-500/40 text-[11px] font-bold transition-all cursor-pointer active:scale-95 shadow-xs"
+        title="Invocar y desplegar rápidamente un familiar ritual (Lechuza, Cuervo, Gato, etc.)"
+      >
+        <span class="material-symbols-outlined text-[14px]">auto_fix_high</span>
+        <span>Invocar Familiar</span>
+      </button>
+      <button
+        type="button"
+        id="btn-add-companion"
+        class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-[11px] font-bold transition-all cursor-pointer active:scale-95 shadow-xs"
+        title="Añadir familiar, montura o criatura invocada"
+      >
+        <span class="material-symbols-outlined text-[14px]">add</span>
+        <span>Añadir</span>
+      </button>
+      <button
+        type="button"
+        class="section-collapse-btn w-6 h-6 rounded-md bg-[#18202e] border border-[#222f42] hover:border-amber-500/40 text-[#94a3b8] hover:text-[#f1f5f9] flex items-center justify-center transition-colors cursor-pointer"
+        title="Colapsar / Expandir sección"
+        aria-label="Colapsar o expandir"
+      >
+        <span class="material-symbols-outlined section-collapse-icon text-[18px]">expand_less</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="section-collapsed-summary hidden text-[11px] text-[#94a3b8] font-label py-1">
+    Familiares, monturas y criaturas invocadas
   </div>
 
   <!-- Contenedor de Tarjetas de Compañeros -->
-  <div id="companions-list" class="space-y-3">
+  <div id="companions-list" class="section-body space-y-3">
     <!-- Generado dinámicamente -->
   </div>
 </section>
@@ -62,6 +86,19 @@
 
     <form id="companion-form" class="space-y-3 text-xs">
       <input type="hidden" id="comp-form-id" value="" />
+
+      <!-- Plantillas Rápidas -->
+      <div class="space-y-1.5 pb-1 border-b border-[#222f42]/60">
+        <label class="block text-[10px] font-bold text-[#94a3b8] uppercase tracking-wider">Plantillas Rápidas</label>
+        <div class="flex items-center gap-1.5 flex-wrap">
+          <button type="button" class="comp-preset-btn px-2 py-0.5 rounded-md bg-[#10141d] hover:bg-[#18202e] border border-[#222f42] text-[10px] text-[#cbd5e1] hover:text-amber-400 font-medium transition-colors cursor-pointer" data-preset="owl">🦉 Lechuza</button>
+          <button type="button" class="comp-preset-btn px-2 py-0.5 rounded-md bg-[#10141d] hover:bg-[#18202e] border border-[#222f42] text-[10px] text-[#cbd5e1] hover:text-amber-400 font-medium transition-colors cursor-pointer" data-preset="cat">🐱 Gato</button>
+          <button type="button" class="comp-preset-btn px-2 py-0.5 rounded-md bg-[#10141d] hover:bg-[#18202e] border border-[#222f42] text-[10px] text-[#cbd5e1] hover:text-cyan-400 font-medium transition-colors cursor-pointer" data-preset="spirit">✨ Espíritu (Invocación)</button>
+          <button type="button" class="comp-preset-btn px-2 py-0.5 rounded-md bg-[#10141d] hover:bg-[#18202e] border border-[#222f42] text-[10px] text-[#cbd5e1] hover:text-cyan-400 font-medium transition-colors cursor-pointer" data-preset="weapon">⚔️ Arma Espiritual</button>
+          <button type="button" class="comp-preset-btn px-2 py-0.5 rounded-md bg-[#10141d] hover:bg-[#18202e] border border-[#222f42] text-[10px] text-[#cbd5e1] hover:text-amber-400 font-medium transition-colors cursor-pointer" data-preset="horse">🐎 Corcel</button>
+          <button type="button" class="comp-preset-btn px-2 py-0.5 rounded-md bg-[#10141d] hover:bg-[#18202e] border border-[#222f42] text-[10px] text-[#cbd5e1] hover:text-emerald-400 font-medium transition-colors cursor-pointer" data-preset="wolf">🐺 Lobo</button>
+        </div>
+      </div>
 
       <!-- Nombre -->
       <div>
@@ -183,10 +220,15 @@
   import { characterStore } from '../../scripts/state/characterStore.ts';
   import { campaignStore } from '../../scripts/state/campaignStore.ts';
   import { userStore } from '../../scripts/state/userStore.ts';
-  import { addToken, listMaps } from '../../scripts/data/mapService.ts';
+  import { addToken, removeToken, updateToken, listMaps, watchActiveMap, getLocalMaps } from '../../scripts/data/mapService.ts';
   import { buildCompanionToken, newTokenId } from '../../scripts/vtt/tokens.ts';
-  import { showAlert } from '../../scripts/ui/notify.ts';
+  import { showAlert, showConfirm, showForm } from '../../scripts/ui/notify.ts';
+  import { escapeHtml } from '../../scripts/dnd/catalog.ts';
   import type { CharacterCompanion, CompanionType } from '../../scripts/models/character.ts';
+  import type { MapDoc, Token } from '../../scripts/models/map.ts';
+
+  let currentActiveMap: MapDoc | null = null;
+  let mapUnsubscribe: (() => void) | null = null;
 
   const panel = document.getElementById('companions-panel');
   const listEl = document.getElementById('companions-list');
@@ -224,7 +266,32 @@
     4: 'Gigantesco (4x4)',
   };
 
-  function openModal(companion?: CharacterCompanion) {
+  const COMPANION_PRESETS: Record<string, { name: string; type: CompanionType; size: number; hp: number; ac: number; speed: number; notes: string }> = {
+    owl: { name: 'Lechuza', type: 'familiar', size: 1, hp: 1, ac: 11, speed: 60, notes: 'Vuelo 60 ft, Vista ciega 120 ft, ventaja en Percepción visual/auditiva.' },
+    cat: { name: 'Gato', type: 'familiar', size: 1, hp: 2, ac: 12, speed: 40, notes: 'Trepar 30 ft, Sigilo +4, Percepción de olfato +3.' },
+    spirit: { name: 'Espíritu Guardián', type: 'summon', size: 1, hp: 20, ac: 13, speed: 30, notes: 'Invocación mágica. Daño radiante/necrótico 3d8 a enemigos a 15 ft.' },
+    weapon: { name: 'Arma Espiritual', type: 'summon', size: 1, hp: 15, ac: 14, speed: 20, notes: 'Invocación flotante. Ataque con acción bonus 1d8+mod de conjuro de daño de fuerza.' },
+    horse: { name: 'Caballo de Guerra', type: 'mount', size: 2, hp: 19, ac: 11, speed: 60, notes: 'Grande (2x2). Cascos +6 (2d6+4 daño contundente), Carga con derribo.' },
+    wolf: { name: 'Lobo', type: 'companion', size: 1, hp: 11, ac: 13, speed: 40, notes: 'Tácticas de manada (ventaja si hay un aliado a 5 ft), Mordisco +4 (2d4+2 derribo).' },
+  };
+
+  document.querySelectorAll<HTMLButtonElement>('.comp-preset-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const presetKey = btn.dataset.preset;
+      if (!presetKey) return;
+      const p = COMPANION_PRESETS[presetKey];
+      if (!p) return;
+      if (formName) formName.value = p.name;
+      if (formType) formType.value = p.type;
+      if (formSize) formSize.value = String(p.size);
+      if (formHpMax) formHpMax.value = String(p.hp);
+      if (formAc) formAc.value = String(p.ac);
+      if (formSpeed) formSpeed.value = String(p.speed);
+      if (formNotes) formNotes.value = p.notes;
+    });
+  });
+
+  function openModal(companion?: CharacterCompanion, defaultType: CompanionType = 'familiar') {
     if (!modal) return;
     if (companion) {
       if (modalTitle) modalTitle.textContent = `Editar ${companion.name}`;
@@ -238,13 +305,13 @@
       if (formNotes) formNotes.value = companion.notes || '';
       if (deleteBtn) deleteBtn.classList.remove('hidden');
     } else {
-      if (modalTitle) modalTitle.textContent = 'Nuevo Compañero o Invocación';
+      if (modalTitle) modalTitle.textContent = defaultType === 'summon' ? 'Nueva Invocación o Espíritu' : 'Nuevo Compañero o Invocación';
       if (formId) formId.value = '';
       if (formName) formName.value = '';
-      if (formType) formType.value = 'familiar';
+      if (formType) formType.value = defaultType;
       if (formSize) formSize.value = '1';
-      if (formHpMax) formHpMax.value = '10';
-      if (formAc) formAc.value = '11';
+      if (formHpMax) formHpMax.value = defaultType === 'summon' ? '15' : '10';
+      if (formAc) formAc.value = defaultType === 'summon' ? '13' : '11';
       if (formSpeed) formSpeed.value = '30';
       if (formNotes) formNotes.value = '';
       if (deleteBtn) deleteBtn.classList.add('hidden');
@@ -260,11 +327,66 @@
   modalClose?.addEventListener('click', closeModal);
   cancelBtn?.addEventListener('click', closeModal);
 
-  deleteBtn?.addEventListener('click', () => {
+  /**
+   * Token del mapa activo que representa a este compañero, o null si no está desplegado.
+   * Solo se fía de vínculos explícitos (comp.tokenId o token.companionId): editar o borrar por
+   * coincidencia de nombre podría tocar el token de otro.
+   */
+  function findDeployedToken(comp: CharacterCompanion): { cid: string; mid: string; tid: string } | null {
+    const cid = campaignStore.getActiveCampaignId();
+    const mid = cid ? campaignStore.getCampaign(cid)?.activeMapId : undefined;
+    if (!cid || !mid) return null;
+    const tokens: Record<string, Token> =
+      (currentActiveMap?.id === mid ? currentActiveMap.tokens : undefined) ||
+      getLocalMaps(cid).find((m) => m.id === mid)?.tokens ||
+      {};
+    if (comp.tokenId && tokens[comp.tokenId]) return { cid, mid, tid: comp.tokenId };
+    const entry = Object.entries(tokens).find(([, t]) => t.companionId === comp.id);
+    return entry ? { cid, mid, tid: entry[0] } : null;
+  }
+
+  // Bug #5 (reporte E2E): eliminar el compañero también retira su token del mapa.
+  async function removeCompanionToken(comp: CharacterCompanion): Promise<void> {
+    const dep = findDeployedToken(comp);
+    if (!dep) return;
+    try {
+      await removeToken(dep.cid, dep.mid, dep.tid);
+      if (currentActiveMap?.tokens) delete currentActiveMap.tokens[dep.tid];
+    } catch (err) {
+      console.warn('[CompanionsPanel] No se pudo retirar el token del compañero eliminado:', err);
+    }
+  }
+
+  // Bug #4 (reporte E2E): editar el compañero actualiza nombre, tamaño, tipo y color de su token.
+  async function syncCompanionToken(comp: CharacterCompanion): Promise<void> {
+    const dep = findDeployedToken(comp);
+    if (!dep) return;
+    const char = characterStore.get();
+    const current = (currentActiveMap?.tokens || {})[dep.tid];
+    const built = buildCompanionToken(comp, { id: char.id, name: char.name }, current?.ownerUid || char.userId || '');
+    const patch: Partial<Token> = {};
+    for (const key of ['name', 'size', 'kind', 'color'] as const) {
+      if (!current || current[key] !== built[key]) (patch as any)[key] = built[key];
+    }
+    if (Object.keys(patch).length === 0) return;
+    try {
+      await updateToken(dep.cid, dep.mid, dep.tid, patch);
+      if (current) Object.assign(current, patch);
+      renderCompanions();
+    } catch (err) {
+      console.warn('[CompanionsPanel] No se pudo actualizar el token del compañero:', err);
+      showAlert('Se guardaron los cambios, pero no se pudo actualizar su miniatura en el mapa.', { kind: 'warning' });
+    }
+  }
+
+  deleteBtn?.addEventListener('click', async () => {
     const id = formId?.value;
     if (id && confirm('¿Eliminar este compañero o invocación?')) {
+      const comp = characterStore.getCompanions().find((c) => c.id === id);
       characterStore.removeCompanion(id);
       closeModal();
+      if (comp) await removeCompanionToken(comp);
+      renderCompanions();
     }
   });
 
@@ -280,15 +402,23 @@
     const notes = formNotes?.value.trim() || undefined;
 
     if (id) {
+      // Bug #6 (reporte E2E): editar no cura. Se conservan los PG actuales (con tope en el nuevo
+      // máximo); solo si estaba a tope sigue a tope cuando el máximo sube.
+      const prev = characterStore.getCompanions().find((c) => c.id === id);
+      const prevMax = prev?.hp?.max ?? maxHp;
+      const prevCur = prev?.hp?.current ?? prevMax;
+      const current = prevCur >= prevMax ? maxHp : Math.min(prevCur, maxHp);
       characterStore.updateCompanion(id, {
         name,
         type,
         size,
-        hp: { current: maxHp, max: maxHp },
+        hp: { current, max: maxHp },
         armorClass,
         speedFt,
         notes,
       });
+      const updated = characterStore.getCompanions().find((c) => c.id === id);
+      if (updated) void syncCompanionToken(updated);
     } else {
       characterStore.addCompanion({
         name,
@@ -306,6 +436,21 @@
   function renderCompanions() {
     if (!listEl) return;
     const companions = characterStore.getCompanions();
+    const char = characterStore.get();
+    const curCid = campaignStore.getActiveCampaignId();
+    const curCamp = curCid ? campaignStore.getCampaign(curCid) : null;
+    const activeMapId = curCamp?.activeMapId;
+
+    // Tokens presentes en el mapa táctico activo (memoria o caché local)
+    let tokensOnMap: Record<string, Token> = {};
+    if (currentActiveMap && currentActiveMap.tokens) {
+      tokensOnMap = currentActiveMap.tokens;
+    } else if (curCid && activeMapId) {
+      const localMap = getLocalMaps(curCid).find((m) => m.id === activeMapId);
+      if (localMap && localMap.tokens) {
+        tokensOnMap = localMap.tokens;
+      }
+    }
 
     if (countEl) {
       countEl.textContent = String(companions.length);
@@ -315,10 +460,30 @@
 
     if (companions.length === 0) {
       listEl.innerHTML = `
-        <div class="p-4 rounded-xl bg-[#10141d]/70 border border-dashed border-[#222f42] text-center text-xs text-[#64748b] italic">
-          No tienes compañeros, monturas ni criaturas invocadas. Haz clic en "Añadir" para registrar una.
+        <div class="p-4 rounded-xl bg-[#10141d]/70 border border-dashed border-[#222f42] text-center space-y-2.5 text-xs text-[#64748b]">
+          <p class="italic">No tienes compañeros, monturas ni criaturas invocadas.</p>
+          <div class="flex items-center justify-center gap-2 flex-wrap">
+            <button
+              type="button"
+              id="btn-empty-summon-familiar"
+              class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 border border-sky-500/40 text-xs font-bold transition-all cursor-pointer active:scale-95"
+            >
+              <span class="material-symbols-outlined text-[15px]">auto_fix_high</span>
+              <span>Invocar Familiar</span>
+            </button>
+            <button
+              type="button"
+              id="btn-empty-add-summon"
+              class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/40 text-xs font-bold transition-all cursor-pointer active:scale-95"
+            >
+              <span class="material-symbols-outlined text-[15px]">auto_awesome</span>
+              <span>Registrar Invocación</span>
+            </button>
+          </div>
         </div>
       `;
+      document.getElementById('btn-empty-summon-familiar')?.addEventListener('click', handleQuickSummonFamiliar);
+      document.getElementById('btn-empty-add-summon')?.addEventListener('click', () => openModal(undefined, 'summon'));
       return;
     }
 
@@ -329,13 +494,38 @@
       const maxHp = comp.hp?.max ?? 1;
       const hpPct = Math.max(0, Math.min(100, Math.round((curHp / maxHp) * 100)));
 
+      // Detectar si el compañero está desplegado en el mapa táctico activo
+      const existingTokenEntry = Object.entries(tokensOnMap).find(([tid, t]) => {
+        if (comp.tokenId && tid === comp.tokenId) return true;
+        if (t.companionId && t.companionId === comp.id) return true;
+        const belongsToChar = t.characterId === char.id || !t.characterId;
+        const isCompanionKind = t.kind === 'companion' || t.kind === 'mount' || t.kind === 'summon';
+        const nameMatches = Boolean(
+          t.name && comp.name && (
+            t.name.toLowerCase().includes(comp.name.toLowerCase()) ||
+            comp.name.toLowerCase().includes(t.name.toLowerCase())
+          )
+        );
+        return belongsToChar && isCompanionKind && nameMatches;
+      });
+
+      const deployedTid = existingTokenEntry ? existingTokenEntry[0] : comp.tokenId;
+      const hasActiveMap = Boolean(curCid && activeMapId);
+      const isDeployed = Boolean(existingTokenEntry || (comp.tokenId && !hasActiveMap));
+
+      // Auto-sincronizar tokenId si se descubrió en el mapa activo
+      if (existingTokenEntry && comp.tokenId !== existingTokenEntry[0]) {
+        comp.tokenId = existingTokenEntry[0];
+        characterStore.linkCompanionToken(comp.id, existingTokenEntry[0]);
+      }
+
       const card = document.createElement('div');
       card.className = 'p-3 rounded-xl bg-[#10141d] border border-[#222f42] hover:border-slate-600 transition-all space-y-2.5';
       card.innerHTML = `
         <div class="flex items-start justify-between gap-2">
           <div class="min-w-0">
             <div class="flex items-center gap-1.5 flex-wrap">
-              <span class="text-xs font-bold text-[#f1f5f9] truncate">${comp.name}</span>
+              <span class="text-xs font-bold text-[#f1f5f9] truncate">${escapeHtml(comp.name)}</span>
               <span class="px-1.5 py-0.5 rounded text-[9px] font-bold border flex items-center gap-1 ${typeInfo.color}">
                 <span class="material-symbols-outlined text-[11px]">${typeInfo.icon}</span>
                 <span>${typeInfo.label}</span>
@@ -390,31 +580,47 @@
 
         ${
           comp.notes
-            ? `<p class="text-[11px] text-[#94a3b8] bg-[#141a24] p-2 rounded-lg border border-[#222f42]/60 italic font-sans">${comp.notes}</p>`
+            ? `<p class="text-[11px] text-[#94a3b8] bg-[#141a24] p-2 rounded-lg border border-[#222f42]/60 italic font-sans">${escapeHtml(comp.notes)}</p>`
             : ''
         }
 
         <!-- Despliegue en Mapa -->
-        <div class="pt-2 border-t border-[#222f42]/60 flex items-center justify-between text-[11px]">
-          <div class="flex items-center gap-1.5">
+        <div class="pt-2 border-t border-[#222f42]/60 flex items-center justify-between text-[11px] gap-2 flex-wrap">
+          <div class="flex items-center gap-1.5 min-w-0">
             <span class="material-symbols-outlined text-[15px] ${isDeployed ? 'text-emerald-400' : 'text-[#64748b]'}">
               ${isDeployed ? 'check_circle' : 'location_off'}
             </span>
-            <span class="text-[10px] ${isDeployed ? 'text-emerald-300 font-bold' : 'text-[#94a3b8]'}">
-              ${isDeployed ? 'En mapa activo' : 'Fuera del mapa'}
+            <span class="text-[10px] ${isDeployed ? 'text-emerald-300 font-bold' : 'text-[#94a3b8]'} truncate">
+              ${isDeployed ? 'En mapa táctico' : 'Fuera del mapa'}
             </span>
           </div>
-          <button
-            type="button"
-            class="comp-map-btn inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-bold ${
+          <div class="flex items-center gap-1.5 shrink-0">
+            ${
               isDeployed
-                ? 'bg-[#18202e] hover:bg-[#222f42] text-[#cbd5e1] border border-[#222f42]'
-                : 'bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/30 active:scale-95'
-            } transition-all cursor-pointer"
-          >
-            <span class="material-symbols-outlined text-[13px]">${isDeployed ? 'my_location' : 'add_location_alt'}</span>
-            <span>${isDeployed ? 'Centrar' : 'Desplegar en mapa'}</span>
-          </button>
+                ? `
+              <button
+                type="button"
+                class="comp-dismiss-btn inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-bold bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 border border-rose-500/30 transition-all cursor-pointer"
+                title="Despedir a dimensión de bolsillo / retirar del mapa táctico"
+              >
+                <span class="material-symbols-outlined text-[13px]">close</span>
+                <span>Retirar</span>
+              </button>
+            `
+                : ''
+            }
+            <button
+              type="button"
+              class="comp-map-btn inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-bold ${
+                isDeployed
+                  ? 'bg-[#18202e] hover:bg-[#222f42] text-[#cbd5e1] border border-[#222f42]'
+                  : 'bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/30 active:scale-95'
+              } transition-all cursor-pointer"
+            >
+              <span class="material-symbols-outlined text-[13px]">${isDeployed ? 'my_location' : 'add_location_alt'}</span>
+              <span>${isDeployed ? 'Centrar' : 'Desplegar en mapa'}</span>
+            </button>
+          </div>
         </div>
       `;
 
@@ -437,6 +643,35 @@
         }
       });
 
+      // Retirar compañero / familiar del mapa
+      card.querySelector('.comp-dismiss-btn')?.addEventListener('click', async () => {
+        const curCid = campaignStore.getActiveCampaignId();
+        const curCamp = curCid ? campaignStore.getCampaign(curCid) : null;
+        const activeMapId = curCamp?.activeMapId;
+        const targetTid = deployedTid || comp.tokenId;
+        const ok = await showConfirm(`¿Retirar a "${comp.name}" del mapa táctico?`, {
+          title: 'Retirar del Mapa',
+          danger: true,
+          confirmText: 'Retirar',
+        });
+        if (!ok) return;
+
+        if (curCid && activeMapId && targetTid) {
+          try {
+            await removeToken(curCid, activeMapId, targetTid);
+          } catch (err) {
+            console.warn('[CompanionsPanel] Error retirando token del mapa:', err);
+          }
+        }
+        characterStore.linkCompanionToken(comp.id, undefined);
+        if (currentActiveMap && currentActiveMap.tokens && targetTid) {
+          delete currentActiveMap.tokens[targetTid];
+        }
+        renderCompanions();
+        showAlert(`"${comp.name}" ha sido retirado del mapa táctico.`, { title: 'Familiar Retirado', kind: 'info' });
+      });
+
+      // Desplegar o centrar en mapa
       card.querySelector('.comp-map-btn')?.addEventListener('click', async () => {
         const curCid = campaignStore.getActiveCampaignId();
         const curCamp = curCid ? campaignStore.getCampaign(curCid) : null;
@@ -444,41 +679,35 @@
         const char = characterStore.get();
         const currentUser = userStore.getCurrentUser();
 
-        if (isDeployed) {
-          window.dispatchEvent(new CustomEvent('map-center-token', { detail: { tid: comp.tokenId } }));
+        if (isDeployed && deployedTid) {
+          window.dispatchEvent(new CustomEvent('map-center-token', { detail: { tid: deployedTid } }));
           return;
         }
 
         if (!curCid || !activeMapId) {
-          showAlert('No hay un mapa táctico activo en la campaña para colocar la miniatura. Pide al DM que active un mapa.', { title: 'Sin Mapa Activo' });
+          showAlert('No hay un mapa táctico activo en la campaña para colocar la miniatura. Pide al DM que active un mapa.', { title: 'Sin Mapa Activo', kind: 'warning' });
           return;
         }
 
-        const isDm = Boolean(curCamp && (curCamp.dmId === currentUser?.id || campaignStore.isCurrentUserDm(curCid)));
-        const isLocal = !campaignStore.isCloudMode();
-
-        if (isDm || isLocal) {
-          try {
-            const token = buildCompanionToken(
-              comp,
-              { id: char.id, name: char.name },
-              char.userId || currentUser?.id || '',
-              { x: 200, y: 200 }
-            );
-            const tid = newTokenId();
-            await addToken(curCid, activeMapId, token, tid);
-            characterStore.linkCompanionToken(comp.id, tid);
-            renderCompanions();
-            showAlert(`Miniatura de "${comp.name}" desplegada con éxito en el mapa táctico.`, { title: 'Miniatura Desplegada' });
-          } catch (err: any) {
-            console.error('[CompanionsPanel] Error desplegando miniatura:', err);
-            showAlert(err?.message || 'Error al desplegar en el mapa.', { title: 'Error' });
-          }
-        } else {
-          showAlert(
-            `"${comp.name}" está registrado en tu ficha. En partidas online sincronizadas, el DM coloca la miniatura inicial desde su Grimorio (Gestor de Miniaturas). En cuanto la coloque, ¡podrás moverla en vivo por el mapa!`,
-            { title: 'Despliegue por el DM' }
+        try {
+          const token = buildCompanionToken(
+            comp,
+            { id: char.id, name: char.name },
+            char.userId || currentUser?.id || '',
+            { x: 200, y: 200 }
           );
+          const tid = newTokenId('tok-comp');
+          await addToken(curCid, activeMapId, token, tid);
+          characterStore.linkCompanionToken(comp.id, tid);
+          if (currentActiveMap) {
+            if (!currentActiveMap.tokens) currentActiveMap.tokens = {};
+            currentActiveMap.tokens[tid] = token;
+          }
+          renderCompanions();
+          showAlert(`Miniatura de "${comp.name}" desplegada con éxito en el mapa táctico.`, { title: 'Miniatura Desplegada', kind: 'success' });
+        } catch (err: any) {
+          console.error('[CompanionsPanel] Error desplegando miniatura:', err);
+          showAlert(err?.message || 'Error al desplegar en el mapa.', { title: 'Error', kind: 'error' });
         }
       });
 
@@ -486,8 +715,156 @@
     });
   }
 
+  async function handleQuickSummonFamiliar() {
+    const curCid = campaignStore.getActiveCampaignId();
+    const curCamp = curCid ? campaignStore.getCampaign(curCid) : null;
+    const activeMapId = curCamp?.activeMapId;
+    const char = characterStore.get();
+    const currentUser = userStore.getCurrentUser();
+
+    const formResult = await showForm([
+      {
+        name: 'animal',
+        label: 'Forma del Familiar (D&D 5e)',
+        type: 'select',
+        options: [
+          { value: 'Lechuza', label: '🦉 Lechuza (Vuelo 60 ft, Vista ciega)' },
+          { value: 'Cuervo', label: '🦅 Cuervo (Vuelo 50 ft, Mimetismo)' },
+          { value: 'Gato', label: '🐱 Gato (Sigilo, Trepar 30 ft)' },
+          { value: 'Halcón', label: '🦅 Halcón (Vuelo 60 ft, Percepción aguda)' },
+          { value: 'Serpiente venenosa', label: '🐍 Serpiente Venenosa (Vista ciega 10 ft)' },
+          { value: 'Comadreja', label: '🦦 Comadreja (Oído y Olfato agudo)' },
+          { value: 'Rata', label: '🐀 Rata (Olfato agudo, Trepar 20 ft)' },
+          { value: 'Murciélago', label: '🦇 Murciélago (Ecolocalización, Vuelo)' },
+          { value: 'Sapo', label: '🐸 Sapo (Anfibio, Salto)' },
+          { value: 'Espíritu Guardián', label: '✨ Espíritu Guardián (Invocación · 20 PG)' },
+          { value: 'Arma Espiritual', label: '⚔️ Arma Espiritual (Invocación · 15 PG)' },
+          { value: 'Otro', label: '✨ Espíritu Familiar Personalizado' },
+        ],
+        required: true,
+      },
+      {
+        name: 'customName',
+        label: 'Nombre de tu Familiar (Opcional)',
+        type: 'text',
+        placeholder: 'ej. Archimedes, Salem, Hugin...',
+      },
+    ], { title: 'Ritual: Encontrar Familiar (Find Familiar)' });
+
+    if (!formResult) return;
+    const animal = String(formResult.animal || 'Lechuza');
+    const name = String(formResult.customName || '').trim() || (animal === 'Otro' ? 'Familiar' : animal);
+
+    const isSummonType = ['Espíritu Guardián', 'Arma Espiritual'].includes(animal);
+    const compType: CompanionType = isSummonType ? 'summon' : 'familiar';
+    const compHp = animal === 'Espíritu Guardián' ? 20 : animal === 'Arma Espiritual' ? 15 : 3;
+    const compAc = animal === 'Arma Espiritual' ? 14 : animal === 'Espíritu Guardián' ? 13 : 11;
+    const compSpeed = animal === 'Arma Espiritual' ? 20 : 30;
+
+    const compId = `comp-${Date.now()}`;
+    const newComp: CharacterCompanion = {
+      id: compId,
+      name,
+      type: compType,
+      size: 1,
+      hp: { current: compHp, max: compHp },
+      armorClass: compAc,
+      speedFt: compSpeed,
+      notes: isSummonType ? `Invocación mágica (${animal}).` : `Forma de ${animal}. Invocado mediante ritual de familiar.`,
+    };
+
+    const createdId = characterStore.addCompanion(newComp);
+
+    if (curCid && activeMapId) {
+      try {
+        const token = buildCompanionToken(
+          newComp,
+          { id: char.id, name: char.name },
+          char.userId || currentUser?.id || '',
+          { x: 200, y: 200 }
+        );
+        const tid = newTokenId('tok-comp');
+        await addToken(curCid, activeMapId, token, tid);
+        characterStore.linkCompanionToken(createdId, tid);
+        if (currentActiveMap) {
+          if (!currentActiveMap.tokens) currentActiveMap.tokens = {};
+          currentActiveMap.tokens[tid] = token;
+        }
+        showAlert(`¡"${name}" ha sido invocado y su miniatura está desplegada en el mapa táctico!`, { title: 'Familiar en el Mapa', kind: 'success' });
+      } catch (err: any) {
+        console.warn('[CompanionsPanel] No se pudo auto-desplegar token:', err);
+        showAlert(`Familiar "${name}" creado. Puedes desplegarlo en el mapa cuando desees.`, { kind: 'info' });
+      }
+    } else {
+      showAlert(`Familiar "${name}" creado. Estará listo para desplegar en cuanto el DM active un mapa.`, { kind: 'success' });
+    }
+
+    renderCompanions();
+  }
+
+  function setupMapSync() {
+    if (mapUnsubscribe) {
+      mapUnsubscribe();
+      mapUnsubscribe = null;
+    }
+
+    const curCid = campaignStore.getActiveCampaignId();
+    if (!curCid) {
+      currentActiveMap = null;
+      renderCompanions();
+      return;
+    }
+
+    const camp = campaignStore.getCampaign(curCid);
+    if (camp?.activeMapId) {
+      const local = getLocalMaps(curCid).find((m) => m.id === camp.activeMapId);
+      if (local) {
+        currentActiveMap = local;
+      }
+    }
+
+    mapUnsubscribe = watchActiveMap(curCid, (map) => {
+      currentActiveMap = map;
+      renderCompanions();
+    });
+  }
+
+  document.getElementById('btn-quick-summon-familiar')?.addEventListener('click', handleQuickSummonFamiliar);
+
+  // Escuchar cambios de campaña y mapa
+  window.addEventListener('active-campaign-changed', setupMapSync);
+  window.addEventListener('campaigns-updated', setupMapSync);
+  window.addEventListener('active-map-changed', setupMapSync);
+  window.addEventListener('map-stage-loaded', ((e: CustomEvent<{ cid: string; mid: string; map: MapDoc }>) => {
+    if (e.detail?.map) {
+      currentActiveMap = e.detail.map;
+      renderCompanions();
+    }
+  }) as EventListener);
+  window.addEventListener('map-updated', ((e: CustomEvent<{ cid: string; mid: string; map: MapDoc }>) => {
+    if (e.detail?.map && (!currentActiveMap || currentActiveMap.id === e.detail.mid)) {
+      currentActiveMap = e.detail.map;
+      renderCompanions();
+    }
+  }) as EventListener);
+  window.addEventListener('maps-updated', () => {
+    const curCid = campaignStore.getActiveCampaignId();
+    if (curCid) {
+      const camp = campaignStore.getCampaign(curCid);
+      if (camp?.activeMapId) {
+        const local = getLocalMaps(curCid).find((m) => m.id === camp.activeMapId);
+        if (local) {
+          currentActiveMap = local;
+          renderCompanions();
+        }
+      }
+    }
+  });
+
   // Escuchar cambios de la ficha
   window.addEventListener('character-updated', renderCompanions);
   window.addEventListener('character-loaded', renderCompanions);
+
+  setupMapSync();
   renderCompanions();
 </script>

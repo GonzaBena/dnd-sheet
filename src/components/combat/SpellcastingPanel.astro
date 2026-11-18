@@ -53,8 +53,12 @@
 
 <script>
   import { characterStore } from '../../scripts/state/characterStore';
+  import { campaignStore } from '../../scripts/state/campaignStore';
+  import { userStore } from '../../scripts/state/userStore';
+  import { addToken, getLocalMaps } from '../../scripts/data/mapService';
+  import { buildCompanionToken, newTokenId } from '../../scripts/vtt/tokens';
   import { escapeHtml, toCatalogEntry } from '../../scripts/dnd/catalog';
-  import { showAlert, showConfirm } from '../../scripts/ui/notify';
+  import { showAlert, showConfirm, showForm } from '../../scripts/ui/notify';
   import { applyFromEntry, isInstant } from '../../scripts/ui/applyEffectFlow';
   import { customBadgeHtml } from '../../scripts/ui/customBadge';
   import { openModal } from '../../scripts/animations/modalAnimations';
@@ -62,6 +66,7 @@
   import { validateSpellComponents, isRitualSpell } from '../../scripts/dnd/spellcasting';
   import { getActiveConcentrationEffect, isConcentrationDuration } from '../../scripts/dnd/concentration';
   import { journalStore } from '../../scripts/state/journalStore';
+  import type { CharacterCompanion } from '../../scripts/models/character';
 
   const spellsContainer = document.getElementById('spells-list-container');
   const slotsGrid = document.getElementById('spell-slots-grid');
@@ -487,6 +492,9 @@
           ['#Magia', '#Ritual']
         );
         showAlert(`Has lanzado "${sp.name}" como Ritual (+10 min). Sin gasto de espacios.`, { kind: 'success' });
+        if (/familiar|invoc|summon|montura|steed/i.test(sp.name)) {
+          triggerFamiliarDeployWorkflow(sp.name);
+        }
       });
 
       const parseSpellDice = (formulaStr?: string) => {
@@ -665,6 +673,9 @@
         );
         await showAlert(`Has lanzado "${sp?.name || entry?.name}" como Ritual (+10 min). Sin gasto de espacios.`, { kind: 'success' });
         if (entry?.effects?.length && !isInstant(entry)) await applyFromEntry(entry);
+        if (/familiar|invoc|summon|montura|steed/i.test(sp?.name || entry?.name || '')) {
+          triggerFamiliarDeployWorkflow(sp?.name || entry?.name || '');
+        }
         return;
       }
 
@@ -748,10 +759,134 @@
       } else {
         await showAlert(`Has lanzado "${entry.name}"${typeof level === 'number' ? ` con un espacio de nivel ${level}` : ''}.`, { kind: 'success' });
       }
+      if (/familiar|invoc|summon|montura|steed/i.test(sp?.name || entry?.name || '')) {
+        triggerFamiliarDeployWorkflow(sp?.name || entry?.name || '');
+      }
     } else if (action === 'remove') {
       spellDeleteTriggers.get(entryId)?.();
     } else if (action === 'apply-effect' && entry?.effects?.length) {
       await applyFromEntry(entry);
     }
   }) as EventListener);
+
+  async function triggerFamiliarDeployWorkflow(spellName: string) {
+    const companions = characterStore.getCompanions();
+    const isMount = /montura|steed|caballo/i.test(spellName);
+    const isSummon = /invoc|summon|esp[ií]ritu|conjur|elemental/i.test(spellName);
+    const compType: CompanionType = isMount ? 'mount' : isSummon ? 'summon' : 'familiar';
+    const typeLabel = compType === 'mount' ? 'montura' : compType === 'summon' ? 'invocación' : 'familiar';
+    const typeLabelCap = compType === 'mount' ? 'Montura' : compType === 'summon' ? 'Invocación' : 'Familiar';
+
+    const existing = companions.find((c) => c.type === compType || (c.notes && c.notes.includes(spellName))) || (compType === 'familiar' ? companions[0] : null);
+    const curCid = campaignStore.getActiveCampaignId();
+    const curCamp = curCid ? campaignStore.getCampaign(curCid) : null;
+    const activeMapId = curCamp?.activeMapId;
+
+    if (existing) {
+      let deployedTid = existing.tokenId;
+      if (curCid && activeMapId) {
+        const localMap = getLocalMaps(curCid).find((m) => m.id === activeMapId);
+        const tokensOnMap = localMap?.tokens || {};
+        const char = characterStore.get();
+        const matched = Object.entries(tokensOnMap).find(([tid, t]) =>
+          (existing.tokenId && tid === existing.tokenId) ||
+          (t.companionId && t.companionId === existing.id) ||
+          (t.characterId === char.id && (t.kind === 'companion' || t.kind === 'mount' || t.kind === 'summon') && t.name.toLowerCase().includes(existing.name.toLowerCase()))
+        );
+        if (matched) {
+          deployedTid = matched[0];
+          if (existing.tokenId !== deployedTid) {
+            characterStore.linkCompanionToken(existing.id, deployedTid);
+          }
+        }
+      }
+
+      if (curCid && activeMapId && deployedTid) {
+        const ok = await showConfirm(`"${existing.name}" ya se encuentra en el mapa táctico. ¿Deseas centrar la vista en su miniatura?`, {
+          title: `${typeLabelCap} en Mapa`,
+          confirmText: 'Centrar',
+        });
+        if (ok) window.dispatchEvent(new CustomEvent('map-center-token', { detail: { tid: deployedTid } }));
+        return;
+      }
+
+      if (curCid && activeMapId) {
+        const ok = await showConfirm(`Has lanzado "${spellName}". ¿Deseas desplegar a tu ${typeLabel} ("${existing.name}") en el mapa táctico?`, {
+          title: `Desplegar ${typeLabelCap}`,
+          confirmText: 'Desplegar en Mapa',
+        });
+        if (!ok) return;
+
+        try {
+          const char = characterStore.get();
+          const user = userStore.getCurrentUser();
+          const token = buildCompanionToken(
+            existing,
+            { id: char.id, name: char.name },
+            char.userId || user?.id || '',
+            { x: 250, y: 250 }
+          );
+          const tid = newTokenId('tok-comp');
+          await addToken(curCid, activeMapId, token, tid);
+          characterStore.linkCompanionToken(existing.id, tid);
+          showAlert(`¡Miniatura de "${existing.name}" colocada en el mapa táctico!`, { title: `${typeLabelCap} Desplegado`, kind: 'success' });
+        } catch (err: any) {
+          showAlert(err?.message || 'Error al desplegar en el mapa.', { title: 'Error', kind: 'error' });
+        }
+        return;
+      }
+    }
+
+    const ok = await showConfirm(`Has lanzado "${spellName}". ¿Deseas registrar esta ${typeLabel} en tu ficha y desplegarla?`, {
+      title: `Invocar ${typeLabelCap}`,
+      confirmText: 'Invocar',
+    });
+    if (!ok) return;
+
+    const formResult = await showForm([
+      {
+        name: 'name',
+        label: `Nombre o Forma de la ${typeLabelCap}`,
+        type: 'text',
+        placeholder: isSummon ? 'ej. Espíritu Guardián, Arma Espiritual...' : isMount ? 'ej. Corcel de Guerra...' : 'ej. Lechuza, Cuervo, Gato...',
+        required: true,
+      },
+    ], { title: `Invocar ${typeLabelCap}` });
+
+    if (!formResult || !formResult.name) return;
+    const fName = String(formResult.name).trim();
+    const compId = `comp-${Date.now()}`;
+    const newComp: CharacterCompanion = {
+      id: compId,
+      name: fName,
+      type: compType,
+      size: isMount ? 2 : 1,
+      hp: { current: isSummon ? 15 : isMount ? 19 : 3, max: isSummon ? 15 : isMount ? 19 : 3 },
+      armorClass: isSummon ? 13 : 11,
+      speedFt: isMount ? 60 : 30,
+      notes: `Invocado con ${spellName}.`,
+    };
+    const createdId = characterStore.addCompanion(newComp);
+
+    if (curCid && activeMapId) {
+      try {
+        const char = characterStore.get();
+        const user = userStore.getCurrentUser();
+        const token = buildCompanionToken(
+          newComp,
+          { id: char.id, name: char.name },
+          char.userId || user?.id || '',
+          { x: 250, y: 250 }
+        );
+        const tid = newTokenId('tok-comp');
+        await addToken(curCid, activeMapId, token, tid);
+        characterStore.linkCompanionToken(createdId, tid);
+        showAlert(`¡"${fName}" ha sido invocado y desplegado en el mapa táctico!`, { title: `${typeLabelCap} Desplegado`, kind: 'success' });
+      } catch (err: any) {
+        showAlert(`Criatura creada. Puedes desplegarla desde el panel de Compañeros e Invocaciones.`, { kind: 'info' });
+      }
+    } else {
+      showAlert(`"${fName}" se ha registrado en tu panel de Compañeros e Invocaciones. Estará lista para desplegar en cuanto haya un mapa activo.`, { title: `${typeLabelCap} Registrado`, kind: 'success' });
+    }
+  }
 </script>

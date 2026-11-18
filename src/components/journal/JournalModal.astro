@@ -151,6 +151,8 @@
   import { userStore } from '../../scripts/state/userStore';
   import { openModal, closeModal } from '../../scripts/animations/modalAnimations';
   import { attachSwipeToDelete } from '../../scripts/ui/swipeToDelete';
+  // Títulos, contenido, autores, etiquetas y tiradas de la bitácora los escriben los usuarios: van por esc().
+  import { escapeHtml as esc } from '../../scripts/dnd/catalog';
 
   const modal = document.getElementById('journal-modal');
   const backdrop = document.getElementById('journal-modal-backdrop');
@@ -242,7 +244,7 @@
         if (t === '#Magia') colorClass = 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30';
         if (t === '#Configuración') colorClass = 'bg-slate-500/20 text-slate-300 border-slate-500/30';
         if (t === '#Privado') colorClass = 'bg-amber-500/30 text-amber-300 border-amber-400 font-bold';
-        return `<span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase border ${colorClass}">${t}</span>`;
+        return `<span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase border ${colorClass}">${esc(t)}</span>`;
       }).join(' ');
 
       let diceBoxHtml = '';
@@ -251,9 +253,9 @@
         if (entry.diceRoll.hitOutcome === 'crit') {
           outcomeBadge = '<span class="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[10px] font-bold">¡Crítico!</span>';
         } else if (entry.diceRoll.hitOutcome === 'hit') {
-          outcomeBadge = `<span class="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[10px] font-bold">Acierto${entry.diceRoll.targetDc ? ` vs CD ${entry.diceRoll.targetDc}` : ''}</span>`;
+          outcomeBadge = `<span class="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[10px] font-bold">Acierto${entry.diceRoll.targetDc ? ` vs CD ${esc(entry.diceRoll.targetDc)}` : ''}</span>`;
         } else if (entry.diceRoll.hitOutcome === 'miss') {
-          outcomeBadge = `<span class="px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/40 text-[10px] font-bold">Fallo${entry.diceRoll.targetDc ? ` vs CD ${entry.diceRoll.targetDc}` : ''}</span>`;
+          outcomeBadge = `<span class="px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/40 text-[10px] font-bold">Fallo${entry.diceRoll.targetDc ? ` vs CD ${esc(entry.diceRoll.targetDc)}` : ''}</span>`;
         } else if (entry.diceRoll.hitOutcome === 'fumble') {
           outcomeBadge = '<span class="px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/40 text-[10px] font-bold">Pifia</span>';
         } else if (entry.diceRoll.hitOutcome === 'pending') {
@@ -261,10 +263,10 @@
         }
         diceBoxHtml = `
           <div class="p-2 rounded-lg bg-[#10141d] border border-amber-500/30 flex items-center justify-between text-xs my-1 gap-2 flex-wrap">
-            <span class="text-[#94a3b8]">${entry.diceRoll.formula}</span>
+            <span class="text-[#94a3b8]">${esc(entry.diceRoll.formula)}</span>
             <div class="flex items-center gap-2">
               ${outcomeBadge}
-              <span class="font-headline font-bold text-amber-400 text-sm">Resultado: ${entry.diceRoll.result}</span>
+              <span class="font-headline font-bold text-amber-400 text-sm">Resultado: ${esc(entry.diceRoll.result)}</span>
             </div>
           </div>
         `;
@@ -274,7 +276,7 @@
           diceBoxHtml = `
             <div class="p-2 rounded-lg bg-amber-500/15 border border-amber-500/40 font-headline font-bold text-amber-300 text-xs my-1 flex items-center gap-1.5">
               <span class="text-amber-400 text-sm">⭐</span>
-              <span>${milestoneBanner}</span>
+              <span>${esc(milestoneBanner)}</span>
             </div>
           `;
         }
@@ -291,18 +293,18 @@
               ${isForDm ? '<span class="px-1.5 py-0.2 rounded bg-purple-500/20 text-purple-300 text-[9px] font-bold uppercase border border-purple-500/30 flex items-center gap-0.5">📨 Para el DM</span>' : ''}
               ${entry.isSecret ? `<span class="px-1.5 py-0.2 rounded bg-purple-500/20 text-purple-300 text-[9px] font-bold uppercase border border-purple-500/30">${entry.authorName === 'Dungeon Master' || !entry.characterId ? 'Secreto DM' : 'Tirada Secreta'}</span>` : ''}
             </div>
-            <span class="text-[10px] text-[#64748b] shrink-0">${entry.timeAgoText || 'Sesión ' + entry.sessionNumber}</span>
+            <span class="text-[10px] text-[#64748b] shrink-0">${esc(entry.timeAgoText || 'Sesión ' + entry.sessionNumber)}</span>
           </div>
 
-          <h4 class="font-headline font-bold text-[#f1f5f9] text-sm mb-1">${entry.title}</h4>
-          <p class="text-[#cbd5e1] text-xs leading-relaxed whitespace-pre-line">${entry.content}</p>
+          <h4 class="font-headline font-bold text-[#f1f5f9] text-sm mb-1">${esc(entry.title)}</h4>
+          <p class="text-[#cbd5e1] text-xs leading-relaxed whitespace-pre-line">${esc(entry.content)}</p>
           ${diceBoxHtml}
         </div>
 
         <div class="flex items-center justify-between pt-2 border-t border-[#222f42]/60 text-[10px] text-[#64748b]">
-          <span>Sesión ${entry.sessionNumber}</span>
+          <span>Sesión ${esc(entry.sessionNumber)}</span>
           ${canDelete ? `
-            <button class="delete-entry-btn text-[#94a3b8] hover:text-rose-400 transition-colors cursor-pointer flex items-center gap-1" data-id="${entry.id}">
+            <button class="delete-entry-btn text-[#94a3b8] hover:text-rose-400 transition-colors cursor-pointer flex items-center gap-1" data-id="${esc(entry.id)}">
               <span class="material-symbols-outlined text-[13px]">delete</span>
               <span>Eliminar</span>
             </button>

@@ -32,3 +32,7 @@ pnpm-debug.log*
 .firebase/
 firestore-debug.log
 ui-debug.log
+
+# Build de la app apuntando a los emuladores (suite E2E de nube)
+dist-e2e-cloud/
+__pycache__/

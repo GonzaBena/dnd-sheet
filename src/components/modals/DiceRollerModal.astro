@@ -366,6 +366,9 @@
   import { characterStore } from '../../scripts/state/characterStore';
   import { applyDamageToCombatant, getCurrentCombat } from '../../scripts/data/combatService';
   import { applyHpAction } from '../../scripts/ui/hpActions.ts';
+  // Etiquetas, nombres de objetivo, fórmulas y tipos de daño vienen de armas, conjuros y combatientes
+  // que escriben los usuarios: todo lo que va a innerHTML pasa por esc().
+  import { escapeHtml as esc } from '../../scripts/dnd/catalog';
 
   const modal = document.getElementById('dice-roller-modal');
   const backdrop = document.getElementById('modal-backdrop');
@@ -657,7 +660,7 @@
           const { targetName, targetDc, isPendingDm } = getEffectiveTargetAndDc();
 
           if (selectedDie === 20) {
-            const tgtLabel = targetName ? ` a ${targetName}` : '';
+            const tgtLabel = targetName ? ` a ${esc(targetName)}` : '';
             if (targetDc !== null) {
               if (total >= targetDc) {
                 physicalFeedback.innerHTML = `<span class="px-2.5 py-1 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-bold">🎯 ¡Impacta${tgtLabel}! (${total} vs CA/CD ${targetDc})</span>`;
@@ -731,8 +734,8 @@
       );
 
       optionsHtml += `
-        <option value="${c.name}" data-id="${c.id}" data-ac="${c.ac || ''}" ${isSelected ? 'selected' : ''}>
-          ${c.isPlayer ? '🛡️ PJ: ' : '💀 '}${c.name} ${c.ac ? `(CA ${c.ac})` : ''}
+        <option value="${esc(c.name)}" data-id="${esc(c.id)}" data-ac="${esc(c.ac || '')}" ${isSelected ? 'selected' : ''}>
+          ${c.isPlayer ? '🛡️ PJ: ' : '💀 '}${esc(c.name)} ${c.ac ? `(CA ${c.ac})` : ''}
         </option>
       `;
     });
@@ -1020,7 +1023,7 @@
       followUpContainer.innerHTML = `
         <div class="flex items-center justify-between text-xs text-amber-300 font-bold">
           <span>🔥 ¡20 Natural! ¡Impacto Crítico Automático!</span>
-          <span class="font-mono text-amber-200">${critFormula} ${f.damageType}</span>
+          <span class="font-mono text-amber-200">${esc(critFormula)} ${esc(f.damageType)}</span>
         </div>
         <button
           type="button"
@@ -1028,7 +1031,7 @@
           class="w-full py-2 px-3 rounded-lg bg-gradient-to-r from-rose-600 to-amber-500 hover:brightness-110 text-[#0a0d12] font-headline font-extrabold text-xs flex items-center justify-center gap-1.5 shadow-md cursor-pointer transition-all"
         >
           <span class="material-symbols-outlined text-[16px]">local_fire_department</span>
-          <span>¡Lanzar Daño Crítico Ahora! (${critFormula})</span>
+          <span>¡Lanzar Daño Crítico Ahora! (${esc(critFormula)})</span>
         </button>
       `;
       followUpContainer.classList.remove('hidden');
@@ -1048,7 +1051,7 @@
           id="dice-chain-dmg-btn"
           class="px-2.5 py-1 rounded-lg bg-[#10141d] hover:bg-rose-500/20 border border-[#222f42] hover:border-rose-500/40 text-[#94a3b8] hover:text-rose-300 font-bold text-[11px] shrink-0 cursor-pointer transition-colors self-start"
         >
-          Tirar daño de todas formas (${normalFormula})
+          Tirar daño de todas formas (${esc(normalFormula)})
         </button>
       `;
       followUpContainer.classList.remove('hidden');
@@ -1061,7 +1064,7 @@
         followUpContainer.innerHTML = `
           <div class="flex items-center justify-between text-xs text-emerald-300 font-bold">
             <span>🎯 ¡Acierto! Superó la dificultad (${res.total} vs CD/CA ${targetDc})</span>
-            <span class="font-mono text-emerald-200">${normalFormula} ${f.damageType}</span>
+            <span class="font-mono text-emerald-200">${esc(normalFormula)} ${esc(f.damageType)}</span>
           </div>
           <button
             type="button"
@@ -1069,7 +1072,7 @@
             class="w-full py-2 px-3 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-[#06120b] font-headline font-extrabold text-xs flex items-center justify-center gap-1.5 shadow-md cursor-pointer transition-all"
           >
             <span class="material-symbols-outlined text-[16px]">swords</span>
-            <span>¡Acertaste! Lanzar Daño (${normalFormula} ${f.damageType})</span>
+            <span>¡Acertaste! Lanzar Daño (${esc(normalFormula)} ${esc(f.damageType)})</span>
           </button>
         `;
         followUpContainer.classList.remove('hidden');
@@ -1103,7 +1106,7 @@
       followUpContainer.innerHTML = `
         <div class="flex items-center justify-between text-xs text-amber-300 font-bold">
           <span>⏳ Ataque: ${res.total} al impacto • Pendiente de resolución del DM</span>
-          <span class="font-mono text-amber-200">${normalFormula} ${f.damageType}</span>
+          <span class="font-mono text-amber-200">${esc(normalFormula)} ${esc(f.damageType)}</span>
         </div>
         <div class="flex items-center gap-1.5 flex-wrap pt-1">
           <input
@@ -1205,13 +1208,13 @@
     if (saveInfo && saveInfo.isRollingEnemySave && res.dieType === 20) {
       if (res.total >= saveInfo.dc) {
         hitOutcome = 'hit';
-        targetHitEvaluation = `<span class="text-sky-300 font-bold block text-xs mt-0.5">🛡️ ¡El enemigo SUPERA la Salvación de ${saveInfo.ability}! (${res.total} vs CD ${saveInfo.dc}) → Mitad de daño / Efecto reducido</span>`;
+        targetHitEvaluation = `<span class="text-sky-300 font-bold block text-xs mt-0.5">🛡️ ¡El enemigo SUPERA la Salvación de ${esc(saveInfo.ability)}! (${res.total} vs CD ${saveInfo.dc}) → Mitad de daño / Efecto reducido</span>`;
       } else {
         hitOutcome = 'miss';
-        targetHitEvaluation = `<span class="text-rose-400 font-bold block text-xs mt-0.5">💥 ¡El enemigo FALLA la Salvación de ${saveInfo.ability}! (${res.total} vs CD ${saveInfo.dc}) → ¡Recibe el Daño/Efecto Completo!</span>`;
+        targetHitEvaluation = `<span class="text-rose-400 font-bold block text-xs mt-0.5">💥 ¡El enemigo FALLA la Salvación de ${esc(saveInfo.ability)}! (${res.total} vs CD ${saveInfo.dc}) → ¡Recibe el Daño/Efecto Completo!</span>`;
       }
     } else if (res.dieType === 20) {
-      const tgtLabel = targetName ? ` contra ${targetName}` : '';
+      const tgtLabel = targetName ? ` contra ${esc(targetName)}` : '';
       if (res.isCrit) {
         hitOutcome = 'crit';
         targetHitEvaluation = `<span class="text-amber-400 font-bold block text-xs mt-0.5">🎯 ¡Impacto Crítico Automático!${tgtLabel} (20 Natural)</span>`;
@@ -1234,7 +1237,7 @@
 
     const halfDmgOnSaveHtml = saveInfo && !saveInfo.isRollingEnemySave && res.dieType !== 20
       ? `<div class="mt-1 px-2.5 py-1 rounded-lg bg-sky-500/15 border border-sky-500/30 text-[11px] text-sky-200 flex items-center justify-center gap-3">
-           <span>💥 <strong>Si falla (CD ${saveInfo.dc} ${saveInfo.ability}):</strong> ${res.total} daño</span>
+           <span>💥 <strong>Si falla (CD ${saveInfo.dc} ${esc(saveInfo.ability)}):</strong> ${res.total} daño</span>
            <span>•</span>
            <span>🛡️ <strong>Si supera:</strong> ${Math.floor(res.total / 2)} daño (mitad)</span>
          </div>`
@@ -1255,7 +1258,7 @@
       ? '<span class="px-1.5 py-0.2 rounded bg-amber-500/15 text-amber-300 border border-amber-500/30 text-[9px] font-bold inline-flex items-center gap-1 mr-1"><span>🖐️</span><span>Dado Físico</span></span>'
       : '';
 
-    const targetLabel = targetName ? `<span class="text-rose-300 font-bold"> ➜ ${targetName}</span>` : '';
+    const targetLabel = targetName ? `<span class="text-rose-300 font-bold"> ➜ ${esc(targetName)}</span>` : '';
 
     if (summaryText && !isPhysical) {
       summaryText.innerHTML = `
@@ -1266,7 +1269,7 @@
         ${specialTag}
         ${targetHitEvaluation}
         <div class="mt-0.5">
-          <span class="text-[#cbd5e1] text-xs">${rollContext.label}${targetLabel} [${rollDetails}]${modDetails} = </span>
+          <span class="text-[#cbd5e1] text-xs">${esc(rollContext.label)}${targetLabel} [${rollDetails}]${modDetails} = </span>
           <strong class="text-xl font-headline font-bold ${res.isCrit ? 'text-amber-400' : 'text-[#f1f5f9]'}">${res.total}</strong>
         </div>
         ${halfDmgOnSaveHtml}
@@ -1559,7 +1562,7 @@
         followUpContainer.innerHTML = `
           <span class="text-[#94a3b8] text-[11px] flex items-center gap-1">
             <span class="material-symbols-outlined text-[14px] text-amber-400">swords</span>
-            <span>Paso 1: Impacto (d20) → Paso 2: <strong>${normalFormula} ${f.damageType}</strong></span>
+            <span>Paso 1: Impacto (d20) → Paso 2: <strong>${esc(normalFormula)} ${esc(f.damageType)}</strong></span>
           </span>
           <button
             type="button"
@@ -1596,7 +1599,7 @@
 
     if (summaryText) {
       const { targetName, targetDc, isPendingDm } = getEffectiveTargetAndDc();
-      const targetTxt = targetName ? ` contra <strong class="text-rose-300">${targetName}</strong>` : '';
+      const targetTxt = targetName ? ` contra <strong class="text-rose-300">${esc(targetName)}</strong>` : '';
       const dcTxt = targetDc !== null
         ? ` <span class="text-amber-300 font-bold">(CD/CA ${targetDc})</span>`
         : isPendingDm
@@ -1605,7 +1608,7 @@
       const followTxt = rollContext.followUpDamage
         ? ` <span class="text-emerald-400 font-bold"><br/>• Paso 1: Impacto (d20) → Paso 2: Daño (${rollContext.followUpDamage.count}d${rollContext.followUpDamage.die})</span>`
         : '';
-      summaryText.innerHTML = `<span class="text-[#94a3b8] text-xs">Preparado para: <strong class="text-amber-300">${rollContext.label}</strong>${targetTxt}${dcTxt}${followTxt} ${isSecretVal ? '<span class="text-purple-300 font-bold">(Secreta 🔒)</span>' : ''}</span>`;
+      summaryText.innerHTML = `<span class="text-[#94a3b8] text-xs">Preparado para: <strong class="text-amber-300">${esc(rollContext.label)}</strong>${targetTxt}${dcTxt}${followTxt} ${isSecretVal ? '<span class="text-purple-300 font-bold">(Secreta 🔒)</span>' : ''}</span>`;
     }
 
     const currentBackdrop = backdrop || (document.getElementById('modal-backdrop') as HTMLElement | null);

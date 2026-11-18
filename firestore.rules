@@ -204,6 +204,74 @@ service cloud.firestore {
           && request.resource.data.tokens[request.resource.data.lastMove.tokenId].x is number
           && request.resource.data.tokens[request.resource.data.lastMove.tokenId].y is number;
 
+        // Jugador: despliega, edita o retira el token de SU compañero (familiar, montura o invocación).
+        // Igual que al mover, lastMove.tokenId dice cuál es el único token tocado.
+        // - Crear: el token no existía, su dueño es el jugador, apunta a un compañero de una ficha
+        //   suya que está en esta campaña y solo trae los campos de un token de compañero.
+        // - Editar: solo un token de compañero suyo, sin cambiar dueño, ficha ni compañero, y el
+        //   resultado sigue siendo un token de compañero válido (nombre, tamaño, tipo, color, x/y).
+        // - Borrar: solo un token de compañero suyo.
+        // DECISION (bug #2 del reporte E2E, opción A): el jugador no necesita al DM para
+        // desplegar a su familiar; no puede crear PJ, enemigos ni tokens a nombre de otro.
+        allow update: if signedIn() && isMember(campaignId) && canPlay()
+          && changedKeys().hasOnly(['tokens', 'lastMove', 'updatedAt'])
+          && request.resource.data.lastMove.by == uid()
+          && request.resource.data.lastMove.tokenId is string
+          && request.resource.data.tokens.diff(resource.data.tokens).affectedKeys()
+               .hasOnly([request.resource.data.lastMove.tokenId])
+          && (createsOwnCompanionToken(request.resource.data.lastMove.tokenId)
+              || updatesOwnCompanionToken(request.resource.data.lastMove.tokenId)
+              || removesOwnCompanionToken(request.resource.data.lastMove.tokenId));
+
+        function createsOwnCompanionToken(tid) {
+          return !(tid in resource.data.tokens)
+            && tid in request.resource.data.tokens
+            && request.resource.data.tokens.size() <= 200
+            && validCompanionToken(request.resource.data.tokens[tid]);
+        }
+
+        function updatesOwnCompanionToken(tid) {
+          let before = resource.data.tokens[tid];
+          let after = request.resource.data.tokens[tid];
+          return tid in resource.data.tokens
+            && tid in request.resource.data.tokens
+            && before.ownerUid == uid()
+            && before.get('companionId', null) is string
+            && after.companionId == before.companionId
+            && after.characterId == before.characterId
+            && validCompanionToken(after);
+        }
+
+        function removesOwnCompanionToken(tid) {
+          return tid in resource.data.tokens
+            && !(tid in request.resource.data.tokens)
+            && resource.data.tokens[tid].ownerUid == uid()
+            && resource.data.tokens[tid].get('companionId', null) is string;
+        }
+
+        function validCompanionToken(t) {
+          return t.keys().hasOnly(['name', 'x', 'y', 'size', 'imageUrl', 'color', 'ownerUid',
+                                   'characterId', 'kind', 'companionId'])
+            && t.keys().hasAll(['name', 'x', 'y', 'size', 'ownerUid', 'characterId', 'kind', 'companionId'])
+            && t.ownerUid == uid()
+            && t.kind in ['companion', 'mount', 'summon']
+            && t.companionId is string && t.companionId.size() > 0 && t.companionId.size() <= 100
+            && t.name is string && t.name.size() > 0 && t.name.size() <= 120
+            && t.x is number && t.y is number
+            && t.size in [1, 2, 3, 4]
+            && (!('imageUrl' in t) || (t.imageUrl is string && t.imageUrl.size() <= 2048))
+            && (!('color' in t) || (t.color is string && t.color.size() <= 32))
+            && t.characterId is string
+            && ownsCharacterInCampaign(t.characterId);
+        }
+
+        function ownsCharacterInCampaign(charId) {
+          let path = /databases/$(database)/documents/characters/$(charId);
+          return exists(path)
+            && get(path).data.userId == uid()
+            && get(path).data.get('campaignId', null) == campaignId;
+        }
+
         // Tokens ocultos y demás datos que los jugadores no ven.
         match /private/{docId} {
           allow read: if signedIn() && isDm(campaignId);

@@ -319,20 +319,20 @@ export function recalculateCharacter(char: CharacterData): CharacterData {
       classPreset: 'custom',
       sectionOrder: {
         col1: ['abilities', 'saves', 'skills', 'features'],
-        col2: ['weapons', 'wildshape', 'currency', 'backpack', 'spells'],
-        unifiedOrder: ['abilities', 'saves', 'skills', 'features', 'weapons', 'wildshape', 'currency', 'backpack', 'spells']
+        col2: ['weapons', 'wildshape', 'companions', 'currency', 'backpack', 'spells'],
+        unifiedOrder: ['abilities', 'saves', 'skills', 'features', 'weapons', 'wildshape', 'companions', 'currency', 'backpack', 'spells']
       },
       collapsedSections: []
     };
   }
 
   // Ensure sectionOrder and collapsedSections are defined
-  const knownSections = ['abilities', 'saves', 'skills', 'features', 'weapons', 'wildshape', 'currency', 'backpack', 'spells'];
+  const knownSections = ['abilities', 'saves', 'skills', 'features', 'weapons', 'wildshape', 'companions', 'currency', 'backpack', 'spells'];
 
   if (!char.layoutConfig.sectionOrder || !Array.isArray(char.layoutConfig.sectionOrder.col1) || !Array.isArray(char.layoutConfig.sectionOrder.col2)) {
     char.layoutConfig.sectionOrder = {
       col1: ['abilities', 'saves', 'skills', 'features'],
-      col2: ['weapons', 'wildshape', 'currency', 'backpack', 'spells'],
+      col2: ['weapons', 'wildshape', 'companions', 'currency', 'backpack', 'spells'],
       unifiedOrder: [...knownSections]
     };
   } else {

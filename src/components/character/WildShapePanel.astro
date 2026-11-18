@@ -124,6 +124,8 @@
 
 <script>
   import { showAlert } from '../../scripts/ui/notify';
+  // Nombres, daños y notas los escribe el usuario: todo lo que va a innerHTML pasa por esc().
+  import { escapeHtml as esc } from '../../scripts/dnd/catalog';
   import { characterStore } from '../../scripts/state/characterStore';
   import { openModal } from '../../scripts/animations/modalAnimations';
 
@@ -209,12 +211,12 @@
           btn.className = 'p-2 rounded-lg bg-[#18202e] border border-[#222f42] flex items-center justify-between';
           btn.innerHTML = `
             <div>
-              <strong class="text-[#f1f5f9] block">${atk.name}</strong>
-              <span class="text-[10px] text-emerald-400">${atk.damage}</span>
+              <strong class="text-[#f1f5f9] block">${esc(atk.name)}</strong>
+              <span class="text-[10px] text-emerald-400">${esc(atk.damage)}</span>
             </div>
             <button class="roll-beast-atk px-2.5 py-1 rounded bg-emerald-500/20 text-emerald-300 font-bold hover:bg-emerald-500 hover:text-[#0a0d12] transition-colors cursor-pointer flex items-center gap-1 text-[11px]">
               <span class="material-symbols-outlined text-[13px]">casino</span>
-              <span>${atk.bonus}</span>
+              <span>${esc(atk.bonus)}</span>
             </button>
           `;
 

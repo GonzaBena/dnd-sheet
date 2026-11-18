@@ -474,7 +474,7 @@
   import { getArmorClass } from '../../scripts/dnd/ac.ts';
   import { showConfirm, showForm, showAlert } from '../../scripts/ui/notify.ts';
   import { animateHpBar } from '../../scripts/animations/hpAnimations.ts';
-  import { listMaps, addToken, watchActiveMap } from '../../scripts/data/mapService.ts';
+  import { listMaps, addToken, removeToken, watchActiveMap } from '../../scripts/data/mapService.ts';
   import { snapToGrid } from '../../scripts/vtt/geometry.ts';
   import type { Combat, Combatant } from '../../scripts/models/combat.ts';
   import type { Token } from '../../scripts/models/map.ts';
@@ -756,8 +756,8 @@
 
               <!-- Avatar del combatiente -->
               <img
-                src="${avatarUrl}"
-                alt="${c.name}"
+                src="${escapeHtml(avatarUrl)}"
+                alt="${escapeHtml(c.name)}"
                 class="w-9 h-9 rounded-xl object-cover border border-[#222f42] shrink-0 bg-[#10141d]"
                 onerror="this.onerror=null;this.src='/characters/ch-1.avif';"
               />
@@ -765,8 +765,8 @@
               <!-- Datos del combatiente -->
               <div class="min-w-0 flex-1 space-y-1">
                 <div class="flex items-center gap-1.5 flex-wrap min-w-0">
-                  <span class="text-xs sm:text-sm font-bold text-[#f1f5f9] truncate max-w-[150px] sm:max-w-xs md:max-w-md" title="${c.name}">
-                    ${c.name}
+                  <span class="text-xs sm:text-sm font-bold text-[#f1f5f9] truncate max-w-[150px] sm:max-w-xs md:max-w-md" title="${escapeHtml(c.name)}">
+                    ${escapeHtml(c.name)}
                   </span>
                   <span class="px-1.5 py-0.5 rounded text-[9px] font-bold whitespace-nowrap shrink-0 inline-flex items-center ${
                     c.isPlayer
@@ -820,7 +820,7 @@
                 type="button"
                 class="dm-remove-combatant-btn w-7 h-7 rounded-lg text-rose-400/80 hover:text-rose-300 hover:bg-rose-950/40 text-xs flex items-center justify-center transition-colors cursor-pointer shrink-0"
                 data-id="${c.id}"
-                data-name="${c.name}"
+                data-name="${escapeHtml(c.name)}"
                 title="Eliminar de este combate"
               >
                 <span class="material-symbols-outlined text-[16px]">close</span>
@@ -873,7 +873,7 @@
                   <select
                     class="dm-token-select min-w-0 max-w-[9rem] px-1.5 py-0.5 rounded bg-[#10141d] border border-[#222f42] text-[#cbd5e1] text-[10px] cursor-pointer focus:border-amber-500/40 focus:outline-none"
                     data-id="${c.id}"
-                    title="Token del mapa enlazado a ${c.name}"
+                    title="Token del mapa enlazado a ${escapeHtml(c.name)}"
                     aria-label="Token enlazado"
                   >
                     ${tokenOptionsHtml(c.tokenId)}
@@ -886,7 +886,7 @@
                     <select
                       class="dm-owner-select min-w-0 max-w-[10rem] px-1.5 py-0.5 rounded bg-[#10141d] border border-[#222f42] text-[#cbd5e1] text-[10px] cursor-pointer focus:border-amber-500/40 focus:outline-none"
                       data-id="${c.id}"
-                      title="Controlado por (dueño del turno de ${c.name})"
+                      title="Controlado por (dueño del turno de ${escapeHtml(c.name)})"
                       aria-label="Controlado por"
                     >
                       ${ownerOptionsHtml(currentCampaignId, c.ownerUid)}
@@ -908,10 +908,10 @@
                             class="dm-remove-condition-btn inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-bold border ${info.color} hover:opacity-80 transition-opacity cursor-pointer whitespace-nowrap shrink-0"
                             data-id="${c.id}"
                             data-cond="${condId}"
-                            title="Quitar ${info.name}"
+                            title="Quitar ${escapeHtml(info.name)}"
                           >
                             <span class="material-symbols-outlined text-[11px] shrink-0">${info.icon}</span>
-                            <span class="whitespace-nowrap">${info.name}</span>
+                            <span class="whitespace-nowrap">${escapeHtml(info.name)}</span>
                             <span class="text-[9px] ml-0.5">×</span>
                           </button>
                         `;
@@ -923,7 +923,7 @@
                       type="button"
                       class="dm-add-condition-btn px-1.5 py-0.5 rounded bg-[#10141d] border border-[#222f42] hover:border-amber-500/40 text-[#94a3b8] hover:text-amber-300 text-[10px] cursor-pointer whitespace-nowrap shrink-0 inline-flex items-center"
                       data-id="${c.id}"
-                      title="Agregar condición a ${c.name}"
+                      title="Agregar condición a ${escapeHtml(c.name)}"
                     >
                       + Condición
                     </button>
@@ -961,8 +961,8 @@
                   type="button"
                   class="dm-hp-delta-btn dm-hp-sub-btn w-6 h-6 rounded bg-[#10141d] border border-rose-900/40 hover:bg-rose-950/60 text-rose-300 text-xs font-bold font-mono flex items-center justify-center cursor-pointer shrink-0"
                   data-id="${c.id}"
-                  data-name="${c.name}"
-                  title="Dañar a ${c.name} (restar PG)"
+                  data-name="${escapeHtml(c.name)}"
+                  title="Dañar a ${escapeHtml(c.name)} (restar PG)"
                 >
                   <span class="material-symbols-outlined text-[13px]">remove</span>
                 </button>
@@ -970,8 +970,8 @@
                   type="button"
                   class="dm-hp-delta-btn dm-hp-add-btn w-6 h-6 rounded bg-[#10141d] border border-emerald-900/40 hover:bg-emerald-950/60 text-emerald-300 text-xs font-bold font-mono flex items-center justify-center cursor-pointer shrink-0"
                   data-id="${c.id}"
-                  data-name="${c.name}"
-                  title="Curar a ${c.name} (sumar PG)"
+                  data-name="${escapeHtml(c.name)}"
+                  title="Curar a ${escapeHtml(c.name)} (sumar PG)"
                 >
                   <span class="material-symbols-outlined text-[13px]">add</span>
                 </button>
@@ -986,14 +986,14 @@
                   type="button"
                   class="dm-attack-player-btn inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-gradient-to-r from-rose-600/30 to-rose-500/20 border border-rose-500/50 hover:bg-rose-500/35 text-rose-200 text-xs font-bold transition-all cursor-pointer shadow-[0_0_12px_rgba(244,63,94,0.2)] active:scale-95 shrink-0 order-last w-full justify-center"
                   data-attacker-id="${activeCombatant.id}"
-                  data-attacker-name="${activeCombatant.name}"
+                  data-attacker-name="${escapeHtml(activeCombatant.name)}"
                   data-target-id="${c.id}"
-                  data-target-name="${c.name}"
+                  data-target-name="${escapeHtml(c.name)}"
                   data-target-ac="${c.ac || 10}"
-                  title="Hacer que ${activeCombatant.name} ataque a ${c.name}"
+                  title="Hacer que ${escapeHtml(activeCombatant.name)} ataque a ${escapeHtml(c.name)}"
                 >
                   <span class="material-symbols-outlined text-[15px] shrink-0">swords</span>
-                  <span class="truncate max-w-[130px] sm:max-w-[190px]">Atacar con ${activeCombatant.name}</span>
+                  <span class="truncate max-w-[130px] sm:max-w-[190px]">Atacar con ${escapeHtml(activeCombatant.name)}</span>
                 </button>
               `
                 : ''
@@ -1186,6 +1186,34 @@
         });
 
         if (ok) {
+          // Si el combatiente es un enemigo/NPC, limpiar también su token del mapa activo
+          const currentCombat = getCurrentCombat(cid);
+          const combatant = currentCombat?.combatants?.find((c) => c.id === id);
+          if (combatant && !combatant.isPlayer) {
+            const camp = campaignStore.getCampaign(cid);
+            if (camp?.activeMapId) {
+              try {
+                const maps = await listMaps(cid);
+                const activeMap = maps.find((m) => m.id === camp.activeMapId);
+                if (activeMap?.tokens) {
+                  if (combatant.tokenId && activeMap.tokens[combatant.tokenId]) {
+                    await removeToken(cid, activeMap.id, combatant.tokenId);
+                  } else {
+                    const cleanName = combatant.name.trim().toLowerCase();
+                    const matchingTokenEntry = Object.entries(activeMap.tokens).find(
+                      ([_, tok]) => tok.name.trim().toLowerCase() === cleanName
+                    );
+                    if (matchingTokenEntry) {
+                      await removeToken(cid, activeMap.id, matchingTokenEntry[0]);
+                    }
+                  }
+                }
+              } catch (err) {
+                console.warn('[CombatTracker] No se pudo retirar el token del mapa al eliminar combatiente:', err);
+              }
+            }
+          }
+
           await removeCombatantFromCombat(cid, id);
         }
       });
@@ -1231,7 +1259,7 @@
       if (enemyTargetAcBadge) enemyTargetAcBadge.textContent = 'CA --';
     } else {
       enemyTargetPlayerSelect.innerHTML = players
-        .map((p) => `<option value="${p.name}" data-id="${p.id}" data-ac="${p.ac || 10}" ${defaultTargetName === p.name ? 'selected' : ''}>${p.name} (CA ${p.ac || 10})</option>`)
+        .map((p) => `<option value="${escapeHtml(p.name)}" data-id="${p.id}" data-ac="${p.ac || 10}" ${defaultTargetName === p.name ? 'selected' : ''}>${escapeHtml(p.name)} (CA ${p.ac || 10})</option>`)
         .join('');
       if (defaultTargetName) {
         enemyTargetPlayerSelect.value = defaultTargetName;
@@ -1380,7 +1408,7 @@
 
       item.innerHTML = `
         <span class="material-symbols-outlined text-[14px]">${cond.icon}</span>
-        <span class="truncate">${cond.name}</span>
+        <span class="truncate">${escapeHtml(cond.name)}</span>
         ${active ? '<span class="ml-auto text-[10px]">✓</span>' : ''}
       `;
 
@@ -1447,7 +1475,7 @@
         item.className = 'flex items-center justify-between gap-3 p-2 rounded-lg bg-[#18202e] border border-[#222f42]';
         item.innerHTML = `
           <div class="min-w-0">
-            <span class="text-xs font-bold text-[#f1f5f9] truncate block">${p.name}</span>
+            <span class="text-xs font-bold text-[#f1f5f9] truncate block">${escapeHtml(p.name)}</span>
             <span class="text-[10px] text-[#94a3b8]">PG: ${p.hp}/${p.maxHp} • CA: ${p.ac || 10}</span>
           </div>
           <div class="flex items-center gap-1.5 shrink-0">
@@ -1456,7 +1484,7 @@
               type="number"
               class="dm-player-init-input w-14 px-2 py-1 rounded bg-[#10141d] border border-[#222f42] text-xs font-bold text-[#cbd5e1] text-center"
               data-char-id="${p.characterId}"
-              data-name="${p.name}"
+              data-name="${escapeHtml(p.name)}"
               data-hp="${p.hp}"
               data-max-hp="${p.maxHp}"
               data-ac="${p.ac}"
@@ -1551,6 +1579,11 @@
       const mAc = Number(monsterAcInput?.value) || 10;
       mQty = Math.max(1, Number(monsterQtyInput?.value) || 1);
 
+      let initialEnemyTids: string[] = [];
+      if (mName && shouldAddTokens) {
+        initialEnemyTids = await deployEnemyTokensToActiveMap(currentCampaignId, mName, mQty, '/characters/ch-3.avif');
+      }
+
       for (let i = 1; i <= mQty; i++) {
         combatants.push({
           id: `npc-${Date.now()}-${i}-${Math.random().toString(36).substring(2, 6)}`,
@@ -1560,6 +1593,7 @@
           maxHp: mHp,
           ac: mAc,
           conditions: [],
+          tokenId: initialEnemyTids[i - 1] || undefined,
           isPlayer: false,
           hiddenHp: !mOwnerUid,
           ownerUid: mOwnerUid,
@@ -1576,9 +1610,6 @@
     try {
       await startCombat(currentCampaignId, combatants);
       closeStartModal();
-      if (mName && shouldAddTokens) {
-        await deployEnemyTokensToActiveMap(currentCampaignId, mName, mQty, '/characters/ch-3.avif');
-      }
       // Limpiar campos de monstruo inicial
       if (monsterNameInput) monsterNameInput.value = '';
       if (monsterInitInput) monsterInitInput.value = '';
@@ -1597,19 +1628,21 @@
     enemyName: string,
     qty: number,
     avatarUrl = '/characters/ch-3.avif'
-  ): Promise<void> {
+  ): Promise<string[]> {
     const camp = campaignStore.getCampaign(cid);
-    if (!camp || !camp.activeMapId) return;
+    if (!camp || !camp.activeMapId) return [];
 
     try {
       const maps = await listMaps(cid);
       const activeMap = maps.find((m) => m.id === camp.activeMapId);
-      if (!activeMap) return;
+      if (!activeMap) return [];
 
       const grid = activeMap.grid || { size: 50, offsetX: 0, offsetY: 0, visible: true };
       const centerX = activeMap.imageWidth ? activeMap.imageWidth / 2 : 400;
       const centerY = activeMap.imageHeight ? activeMap.imageHeight / 2 : 400;
       const baseSnapped = snapToGrid({ x: centerX, y: centerY }, grid);
+
+      const createdTids: string[] = [];
 
       for (let i = 1; i <= qty; i++) {
         const name = qty > 1 ? `${enemyName} ${i}` : enemyName;
@@ -1628,10 +1661,13 @@
           ownerUid: null,
         };
 
-        await addToken(cid, activeMap.id, token);
+        const tid = await addToken(cid, activeMap.id, token);
+        createdTids.push(tid);
       }
+      return createdTids;
     } catch (err) {
       console.warn('[CombatTracker] Error desplegando tokens de enemigo:', err);
+      return [];
     }
   }
 
@@ -1681,6 +1717,11 @@
     const mOwnerUid = formResult.ownerUid ? String(formResult.ownerUid).trim() : undefined;
     const shouldAddToken = formResult.addToken === 'true' || formResult.addToken === true;
 
+    let deployedTids: string[] = [];
+    if (shouldAddToken) {
+      deployedTids = await deployEnemyTokensToActiveMap(currentCampaignId, mName, qty, '/characters/ch-3.avif');
+    }
+
     for (let i = 1; i <= qty; i++) {
       const newCombatant: Combatant = {
         id: `npc-${Date.now()}-${i}-${Math.random().toString(36).substring(2, 6)}`,
@@ -1690,16 +1731,13 @@
         maxHp: mHp,
         ac: mAc,
         conditions: [],
+        tokenId: deployedTids[i - 1] || undefined,
         isPlayer: false,
         hiddenHp: !mOwnerUid,
         ownerUid: mOwnerUid,
         avatarUrl: '/characters/ch-3.avif',
       };
       await addCombatant(currentCampaignId, newCombatant);
-    }
-
-    if (shouldAddToken) {
-      await deployEnemyTokensToActiveMap(currentCampaignId, mName, qty, '/characters/ch-3.avif');
     }
   });
 

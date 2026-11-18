@@ -715,7 +715,7 @@ const { mode = 'player', class: className = '', id } = Astro.props;
       }) as EventListener);
 
       controller.addEventListener('token-select', ((e: CustomEvent) => {
-        window.dispatchEvent(new CustomEvent('token-selected', { detail: e.detail }));
+        window.dispatchEvent(new CustomEvent('token-selected', { detail: { ...e.detail, mapId: currentMapId } }));
         showTokenCard(e.detail?.tid);
       }) as EventListener);
 
@@ -1074,6 +1074,14 @@ const { mode = 'player', class: className = '', id } = Astro.props;
 
           emptyOverlay?.classList.add('hidden');
           updateTitle(map);
+          const stageCid = getActiveCampaignId();
+          if (stageCid && map?.id) {
+            window.dispatchEvent(
+              new CustomEvent('map-stage-loaded', {
+                detail: { cid: stageCid, mid: map.id, map },
+              })
+            );
+          }
 
           // Mismo mapa ya cargado: actualizar grilla, tokens y niebla sin reiniciar el stage
           if (currentMapId === map.id) {

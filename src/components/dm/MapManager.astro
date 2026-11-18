@@ -242,6 +242,7 @@
   import { campaignStore } from '../../scripts/state/campaignStore.ts';
   import {
     listMaps,
+    getLocalMaps,
     createMap,
     updateMapConfig,
     deleteMap,
@@ -809,7 +810,15 @@
   window.addEventListener('campaigns-updated', () => init());
   window.addEventListener('active-campaign-changed', () => init());
   window.addEventListener('session-status-changed', () => updateActionButtonsAvailability());
-  window.addEventListener('maps-updated', () => reloadMaps());
+  // Bug #18 (reporte E2E): 'maps-updated' lo emite la propia caché local cuando cambia. Volver a
+  // pedir los mapas con listMaps() aquí cerraba un bucle infinito en la nube (listMaps lee
+  // Firestore, guarda la caché y vuelve a emitir 'maps-updated'). Basta con releer la caché.
+  window.addEventListener('maps-updated', () => {
+    const cid = getActiveCid();
+    if (!cid) return;
+    currentCampaignMaps = getLocalMaps(cid);
+    renderMapsList();
+  });
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);

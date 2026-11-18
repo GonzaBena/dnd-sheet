@@ -155,6 +155,8 @@
 
 <script>
   import { campaignStore } from '../../scripts/state/campaignStore';
+  // Nombre, clase y avatar del PJ los escribe el jugador: todo lo que va a innerHTML pasa por esc().
+  import { escapeHtml as esc } from '../../scripts/dnd/catalog';
   import type { TotmZone } from '../../scripts/models/map';
 
   const zoneMeleeEl = document.getElementById('totm-zone-melee');
@@ -280,11 +282,11 @@
       card.innerHTML = `
         <div class="flex items-center gap-2 min-w-0">
           <div class="w-7 h-7 rounded-lg overflow-hidden shrink-0 border border-amber-500/30 bg-[#10141d]">
-            <img src="${char.avatarUrl || '/characters/ch-1.avif'}" alt="${char.name}" class="w-full h-full object-cover" onerror="this.onerror=null;this.src='/characters/ch-1.avif';" />
+            <img src="${esc(char.avatarUrl || '/characters/ch-1.avif')}" alt="${esc(char.name)}" class="w-full h-full object-cover" onerror="this.onerror=null;this.src='/characters/ch-1.avif';" />
           </div>
           <div class="min-w-0">
-            <span class="font-headline font-bold text-xs text-[#f1f5f9] block truncate">${char.name}</span>
-            <span class="text-[9px] text-amber-300/80 font-mono">${char.className}</span>
+            <span class="font-headline font-bold text-xs text-[#f1f5f9] block truncate">${esc(char.name)}</span>
+            <span class="text-[9px] text-amber-300/80 font-mono">${esc(char.className)}</span>
           </div>
         </div>
 

@@ -266,6 +266,8 @@
   import { characterStore } from '../../scripts/state/characterStore';
   import { remaining } from '../../scripts/dnd/resources';
   import { showAlert } from '../../scripts/ui/notify';
+  // Nombres, daños y notas los escribe el usuario: todo lo que va a innerHTML pasa por esc().
+  import { escapeHtml as esc } from '../../scripts/dnd/catalog';
 
   const root = document.getElementById('physical-table-sheet-root');
   const avatarEl = document.getElementById('pts-avatar') as HTMLImageElement;
@@ -502,8 +504,8 @@
           card.className = 'p-3 rounded-xl bg-[#18202e] border border-[#222f42] flex items-center justify-between gap-3';
           card.innerHTML = `
             <div class="min-w-0">
-              <span class="text-xs font-headline font-bold text-amber-300 block truncate">${r.name}</span>
-              <span class="text-[10px] font-mono text-[#94a3b8]">${rem} / ${r.max} restantes</span>
+              <span class="text-xs font-headline font-bold text-amber-300 block truncate">${esc(r.name)}</span>
+              <span class="text-[10px] font-mono text-[#94a3b8]">${rem} / ${esc(r.max)} restantes</span>
             </div>
             <div class="flex items-center gap-1.5 shrink-0 font-mono">
               <button
@@ -558,7 +560,7 @@
           card.innerHTML = `
             <div class="min-w-0">
               <div class="flex items-center gap-2">
-                <span class="text-xs font-headline font-bold text-[#f1f5f9] truncate">${act.name}</span>
+                <span class="text-xs font-headline font-bold text-[#f1f5f9] truncate">${esc(act.name)}</span>
                 ${
                   act.equipped
                     ? '<span class="px-1.5 py-0.2 rounded bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 text-[9px] font-bold">Equipada</span>'
@@ -566,16 +568,16 @@
                 }
               </div>
               <div class="flex items-center gap-2 text-[11px] font-mono text-[#94a3b8] pt-0.5">
-                <span class="text-amber-300 font-bold">${act.bonus}</span>
+                <span class="text-amber-300 font-bold">${esc(act.bonus)}</span>
                 <span>•</span>
-                <span>${act.damage} ${act.damageType || ''}</span>
+                <span>${esc(act.damage)} ${esc(act.damageType || '')}</span>
               </div>
             </div>
 
             <button
               type="button"
               class="pts-roll-atk-btn inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-gradient-to-r from-amber-600 to-amber-500 hover:brightness-110 text-[#0a0d12] font-headline font-bold text-xs shadow-xs active:scale-95 transition-all cursor-pointer shrink-0"
-              title="Tirar ataque con ${act.name}"
+              title="Tirar ataque con ${esc(act.name)}"
             >
               <span class="material-symbols-outlined text-[16px]">casino</span>
               <span>Tirar</span>
@@ -629,7 +631,7 @@
           const chip = document.createElement('span');
           chip.className = 'inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-rose-950/40 text-rose-300 border border-rose-500/40 text-xs font-bold shadow-xs';
           chip.innerHTML = `
-            <span>${eff.name}</span>
+            <span>${esc(eff.name)}</span>
             <button type="button" class="pts-del-cond hover:text-white cursor-pointer ml-1 text-xs">×</button>
           `;
           chip.querySelector('.pts-del-cond')?.addEventListener('click', () => {

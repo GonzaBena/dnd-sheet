@@ -139,13 +139,13 @@
             <div class="flex items-center gap-1.5 flex-wrap">
               <span class="font-headline font-bold text-sm text-[#f1f5f9] truncate">${escapeHtml(item.name)}</span>
               ${customBadgeHtml(item)}
-              <span class="px-2 py-0.2 rounded-full bg-amber-500/20 text-amber-300 text-[10px] font-bold border border-amber-500/40 shrink-0">x${item.quantity}</span>
+              <span class="px-2 py-0.2 rounded-full bg-amber-500/20 text-amber-300 text-[10px] font-bold border border-amber-500/40 shrink-0">x${escapeHtml(item.quantity)}</span>
             </div>
             <div class="flex items-center gap-2 flex-wrap mt-0.5">
               <span class="text-xs text-[#94a3b8] font-label truncate">
-                ${item.description || (item.healAmount ? `Recupera +${item.healAmount} PG` : 'Objeto usable en combate')}
+                ${escapeHtml(item.description || (item.healAmount ? `Recupera +${item.healAmount} PG` : 'Objeto usable en combate'))}
               </span>
-              ${item.activationCondition ? `<span class="px-1.5 py-0.2 rounded bg-amber-500/10 text-amber-300 text-[9px] font-bold border border-amber-500/20 flex items-center gap-0.5 shrink-0"><span class="material-symbols-outlined text-[11px]">timer</span><span>${item.activationCondition}</span></span>` : ''}
+              ${item.activationCondition ? `<span class="px-1.5 py-0.2 rounded bg-amber-500/10 text-amber-300 text-[9px] font-bold border border-amber-500/20 flex items-center gap-0.5 shrink-0"><span class="material-symbols-outlined text-[11px]">timer</span><span>${escapeHtml(item.activationCondition)}</span></span>` : ''}
             </div>
           </div>
         </div>
@@ -178,7 +178,7 @@
       ${item.notes ? `
         <div class="px-2.5 py-1 rounded bg-[#10141d] border border-amber-500/20 text-[11px] text-[#cbd5e1] flex items-start gap-1.5">
           <span class="material-symbols-outlined text-[13px] text-amber-400 shrink-0 mt-0.5">auto_awesome</span>
-          <span class="leading-relaxed"><strong class="text-amber-400/90 font-medium">Efecto Especial:</strong> ${item.notes}</span>
+          <span class="leading-relaxed"><strong class="text-amber-400/90 font-medium">Efecto Especial:</strong> ${escapeHtml(item.notes)}</span>
         </div>
       ` : ''}
     `;
@@ -285,14 +285,14 @@
           </div>
 
           <div class="flex items-center gap-1.5 shrink-0">
-            <span class="px-2 py-0.5 rounded bg-[#10141d] text-[#94a3b8] font-bold text-[11px] border border-[#222f42]">x${item.quantity}</span>
+            <span class="px-2 py-0.5 rounded bg-[#10141d] text-[#94a3b8] font-bold text-[11px] border border-[#222f42]">x${escapeHtml(item.quantity)}</span>
             
             ${actionVerb ? `
               <button
                 type="button"
                 class="action-item-btn px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 hover:bg-amber-500 hover:text-[#0a0d12] text-[10px] font-bold border border-amber-500/30 transition-all cursor-pointer"
                 data-id="${item.id}"
-                title="${actionVerb} ${item.name}"
+                title="${actionVerb} ${escapeHtml(item.name)}"
               >
                 ${actionVerb}
               </button>
@@ -332,7 +332,7 @@
               <span class="material-symbols-outlined text-[14px] text-amber-400 shrink-0 mt-0.5">timer</span>
               <div>
                 <strong class="text-amber-300 font-semibold">Activación:</strong>
-                <span>${item.activationCondition}</span>
+                <span>${escapeHtml(item.activationCondition)}</span>
               </div>
             </div>
           ` : ''}
@@ -340,7 +340,7 @@
           ${item.description ? `
             <div>
               <strong class="text-[#94a3b8]">Descripción:</strong>
-              <p class="text-[#e2e8f0] leading-relaxed mt-0.5">${item.description}</p>
+              <p class="text-[#e2e8f0] leading-relaxed mt-0.5">${escapeHtml(item.description)}</p>
             </div>
           ` : ''}
 
@@ -349,7 +349,7 @@
               <span class="material-symbols-outlined text-[14px] text-amber-400 shrink-0 mt-0.5">auto_awesome</span>
               <div>
                 <strong class="text-amber-400 font-semibold">Notas y Efectos Especiales:</strong>
-                <p class="text-[#cbd5e1] leading-relaxed mt-0.5 whitespace-pre-line">${item.notes}</p>
+                <p class="text-[#cbd5e1] leading-relaxed mt-0.5 whitespace-pre-line">${escapeHtml(item.notes)}</p>
               </div>
             </div>
           ` : ''}
