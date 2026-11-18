@@ -18,7 +18,7 @@ import SiteFooter from '../components/layout/SiteFooter.astro';
 import DeleteAccountModal from '../components/modals/DeleteAccountModal.astro';
 ---
 
-<BaseLayout>
+<BaseLayout splash="home">
   <!-- Global Modal Backdrop -->
   <div id="modal-backdrop" class="hidden fixed inset-0 bg-black/80 backdrop-blur-xs z-50 transition-opacity"></div>
 
@@ -491,6 +491,7 @@ import DeleteAccountModal from '../components/modals/DeleteAccountModal.astro';
   import { characterStore } from '../scripts/state/characterStore';
   import { userStore } from '../scripts/state/userStore';
   import { cloudSession } from '../scripts/data/cloudSync';
+  import { bootSplash } from '../scripts/ui/bootSplash';
   import { isAdmin } from '../scripts/auth/adminAuth';
   import { normalizeStatus } from '../scripts/vtt/sessionStatus';
   import { openSideDrawer, closeSideDrawer } from '../scripts/animations/modalAnimations';
@@ -1271,13 +1272,22 @@ import DeleteAccountModal from '../components/modals/DeleteAccountModal.astro';
 
     cloudSession.ready().then(() => {
       syncLandingVsDashboard(cloudSession.state);
+      renderView();
+      bootSplash.release('session');
+      bootSplash.release('view');
     });
 
     window.addEventListener('cloud-session-changed', ((e: CustomEvent<{ state: string }>) => {
       syncLandingVsDashboard(e.detail.state);
+      if (e.detail.state === 'signed-out') {
+        bootSplash.dismiss('ready');
+      }
     }) as EventListener);
   } else {
     syncLandingVsDashboard('local');
+    renderView();
+    bootSplash.release('session');
+    bootSplash.release('view');
   }
 
   // Mobile Navigation Drawer interactions

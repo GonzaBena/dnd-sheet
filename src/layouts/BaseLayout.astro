@@ -8,11 +8,13 @@ import ParchmentEnvelope from '../components/ui/ParchmentEnvelope.astro';
 interface Props {
   title?: string;
   description?: string;
+  splash?: 'home' | 'sheet' | 'party' | 'none';
 }
 
 const {
   title = "Crónicas del Aventurero — Grimorio de Campaña",
-  description = "Hoja de personaje y bitácora interactiva de campaña D&D 5e"
+  description = "Hoja de personaje y bitácora interactiva de campaña D&D 5e",
+  splash = "none"
 } = Astro.props;
 ---
 
@@ -59,8 +61,92 @@ const {
       href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
       rel="stylesheet"
     />
+
+    <!-- Critical CSS for Boot Splash (Spec 16) -->
+    <style is:inline>
+      #boot-splash {
+        display: none;
+      }
+      html[data-booting] #boot-splash {
+        display: flex;
+      }
+      html[data-booting] body {
+        overflow: hidden !important;
+      }
+      @keyframes indeterminate-bar {
+        0% { transform: translateX(-100%); }
+        50% { transform: translateX(35%); }
+        100% { transform: translateX(200%); }
+      }
+      .animate-boot-indeterminate {
+        animation: indeterminate-bar 1.4s cubic-bezier(0.65, 0.815, 0.735, 0.395) infinite;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .animate-boot-indeterminate {
+          animation: none !important;
+          transform: none !important;
+          width: 100% !important;
+        }
+      }
+    </style>
+
+    <!-- Inline Decision Script (Spec 16: runs blocking before first paint, < 1KB) -->
+    <script is:inline define:vars={{ splashPage: splash }}>
+      (function() {
+        var page = splashPage || 'none';
+        if (page === 'none') return;
+        try {
+          var params = new URLSearchParams(window.location.search);
+          var forceLanding = params.get('landing') === '1';
+          var isDemo = params.get('demo') === '1' || (typeof localStorage !== 'undefined' && localStorage.getItem('dnd_demo_mode') === '1');
+          var wasAuthed = typeof localStorage !== 'undefined' && localStorage.getItem('dnd_cloud_authed') === '1';
+
+          var show = false;
+          if (page === 'home') {
+            show = !forceLanding && (wasAuthed || isDemo);
+          } else {
+            show = true; // 'sheet' y 'party' siempre esperan datos
+          }
+
+          if (show) {
+            document.documentElement.setAttribute('data-booting', '');
+            window.__bootSplashShownAt = performance.now();
+            setTimeout(function() {
+              if (document.documentElement.hasAttribute('data-booting')) {
+                document.documentElement.removeAttribute('data-booting');
+                var el = document.getElementById('boot-splash');
+                if (el) el.style.display = 'none';
+              }
+            }, 12000);
+          }
+        } catch (_) {}
+      })();
+    </script>
   </head>
   <body class="bg-[#0a0d12] font-body text-[#f1f5f9] min-h-screen selection:bg-amber-500/30 selection:text-amber-200 antialiased overflow-x-hidden">
+    <!-- Boot Splash Screen (Spec 16) -->
+    <div
+      id="boot-splash"
+      class="fixed inset-0 z-[100] bg-[#0a0d12] flex-col items-center justify-center select-none"
+      role="status"
+      aria-live="polite"
+    >
+      <div class="relative flex flex-col items-center justify-center gap-4 text-center max-w-sm px-6">
+        <div class="relative w-16 h-16 rounded-2xl bg-gradient-to-br from-[#18202e] to-[#0e141f] border border-amber-500/40 p-2.5 shadow-[0_0_30px_rgba(245,158,11,0.25)] flex items-center justify-center">
+          <img src="/favicon.svg" alt="Crónicas del Aventurero" class="w-full h-full object-contain filter drop-shadow-[0_0_8px_rgba(245,158,11,0.5)]" />
+        </div>
+        <div class="space-y-1">
+          <h1 class="text-base sm:text-lg font-headline font-bold text-[#f1f5f9] tracking-tight">Crónicas del Aventurero</h1>
+          <p id="boot-splash-phrase" class="text-xs text-amber-400 font-label font-semibold tracking-wide">
+            Tirando iniciativa…
+          </p>
+        </div>
+        <div class="w-32 h-1 bg-[#18202e] rounded-full overflow-hidden mt-1 border border-[#222f42]">
+          <div class="h-full bg-gradient-to-r from-amber-600 via-amber-400 to-amber-600 rounded-full w-1/2 animate-boot-indeterminate"></div>
+        </div>
+      </div>
+    </div>
+
     <slot />
     <AuthGate />
     <MilestoneCelebrationModal />
@@ -70,6 +156,7 @@ const {
 </html>
 
 <script>
+  import { bootSplash } from '../scripts/ui/bootSplash.ts';
   import { campaignStore } from '../scripts/state/campaignStore.ts';
   import { characterStore } from '../scripts/state/characterStore.ts';
   import { userStore } from '../scripts/state/userStore.ts';

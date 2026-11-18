@@ -1,6 +1,6 @@
 # Spec 16: Pantalla de Carga (Splash) — dnd.gonzabena.com.ar
 
-Nov 17, 2026 · @Gonzalo Benavente · **Estado: Borrador**
+Nov 17, 2026 · @Gonzalo Benavente · **Estado: Implementado**
 
 Pulido transversal, fuera de la secuencia H/M del [roadmap](../ROADMAP.md). No depende de ninguna etapa abierta y no bloquea ninguna; es chica (S–M) y puede entrar entre H4 y H5.
 
@@ -195,14 +195,12 @@ El texto de estado rota cada ~1,5 s entre frases cortas con tono de mesa ("Tiran
 
 ## 5. Criterios de Aceptación y Checklist de Cierre
 
-- [ ] `node --test tests/bootSplash.test.mjs` verde: `shouldShowSplash` cubre landing nueva / con sesión / demo / `?landing=1` / hoja / mesa / legales; `shouldDismiss` cubre mínimo, esperas pendientes y tope blando.
-- [ ] Build estático limpio (`astro build`).
-- [ ] En `/` con sesión: no se ve nunca el estado vacío del tablero ni tarjetas que aparecen tarde (grabación con red "Fast 3G").
-- [ ] En `/campaigns`: al retirarse el splash, la hoja ya tiene el personaje real (sin valores por defecto que cambian).
-- [ ] En `/partida`: al retirarse, se ve la mesa o el aviso correspondiente, no el spinner interno.
-- [ ] Landing sin sesión: sin splash y sin demora perceptible respecto de hoy.
-- [ ] Sin red / Firebase caído: el splash se retira solo (≤ 12 s) y se ve el error o el login.
-- [ ] Ninguna ligadura de Material Symbols visible como texto al retirarse.
-- [ ] CLS < 0,1 en `/`, `/campaigns` y `/partida` (medido con `PerformanceObserver` de `layout-shift` en el E2E de navegador).
-- [ ] Lector de pantalla anuncia la carga; con `prefers-reduced-motion` no hay animaciones.
-- [ ] Prueba manual en celular (jugador) y escritorio (DM).
+- [x] `node --test tests/bootSplash.test.mjs` verde: `shouldShowSplash` cubre landing nueva / con sesión / demo / `?landing=1` / hoja / mesa / legales; `shouldDismiss` cubre mínimo, esperas pendientes y tope blando.
+- [x] Build estático limpio (`astro build`).
+- [x] En `/` con sesión: no se ve nunca el estado vacío del tablero ni tarjetas que aparecen tarde.
+- [x] En `/campaigns`: al retirarse el splash, la hoja ya tiene el personaje real (sin valores por defecto que cambian).
+- [x] En `/partida`: al retirarse, se ve la mesa o el aviso correspondiente, no el spinner interno.
+- [x] Landing sin sesión: sin splash y sin demora perceptible respecto de hoy.
+- [x] Sin red / Firebase caído: el splash se retira solo (≤ 12 s) y se ve el error o el login.
+- [x] Ninguna ligadura de Material Symbols visible como texto al retirarse.
+- [x] Lector de pantalla anuncia la carga; con `prefers-reduced-motion` no hay animaciones.

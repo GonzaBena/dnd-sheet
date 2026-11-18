@@ -354,6 +354,7 @@ import HandoutManager from '../dm/HandoutManager.astro';
   import { syncCombatWithLiveCharacters } from '../../scripts/data/combatService.ts';
   import { applyHpAction } from '../../scripts/ui/hpActions.ts';
   import { initTabs } from '../../scripts/ui/tabs.ts';
+  import { bootSplash } from '../../scripts/ui/bootSplash.ts';
   // Títulos, contenido, autores, etiquetas y tiradas de la bitácora los escriben los usuarios: van por esc().
   import { escapeHtml as esc } from '../../scripts/dnd/catalog.ts';
 
@@ -406,6 +407,8 @@ import HandoutManager from '../dm/HandoutManager.astro';
     if (!isFirebaseConfigured() && urlParams.get('local') !== '1') {
       loadingEl?.classList.add('hidden');
       localNotice?.classList.remove('hidden');
+      bootSplash.release('session');
+      bootSplash.release('view');
       return;
     }
 
@@ -705,6 +708,8 @@ import HandoutManager from '../dm/HandoutManager.astro';
     notFoundNotice?.classList.add('hidden');
     localNotice?.classList.add('hidden');
     contentEl?.classList.remove('hidden');
+    bootSplash.release('session');
+    bootSplash.release('view');
 
     // Header info
     if (titleEl) titleEl.textContent = camp.name;
@@ -1007,6 +1012,8 @@ import HandoutManager from '../dm/HandoutManager.astro';
     contentEl?.classList.add('hidden');
     localNotice?.classList.add('hidden');
     notFoundNotice?.classList.remove('hidden');
+    bootSplash.release('session');
+    bootSplash.release('view');
   }
 
   window.addEventListener('campaigns-updated', render);
