@@ -11,6 +11,7 @@ overrides:
   glob@<14.0.2: ^14.0.2
   minimatch@>=9 <11.0.1: ^11.0.1
   '@opentelemetry/core@<2.8.0': ^2.8.0
+  websocket-driver@<0.8.0: ^0.8.0
 
 dependencies:
   '@astrojs/tailwind':
@@ -3685,7 +3686,7 @@ packages:
     resolution: {integrity: sha512-CzbClwlXAuiRQAlUyfqPgvPoNKTckTPGfwZV4ZdAhVcP2lh9KUxJg2b5GkE7XbjKQ3YJnQ9z6D9ntLAlB+tP8g==}
     engines: {node: '>=0.8.0'}
     dependencies:
-      websocket-driver: 0.7.5
+      websocket-driver: 0.8.0
 
   /fdir@6.5.0(picomatch@4.0.7):
     resolution: {integrity: sha512-tIbYtZbucOs0BRGqPJkshJUYdL+SDH7dVM8gjy+ERp3WAUjLEFJE+02kanyHtwjWOnwrKYBiwAmM0p4kLJAnXg==}
@@ -7194,17 +7195,17 @@ packages:
     resolution: {integrity: sha512-2JAn3z8AR6rjK8Sm8orRC0h/bcl/DqL7tRPdGZ4I1CjdF+EaMLmYxBHyXuKL849eucPFhvBoxMsflfOb8kxaeQ==}
     dev: true
 
-  /websocket-driver@0.7.5:
-    resolution: {integrity: sha512-ZL2+3c7kMBdIRCMz6l8jQMHyGVxj+UL+xVk74Ombiciboca8rHa15L86B19E5oh1pL9Ii/uj54gtsIrZGMo6zA==}
-    engines: {node: '>=0.8.0'}
+  /websocket-driver@0.8.0:
+    resolution: {integrity: sha512-upjjWCo/1ZysdZ3rMvXXUDk9PmbYne+wSD1t78HAvIvjmR+avda0MsLWhtkn5PW8Ht34EXhhWF6OseWJ8nTGlg==}
+    engines: {node: '>=0.10.0'}
     dependencies:
       http-parser-js: 0.5.10
       safe-buffer: 5.2.1
-      websocket-extensions: 0.1.4
+      websocket-extensions: 0.2.0
 
-  /websocket-extensions@0.1.4:
-    resolution: {integrity: sha512-OqedPIGOfsDlo31UNwYbCFMSaO9m9G/0faIHj5/dZFDMFqPTcx6UwqyOy3COEaEOg/9VsGIpdqn62W5KhoKSpg==}
-    engines: {node: '>=0.8.0'}
+  /websocket-extensions@0.2.0:
+    resolution: {integrity: sha512-vQaTTgDDgwlrreIJAprknlnvEtZMMxfLqoxyQYnWO8dgcz2qIzQNysCpwOekz8kqLvzrZ0dcaL9hejZ+2AszCA==}
+    engines: {node: '>=0.10.0'}
 
   /whatwg-fetch@3.6.20:
     resolution: {integrity: sha512-EqhiFU6daOA8kpjOWTL0olhVOF3i7OrFzSYiGsEMB8GcXS+RrzauAERX65xMeNWVqxA6HXH2m69Z9LaKKdisfg==}

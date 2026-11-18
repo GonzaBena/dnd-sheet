@@ -42,7 +42,8 @@
       "uuid@<11.1.1": "^11.1.1",
       "glob@<14.0.2": "^14.0.2",
       "minimatch@>=9 <11.0.1": "^11.0.1",
-      "@opentelemetry/core@<2.8.0": "^2.8.0"
+      "@opentelemetry/core@<2.8.0": "^2.8.0",
+      "websocket-driver@<0.8.0": "^0.8.0"
     }
   },
   "overrides": {
@@ -51,6 +52,7 @@
     "uuid@<11.1.1": "^11.1.1",
     "glob@<14.0.2": "^14.0.2",
     "minimatch@>=9 <11.0.1": "^11.0.1",
-    "@opentelemetry/core@<2.8.0": "^2.8.0"
+    "@opentelemetry/core@<2.8.0": "^2.8.0",
+    "websocket-driver@<0.8.0": "^0.8.0"
   }
 }
