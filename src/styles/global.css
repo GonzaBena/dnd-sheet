@@ -37,6 +37,138 @@
   }
 }
 
+/* ==========================================================================
+   ANIMACIONES DE MODALES (solo CSS)
+   - <dialog> nativos (flujo de nuevo personaje): entrada y salida con @starting-style y
+     transiciones discretas de display/overlay. Navegadores sin soporte abren/cierran al instante.
+   - .modal-pop: overlays que se muestran/ocultan con la clase .hidden; el panel es el primer hijo.
+   - .modal-subview: vistas internas que se alternan con .hidden (p. ej. galerías de raza/clase).
+   Los modales que usan scripts/animations/modalAnimations.ts (anime.js) no necesitan nada de esto.
+   ========================================================================== */
+dialog {
+  opacity: 0;
+  transform: translateY(10px) scale(0.97);
+  transition:
+    opacity 160ms ease-in,
+    transform 160ms ease-in,
+    overlay 160ms ease-in allow-discrete,
+    display 160ms ease-in allow-discrete;
+}
+
+dialog[open] {
+  opacity: 1;
+  transform: none;
+  transition-duration: 260ms;
+  transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@starting-style {
+  dialog[open] {
+    opacity: 0;
+    transform: translateY(18px) scale(0.96);
+  }
+}
+
+dialog::backdrop {
+  opacity: 0;
+  transition:
+    opacity 160ms ease-in,
+    overlay 160ms ease-in allow-discrete,
+    display 160ms ease-in allow-discrete;
+}
+
+dialog[open]::backdrop {
+  opacity: 1;
+  transition-duration: 220ms;
+}
+
+@starting-style {
+  dialog[open]::backdrop {
+    opacity: 0;
+  }
+}
+
+/* Mientras se desvanece al cerrar no debe capturar clics. */
+dialog:not([open]),
+dialog:not([open])::backdrop {
+  pointer-events: none;
+}
+
+.modal-pop {
+  opacity: 1;
+  transition:
+    opacity 180ms ease-out,
+    display 180ms allow-discrete;
+}
+
+.modal-pop.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.modal-pop > :first-child {
+  transition: transform 240ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.modal-pop.hidden > :first-child {
+  transform: translateY(10px) scale(0.97);
+}
+
+@starting-style {
+  .modal-pop:not(.hidden) {
+    opacity: 0;
+  }
+  .modal-pop:not(.hidden) > :first-child {
+    transform: translateY(18px) scale(0.96);
+  }
+}
+
+/* Al pasar de display:none a visible la animación se reinicia sola, sin JS. */
+.modal-subview:not(.hidden) {
+  animation: modal-subview-in 280ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
+}
+
+@keyframes modal-subview-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+/* Entrada escalonada de las tarjetas de opciones (tipo de creador, prefabricados, galerías). */
+dialog[open] :is(.create-char-card, .premade-char-card),
+.modal-subview:not(.hidden) > .grid > article {
+  animation: modal-card-in 380ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
+}
+
+:is(.create-char-card, .premade-char-card, .modal-subview > .grid > article):nth-child(2) { animation-delay: 50ms; }
+:is(.create-char-card, .premade-char-card, .modal-subview > .grid > article):nth-child(3) { animation-delay: 100ms; }
+:is(.create-char-card, .premade-char-card, .modal-subview > .grid > article):nth-child(4) { animation-delay: 150ms; }
+:is(.create-char-card, .premade-char-card, .modal-subview > .grid > article):nth-child(5) { animation-delay: 190ms; }
+:is(.create-char-card, .premade-char-card, .modal-subview > .grid > article):nth-child(6) { animation-delay: 230ms; }
+:is(.create-char-card, .premade-char-card, .modal-subview > .grid > article):nth-child(n + 7) { animation-delay: 260ms; }
+
+@keyframes modal-card-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.98);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  dialog,
+  dialog::backdrop,
+  .modal-pop,
+  .modal-pop > :first-child {
+    transition-duration: 1ms !important;
+  }
+  .modal-subview:not(.hidden),
+  dialog[open] :is(.create-char-card, .premade-char-card),
+  .modal-subview:not(.hidden) > .grid > article {
+    animation: none !important;
+  }
+}
+
 /* Custom scrollbars hidden or slim */
 ::-webkit-scrollbar {
   width: 6px;

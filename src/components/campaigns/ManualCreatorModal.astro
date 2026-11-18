@@ -58,7 +58,7 @@ const lblCls = 'text-[#94a3b8] block mb-1 text-xs font-bold';
     <!-- ===================================================================== -->
     <!-- FORMULARIO PRINCIPAL POR 5 FASES                                      -->
     <!-- ===================================================================== -->
-    <form id="manual-creator-form" novalidate class="flex flex-col flex-1 min-h-0 font-label">
+    <form id="manual-creator-form" novalidate class="modal-subview flex flex-col flex-1 min-h-0 font-label">
       <StepRail />
 
       <div data-step-body class="flex-1 overflow-y-auto p-4 sm:p-5 custom-scrollbar text-xs">
@@ -762,7 +762,7 @@ const lblCls = 'text-[#94a3b8] block mb-1 text-xs font-bold';
     <!-- ===================================================================== -->
     <!-- SUB-VISTA 1: GALERÍA DE RAZAS                                         -->
     <!-- ===================================================================== -->
-    <div id="manual-race-picker-view" class="hidden flex-1 overflow-y-auto p-4 sm:p-5 custom-scrollbar">
+    <div id="manual-race-picker-view" class="modal-subview hidden flex-1 overflow-y-auto p-4 sm:p-5 custom-scrollbar">
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 items-stretch">
         {QUICK_RACES.map((race) => (
           <article
@@ -808,7 +808,7 @@ const lblCls = 'text-[#94a3b8] block mb-1 text-xs font-bold';
     <!-- ===================================================================== -->
     <!-- SUB-VISTA 2: GALERÍA DE CLASES                                        -->
     <!-- ===================================================================== -->
-    <div id="manual-class-picker-view" class="hidden flex-1 overflow-y-auto p-4 sm:p-5 custom-scrollbar">
+    <div id="manual-class-picker-view" class="modal-subview hidden flex-1 overflow-y-auto p-4 sm:p-5 custom-scrollbar">
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 items-stretch">
         {QUICK_CLASSES.map((cls) => (
           <article
@@ -854,7 +854,7 @@ const lblCls = 'text-[#94a3b8] block mb-1 text-xs font-bold';
     <!-- ===================================================================== -->
     <!-- SUB-VISTA 3: GALERÍA DE TRASFONDOS                                    -->
     <!-- ===================================================================== -->
-    <div id="manual-background-picker-view" class="hidden flex-1 overflow-y-auto p-4 sm:p-5 custom-scrollbar">
+    <div id="manual-background-picker-view" class="modal-subview hidden flex-1 overflow-y-auto p-4 sm:p-5 custom-scrollbar">
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 items-stretch">
         {QUICK_BACKGROUNDS.map((bg) => (
           <article
