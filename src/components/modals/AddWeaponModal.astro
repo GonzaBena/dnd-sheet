@@ -237,6 +237,7 @@ const lblCls = 'text-[#94a3b8] block mb-1 text-[12.5px] font-semibold';
 
 <script>
   import { characterStore } from '../../scripts/state/characterStore';
+  import type { AbilityKey } from '../../scripts/dnd/stats';
   import { closeModal, openModal } from '../../scripts/animations/modalAnimations';
   import { initSteps } from '../../scripts/ui/modalSteps';
 
@@ -313,7 +314,7 @@ const lblCls = 'text-[#94a3b8] block mb-1 text-[12.5px] font-semibold';
 
   function updatePreview() {
     const char = characterStore.get();
-    const ability = abilitySel.value as any;
+    const ability = abilitySel.value as AbilityKey | 'none';
     const statMod = (ability !== 'none' && char.stats && char.stats[ability]) ? char.stats[ability].modifier : 0;
     const profBonus = proficientCheck.checked ? (char.proficiencyBonus || 3) : 0;
     const atkFlat = parseInt(atkBonusModInp.value || '0') || 0;
@@ -444,7 +445,7 @@ const lblCls = 'text-[#94a3b8] block mb-1 text-[12.5px] font-semibold';
     let damage = dmgInp.value.trim() || '1d6';
 
     const char = characterStore.get();
-    const ability = abilitySel.value as any;
+    const ability = abilitySel.value as AbilityKey | 'none';
     const statMod = (ability !== 'none' && char.stats && char.stats[ability]) ? char.stats[ability].modifier : 0;
     const profBonus = proficientCheck.checked ? (char.proficiencyBonus || 3) : 0;
     const atkFlat = parseInt(atkBonusModInp.value || '0') || 0;

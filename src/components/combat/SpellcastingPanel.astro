@@ -66,7 +66,7 @@
   import { validateSpellComponents, isRitualSpell } from '../../scripts/dnd/spellcasting';
   import { getActiveConcentrationEffect, isConcentrationDuration } from '../../scripts/dnd/concentration';
   import { journalStore } from '../../scripts/state/journalStore';
-  import type { CharacterCompanion } from '../../scripts/models/character';
+  import type { CharacterCompanion, CompanionType } from '../../scripts/models/character';
 
   const spellsContainer = document.getElementById('spells-list-container');
   const slotsGrid = document.getElementById('spell-slots-grid');
@@ -653,7 +653,7 @@
     if (context !== 'spellbook') return;
     if (action === 'cast') {
       const char = characterStore.get();
-      const sp = (char?.spellcasting?.spells || char?.spells || []).find((s: any) => (s.id || s.name) === entryId || s.name === entry?.name);
+      const sp = (char?.spellcasting?.spells || []).find((s: any) => (s.id || s.name) === entryId || s.name === entry?.name);
 
       // Comprobar concentración única (Spec 11, H4)
       const isConc = isConcentrationDuration(sp?.duration || entry?.meta?.duration, sp?.notes || entry?.description);
@@ -691,7 +691,7 @@
         characterStore.useSpellSlot(level);
       }
       const updatedChar = characterStore.get();
-      const updatedSp = (updatedChar?.spellcasting?.spells || updatedChar?.spells || []).find((s: any) => (s.id || s.name) === entryId || s.name === entry?.name) || sp;
+      const updatedSp = (updatedChar?.spellcasting?.spells || []).find((s: any) => (s.id || s.name) === entryId || s.name === entry?.name) || sp;
       // FE-5: un hechizo con efectos y duración no instantánea deja su efecto en el panel.
       if (entry?.effects?.length && !isInstant(entry)) await applyFromEntry(entry);
 
@@ -769,7 +769,7 @@
     } else if (action === 'apply-effect' && entry?.effects?.length) {
       await applyFromEntry(entry);
     }
-  }) as EventListener);
+  }) as unknown as EventListener);
 
   async function triggerFamiliarDeployWorkflow(spellName: string) {
     const companions = characterStore.getCompanions();

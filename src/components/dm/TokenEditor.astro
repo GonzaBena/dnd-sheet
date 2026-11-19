@@ -528,7 +528,10 @@
           if (token.ownerUid) {
             fieldOwner.value = token.ownerUid;
           } else if (token.characterId) {
-            const char = characters.find((c) => c.id === token.characterId);
+            const cid = getActiveCampaignId();
+            const char = cid
+              ? campaignStore.getCharactersForCampaign(cid).find((c) => c.id === token.characterId)
+              : undefined;
             fieldOwner.value = char?.userId || '';
           } else {
             fieldOwner.value = '';

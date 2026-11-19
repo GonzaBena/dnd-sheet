@@ -308,6 +308,7 @@ import HandoutManager from './HandoutManager.astro';
 <script>
   import { showAlert, showConfirm, showForm } from '../../scripts/ui/notify';
   import { campaignStore } from '../../scripts/state/campaignStore';
+  import type { Campaign } from '../../scripts/models/campaign';
   import { broadcastGroupRest } from '../../scripts/state/groupRestSync';
   import { characterStore } from '../../scripts/state/characterStore';
   import { journalStore, getEntryVisibility } from '../../scripts/state/journalStore';
@@ -323,7 +324,7 @@ import HandoutManager from './HandoutManager.astro';
   import { escapeHtml as esc } from '../../scripts/dnd/catalog.ts';
 
   /** Valida que se pueda actuar como DM y avisa en vez de fallar en silencio. */
-  function guardDmPlay(camp: any): boolean {
+  function guardDmPlay(camp: Campaign | null | undefined): camp is Campaign {
     if (!camp) {
       showAlert('La campaña todavía se está cargando. Probá de nuevo en unos segundos.', { kind: 'error' });
       return false;
@@ -865,7 +866,7 @@ import HandoutManager from './HandoutManager.astro';
     }
 
     // Detect tags in content
-    const detectedTags = content.match(/#[A-Za-z0-9_ÁÉÍÓÚáéíóúñÑ]+/g) || [];
+    const detectedTags: string[] = content.match(/#[A-Za-z0-9_ÁÉÍÓÚáéíóúñÑ]+/g) || [];
     if (isPrivate && !detectedTags.includes('#Privado')) {
       detectedTags.push('#Privado');
     }

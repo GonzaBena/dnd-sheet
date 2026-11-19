@@ -313,7 +313,7 @@ const lblCls = 'text-[#94a3b8] block mb-1 text-[12.5px] font-semibold';
           <div data-srd-idx="${i}" class="p-2.5 hover:bg-[#18202e] cursor-pointer flex items-center justify-between gap-2 text-xs transition-colors">
             <div class="min-w-0 flex-1">
               <div class="font-bold text-[#f1f5f9] truncate">${title}</div>
-              <div class="text-[10px] text-[#94a3b8] truncate">${item.description ? item.description.slice(0, 75) : (item.cost || '')}</div>
+              <div class="text-[10px] text-[#94a3b8] truncate">${item.description ? item.description.slice(0, 75) : (('cost' in item && item.cost) || '')}</div>
             </div>
             <div class="flex items-center gap-1.5 shrink-0">
               ${badge}
@@ -497,7 +497,7 @@ const lblCls = 'text-[#94a3b8] block mb-1 text-[12.5px] font-semibold';
 
     const payload = {
       ...custom.patch,
-      ...(effects?.length ? { effects, custom: true, source: 'custom' } : {}),
+      ...(effects?.length ? { effects, custom: true, source: 'custom' as const } : {}),
       name,
       category: cat,
       ...(equipSlot ? { equipSlot } : { equipSlot: undefined }),

@@ -665,7 +665,7 @@
             console.warn('[CompanionsPanel] Error retirando token del mapa:', err);
           }
         }
-        characterStore.linkCompanionToken(comp.id, undefined);
+        characterStore.linkCompanionToken(comp.id, null);
         if (currentActiveMap && currentActiveMap.tokens && targetTid) {
           delete currentActiveMap.tokens[targetTid];
         }

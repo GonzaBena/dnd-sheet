@@ -669,7 +669,7 @@ const { mode = 'player', class: className = '', id } = Astro.props;
 
         currentPublisher = createLivePublisher(roomId, currentMapId, tid, uid);
         await currentPublisher.start();
-      }) as EventListener);
+      }) as unknown as EventListener);
 
       controller.addEventListener('token-drag-move', ((e: CustomEvent) => {
         const { x, y } = e.detail;
@@ -703,7 +703,7 @@ const { mode = 'player', class: className = '', id } = Astro.props;
             currentPublisher = null;
           }
         }
-      }) as EventListener);
+      }) as unknown as EventListener);
 
       // Clic largo → ping para toda la mesa (T-51b). Cuenta como jugar: el controller ya exige partida activa.
       controller.addEventListener('map-ping', ((e: CustomEvent) => {
@@ -854,7 +854,7 @@ const { mode = 'player', class: className = '', id } = Astro.props;
           console.error('[MapStage] Error guardando forma de niebla:', err);
           showNotice(err.message || 'No se pudo guardar la niebla');
         }
-      }) as EventListener);
+      }) as unknown as EventListener);
 
       root.addEventListener('fog-tool-select', ((e: CustomEvent) => {
         controller.setTool(e.detail.tool);
@@ -911,7 +911,7 @@ const { mode = 'player', class: className = '', id } = Astro.props;
           console.error('[MapStage] Error guardando posición de token secreto:', err);
           showNotice('No se pudo guardar la posición del token secreto');
         }
-      }) as EventListener);
+      }) as unknown as EventListener);
 
       function showLoading(show: boolean) {
         if (!loadingOverlay) return;
@@ -986,9 +986,7 @@ const { mode = 'player', class: className = '', id } = Astro.props;
         }
 
         const characters = campaignStore.getCharactersForCampaign(activeCampId);
-        const myChar = characters.find(
-          (c) => c.playerId === currentUid || (user.email && c.playerEmail === user.email)
-        );
+        const myChar = characters.find((c) => campaignStore.isCharacterOwner(c, currentUid));
 
         if (!myChar) {
           playerHud.classList.add('hidden');

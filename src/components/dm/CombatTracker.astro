@@ -1715,7 +1715,7 @@
     const mHp = Number(formResult.hp) || 10;
     const mAc = Number(formResult.ac) || 10;
     const mOwnerUid = formResult.ownerUid ? String(formResult.ownerUid).trim() : undefined;
-    const shouldAddToken = formResult.addToken === 'true' || formResult.addToken === true;
+    const shouldAddToken = formResult.addToken === 'true';
 
     let deployedTids: string[] = [];
     if (shouldAddToken) {

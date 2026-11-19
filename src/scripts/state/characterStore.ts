@@ -544,9 +544,10 @@ class CharacterStoreManager {
     const id = `act-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`;
     this.character.actions.push({ ...action, id });
     this.saveAndNotify();
+    const saved = this.character.actions.find((a) => a.id === id) ?? { ...action, id };
     journalStore.log(
       'Acción/Arma preparada',
-      `Se equipó "${action.name}" (${action.type}, Bono: ${action.bonus}, Daño: ${action.damage} ${action.damageType}).`,
+      `Se equipó "${saved.name}" (${saved.type}, Bono: ${saved.bonus}, Daño: ${saved.damage} ${saved.damageType}).`,
       ['#Combate']
     );
   }

@@ -103,6 +103,7 @@
 
 <script>
   import { characterStore } from '../../scripts/state/characterStore';
+  import type { AbilityKey } from '../../scripts/dnd/stats';
 
   const statNames: Record<string, string> = {
     str: 'Fuerza',
@@ -126,8 +127,8 @@
 
   // Clicking an ability card sets modifier and opens dice roller
   document.querySelectorAll('.stat-card').forEach((card) => {
-    const stat = card.getAttribute('data-stat') as any;
-    const name = statNames[stat] || String(stat).toUpperCase();
+    const stat = card.getAttribute('data-stat') as AbilityKey | null;
+    const name = (stat && statNames[stat]) || String(stat).toUpperCase();
     card.setAttribute('title', `Haz clic para tirar prueba de ${name} • Clic derecho o Shift+Clic para Tirada Secreta`);
 
     const triggerStatRoll = (isSecret = false) => {

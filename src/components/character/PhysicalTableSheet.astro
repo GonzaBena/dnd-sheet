@@ -269,6 +269,9 @@
   // Nombres, daños y notas los escribe el usuario: todo lo que va a innerHTML pasa por esc().
   import { escapeHtml as esc } from '../../scripts/dnd/catalog';
   import { getArmorClass } from '../../scripts/dnd/ac';
+  import { getActiveConcentrationEffect } from '../../scripts/dnd/concentration';
+  import { collectModifiers } from '../../scripts/dnd/effects';
+  import { resolveModifierValue } from '../../scripts/dnd/stats';
 
   const root = document.getElementById('physical-table-sheet-root');
   const avatarEl = document.getElementById('pts-avatar') as HTMLImageElement;
@@ -338,17 +341,13 @@
 
   // Inspiración
   inspBtn?.addEventListener('click', () => {
-    const cur = characterStore.get().inspiration;
-    characterStore.setInspiration(!cur);
+    characterStore.toggleInspiration();
   });
 
   // Concentración
   concDropBtn?.addEventListener('click', () => {
-    const char = characterStore.get();
-    const concIdx = char.activeEffects.findIndex((e) => e.condition === 'Concentración' || e.name.toLowerCase().includes('concentraci'));
-    if (concIdx >= 0) {
-      characterStore.removeActiveEffect(char.activeEffects[concIdx].id);
-    }
+    const conc = getActiveConcentrationEffect(characterStore.get());
+    if (conc) characterStore.endEffect(conc.id);
   });
 
   // Render principal
@@ -398,9 +397,8 @@
 
     // 3. Defensas
     if (acEl) acEl.textContent = `${getArmorClass(char)} CA`;
-    if (speedEl) speedEl.textContent = `${char.speed || '30'} ft`;
-    const wisMod = Math.floor(((char.stats?.wis?.base || 10) - 10) / 2);
-    if (ppEl) ppEl.textContent = String(10 + wisMod);
+    if (speedEl) speedEl.textContent = `${char.speedFt ?? 30} ft`;
+    if (ppEl) ppEl.textContent = String(char.passivePerception ?? 10 + (char.stats?.wis?.modifier ?? 0));
 
     if (inspStatus) inspStatus.textContent = char.inspiration ? 'Activa' : 'Inactiva';
     if (inspIconBox) {
@@ -412,7 +410,7 @@
     }
 
     // Concentración
-    const conc = char.activeEffects?.find((e) => e.condition === 'Concentración' || e.name.toLowerCase().includes('concentraci'));
+    const conc = getActiveConcentrationEffect(char);
     if (concBanner && concSpell) {
       if (conc) {
         concSpell.textContent = conc.name || 'Hechizo Activo';
@@ -636,7 +634,7 @@
             <button type="button" class="pts-del-cond hover:text-white cursor-pointer ml-1 text-xs">×</button>
           `;
           chip.querySelector('.pts-del-cond')?.addEventListener('click', () => {
-            characterStore.removeActiveEffect(eff.id);
+            characterStore.endEffect(eff.id);
           });
           conditionsContainer.appendChild(chip);
         });
@@ -651,10 +649,13 @@
 
       statKeys.forEach((key) => {
         const st = char.stats?.[key];
-        const base = st?.base || 10;
-        const mod = Math.floor((base - 10) / 2);
-        const isProf = Boolean(st?.savingThrowProficient);
-        const total = isProf ? mod + (char.proficiencyBonus || 2) : mod;
+        const mod = st?.modifier ?? 0;
+        const isProf = Boolean(st?.savingProficient);
+        let dynamicSave = 0;
+        for (const m of [...collectModifiers(char, `save.${key}`), ...collectModifiers(char, 'save')]) {
+          if (m.op === 'add') dynamicSave += resolveModifierValue(char, m);
+        }
+        const total = mod + (isProf ? char.proficiencyBonus || 2 : 0) + dynamicSave;
         const totalStr = total >= 0 ? `+${total}` : String(total);
 
         const btn = document.createElement('button');

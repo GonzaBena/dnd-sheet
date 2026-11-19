@@ -67,6 +67,7 @@
 
 <script>
   import { characterStore } from '../../scripts/state/characterStore';
+  import type { AbilityKey } from '../../scripts/dnd/stats';
   import { closeModal } from '../../scripts/animations/modalAnimations';
   import { collectModifiers } from '../../scripts/dnd/effects';
   import { resolveModifierValue } from '../../scripts/dnd/stats';
@@ -100,7 +101,7 @@
   function renderSaves() {
     if (!savesGrid) return;
     savesGrid.innerHTML = '';
-    const stats: (keyof typeof tempStats)[] = ['str', 'dex', 'con', 'int', 'wis', 'cha'];
+    const stats: AbilityKey[] = ['str', 'dex', 'con', 'int', 'wis', 'cha'];
     const names = { str: 'Fuerza', dex: 'Destreza', con: 'Constitución', int: 'Inteligencia', wis: 'Sabiduría', cha: 'Carisma' };
     const char = currentChar || characterStore.get();
 

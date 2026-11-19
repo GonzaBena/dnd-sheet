@@ -529,7 +529,7 @@ class DndApiService {
 
   // --- Mapeadores hacia los modelos internos de la Ficha ---
 
-  public toSpellPayload(unified: UnifiedSpell): Partial<SpellItem> {
+  public toSpellPayload(unified: UnifiedSpell): SpellItem {
     return {
       source: 'srd',
       custom: false,
@@ -603,13 +603,16 @@ class DndApiService {
     };
   }
 
-  public toAttackPayload(unified: UnifiedEquipment): Partial<AttackAction> {
+  public toAttackPayload(unified: UnifiedEquipment): Omit<AttackAction, 'id'> {
     const tags: string[] = [...(unified.properties || [])];
     if (unified.mastery) tags.push(`Maestría: ${unified.mastery}`);
 
     return {
       name: unified.nameEs !== unified.name ? `${unified.nameEs} (${unified.name})` : unified.name,
       type: unified.attackType || 'Cuerpo a cuerpo',
+      // Bono y daño finales los calcula recalculateCharacter a partir de damageDice.
+      bonus: '',
+      damage: unified.damageDice || '1d6',
       damageDice: unified.damageDice || '1d6',
       damageType: unified.damageTypeEs || 'Perforante',
       mastery: unified.mastery || undefined,

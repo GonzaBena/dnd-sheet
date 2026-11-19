@@ -655,7 +655,7 @@
     if (deleteBtn) {
       const id = deleteBtn.getAttribute('data-id');
       const found = currentCampaignMaps.find((m) => m.id === id);
-      if (!found) return;
+      if (!id || !found) return;
 
       const confirmed = await showConfirm(
         `¿Eliminar el mapa "${found.name}"? Esta acción no se puede deshacer.`,

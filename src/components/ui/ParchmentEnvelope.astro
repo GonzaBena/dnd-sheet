@@ -932,14 +932,7 @@
     });
   }
 
-  declare global {
-    interface Window {
-      dndEnvelope: {
-        open: (data?: EnvelopeMessageData) => boolean;
-        close: () => void;
-      };
-    }
-  }
+  // window.dndEnvelope está declarado en src/env.d.ts.
 
   window.dndEnvelope = {
     open: openParchmentEnvelope,

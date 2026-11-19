@@ -413,7 +413,6 @@ import SiteFooter from '../components/layout/SiteFooter.astro';
     checkAccess();
   });
 
-  campaignStore.subscribe(() => {
-    renderAdminDashboard();
-  });
+  window.addEventListener('campaigns-updated', () => renderAdminDashboard());
+  window.addEventListener('all-characters-updated', () => renderAdminDashboard());
 </script>
