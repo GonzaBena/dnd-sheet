@@ -64,6 +64,7 @@ def open_dual(s, ctx, page):
     player, pdialogs = s.new_page(ctx)
     player.goto(f"{fx.BASE}/campaigns?campaign={fx.DM_CAMP}&character={fx.DM_PC}&mode=player", wait_until="domcontentloaded")
     player.wait_for_selector("#player-sheet-workspace:not(.hidden)", timeout=10000)
+    fx.wait_app_ready(player)
     return player, pdialogs
 
 
@@ -233,6 +234,7 @@ with Suite("Herramientas DM") as s:
         page.wait_for_function("document.getElementById('grimoire-journal-feed').textContent.includes('Secreto exclusivo del Averno')")
         page.goto(f"{fx.BASE}/campaigns?campaign=camp-e2e-otra", wait_until="domcontentloaded")
         page.wait_for_selector("#dm-control-workspace:not(.hidden)")
+        fx.wait_app_ready(page)
         page.wait_for_timeout(400)
         expect("Otra Campaña" in text(page, "#grimoire-campaign-title"), "No se abrió la otra campaña")
         expect("Secreto exclusivo del Averno" not in text(page, "#grimoire-journal-feed"),
@@ -254,6 +256,7 @@ with Suite("Herramientas DM") as s:
         expect_eq(camp(page)["status"], "ended", "Estado tras terminar")
         page.reload(wait_until="domcontentloaded")
         page.wait_for_selector("#dm-control-workspace:not(.hidden)")
+        fx.wait_app_ready(page)
         expect_eq(camp(page)["status"], "ended", "Estado persistido")
 
     @s.case("Triste Sesión: cancelar 'Terminar' mantiene la partida activa")

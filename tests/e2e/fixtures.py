@@ -210,12 +210,25 @@ def seed_player(page: Page, *, with_map: bool = True, char_overrides: dict | Non
     return copy.deepcopy(char)
 
 
+def wait_app_ready(page: Page, timeout: int = 15000) -> None:
+    """Espera a que se retire la pantalla de carga (Spec 16).
+
+    Mientras está activa, `<main>` queda `inert`: Playwright no lo considera al verificar si un
+    elemento es accionable, así que `fill`/`click` "funcionan" pero el navegador los ignora.
+    """
+    page.wait_for_function(
+        "!document.documentElement.hasAttribute('data-booting') && !document.querySelector('main')?.inert",
+        timeout=timeout,
+    )
+
+
 def open_player_sheet(page: Page) -> None:
     page.goto(
         f"{BASE}/campaigns?campaign={PLAYER_CAMP}&character={PLAYER_CHAR}&mode=player",
         wait_until="domcontentloaded",
     )
     page.wait_for_selector("#player-sheet-workspace:not(.hidden)", timeout=10000)
+    wait_app_ready(page)
 
 
 def seed_dm(page: Page, *, with_map: bool = True, pc_overrides: dict | None = None, camp_overrides: dict | None = None, tokens: dict | None = None) -> dict:
@@ -261,3 +274,4 @@ def seed_dm(page: Page, *, with_map: bool = True, pc_overrides: dict | None = No
 def open_dm(page: Page) -> None:
     page.goto(f"{BASE}/campaigns?campaign={DM_CAMP}", wait_until="domcontentloaded")
     page.wait_for_selector("#dm-control-workspace:not(.hidden)", timeout=10000)
+    wait_app_ready(page)
