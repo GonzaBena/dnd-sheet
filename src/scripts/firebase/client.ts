@@ -23,6 +23,32 @@ export const firebaseConfig = {
 const useEmulators = String(env.PUBLIC_USE_EMULATORS || '') === 'true';
 
 /**
+ * Safari (macOS) y cualquier navegador de iOS/iPadOS usan WebKit. Ahí la caché persistente de Firestore
+ * con varias pestañas (`persistentMultipleTabManager`) puede quedarse esperando IndexedDB sin entregar
+ * nunca los snapshots: la sesión de Auth funciona pero campañas y personajes no cargan.
+ */
+export function isWebKitBrowser(ua: string, maxTouchPoints = 0): boolean {
+  if (/iPhone|iPad|iPod/i.test(ua)) return true;
+  // iPadOS se presenta como Macintosh pero con pantalla táctil.
+  if (/Macintosh/i.test(ua) && maxTouchPoints > 1) return true;
+  return /Safari\//i.test(ua) && !/Chrome\/|Chromium\/|CriOS\/|FxiOS\/|Edg\/|EdgiOS\/|OPR\/|Android/i.test(ua);
+}
+
+/**
+ * Tipo de caché local de Firestore. En WebKit va en memoria (sin carga offline, pero carga siempre);
+ * en el resto, persistente compartida entre pestañas. `localStorage.dnd_firestore_cache` = 'memory' |
+ * 'persistent' lo fuerza para diagnosticar.
+ */
+export function firestoreCacheMode(): 'memory' | 'persistent' {
+  try {
+    const forced = localStorage.getItem('dnd_firestore_cache');
+    if (forced === 'memory' || forced === 'persistent') return forced;
+  } catch (_) {}
+  if (typeof navigator === 'undefined') return 'persistent';
+  return isWebKitBrowser(navigator.userAgent || '', navigator.maxTouchPoints || 0) ? 'memory' : 'persistent';
+}
+
+/**
  * Sin credenciales (o fuera del navegador, p.ej. en los tests de Node) la app funciona en modo local
  * con localStorage, como antes.
  */
@@ -64,6 +90,7 @@ export function getFirebase(): Promise<FirebaseClient> {
         getFirestore,
         persistentLocalCache,
         persistentMultipleTabManager,
+        memoryLocalCache,
         connectFirestoreEmulator,
       } = await import('firebase/firestore');
       const { getDatabase, connectDatabaseEmulator } = await import('firebase/database');
@@ -82,9 +109,12 @@ export function getFirebase(): Promise<FirebaseClient> {
       let db: Firestore;
       try {
         // Cache offline en IndexedDB compartida entre pestañas: reemplaza a localStorage como respaldo.
+        // En WebKit (Safari, iOS) va en memoria: ver firestoreCacheMode().
         db = initializeFirestore(app, {
           ignoreUndefinedProperties: true,
-          localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
+          localCache: firestoreCacheMode() === 'memory'
+            ? memoryLocalCache()
+            : persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
         });
       } catch (_) {
         db = getFirestore(app);
