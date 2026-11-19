@@ -947,7 +947,7 @@
           <div class="flex items-center gap-2 min-w-0">
             <img decoding="async" loading="lazy" src="${esc(avatar)}" alt="${esc(char.name)}" class="w-7 h-7 rounded-lg object-cover border border-[#222f42] shrink-0" />
             <div class="min-w-0">
-              <span class="block font-headline font-bold text-[#f1f5f9] truncate max-w-[95px]">${esc(char.name)}</span>
+              <span class="font-headline font-bold text-[#f1f5f9] line-clamp-2 break-words">${esc(char.name)}</span>
               <span class="block text-[10px] text-[#94a3b8] truncate max-w-[95px]">${esc(char.race || '')} ${esc(char.className || 'Aventurero')}</span>
             </div>
           </div>
@@ -1042,7 +1042,7 @@
             <div class="flex items-center gap-1.5 min-w-0">
               <span class="material-symbols-outlined text-[14px] text-amber-400">pets</span>
               <div class="min-w-0">
-                <span class="block font-headline font-bold text-[#e2e8f0] truncate max-w-[95px]">${esc(comp.name)}</span>
+                <span class="font-headline font-bold text-[#e2e8f0] line-clamp-2 break-words">${esc(comp.name)}</span>
                 <span class="block text-[9px] text-[#94a3b8] truncate">${compTypeLabel} (${esc(comp.size || 1)}x${esc(comp.size || 1)})</span>
               </div>
             </div>
@@ -1184,7 +1184,7 @@
             ${avatarHtml}
             <div class="min-w-0">
               <div class="flex items-center gap-1.5 flex-wrap">
-                <span class="block font-headline font-bold text-[#f1f5f9] truncate max-w-[105px]">${esc(tok.name)}</span>
+                <span class="font-headline font-bold text-[#f1f5f9] line-clamp-2 break-words">${esc(tok.name)}</span>
                 <span class="text-[9px] px-1 py-0.2 rounded bg-[#10141d] text-[#94a3b8] font-mono">${esc(tok.size)}×${esc(tok.size)}</span>
                 ${isSecret ? '<span class="text-[8px] font-bold px-1 py-0.2 rounded bg-amber-500/30 text-amber-300">OCULTO</span>' : ''}
               </div>

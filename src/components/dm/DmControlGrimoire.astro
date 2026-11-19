@@ -33,7 +33,7 @@ import HandoutManager from './HandoutManager.astro';
                 <span>Mesa en Vivo</span>
               </span>
             </div>
-            <h1 id="grimoire-campaign-title" class="text-2xl sm:text-3xl font-headline font-bold text-[#f1f5f9] tracking-tight truncate">
+            <h1 id="grimoire-campaign-title" class="text-2xl sm:text-3xl font-headline font-bold text-[#f1f5f9] tracking-tight break-words text-balance">
               Descenso al Averno
             </h1>
             <p id="grimoire-campaign-subtitle" class="text-xs sm:text-sm text-[#94a3b8] leading-relaxed truncate">
@@ -354,7 +354,7 @@ import HandoutManager from './HandoutManager.astro';
 
     // 1. Update Header Information
     if (campaignTitleEl) campaignTitleEl.textContent = camp.name;
-    if (campaignSubEl) campaignSubEl.textContent = `${camp.setting} • Sesión ${camp.sessionNumber} en Curso`;
+    if (campaignSubEl) campaignSubEl.textContent = [camp.setting, `Sesión ${camp.sessionNumber} en Curso`].filter(Boolean).join(" • ");
     if (weatherEl) weatherEl.textContent = `Clima: ${camp.weather}`;
     if (locationEl) locationEl.textContent = `Lugar: ${camp.location}`;
 
@@ -409,7 +409,7 @@ import HandoutManager from './HandoutManager.astro';
                   <img decoding="async" loading="lazy" src="${esc(char.avatarUrl || '/characters/ch-1.avif')}" alt="${esc(char.name)}" class="w-full h-full object-cover" onerror="this.onerror=null;this.src='/characters/ch-1.avif';" />
                 </div>
                 <div class="min-w-0">
-                  <h4 class="font-headline font-bold text-sm text-[#f1f5f9] truncate">${esc(char.name)}</h4>
+                  <h4 class="font-headline font-bold text-sm text-[#f1f5f9] line-clamp-2 break-words">${esc(char.name)}</h4>
                   <div class="text-[11px] text-[#94a3b8] truncate">
                     <span class="text-amber-400 font-bold">${esc(char.className)} Nvl. ${char.level}</span> •
                     <span class="text-[#cbd5e1]">${esc(char.playerName || 'Jugador')}</span>

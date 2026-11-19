@@ -8,35 +8,37 @@
   class="rounded-xl bg-[#18202e]/70 border border-[#222f42] p-4 flex flex-col justify-between"
   aria-label="Compañeros e Invocaciones"
 >
-  <div class="flex items-center justify-between mb-3 border-b border-[#222f42] pb-2.5 select-none section-header-bar">
-    <div class="flex items-center gap-2">
+  <div class="flex flex-wrap items-center justify-between gap-2 mb-3 border-b border-[#222f42] pb-2.5 select-none section-header-bar">
+    <div class="flex items-center gap-2 min-w-0">
       <span class="section-drag-handle material-symbols-outlined text-[#64748b] hover:text-amber-400 cursor-grab text-[18px] transition-colors" title="Arrastrar para reordenar">drag_indicator</span>
       <span class="material-symbols-outlined text-amber-500 text-[18px]">pets</span>
-      <h3 class="text-xs font-headline font-bold text-[#f1f5f9] uppercase tracking-wider">
+      <h3 class="text-xs font-headline font-bold text-[#f1f5f9] uppercase tracking-wider text-balance">
         Compañeros e Invocaciones
       </h3>
       <span id="companions-count" class="text-[10px] font-mono text-[#94a3b8] bg-[#10141d] px-2 py-0.5 rounded-full border border-[#222f42]">
         0
       </span>
     </div>
-    <div class="flex items-center gap-1.5">
+    <div class="flex items-center gap-1.5 ml-auto">
       <button
         type="button"
         id="btn-quick-summon-familiar"
+        aria-label="Invocar Familiar"
         class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 border border-sky-500/40 text-[11px] font-bold transition-all cursor-pointer active:scale-95 shadow-xs"
         title="Invocar y desplegar rápidamente un familiar ritual (Lechuza, Cuervo, Gato, etc.)"
       >
         <span class="material-symbols-outlined text-[14px]">auto_fix_high</span>
-        <span>Invocar Familiar</span>
+        <span class="hidden sm:inline">Invocar Familiar</span>
       </button>
       <button
         type="button"
         id="btn-add-companion"
+        aria-label="Añadir compañero"
         class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-[11px] font-bold transition-all cursor-pointer active:scale-95 shadow-xs"
         title="Añadir familiar, montura o criatura invocada"
       >
         <span class="material-symbols-outlined text-[14px]">add</span>
-        <span>Añadir</span>
+        <span class="hidden sm:inline">Añadir</span>
       </button>
       <button
         type="button"

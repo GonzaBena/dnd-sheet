@@ -193,13 +193,13 @@
 
       card.innerHTML = `
         <div class="flex items-center justify-between gap-2 flex-wrap sm:flex-nowrap">
-          <div class="spell-detail-trigger flex items-center gap-2 truncate flex-1 mr-1 cursor-pointer" title="Ver ficha del conjuro">
+          <div class="spell-detail-trigger flex items-center gap-2 min-w-0 basis-full sm:basis-0 sm:flex-1 cursor-pointer" title="Ver ficha del conjuro">
             <span class="w-5 h-5 rounded-md ${isCantrip ? 'bg-purple-500/20 text-purple-300 border border-purple-500/40' : 'bg-[#10141d] text-amber-400 border border-[#222f42]'} font-bold text-[10px] flex items-center justify-center shrink-0" title="${isCantrip ? 'Truco Mágico (Nivel 0)' : `Conjuro Nivel ${sp.level}`}">
               ${isCantrip ? 'T' : sp.level}
             </span>
-            <div class="truncate">
+            <div class="min-w-0">
               <div class="flex items-center gap-1.5 flex-wrap">
-                <span class="text-[#f1f5f9] font-medium truncate">${escapeHtml(sp.name)}</span>
+                <span class="text-[#f1f5f9] font-medium line-clamp-2 break-words">${escapeHtml(sp.name)}</span>
                 ${customBadgeHtml(sp)}
                 <span class="text-[10px] text-[#64748b]">(${sp.school})</span>
                 ${isConc ? `<span class="px-1.5 py-0.2 rounded bg-amber-500/15 text-amber-300 border border-amber-500/30 text-[9px] font-bold font-mono" title="Requiere Concentración">CONC</span>` : ''}
@@ -218,7 +218,7 @@
             </div>
           </div>
 
-          <div class="flex items-center gap-1.5 shrink-0 text-[10px] text-[#94a3b8]">
+          <div class="flex items-center gap-1.5 shrink-0 ml-auto text-[10px] text-[#94a3b8]">
             <span class="hidden md:inline text-[10px] text-[#64748b]">${sp.castingTime}</span>
             <span class="hidden md:inline text-[#334155]">•</span>
             <span class="hidden sm:inline text-amber-400/90 text-[10px]">${sp.range}</span>

@@ -31,7 +31,7 @@ import DeleteAccountModal from '../components/modals/DeleteAccountModal.astro';
           <span class="material-symbols-outlined text-[#0a0d12] text-xl font-bold">auto_stories</span>
         </div>
         <div class="flex flex-col min-w-0">
-          <span class="text-xs sm:text-sm font-headline font-bold text-[#f1f5f9] leading-tight tracking-tight truncate">Crónicas del Aventurero</span>
+          <span class="text-xs sm:text-sm font-headline font-bold text-[#f1f5f9] leading-tight tracking-tight line-clamp-2">Crónicas del Aventurero</span>
           <span class="text-[9px] sm:text-[10px] font-label text-amber-500 uppercase tracking-wider font-semibold truncate">Gestor de Campañas</span>
         </div>
       </a>
@@ -487,6 +487,7 @@ import DeleteAccountModal from '../components/modals/DeleteAccountModal.astro';
   });
 
   import { showAlert, showConfirm, showPrompt } from '../scripts/ui/notify';
+  import { escapeHtml as esc } from '../scripts/dnd/catalog';
   import { campaignStore } from '../scripts/state/campaignStore';
   import { characterStore } from '../scripts/state/characterStore';
   import { userStore } from '../scripts/state/userStore';
@@ -805,7 +806,7 @@ import DeleteAccountModal from '../components/modals/DeleteAccountModal.astro';
           card.innerHTML = `
             <!-- Card Image Header -->
             <div class="relative h-44 w-full overflow-hidden bg-[#18202e]">
-              <img decoding="async" loading="lazy" src="${camp.imageUrl}" alt="${camp.name}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+              <img decoding="async" loading="lazy" src="${esc(camp.imageUrl)}" alt="${esc(camp.name)}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
               <div class="absolute inset-0 bg-gradient-to-t from-[#121721] via-[#121721]/40 to-transparent"></div>
 
               <!-- Badges top row -->
@@ -825,7 +826,7 @@ import DeleteAccountModal from '../components/modals/DeleteAccountModal.astro';
                     </span>
                   ` : `
                     <span class="px-2 py-0.5 rounded-full bg-[#10141d]/85 backdrop-blur-md text-[#cbd5e1] text-[10px] font-bold border border-[#222f42] uppercase tracking-wider">
-                      Jugador (DM: ${camp.dmName})
+                      Jugador (DM: ${esc(camp.dmName)})
                     </span>
                   `}
                 </div>
@@ -849,8 +850,8 @@ import DeleteAccountModal from '../components/modals/DeleteAccountModal.astro';
 
               <!-- Campaign Title on image bottom -->
               <div class="absolute bottom-3 left-4 right-4">
-                <span class="text-[10px] font-label text-amber-400 uppercase tracking-wider font-semibold block">${camp.setting}</span>
-                <h3 class="font-headline font-bold text-lg text-[#f1f5f9] leading-snug drop-shadow-md truncate">${camp.name}</h3>
+                <span class="text-[10px] font-label text-amber-400 uppercase tracking-wider font-semibold block">${esc(camp.setting)}</span>
+                <h3 class="font-headline font-bold text-lg text-[#f1f5f9] leading-snug drop-shadow-md truncate">${esc(camp.name)}</h3>
               </div>
             </div>
 
@@ -858,7 +859,7 @@ import DeleteAccountModal from '../components/modals/DeleteAccountModal.astro';
             <div class="p-4 sm:p-5 flex-1 flex flex-col justify-between gap-4 font-label text-xs">
               <!-- Description -->
               <p class="text-[#94a3b8] text-xs line-clamp-2 leading-relaxed">
-                ${camp.description}
+                ${esc(camp.description)}
               </p>
 
               <!-- Metadata Row (DM & My Character) -->
@@ -867,14 +868,14 @@ import DeleteAccountModal from '../components/modals/DeleteAccountModal.astro';
                   <span class="material-symbols-outlined text-[16px] text-amber-500 shrink-0">crown</span>
                   <div class="min-w-0">
                     <span class="text-[9px] text-[#64748b] uppercase block font-bold">Dungeon Master</span>
-                    <span class="text-xs font-bold text-[#cbd5e1] truncate block">${camp.dmName} ${isDm ? '<span class="text-amber-400">(Tú)</span>' : ''}</span>
+                    <span class="text-xs font-bold text-[#cbd5e1] truncate block">${esc(camp.dmName)} ${isDm ? '<span class="text-amber-400">(Tú)</span>' : ''}</span>
                   </div>
                 </div>
 
                 <div class="text-right shrink-0">
                   <span class="text-[9px] text-[#64748b] uppercase block font-bold">Tu Personaje</span>
                   <span class="text-xs font-bold ${myCharInCamp ? 'text-amber-400' : 'text-[#94a3b8]'} truncate block flex items-center justify-end gap-1">
-                    ${myCharInCamp ? `<span>⭐</span><span>${myCharInCamp.name.split(' ')[0]}</span>` : (isDm ? '<span class="text-amber-300">👑 DM</span>' : '<span class="text-[#64748b]">Sin ficha</span>')}
+                    ${myCharInCamp ? `<span>⭐</span><span>${esc(myCharInCamp.name.split(' ')[0])}</span>` : (isDm ? '<span class="text-amber-300">👑 DM</span>' : '<span class="text-[#64748b]">Sin ficha</span>')}
                   </span>
                 </div>
               </div>
@@ -918,10 +919,10 @@ import DeleteAccountModal from '../components/modals/DeleteAccountModal.astro';
                     type="button"
                     class="btn-open-char flex-[2] flex items-center justify-center gap-1 px-3 py-1.5 rounded-lg bg-gradient-to-r from-amber-600 to-amber-500 text-[#0a0d12] font-bold text-xs hover:brightness-110 active:scale-95 transition-all cursor-pointer shadow-xs"
                     data-id="${camp.id}"
-                    title="Jugar con ${myCharInCamp.name}"
+                    title="Jugar con ${esc(myCharInCamp.name)}"
                   >
                     <span class="material-symbols-outlined text-[15px]">edit_document</span>
-                    <span class="truncate">Jugar (${myCharInCamp.name.split(' ')[0]})</span>
+                    <span class="truncate">Jugar (${esc(myCharInCamp.name.split(' ')[0])})</span>
                   </button>
                 ` : `
                   <button
@@ -1022,20 +1023,20 @@ import DeleteAccountModal from '../components/modals/DeleteAccountModal.astro';
           charCard.innerHTML = `
             <div class="flex items-center gap-3 min-w-0">
               <div class="w-11 h-11 rounded-xl overflow-hidden shrink-0 border border-amber-500/30 bg-[#18202e]">
-                <img decoding="async" loading="lazy" src="${char.avatarUrl || '/characters/ch-1.avif'}" alt="${char.name}" class="w-full h-full object-cover" onerror="this.onerror=null;this.src='/characters/ch-1.avif';" />
+                <img decoding="async" loading="lazy" src="${esc(char.avatarUrl || '/characters/ch-1.avif')}" alt="${esc(char.name)}" class="w-full h-full object-cover" onerror="this.onerror=null;this.src='/characters/ch-1.avif';" />
               </div>
               <div class="min-w-0">
                 <div class="flex items-center gap-1.5 flex-wrap">
-                  <h4 class="font-headline font-bold text-sm text-[#f1f5f9] truncate">${char.name}</h4>
+                  <h4 class="font-headline font-bold text-sm text-[#f1f5f9] line-clamp-2 break-words">${esc(char.name)}</h4>
                   ${isMine 
                     ? '<span class="px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 text-[9px] font-bold uppercase border border-amber-500/40">Tu Ficha</span>'
                     : '<span class="px-1.5 py-0.2 rounded bg-[#10141d] text-[#64748b] text-[9px] font-bold uppercase border border-[#222f42]">🔒 Protegida</span>'
                   }
                 </div>
                 <div class="text-[11px] text-[#94a3b8] truncate">
-                  <span>${char.race}</span> • <strong class="text-amber-400">${char.className} Nvl. ${char.level}</strong>
+                  <span>${esc(char.race)}</span> • <strong class="text-amber-400">${esc(char.className)} Nvl. ${char.level}</strong>
                 </div>
-                <span class="text-[10px] text-[#64748b]">Jugador: <strong class="${isMine ? 'text-amber-300' : 'text-[#94a3b8]'}">${char.playerName || (isMine ? currentUser.name : 'Otro')}</strong></span>
+                <span class="text-[10px] text-[#64748b]">Jugador: <strong class="${isMine ? 'text-amber-300' : 'text-[#94a3b8]'}">${esc(char.playerName || (isMine ? currentUser.name : 'Otro'))}</strong></span>
               </div>
             </div>
 

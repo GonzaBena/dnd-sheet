@@ -270,12 +270,12 @@
         : '';
 
       card.innerHTML = `
-        <div class="flex items-center justify-between gap-2 w-full min-w-0">
-          <div class="item-info-trigger flex items-center gap-2.5 min-w-0 flex-1 cursor-pointer select-none" title="Ver detalles y notas">
+        <div class="flex flex-wrap sm:flex-nowrap items-center justify-between gap-2 w-full min-w-0">
+          <div class="item-info-trigger flex items-center gap-2.5 min-w-0 basis-full sm:basis-0 sm:flex-1 cursor-pointer select-none" title="Ver detalles y notas">
             <span class="material-symbols-outlined text-[18px] text-amber-500 shrink-0">${item.icon || 'inventory_2'}</span>
             <div class="min-w-0 flex-1">
               <div class="flex items-center gap-1.5 flex-wrap">
-                <span class="text-[#f1f5f9] font-medium truncate max-w-full">${escapeHtml(item.name)}</span>
+                <span class="text-[#f1f5f9] font-medium line-clamp-2 break-words max-w-full">${escapeHtml(item.name)}</span>
                 ${customBadgeHtml(item)}
                 ${usableLabelEs ? `<span class="px-1.5 py-0.2 rounded bg-emerald-500/10 text-emerald-300 text-[9px] font-bold border border-emerald-500/25 uppercase shrink-0">${usableLabelEs}</span>` : ''}
                 ${item.activationCondition ? `<span class="px-1.5 py-0.2 rounded bg-amber-500/10 text-amber-300 text-[9px] font-bold border border-amber-500/20 flex items-center gap-0.5 shrink-0" title="Condición de activación: ${item.activationCondition}"><span class="material-symbols-outlined text-[10px]">timer</span><span>${escapeHtml(item.activationCondition)}</span></span>` : ''}
@@ -284,7 +284,7 @@
             </div>
           </div>
 
-          <div class="flex items-center gap-1.5 shrink-0">
+          <div class="flex items-center gap-1.5 shrink-0 ml-auto">
             <span class="px-2 py-0.5 rounded bg-[#10141d] text-[#94a3b8] font-bold text-[11px] border border-[#222f42]">x${escapeHtml(item.quantity)}</span>
             
             ${actionVerb ? `

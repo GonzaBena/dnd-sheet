@@ -121,6 +121,7 @@
 
 <script>
   import { showAlert, showConfirm, showPrompt, showChoice } from '../../scripts/ui/notify';
+  import { escapeHtml as esc } from '../../scripts/dnd/catalog';
   import { campaignStore } from '../../scripts/state/campaignStore';
   import { characterStore } from '../../scripts/state/characterStore';
   import { userStore } from '../../scripts/state/userStore';
@@ -193,11 +194,11 @@
       card.innerHTML = `
         <div class="flex items-center gap-3 min-w-0">
           <div class="relative w-11 h-11 rounded-xl overflow-hidden shrink-0 border border-amber-500/30 shadow-md bg-[#10141d]">
-            <img decoding="async" loading="lazy" src="${char.avatarUrl || '/characters/ch-1.avif'}" alt="${char.name}" class="w-full h-full object-cover" onerror="this.onerror=null;this.src='/characters/ch-1.avif';" />
+            <img decoding="async" loading="lazy" src="${esc(char.avatarUrl || '/characters/ch-1.avif')}" alt="${esc(char.name)}" class="w-full h-full object-cover" onerror="this.onerror=null;this.src='/characters/ch-1.avif';" />
           </div>
           <div class="min-w-0">
             <div class="flex items-center gap-1.5 flex-wrap">
-              <h4 class="font-headline font-bold text-sm text-[#f1f5f9] truncate">${char.name}</h4>
+              <h4 class="font-headline font-bold text-sm text-[#f1f5f9] line-clamp-2 break-words">${esc(char.name)}</h4>
               ${isMine 
                 ? '<span class="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 text-[9px] font-bold uppercase border border-amber-500/40 flex items-center gap-1"><span>⭐</span><span>Tu Ficha</span></span>' 
                 : '<span class="px-1.5 py-0.5 rounded bg-[#10141d] text-[#94a3b8] text-[9px] font-bold uppercase border border-[#222f42] flex items-center gap-1"><span>🔒</span><span>Protegida</span></span>'
@@ -206,14 +207,14 @@
               ${isDm ? '<span class="px-1.5 py-0.5 rounded bg-purple-500/15 text-purple-300 text-[9px] font-bold border border-purple-500/30 flex items-center gap-1"><span>👑</span><span>DM</span></span>' : ''}
             </div>
             <div class="flex items-center gap-1.5 text-[11px] text-[#94a3b8] truncate">
-              <span class="text-[#cbd5e1] font-semibold">${char.race}</span>
+              <span class="text-[#cbd5e1] font-semibold">${esc(char.race)}</span>
               <span>•</span>
-              <span class="text-amber-400 font-bold">${char.className} ${char.subclass ? `(${char.subclass})` : ''}</span>
+              <span class="text-amber-400 font-bold">${esc(char.className)} ${char.subclass ? `(${esc(char.subclass)})` : ''}</span>
               <span>•</span>
               <span class="text-amber-300 font-bold">Nvl. ${char.level}</span>
             </div>
             <div class="flex items-center gap-1.5 text-[10px] text-[#64748b]">
-              <span>Jugador: <strong class="${isMine ? 'text-amber-300' : 'text-[#cbd5e1]'}">${char.playerName || (isMine ? currentUser.name : 'Otro Jugador')}</strong></span>
+              <span>Jugador: <strong class="${isMine ? 'text-amber-300' : 'text-[#cbd5e1]'}">${esc(char.playerName || (isMine ? currentUser.name : 'Otro Jugador'))}</strong></span>
             </div>
           </div>
         </div>
@@ -248,7 +249,7 @@
             ` : `
               <div
                 class="px-2 py-1.5 rounded-lg bg-[#10141d] border border-[#222f42] text-[#64748b] text-[10px] font-bold flex items-center gap-1 select-none"
-                title="Solo el propietario (${char.playerName || 'el jugador asignado'}) puede abrir y editar esta ficha"
+                title="Solo el propietario (${esc(char.playerName || 'el jugador asignado')}) puede abrir y editar esta ficha"
               >
                 <span class="material-symbols-outlined text-[13px] text-amber-500/70">lock</span>
                 <span>Solo Lectura</span>
@@ -258,7 +259,7 @@
                   type="button"
                   class="remove-char-btn px-2 py-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 text-xs font-bold transition-all cursor-pointer flex items-center gap-1"
                   data-user-id="${char.userId}"
-                  data-user-name="${char.playerName || char.name}"
+                  data-user-name="${esc(char.playerName || char.name)}"
                   title="Quitar a este miembro y su personaje de la campaña"
                 >
                   <span class="material-symbols-outlined text-[15px]">person_remove</span>
@@ -303,7 +304,7 @@
             </div>
             <div class="min-w-0">
               <div class="flex items-center gap-1.5 flex-wrap">
-                <span class="font-bold text-[#f1f5f9] truncate">${mUser ? mUser.name : mUid}</span>
+                <span class="font-bold text-[#f1f5f9] truncate">${esc(mUser ? mUser.name : mUid)}</span>
                 ${isThisMe ? '<span class="text-[9px] text-amber-400 font-bold shrink-0">(Tú)</span>' : ''}
                 ${isThisCreator ? '<span class="px-1.5 py-0.2 rounded bg-amber-500/15 text-amber-400 text-[8px] font-bold border border-amber-500/30 shrink-0">👑 Creador</span>' : ''}
                 ${isThisDm ? '<span class="px-1.5 py-0.2 rounded bg-purple-500/15 text-purple-300 text-[8px] font-bold border border-purple-500/30 shrink-0">👑 DM</span>' : ''}
@@ -325,8 +326,8 @@
               <button
                 type="button"
                 class="remove-char-btn px-2.5 py-1 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 text-[11px] font-bold transition-all cursor-pointer flex items-center gap-1"
-                data-user-id="${mUid}"
-                data-user-name="${mUser ? mUser.name : mUid}"
+                data-user-id="${esc(mUid)}"
+                data-user-name="${esc(mUser ? mUser.name : mUid)}"
                 title="Quitar de la campaña"
               >
                 <span class="material-symbols-outlined text-[13px]">person_remove</span>

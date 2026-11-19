@@ -385,14 +385,19 @@ export function showBanner(opts: {
 
   el.innerHTML = `
     <div class="flex items-center gap-3 min-w-0">
-      <span class="text-xl shrink-0">${opts.icon || defaultIcons[opts.tone]}</span>
+      <span class="text-xl shrink-0" data-banner-icon></span>
       <div class="min-w-0">
-        <h4 class="font-headline font-bold text-sm leading-tight truncate">${opts.title}</h4>
-        ${opts.subtitle ? `<p class="text-xs opacity-80 truncate mt-0.5">${opts.subtitle}</p>` : ''}
+        <h4 class="font-headline font-bold text-sm leading-tight line-clamp-2 break-words" data-banner-title></h4>
+        ${opts.subtitle ? `<p class="text-xs opacity-80 truncate mt-0.5" data-banner-subtitle></p>` : ''}
       </div>
     </div>
     <div class="flex items-center gap-2 shrink-0" data-banner-actions></div>
   `;
+  // Los títulos incluyen nombres de combatientes que escriben los usuarios: siempre como texto, nunca HTML.
+  el.querySelector('[data-banner-icon]')!.textContent = opts.icon || defaultIcons[opts.tone];
+  el.querySelector('[data-banner-title]')!.textContent = opts.title;
+  const subtitleEl = el.querySelector('[data-banner-subtitle]');
+  if (subtitleEl) subtitleEl.textContent = opts.subtitle ?? '';
 
   let closed = false;
   const close = () => {

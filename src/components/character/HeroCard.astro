@@ -179,7 +179,7 @@
     const avatarEl = document.getElementById('hero-avatar-img') as HTMLImageElement;
 
     if (nameEl) nameEl.textContent = char.name;
-    if (subEl) subEl.textContent = `${char.className} • ${char.subclass || char.title}`;
+    if (subEl) subEl.textContent = [char.className, char.subclass || char.title].filter(Boolean).join(" • ");
     if (raceEl) raceEl.textContent = char.race;
     if (alignEl) alignEl.textContent = char.alignment;
     if (profEl) profEl.textContent = `Competencia +${char.proficiencyBonus}`;

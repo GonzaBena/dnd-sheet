@@ -122,6 +122,7 @@ import SessionStatusControls from './SessionStatusControls.astro';
 
 <script>
   import { showAlert, showConfirm, showForm } from '../../scripts/ui/notify';
+  import { escapeHtml as esc } from '../../scripts/dnd/catalog';
   import { campaignStore } from '../../scripts/state/campaignStore';
   import { broadcastGroupRest } from '../../scripts/state/groupRestSync';
   import { characterStore } from '../../scripts/state/characterStore';
@@ -184,15 +185,15 @@ import SessionStatusControls from './SessionStatusControls.astro';
           <!-- Top Row: Avatar & Identity -->
           <div class="flex items-center gap-3 mb-2.5">
             <div class="relative w-12 h-12 rounded-xl overflow-hidden shrink-0 border border-amber-500/30 shadow-md bg-[#10141d]">
-              <img decoding="async" loading="lazy" src="${char.avatarUrl || '/characters/ch-1.avif'}" alt="${char.name}" class="w-full h-full object-cover" onerror="this.onerror=null;this.src='/characters/ch-1.avif';" />
+              <img decoding="async" loading="lazy" src="${esc(char.avatarUrl || '/characters/ch-1.avif')}" alt="${esc(char.name)}" class="w-full h-full object-cover" onerror="this.onerror=null;this.src='/characters/ch-1.avif';" />
             </div>
             <div class="min-w-0">
-              <h4 class="font-headline font-bold text-sm text-[#f1f5f9] truncate">${char.name}</h4>
+              <h4 class="font-headline font-bold text-sm text-[#f1f5f9] line-clamp-2 break-words">${esc(char.name)}</h4>
               <div class="text-[11px] text-[#94a3b8] truncate">
-                <span class="text-[#cbd5e1] font-semibold">${char.race}</span> •
-                <span class="text-amber-400 font-bold">${char.className} Nvl. ${char.level}</span>
+                <span class="text-[#cbd5e1] font-semibold">${esc(char.race)}</span> •
+                <span class="text-amber-400 font-bold">${esc(char.className)} Nvl. ${char.level}</span>
               </div>
-              <span class="text-[10px] text-[#64748b]">Jugador: <strong class="text-[#cbd5e1]">${char.playerName || 'Jugador'}</strong></span>
+              <span class="text-[10px] text-[#64748b]">Jugador: <strong class="text-[#cbd5e1]">${esc(char.playerName || 'Jugador')}</strong></span>
             </div>
           </div>
 
@@ -210,8 +211,8 @@ import SessionStatusControls from './SessionStatusControls.astro';
                 type="button"
                 class="hp-mod-sub-btn py-1 rounded-lg bg-rose-950/60 hover:bg-rose-900 border border-rose-800 text-rose-300 font-bold text-xs flex items-center justify-center gap-1 cursor-pointer"
                 data-id="${char.id}"
-                data-name="${char.name}"
-                title="Dañar a ${char.name}"
+                data-name="${esc(char.name)}"
+                title="Dañar a ${esc(char.name)}"
               >
                 <span class="material-symbols-outlined text-[14px]">remove</span> Dañar
               </button>
@@ -219,8 +220,8 @@ import SessionStatusControls from './SessionStatusControls.astro';
                 type="button"
                 class="hp-mod-add-btn py-1 rounded-lg bg-emerald-950/60 hover:bg-emerald-900 border border-emerald-800 text-emerald-300 font-bold text-xs flex items-center justify-center gap-1 cursor-pointer"
                 data-id="${char.id}"
-                data-name="${char.name}"
-                title="Curar a ${char.name}"
+                data-name="${esc(char.name)}"
+                title="Curar a ${esc(char.name)}"
               >
                 <span class="material-symbols-outlined text-[14px]">add</span> Curar
               </button>

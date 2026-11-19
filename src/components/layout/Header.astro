@@ -3,7 +3,7 @@ import AlertPrefsMenu from './AlertPrefsMenu.astro';
 ---
 
 <header class="fixed top-0 w-full z-40 bg-[#0a0d12]/95 backdrop-blur-xl border-b border-[#222f42] shadow-[0_4px_25px_rgba(0,0,0,0.6)]">
-  <div class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-2 flex items-center justify-between gap-2">
+  <div class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-2 flex flex-wrap sm:flex-nowrap items-center justify-between gap-x-2 gap-y-1.5">
     <!-- Brand / Title (Icon-only on mobile/tablet to leave full room for the single-row HUD) -->
     <a href="/" data-app-title-link class="relative z-10 touch-manipulation min-h-[38px] flex items-center gap-2.5 shrink-0 hover:opacity-90 transition-opacity" title="Ir a Gestión de Campañas">
       <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-500 to-amber-700 flex items-center justify-center shadow-[0_0_12px_rgba(245,158,11,0.5)] border border-amber-400/40 shrink-0">
@@ -16,20 +16,20 @@ import AlertPrefsMenu from './AlertPrefsMenu.astro';
     </a>
 
     <!-- Center HUD Row: [<Nombre • PG • CA>] + [Encapsulated 6 Dice Bar] -->
-    <div class="flex flex-wrap items-center justify-center gap-1.5 sm:gap-2 min-w-0 flex-1 mx-auto">
+    <div class="contents sm:flex sm:flex-wrap items-center justify-center gap-1.5 sm:gap-2 min-w-0 flex-1 mx-auto">
       <!-- Cápsula 1: <Nombre • PG • CA> -->
       <div
         id="header-hud-pill"
-        class="flex items-center justify-center gap-1.5 sm:gap-2.5 px-2.5 sm:px-3 py-1 rounded-xl bg-[#121721] border border-[#222f42] text-[11px] sm:text-xs font-label max-w-full shadow-inner shrink-0"
+        class="flex items-center justify-center gap-1.5 sm:gap-2.5 px-2.5 sm:px-3 py-1 rounded-xl bg-[#121721] border border-[#222f42] text-[11px] sm:text-xs font-label max-w-full shadow-inner min-w-0 flex-1 sm:flex-none"
       >
         <!-- Nombre del personaje (o DM) -->
         <a
           href="/campaigns"
           id="header-char-name-link"
-          class="font-headline font-bold text-[#f1f5f9] hover:text-amber-300 truncate max-w-[100px] sm:max-w-[160px] transition-colors flex items-center gap-1"
+          class="font-headline font-bold text-[#f1f5f9] hover:text-amber-300 min-w-0 max-w-[110px] sm:max-w-[160px] transition-colors flex items-center gap-1"
           title="Ir a la hoja del personaje"
         >
-          <span id="header-char-name">Atlas</span>
+          <span id="header-char-name" class="truncate">Atlas</span>
         </a>
 
         <span id="header-hud-sep-1" class="text-[#475569] font-bold">•</span>
@@ -71,7 +71,7 @@ import AlertPrefsMenu from './AlertPrefsMenu.astro';
       <!-- Cápsula 2 (a la derecha del nombre/PG/CA): Barra de 6 dados encapsulada con borde ligero -->
       <div
         id="header-dice-row"
-        class="flex items-center justify-center gap-1 px-1.5 py-0.5 rounded-xl bg-[#121721] border border-amber-500/25 shadow-inner shrink-0"
+        class="order-last basis-full sm:order-none sm:basis-auto flex items-center justify-between sm:justify-center gap-1 px-1.5 py-1 sm:py-0.5 rounded-xl bg-[#121721] border border-amber-500/25 shadow-inner shrink-0"
         aria-label="Barra rápida de dados"
       >
         <!-- Toggle tirada secreta -->
