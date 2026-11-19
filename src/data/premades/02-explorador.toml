@@ -1,0 +1,49 @@
+# Atlas Ventosombra — Explorador
+id = "premade-explorador"
+class = "Explorador"
+name = "Atlas Ventosombra"
+title = "Rastreador de las Tierras Salvajes"
+race = "Semielfo"
+subclass = "Cazador"
+description = "Arquero letal y guía experto capaz de acechar a cualquier presa en la espesura."
+avatar = 2   # 1–5 → /characters/ch-N.avif
+hp_max = 12   # PG a nivel 1
+speed_ft = 30
+gold = 20
+demo = false   # puede salir sorteado como personaje del modo demo
+
+# Habilidades competentes y con pericia (ids de STANDARD_5E_SKILLS)
+skills = ["athletics", "nature", "perception", "stealth", "survival"]
+expertise = []
+
+# Conjuros iniciales (ids de los conjuros de classStarterKits.ts)
+spells = ["kit-spell-hunters-mark", "kit-spell-cure-wounds-rgr"]
+
+[stats]
+str = 12
+dex = 16
+con = 14
+int = 10
+wis = 15
+cha = 8
+
+[[items]]
+ref = "kit-ranger-longbow"   # Arco Largo
+equipped = true
+slot = "mainHand"
+
+[[items]]
+ref = "kit-ranger-shortsword"   # Espada Corta
+equipped = false
+
+[[items]]
+ref = "kit-ranger-armor"   # Armadura de Cuero Tachonado
+equipped = true
+slot = "body"
+
+[[items]]
+ref = "pocion-curacion"
+quantity = 2
+
+[[items]]
+ref = "mochila-aventurero"

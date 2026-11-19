@@ -1,0 +1,44 @@
+# Grommash el Feroz — Bárbaro
+id = "premade-barbaro"
+class = "Bárbaro"
+name = "Grommash el Feroz"
+title = "Furia de las Cumbres Heladas"
+race = "Semiorco"
+subclass = "Camino del Berserker"
+description = "Canaliza una furia primigenia devastadora para resistir golpes mortales y arrasar."
+avatar = 3   # 1–5 → /characters/ch-N.avif
+hp_max = 15   # PG a nivel 1
+speed_ft = 30
+gold = 15
+demo = true   # puede salir sorteado como personaje del modo demo
+
+# Habilidades competentes y con pericia (ids de STANDARD_5E_SKILLS)
+skills = ["animal-handling", "athletics", "intimidation", "survival"]
+expertise = []
+
+# Conjuros iniciales (ids de los conjuros de classStarterKits.ts)
+spells = []
+
+[stats]
+str = 16
+dex = 14
+con = 16
+int = 8
+wis = 12
+cha = 8
+
+[[items]]
+ref = "kit-barb-greataxe"   # Gran Hacha
+equipped = true
+slot = "mainHand"
+
+[[items]]
+ref = "kit-barb-javelin"   # Jabalina
+equipped = false
+
+[[items]]
+ref = "pocion-curacion"
+quantity = 2
+
+[[items]]
+ref = "mochila-aventurero"

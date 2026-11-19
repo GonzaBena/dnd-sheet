@@ -1,0 +1,50 @@
+# Thorin Rompehierro — Guerrero
+id = "premade-guerrero"
+class = "Guerrero"
+name = "Thorin Rompehierro"
+title = "Veterano de la Guardia Férrea"
+race = "Enano de las Montañas"
+subclass = "Campeón"
+description = "Maestro de las armas marciales y armaduras pesadas, implacable en primera línea."
+avatar = 1   # 1–5 → /characters/ch-N.avif
+hp_max = 13   # PG a nivel 1
+speed_ft = 25
+gold = 25
+demo = true   # puede salir sorteado como personaje del modo demo
+
+# Habilidades competentes y con pericia (ids de STANDARD_5E_SKILLS)
+skills = ["athletics", "intimidation", "perception", "survival"]
+expertise = []
+
+# Conjuros iniciales (ids de los conjuros de classStarterKits.ts)
+spells = []
+
+[stats]
+str = 16
+dex = 12
+con = 15
+int = 10
+wis = 13
+cha = 8
+
+[[items]]
+ref = "kit-fighter-longsword"   # Espada Larga
+equipped = true
+slot = "mainHand"
+
+[[items]]
+ref = "kit-fighter-chainmail"   # Cota de Malla
+equipped = true
+slot = "body"
+
+[[items]]
+ref = "kit-fighter-shield"   # Escudo de Acero
+equipped = true
+slot = "shield"
+
+[[items]]
+ref = "pocion-curacion"
+quantity = 2
+
+[[items]]
+ref = "mochila-aventurero"

@@ -1,0 +1,50 @@
+# Sylvara Raízantigua — Druida
+id = "premade-druida"
+class = "Druida"
+name = "Sylvara Raízantigua"
+title = "Guardiana del Círculo Esmeralda"
+race = "Elfa de los Bosques"
+subclass = "Círculo de la Luna"
+description = "Protectora del equilibrio natural capaz de invocar tormentas y adoptar formas salvajes."
+avatar = 2   # 1–5 → /characters/ch-N.avif
+hp_max = 10   # PG a nivel 1
+speed_ft = 35
+gold = 20
+demo = true   # puede salir sorteado como personaje del modo demo
+
+# Habilidades competentes y con pericia (ids de STANDARD_5E_SKILLS)
+skills = ["animal-handling", "medicine", "nature", "survival"]
+expertise = []
+
+# Conjuros iniciales (ids de los conjuros de classStarterKits.ts)
+spells = ["kit-spell-shillelagh", "kit-spell-entangle"]
+
+[stats]
+str = 10
+dex = 14
+con = 14
+int = 12
+wis = 16
+cha = 8
+
+[[items]]
+ref = "kit-druid-quarterstaff"   # Bastón Druídico
+equipped = true
+slot = "mainHand"
+
+[[items]]
+ref = "kit-druid-leather"   # Armadura de Cuero
+equipped = true
+slot = "body"
+
+[[items]]
+ref = "kit-druid-shield"   # Escudo de Roble
+equipped = true
+slot = "shield"
+
+[[items]]
+ref = "pocion-curacion"
+quantity = 2
+
+[[items]]
+ref = "mochila-aventurero"

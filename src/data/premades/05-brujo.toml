@@ -1,0 +1,45 @@
+# Kaeroc Cuernonegro — Brujo
+id = "premade-brujo"
+class = "Brujo"
+name = "Kaeroc Cuernonegro"
+title = "Portador del Pacto Umbrío"
+race = "Tiefling"
+subclass = "Patrón Infernal"
+description = "Empuña secretos prohibidos y descargas sobrenaturales otorgadas por un pacto arcano."
+avatar = 5   # 1–5 → /characters/ch-N.avif
+hp_max = 10   # PG a nivel 1
+speed_ft = 30
+gold = 20
+demo = true   # puede salir sorteado como personaje del modo demo
+
+# Habilidades competentes y con pericia (ids de STANDARD_5E_SKILLS)
+skills = ["arcana", "deception", "insight", "intimidation"]
+expertise = []
+
+# Conjuros iniciales (ids de los conjuros de classStarterKits.ts)
+spells = ["kit-spell-eldritch-blast", "kit-spell-hex"]
+
+[stats]
+str = 8
+dex = 14
+con = 14
+int = 12
+wis = 10
+cha = 16
+
+[[items]]
+ref = "kit-warlock-dagger"   # Daga Ritual
+equipped = true
+slot = "mainHand"
+
+[[items]]
+ref = "kit-warlock-leather"   # Armadura de Cuero
+equipped = true
+slot = "body"
+
+[[items]]
+ref = "pocion-curacion"
+quantity = 2
+
+[[items]]
+ref = "mochila-aventurero"

@@ -1,0 +1,60 @@
+# Catálogo de objetos compartidos por los personajes prehechos.
+#
+# Cada tabla [id] define un objeto que los personajes pueden usar con `ref = "id"`.
+# Además de estos, también se pueden referenciar los objetos de los kits de clase
+# (src/scripts/data/classStarterKits.ts), p. ej. ref = "kit-fighter-longsword".
+#
+# Campos (todos opcionales salvo name, category):
+#   name, category ("potion" | "gear" | "treasure" | "weapon" | "armor"), quantity,
+#   description, icon (Material Symbols), notes, weight_lb,
+#   usable_type ("none" | "potion" | "drinkable" | "edible" | "usable"),
+#   heal_amount (PG fijos que cura al consumirlo), heal_dice (texto, p. ej. "2d4+2"),
+#   activation_condition,
+#   requires_attunement (true si el objeto necesita sintonización),
+#   [id.weapon]  category, damage_dice, damage_type, properties, versatile_dice, magic_bonus
+#   [id.armor]   category, base_ac, dex_cap, str_min, stealth_disadv, bonus
+#   [[id.effects]] target ("ac", "save.dex", "skill.stealth", "speed", …), op ("add" | "set" |
+#                  "advantage" | "disadvantage" | "resistance"), value, when
+#                  Los efectos solo cuentan si el objeto está equipado y, si requiere
+#                  sintonización, también sintonizado.
+#
+# Los campos equipped, slot y attuned se deciden en cada personaje, no acá.
+
+[pocion-curacion]
+name = "Poción de Curación"
+category = "potion"
+icon = "science"
+description = "Bebida carmesí brillante. Recupera 7 PG (2d4 + 2) al instante."
+usable_type = "drinkable"
+heal_amount = 7
+heal_dice = "2d4+2"
+activation_condition = "1 acción"
+
+[mochila-aventurero]
+name = "Mochila de Aventurero"
+category = "gear"
+icon = "backpack"
+description = "Mochila con saco de dormir, yesquero, 10 antorchas y raciones de viaje."
+usable_type = "none"
+
+# Ejemplo de objeto con sintonización (no lo usa ningún personaje todavía):
+#
+# [capa-proteccion]
+# name = "Capa de Protección"
+# category = "treasure"
+# icon = "stars"
+# description = "+1 a la CA y a las tiradas de salvación."
+# requires_attunement = true
+#
+# [[capa-proteccion.effects]]
+# target = "ac"
+# op = "add"
+# value = 1
+#
+# Y en el personaje:
+#
+# [[items]]
+# ref = "capa-proteccion"
+# equipped = true
+# slot = "cloak"
+# attuned = true

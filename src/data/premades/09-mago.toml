@@ -1,0 +1,40 @@
+# Aelindor Estrellagris — Mago
+id = "premade-mago"
+class = "Mago"
+name = "Aelindor Estrellagris"
+title = "Erudito de la Torre Arcana"
+race = "Alto Elfo"
+subclass = "Escuela de Evocación"
+description = "Estudioso de los grimorios antiguos que domina las fuerzas elementales y el cosmos."
+avatar = 4   # 1–5 → /characters/ch-N.avif
+hp_max = 8   # PG a nivel 1
+speed_ft = 30
+gold = 25
+demo = true   # puede salir sorteado como personaje del modo demo
+
+# Habilidades competentes y con pericia (ids de STANDARD_5E_SKILLS)
+skills = ["arcana", "history", "insight", "investigation"]
+expertise = []
+
+# Conjuros iniciales (ids de los conjuros de classStarterKits.ts)
+spells = ["kit-spell-firebolt-wiz", "kit-spell-magic-missile", "kit-spell-mage-armor"]
+
+[stats]
+str = 8
+dex = 14
+con = 14
+int = 16
+wis = 12
+cha = 10
+
+[[items]]
+ref = "kit-wiz-quarterstaff"   # Bastón Arcano
+equipped = true
+slot = "mainHand"
+
+[[items]]
+ref = "pocion-curacion"
+quantity = 2
+
+[[items]]
+ref = "mochila-aventurero"

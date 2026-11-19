@@ -1268,13 +1268,12 @@ class CampaignStoreManager {
 
   /**
    * Garantiza que exista un personaje de demostración para visitantes no autenticados o modo demo.
-   * Carga uno de los personajes prehechos al azar (excluyendo a Atlas, que es personal).
+   * Carga uno de los personajes prehechos al azar entre los marcados con `demo = true` en su TOML
+   * (Atlas, el explorador, queda fuera porque es personal).
    * Si forceNewRandom es true, sortea uno nuevo distinto al actual.
    */
   public ensureDemoCharacter(forceNewRandom = false): CharacterData {
-    const availablePremades = PREMADE_CHARACTERS.filter(
-      p => p.id !== 'premade-explorador' && !p.name.includes('Atlas')
-    );
+    const availablePremades = PREMADE_CHARACTERS.filter(p => p.demo);
 
     if (!forceNewRandom) {
       const existingDemo = this.characters.find(c => c.id.startsWith('demo-'));

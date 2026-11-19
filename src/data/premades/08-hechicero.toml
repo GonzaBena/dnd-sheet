@@ -1,0 +1,40 @@
+# Ignis Sangredragón — Hechicero
+id = "premade-hechicero"
+class = "Hechicero"
+name = "Ignis Sangredragón"
+title = "Heredero del Fuego Primordial"
+race = "Dracónido"
+subclass = "Linaje Dracónico"
+description = "La magia corre por sus venas de forma innata, moldeando conjuros con pura voluntad."
+avatar = 3   # 1–5 → /characters/ch-N.avif
+hp_max = 9   # PG a nivel 1
+speed_ft = 30
+gold = 25
+demo = true   # puede salir sorteado como personaje del modo demo
+
+# Habilidades competentes y con pericia (ids de STANDARD_5E_SKILLS)
+skills = ["arcana", "history", "intimidation", "persuasion"]
+expertise = []
+
+# Conjuros iniciales (ids de los conjuros de classStarterKits.ts)
+spells = ["kit-spell-firebolt-sorc", "kit-spell-chromatic-orb"]
+
+[stats]
+str = 10
+dex = 13
+con = 14
+int = 10
+wis = 12
+cha = 16
+
+[[items]]
+ref = "kit-sorc-dagger"   # Daga Arcana
+equipped = true
+slot = "mainHand"
+
+[[items]]
+ref = "pocion-curacion"
+quantity = 2
+
+[[items]]
+ref = "mochila-aventurero"

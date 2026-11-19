@@ -1,0 +1,44 @@
+# Kaelen Vientoapacible — Monje
+id = "premade-monje"
+class = "Monje"
+name = "Kaelen Vientoapacible"
+title = "Discípulo del Templo Celeste"
+race = "Humano"
+subclass = "Camino de la Mano Abierta"
+description = "Domina la energía del Ki con velocidad sobrehumana y artes marciales precisas."
+avatar = 5   # 1–5 → /characters/ch-N.avif
+hp_max = 10   # PG a nivel 1
+speed_ft = 30
+gold = 15
+demo = true   # puede salir sorteado como personaje del modo demo
+
+# Habilidades competentes y con pericia (ids de STANDARD_5E_SKILLS)
+skills = ["acrobatics", "insight", "medicine", "religion"]
+expertise = []
+
+# Conjuros iniciales (ids de los conjuros de classStarterKits.ts)
+spells = []
+
+[stats]
+str = 10
+dex = 16
+con = 14
+int = 10
+wis = 15
+cha = 8
+
+[[items]]
+ref = "kit-monk-quarterstaff"   # Bastón Marcial
+equipped = true
+slot = "mainHand"
+
+[[items]]
+ref = "kit-monk-darts"   # Dardos de Acero
+equipped = false
+
+[[items]]
+ref = "pocion-curacion"
+quantity = 2
+
+[[items]]
+ref = "mochila-aventurero"

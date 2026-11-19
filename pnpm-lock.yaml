@@ -29,6 +29,9 @@ dependencies:
   konva:
     specifier: ^10.9.1
     version: 10.9.1
+  smol-toml:
+    specifier: ^1.9.1
+    version: 1.9.1
   tailwindcss:
     specifier: ^3.4.17
     version: 3.4.19

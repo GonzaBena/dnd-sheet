@@ -1,0 +1,50 @@
+# Valerius Escudosol — Paladín
+id = "premade-paladin"
+class = "Paladín"
+name = "Valerius Escudosol"
+title = "Caballero del Juramento Sagrado"
+race = "Humano"
+subclass = "Juramento de Devoción"
+description = "Baluarte de justicia que combina acero pesado con castigos divinos e imposición de manos."
+avatar = 1   # 1–5 → /characters/ch-N.avif
+hp_max = 12   # PG a nivel 1
+speed_ft = 30
+gold = 25
+demo = true   # puede salir sorteado como personaje del modo demo
+
+# Habilidades competentes y con pericia (ids de STANDARD_5E_SKILLS)
+skills = ["athletics", "insight", "persuasion", "religion"]
+expertise = []
+
+# Conjuros iniciales (ids de los conjuros de classStarterKits.ts)
+spells = ["kit-spell-divine-smite", "kit-spell-shield-of-faith"]
+
+[stats]
+str = 16
+dex = 10
+con = 14
+int = 8
+wis = 12
+cha = 15
+
+[[items]]
+ref = "kit-paladin-longsword"   # Espada Larga Consagrada
+equipped = true
+slot = "mainHand"
+
+[[items]]
+ref = "kit-paladin-chainmail"   # Cota de Malla
+equipped = true
+slot = "body"
+
+[[items]]
+ref = "kit-paladin-shield"   # Escudo Sagrado
+equipped = true
+slot = "shield"
+
+[[items]]
+ref = "pocion-curacion"
+quantity = 2
+
+[[items]]
+ref = "mochila-aventurero"

@@ -1,0 +1,50 @@
+# Liara Hojaargenta — Clérigo
+id = "premade-clerigo"
+class = "Clérigo"
+name = "Liara Hojaargenta"
+title = "Sacerdotisa de la Llama Sagrada"
+race = "Alta Elfa"
+subclass = "Dominio de la Vida"
+description = "Canaliza el poder divino para sanar a los caídos y castigar a las fuerzas de la oscuridad."
+avatar = 1   # 1–5 → /characters/ch-N.avif
+hp_max = 10   # PG a nivel 1
+speed_ft = 30
+gold = 25
+demo = true   # puede salir sorteado como personaje del modo demo
+
+# Habilidades competentes y con pericia (ids de STANDARD_5E_SKILLS)
+skills = ["insight", "medicine", "persuasion", "religion"]
+expertise = []
+
+# Conjuros iniciales (ids de los conjuros de classStarterKits.ts)
+spells = ["kit-spell-sacred-flame", "kit-spell-guiding-bolt", "kit-spell-cure-wounds-clr"]
+
+[stats]
+str = 14
+dex = 10
+con = 14
+int = 10
+wis = 16
+cha = 12
+
+[[items]]
+ref = "kit-cleric-mace"   # Maza Consagrada
+equipped = true
+slot = "mainHand"
+
+[[items]]
+ref = "kit-cleric-scalemail"   # Cota de Escamas
+equipped = true
+slot = "body"
+
+[[items]]
+ref = "kit-cleric-shield"   # Escudo con Emblema Sagrado
+equipped = true
+slot = "shield"
+
+[[items]]
+ref = "pocion-curacion"
+quantity = 2
+
+[[items]]
+ref = "mochila-aventurero"

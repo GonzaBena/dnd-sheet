@@ -1,0 +1,50 @@
+# Vex Sombraveloz — Pícaro
+id = "premade-picaro"
+class = "Pícaro"
+name = "Vex Sombraveloz"
+title = "Espía del Gremio del Ocaso"
+race = "Mediano Piesligeros"
+subclass = "Asesino"
+description = "Especialista en sigilo, cerraduras y ataques furtivos letales desde las sombras."
+avatar = 2   # 1–5 → /characters/ch-N.avif
+hp_max = 10   # PG a nivel 1
+speed_ft = 25
+gold = 25
+demo = true   # puede salir sorteado como personaje del modo demo
+
+# Habilidades competentes y con pericia (ids de STANDARD_5E_SKILLS)
+skills = ["acrobatics", "deception", "investigation", "perception", "sleight-of-hand", "stealth"]
+expertise = ["perception", "stealth"]
+
+# Conjuros iniciales (ids de los conjuros de classStarterKits.ts)
+spells = []
+
+[stats]
+str = 8
+dex = 16
+con = 14
+int = 13
+wis = 12
+cha = 12
+
+[[items]]
+ref = "kit-rogue-rapier"   # Estoque Fino
+equipped = true
+slot = "mainHand"
+
+[[items]]
+ref = "kit-rogue-dagger"   # Daga Equilibrada
+equipped = true
+slot = "offHand"
+
+[[items]]
+ref = "kit-rogue-leather"   # Armadura de Cuero Oscuro
+equipped = true
+slot = "body"
+
+[[items]]
+ref = "pocion-curacion"
+quantity = 2
+
+[[items]]
+ref = "mochila-aventurero"
