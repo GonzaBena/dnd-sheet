@@ -605,7 +605,7 @@ export async function commitTokenMove(
   }
   if (!currentUid) {
     const user = typeof window !== 'undefined' ? userStore.getCurrentUser() : null;
-    currentUid = user?.id || campaignStore.getDmId() || 'local-user';
+    currentUid = user?.id || campaign?.dmId || 'local-user';
   }
 
   // 1. Actualizar caché local

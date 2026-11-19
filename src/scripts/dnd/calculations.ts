@@ -122,8 +122,6 @@ export function computeSpeed(char: CharacterData): { speedFt: number; speedNote:
   for (const m of collectModifiers(char, 'speed')) {
     if (m.op === 'add') {
       effective += resolveModifierValue(char, m);
-    } else if (m.op === 'multiply' && typeof m.value === 'number') {
-      effective = Math.round(effective * m.value);
     }
   }
 

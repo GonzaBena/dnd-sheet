@@ -300,22 +300,28 @@ export interface CharacterData {
     reactionUsed?: boolean;
   };
 
-  features: {
-    id?: string;
-    title: string;
-    description: string;
-    uses?: string;
-    enabled?: boolean;
-    featType?: FeatType;
-    resourceId?: string;
-    effects?: Modifier[];
-    custom?: boolean;
-  }[];
-  
-  sessionContext: {
+  features: CharacterFeature[];
+
+  /** Ausente en personajes sueltos de una campaña (p. ej. al quitar al jugador). */
+  sessionContext?: {
     campaignName: string;
     sessionNumber: number;
     weather: string;
     location: string;
   };
+
+  /** Marca de tiempo de la última escritura en la nube. */
+  updatedAt?: number;
+}
+
+export interface CharacterFeature {
+  id?: string;
+  title: string;
+  description: string;
+  uses?: string;
+  enabled?: boolean;
+  featType?: FeatType;
+  resourceId?: string;
+  effects?: Modifier[];
+  custom?: boolean;
 }

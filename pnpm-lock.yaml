@@ -12,6 +12,8 @@ overrides:
   minimatch@>=9 <11.0.1: ^11.0.1
   '@opentelemetry/core@<2.8.0': ^2.8.0
   websocket-driver@<0.8.0: ^0.8.0
+  express-rate-limit@<8.7.5: ^8.7.5
+  re2@<1.27.2: ^1.27.2
 
 dependencies:
   '@astrojs/tailwind':
@@ -1554,7 +1556,7 @@ packages:
       eventsource: 3.0.7
       eventsource-parser: 3.1.1
       express: 5.3.0
-      express-rate-limit: 8.7.3(express@5.3.0)
+      express-rate-limit: 8.7.5(express@5.3.0)
       hono: 4.13.17
       jose: 6.2.16
       json-schema-typed: 8.0.2
@@ -3549,8 +3551,8 @@ packages:
     dev: true
     optional: true
 
-  /express-rate-limit@8.7.3(express@5.3.0):
-    resolution: {integrity: sha512-zPLqDI2f0gV2WmGnacLf9XSSqn4VldRyP5LCzOwx0BKH40mO6+2PCFkoSsRO2jePx87/Kf6NUF6P2QOTKXHbQA==}
+  /express-rate-limit@8.7.5(express@5.3.0):
+    resolution: {integrity: sha512-wi+v38cx2EqD0JnhE/e74o5tFqKWUOAPFJIgyEiqJ8v2MNpoOAA3kI2hXYOI+YM+HE5yqbdAlVxm2GqOIeYOgA==}
     engines: {node: '>= 16'}
     peerDependencies:
       express: '>= 4.11'
@@ -5957,8 +5959,8 @@ packages:
       strip-json-comments: 2.0.1
     dev: true
 
-  /re2@1.27.0:
-    resolution: {integrity: sha512-z5Vascmj7lQbU3YdfYJUDkBGGTnoAObcVW/CSbpI3WbVb1vZQsSzSWcGkfKU0JKrrGfPZwPr8EVHwYXKQKLVXw==}
+  /re2@1.27.2:
+    resolution: {integrity: sha512-bjhBWehTN+8J7Ch3PxCSvqySP/E2jh/pDKFy0kCNm/a4ZmkrtcsHw+/ziE7JCMVyB/iYuhzgc3mrY3gKp7JSRw==}
     engines: {node: ^22.22.2 || ^24.15.0 || >=26.0.0}
     requiresBuild: true
     dependencies:
@@ -6584,7 +6586,7 @@ packages:
       router: 2.2.0
       update-notifier-cjs: 5.1.7
     optionalDependencies:
-      re2: 1.27.0
+      re2: 1.27.2
     transitivePeerDependencies:
       - encoding
       - supports-color

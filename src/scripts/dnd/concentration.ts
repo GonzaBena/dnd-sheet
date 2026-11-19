@@ -1,7 +1,8 @@
 // src/scripts/dnd/concentration.ts
 // Lógica pura de concentración activa y cálculo de salvación de Constitución ante daño (Spec 11, H4).
 
-import type { ActiveEffect, CharacterData } from '../models/character.ts';
+import type { CharacterData } from '../models/character.ts';
+import type { ActiveEffect } from '../models/effect.ts';
 import type { ConcentrationCheckRequired, ConcentrationStatus } from '../models/combat.ts';
 
 /**

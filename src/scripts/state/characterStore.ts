@@ -404,7 +404,7 @@ class CharacterStoreManager {
       this.saveAndNotify();
       journalStore.log(
         `Habilidad ajustada: ${skill.name}`,
-        `Nueva configuración para ${skill.name}: Competente=${skill.proficient ? 'Sí' : 'No'}, Pericia=${skill.expertise ? 'Sí (x2)' : 'No'}, Bono obj=${skill.customBonus || 0}. Modificador total: ${skill.modifier >= 0 ? '+' : ''}${skill.modifier}.`,
+        `Nueva configuración para ${skill.name}: Competente=${skill.proficient ? 'Sí' : 'No'}, Pericia=${skill.expertise ? 'Sí (x2)' : 'No'}, Bono obj=${skill.customBonus || 0}. Modificador total: ${(skill.value ?? 0) >= 0 ? '+' : ''}${skill.value ?? 0}.`,
         ['#Configuración']
       );
     }
@@ -912,7 +912,7 @@ class CharacterStoreManager {
     return this.consumeItem(potionId).success;
   }
 
-  public updateSessionContext(context: CharacterData['sessionContext']) {
+  public updateSessionContext(context: NonNullable<CharacterData['sessionContext']>) {
     this.character.sessionContext = { ...context };
     this.saveAndNotify();
     journalStore.log(

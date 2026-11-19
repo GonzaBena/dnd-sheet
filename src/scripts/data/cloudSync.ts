@@ -274,7 +274,7 @@ class CloudSession {
         if (!charToUpload || !charToUpload.name) {
           charToUpload = defaultCharacter;
         }
-        const newCharId = `char-${me.id.substring(0, 6)}-${slugify(charToUpload.name || 'atlas')}-${Math.random().toString(36).substring(2, 6)}`;
+        const newCharId = `char-${me.id.substring(0, 6)}-${slugify(charToUpload.name, 'atlas')}-${Math.random().toString(36).substring(2, 6)}`;
         const uploadedChar: CharacterData = {
           ...toPlain(charToUpload),
           id: newCharId,

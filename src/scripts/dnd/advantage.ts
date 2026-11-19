@@ -30,7 +30,7 @@ export function evaluateAdvantage(
   // 1. Penalizaciones de armadura por falta de competencia (SRD 5.1 / Spec 08)
   for (const item of char.inventory || []) {
     if (item.equipped && item.armor) {
-      const isProf = hasArmorProficiency(char.proficiencies, { baseAc: 0, ...item.armor });
+      const isProf = hasArmorProficiency(char.proficiencies, item.armor);
       if (!isProf) {
         // En 5e, armadura sin competencia impone desventaja en tiradas de ataque y salvaciones/pruebas de FUE y DES
         if (isAttack) {

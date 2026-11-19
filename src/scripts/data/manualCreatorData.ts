@@ -580,7 +580,6 @@ export function buildCharacterFromManualCreator(input: ManualCreatorInput): Part
     },
     attunedItems: [],
     inventory: fullInventory,
-    QuickSlot: undefined as any,
     quickSlotItemId: supplyItems.find((i) => i.category === 'potion')?.id,
     spellcasting: {
       ability: spellAbility,
@@ -604,7 +603,7 @@ export function buildCharacterFromManualCreator(input: ManualCreatorInput): Part
     proficiencies,
     features: [originFeature],
     layoutConfig: {
-      ...base.layoutConfig,
+      ...base.layoutConfig!,
       showWildShape: input.classOption.name === 'Druida',
       showSpells: ['Bardo', 'Brujo', 'Clérigo', 'Druida', 'Explorador', 'Hechicero', 'Mago', 'Paladín'].includes(input.classOption.name),
     },

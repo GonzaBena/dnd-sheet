@@ -310,7 +310,7 @@ class DndApiService {
 
     const hint = COMMON_ITEM_EFFECT_HINTS_ES[idx];
     if (hint) {
-      usableType = hint.usableType;
+      usableType = hint.usableType ?? 'none';
       healAmount = hint.healAmount;
       activationCondition = hint.activationCondition;
     } else if (cat === 'potion') {
@@ -320,7 +320,7 @@ class DndApiService {
     }
 
     // Subcategoría para filtrado de Equipo y Consumibles
-    let subCategory: string = 'general';
+    let subCategory: NonNullable<UnifiedEquipment['subCategory']> = 'general';
     const gearCatIdx = raw.gear_category?.index || '';
     if (cat === 'potion' || usableType === 'drinkable' || usableType === 'edible' || ['healers-kit', 'caltrops', 'ball-bearings-bag-of-1-000', 'torch', 'candle', 'tinderbox'].includes(idx)) {
       subCategory = 'consumable';

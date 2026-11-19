@@ -377,7 +377,7 @@ export function buildCharacterFromQuickCreator(input: QuickCreatorInput): Partia
       weapons: [...classDef.weaponProficiencies],
     },
     layoutConfig: {
-      ...base.layoutConfig,
+      ...base.layoutConfig!,
       showWildShape: input.classOption.name === 'Druida',
       showSpells: ['Bardo', 'Brujo', 'Clérigo', 'Druida', 'Explorador', 'Hechicero', 'Mago', 'Paladín'].includes(input.classOption.name),
     },

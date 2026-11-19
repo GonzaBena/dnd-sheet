@@ -209,7 +209,7 @@ export function buildFullPremadeCharacter(
       },
     ],
     layoutConfig: {
-      ...base.layoutConfig,
+      ...base.layoutConfig!,
       classPreset,
       showWildShape: template.className === 'Druida',
       showSpells: SPELLCASTING_CLASSES.includes(template.className),

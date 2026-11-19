@@ -88,14 +88,14 @@ export function initCustomEntry(prefix: string) {
   function loadEquipment(entry?: EditableEntry) {
     if (!hasEquipment) return;
     const a = entry?.armor;
-    ($('armor-category') as HTMLSelectElement).value = a?.category ?? 'light';
+    $('armor-category')!.value = a?.category ?? 'light';
     $('armor-ac')!.value = a ? String(a.baseAc) : '';
     $('armor-dexcap')!.value = a && typeof a.dexCap === 'number' ? String(a.dexCap) : '';
     $('armor-str')!.value = a?.strMin ? String(a.strMin) : '';
     $('armor-bonus')!.value = a?.bonus ? String(a.bonus) : '';
     $('armor-stealth')!.checked = !!a?.stealthDisadv;
     const w = entry?.weapon;
-    ($('weapon-category') as HTMLSelectElement).value = w?.category ?? 'simple';
+    $('weapon-category')!.value = w?.category ?? 'simple';
     $('weapon-dice')!.value = w?.damageDice ?? '';
     $('weapon-type')!.value = w?.damageType ?? '';
     $('weapon-versatile')!.value = w?.versatileDice ?? '';

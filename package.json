@@ -6,6 +6,7 @@
     "dev": "node scripts/build-premades.mjs && astro dev --host",
     "build": "node scripts/build-premades.mjs && astro build",
     "premades": "node scripts/build-premades.mjs",
+    "typecheck": "tsc --noEmit -p .",
     "cache:srd": "node scripts/generate-srd-cache.mjs",
     "preview": "astro preview",
     "start": "node server.js",
@@ -45,7 +46,9 @@
       "glob@<14.0.2": "^14.0.2",
       "minimatch@>=9 <11.0.1": "^11.0.1",
       "@opentelemetry/core@<2.8.0": "^2.8.0",
-      "websocket-driver@<0.8.0": "^0.8.0"
+      "websocket-driver@<0.8.0": "^0.8.0",
+      "express-rate-limit@<8.7.5": "^8.7.5",
+      "re2@<1.27.2": "^1.27.2"
     }
   },
   "overrides": {
@@ -55,6 +58,8 @@
     "glob@<14.0.2": "^14.0.2",
     "minimatch@>=9 <11.0.1": "^11.0.1",
     "@opentelemetry/core@<2.8.0": "^2.8.0",
-    "websocket-driver@<0.8.0": "^0.8.0"
+    "websocket-driver@<0.8.0": "^0.8.0",
+    "express-rate-limit@<8.7.5": "^8.7.5",
+    "re2@<1.27.2": "^1.27.2"
   }
 }

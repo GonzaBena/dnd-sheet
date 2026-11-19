@@ -337,7 +337,7 @@ export function findAvailableReactions(
     (isMonkLevel3 || hasDeflectMissiles) &&
     (triggerType === 'damage_taken' || triggerType === 'attack_hits' || triggerType === 'manual')
   ) {
-    const dexMod = Math.floor(((character.abilities?.dex ?? 10) - 10) / 2);
+    const dexMod = character.stats?.dex?.modifier ?? 0;
     const monkLvl = character.level || 3;
     registerReaction({
       id: 'reaction-deflect-missiles',
@@ -727,7 +727,7 @@ export function executeReaction(
 
   // 9. DESVÍO DE PROYECTILES
   if (reactionId === 'reaction-deflect-missiles') {
-    const dexMod = Math.floor(((updated.abilities?.dex ?? 10) - 10) / 2);
+    const dexMod = updated.stats?.dex?.modifier ?? 0;
     const monkLvl = updated.level || 3;
     return {
       updatedCharacter: updated,
