@@ -200,11 +200,11 @@
             <div class="flex items-center gap-1.5 flex-wrap">
               <h4 class="font-headline font-bold text-sm text-[#f1f5f9] line-clamp-2 break-words">${esc(char.name)}</h4>
               ${isMine 
-                ? '<span class="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 text-[9px] font-bold uppercase border border-amber-500/40 flex items-center gap-1"><span>⭐</span><span>Tu Ficha</span></span>' 
-                : '<span class="px-1.5 py-0.5 rounded bg-[#10141d] text-[#94a3b8] text-[9px] font-bold uppercase border border-[#222f42] flex items-center gap-1"><span>🔒</span><span>Protegida</span></span>'
+                ? '<span class="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 text-[10px] font-bold uppercase border border-amber-500/40 flex items-center gap-1"><span>⭐</span><span>Tu Ficha</span></span>' 
+                : '<span class="px-1.5 py-0.5 rounded bg-[#10141d] text-[#94a3b8] text-[10px] font-bold uppercase border border-[#222f42] flex items-center gap-1"><span>🔒</span><span>Protegida</span></span>'
               }
-              ${isCreator ? '<span class="px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-400 text-[9px] font-bold border border-amber-500/30 flex items-center gap-1"><span>👑</span><span>Creador</span></span>' : ''}
-              ${isDm ? '<span class="px-1.5 py-0.5 rounded bg-purple-500/15 text-purple-300 text-[9px] font-bold border border-purple-500/30 flex items-center gap-1"><span>👑</span><span>DM</span></span>' : ''}
+              ${isCreator ? '<span class="px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-400 text-[10px] font-bold border border-amber-500/30 flex items-center gap-1"><span>👑</span><span>Creador</span></span>' : ''}
+              ${isDm ? '<span class="px-1.5 py-0.5 rounded bg-purple-500/15 text-purple-300 text-[10px] font-bold border border-purple-500/30 flex items-center gap-1"><span>👑</span><span>DM</span></span>' : ''}
             </div>
             <div class="flex items-center gap-1.5 text-[11px] text-[#94a3b8] truncate">
               <span class="text-[#cbd5e1] font-semibold">${esc(char.race)}</span>
@@ -305,9 +305,9 @@
             <div class="min-w-0">
               <div class="flex items-center gap-1.5 flex-wrap">
                 <span class="font-bold text-[#f1f5f9] truncate">${esc(mUser ? mUser.name : mUid)}</span>
-                ${isThisMe ? '<span class="text-[9px] text-amber-400 font-bold shrink-0">(Tú)</span>' : ''}
-                ${isThisCreator ? '<span class="px-1.5 py-0.2 rounded bg-amber-500/15 text-amber-400 text-[8px] font-bold border border-amber-500/30 shrink-0">👑 Creador</span>' : ''}
-                ${isThisDm ? '<span class="px-1.5 py-0.2 rounded bg-purple-500/15 text-purple-300 text-[8px] font-bold border border-purple-500/30 shrink-0">👑 DM</span>' : ''}
+                ${isThisMe ? '<span class="text-[10px] text-amber-400 font-bold shrink-0">(Tú)</span>' : ''}
+                ${isThisCreator ? '<span class="px-1.5 py-0.2 rounded bg-amber-500/15 text-amber-400 text-[10px] font-bold border border-amber-500/30 shrink-0">👑 Creador</span>' : ''}
+                ${isThisDm ? '<span class="px-1.5 py-0.2 rounded bg-purple-500/15 text-purple-300 text-[10px] font-bold border border-purple-500/30 shrink-0">👑 DM</span>' : ''}
               </div>
               <span class="text-[10px] text-[#64748b] truncate block">${isThisDm ? 'Dungeon Master Activo' : 'Miembro sin personaje'}</span>
             </div>

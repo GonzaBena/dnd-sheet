@@ -138,13 +138,13 @@ function mount(prefix: 'item' | 'spell', openEvent: string, actionEvent: string)
     badges.replaceChildren();
     if (entry.source === 'custom') {
       badges.append(el('span',
-        'px-1.5 py-0.5 rounded bg-sky-500/15 text-sky-900 border border-sky-700/40 text-[9px] font-bold uppercase tracking-wider',
+        'px-1.5 py-0.5 rounded bg-sky-500/15 text-sky-900 border border-sky-700/40 text-[10px] font-bold uppercase tracking-wider',
         'Propio'));
     }
     const rarity = entry.meta?.rarity;
     if (typeof rarity === 'string' && rarity.trim()) {
       badges.append(el('span',
-        'px-1.5 py-0.5 rounded bg-amber-900/15 text-amber-950 border border-amber-900/30 text-[9px] font-bold uppercase tracking-wider',
+        'px-1.5 py-0.5 rounded bg-amber-900/15 text-amber-950 border border-amber-900/30 text-[10px] font-bold uppercase tracking-wider',
         rarity));
     }
 

@@ -125,7 +125,7 @@
           <span class="text-xs font-medium text-[#f1f5f9]">${names[s]}</span>
         </div>
         <div class="flex items-center gap-1">
-          ${dynamicSave !== 0 ? `<span class="px-1 py-0.2 rounded bg-amber-500/20 text-amber-300 text-[9px] font-mono border border-amber-500/30" title="Bono de dote u objeto mágico">${dynamicSave >= 0 ? '+' : ''}${dynamicSave}</span>` : ''}
+          ${dynamicSave !== 0 ? `<span class="px-1 py-0.2 rounded bg-amber-500/20 text-amber-300 text-[10px] font-mono border border-amber-500/30" title="Bono de dote u objeto mágico">${dynamicSave >= 0 ? '+' : ''}${dynamicSave}</span>` : ''}
           <span class="font-headline font-bold text-xs ${isProf ? 'text-amber-400' : 'text-[#94a3b8]'}">${total >= 0 ? '+' : ''}${total}</span>
         </div>
       `;
@@ -169,7 +169,7 @@
         <div class="flex items-center gap-2 min-w-[150px]">
           <span class="w-7 text-[10px] uppercase font-bold text-[#64748b]">${skill.stat}</span>
           <span class="font-medium text-[#f1f5f9] text-xs">${skill.name}</span>
-          ${dynamicBonus !== 0 ? `<span class="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 text-[9px] font-mono border border-amber-500/30 shrink-0" title="Bono dinámico de dote u objeto (ej: Glamour Sobrenatural)">+${dynamicBonus} dinámico</span>` : ''}
+          ${dynamicBonus !== 0 ? `<span class="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 text-[10px] font-mono border border-amber-500/30 shrink-0" title="Bono dinámico de dote u objeto (ej: Glamour Sobrenatural)">+${dynamicBonus} dinámico</span>` : ''}
         </div>
 
         <div class="flex items-center gap-3 flex-wrap">

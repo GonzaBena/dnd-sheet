@@ -290,9 +290,9 @@
           <div class="flex items-center justify-between gap-2 mb-1.5">
             <div class="flex items-center gap-1.5 flex-wrap">
               ${tagsHtml}
-              ${isPrivate ? '<span class="px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 text-[9px] font-bold uppercase border border-amber-500/40 flex items-center gap-0.5">🔒 Solo Tú</span>' : ''}
-              ${isForDm ? '<span class="px-1.5 py-0.2 rounded bg-purple-500/20 text-purple-300 text-[9px] font-bold uppercase border border-purple-500/30 flex items-center gap-0.5">📨 Para el DM</span>' : ''}
-              ${entry.isSecret ? `<span class="px-1.5 py-0.2 rounded bg-purple-500/20 text-purple-300 text-[9px] font-bold uppercase border border-purple-500/30">${entry.authorName === 'Dungeon Master' || !entry.characterId ? 'Secreto DM' : 'Tirada Secreta'}</span>` : ''}
+              ${isPrivate ? '<span class="px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 text-[10px] font-bold uppercase border border-amber-500/40 flex items-center gap-0.5">🔒 Solo Tú</span>' : ''}
+              ${isForDm ? '<span class="px-1.5 py-0.2 rounded bg-purple-500/20 text-purple-300 text-[10px] font-bold uppercase border border-purple-500/30 flex items-center gap-0.5">📨 Para el DM</span>' : ''}
+              ${entry.isSecret ? `<span class="px-1.5 py-0.2 rounded bg-purple-500/20 text-purple-300 text-[10px] font-bold uppercase border border-purple-500/30">${entry.authorName === 'Dungeon Master' || !entry.characterId ? 'Secreto DM' : 'Tirada Secreta'}</span>` : ''}
             </div>
             <span class="text-[10px] text-[#64748b] shrink-0">${esc(entry.timeAgoText || 'Sesión ' + entry.sessionNumber)}</span>
           </div>

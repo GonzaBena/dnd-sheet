@@ -32,7 +32,7 @@ import DeleteAccountModal from '../components/modals/DeleteAccountModal.astro';
         </div>
         <div class="flex flex-col min-w-0">
           <span class="text-xs sm:text-sm font-headline font-bold text-[#f1f5f9] leading-tight tracking-tight line-clamp-2">Crónicas del Aventurero</span>
-          <span class="text-[9px] sm:text-[10px] font-label text-amber-500 uppercase tracking-wider font-semibold truncate">Gestor de Campañas</span>
+          <span class="text-[10px] sm:text-[10px] font-label text-amber-500 uppercase tracking-wider font-semibold truncate">Gestor de Campañas</span>
         </div>
       </a>
 
@@ -338,7 +338,7 @@ import DeleteAccountModal from '../components/modals/DeleteAccountModal.astro';
           <span class="material-symbols-outlined text-[18px] text-[#0a0d12] font-bold">casino</span>
         </div>
         <div class="min-w-0 flex-1">
-          <span class="text-[9px] uppercase font-bold text-amber-400 block tracking-wider">Sin Registro</span>
+          <span class="text-[10px] uppercase font-bold text-amber-400 block tracking-wider">Sin Registro</span>
           <strong class="text-xs text-[#f1f5f9] font-headline font-bold truncate block">Probar Modo Demo</strong>
         </div>
         <span class="material-symbols-outlined text-[16px] text-amber-400/60 group-hover:translate-x-0.5 transition-transform">arrow_forward</span>
@@ -368,7 +368,7 @@ import DeleteAccountModal from '../components/modals/DeleteAccountModal.astro';
           <span class="material-symbols-outlined text-[18px] text-[#0a0d12] font-bold" id="drawer-active-icon">crown</span>
         </div>
         <div class="min-w-0 flex-1">
-          <span class="text-[9px] uppercase font-bold text-amber-400 block tracking-wider" id="drawer-active-type">Partida Activa</span>
+          <span class="text-[10px] uppercase font-bold text-amber-400 block tracking-wider" id="drawer-active-type">Partida Activa</span>
           <strong class="text-xs text-[#f1f5f9] font-headline font-bold truncate block" id="drawer-active-title">Grimorio del Control</strong>
         </div>
         <span class="material-symbols-outlined text-[16px] text-amber-400/60 group-hover:translate-x-0.5 transition-transform">arrow_forward</span>
@@ -867,13 +867,13 @@ import DeleteAccountModal from '../components/modals/DeleteAccountModal.astro';
                 <div class="flex items-center gap-2 min-w-0">
                   <span class="material-symbols-outlined text-[16px] text-amber-500 shrink-0">crown</span>
                   <div class="min-w-0">
-                    <span class="text-[9px] text-[#64748b] uppercase block font-bold">Dungeon Master</span>
+                    <span class="text-[10px] text-[#64748b] uppercase block font-bold">Dungeon Master</span>
                     <span class="text-xs font-bold text-[#cbd5e1] truncate block">${esc(camp.dmName)} ${isDm ? '<span class="text-amber-400">(Tú)</span>' : ''}</span>
                   </div>
                 </div>
 
                 <div class="text-right shrink-0">
-                  <span class="text-[9px] text-[#64748b] uppercase block font-bold">Tu Personaje</span>
+                  <span class="text-[10px] text-[#64748b] uppercase block font-bold">Tu Personaje</span>
                   <span class="text-xs font-bold ${myCharInCamp ? 'text-amber-400' : 'text-[#94a3b8]'} truncate block flex items-center justify-end gap-1">
                     ${myCharInCamp ? `<span>⭐</span><span>${esc(myCharInCamp.name.split(' ')[0])}</span>` : (isDm ? '<span class="text-amber-300">👑 DM</span>' : '<span class="text-[#64748b]">Sin ficha</span>')}
                   </span>
@@ -1029,8 +1029,8 @@ import DeleteAccountModal from '../components/modals/DeleteAccountModal.astro';
                 <div class="flex items-center gap-1.5 flex-wrap">
                   <h4 class="font-headline font-bold text-sm text-[#f1f5f9] line-clamp-2 break-words">${esc(char.name)}</h4>
                   ${isMine 
-                    ? '<span class="px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 text-[9px] font-bold uppercase border border-amber-500/40">Tu Ficha</span>'
-                    : '<span class="px-1.5 py-0.2 rounded bg-[#10141d] text-[#64748b] text-[9px] font-bold uppercase border border-[#222f42]">🔒 Protegida</span>'
+                    ? '<span class="px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 text-[10px] font-bold uppercase border border-amber-500/40">Tu Ficha</span>'
+                    : '<span class="px-1.5 py-0.2 rounded bg-[#10141d] text-[#64748b] text-[10px] font-bold uppercase border border-[#222f42]">🔒 Protegida</span>'
                   }
                 </div>
                 <div class="text-[11px] text-[#94a3b8] truncate">

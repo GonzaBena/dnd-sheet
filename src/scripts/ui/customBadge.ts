@@ -6,5 +6,5 @@
 /** Devuelve la insignia solo si la entrada se creó con el formulario de entrada propia. */
 export function customBadgeHtml(entity: { custom?: boolean } | null | undefined): string {
   if (!entity || entity.custom !== true) return '';
-  return '<span class="px-1.5 py-0.5 rounded bg-sky-500/15 text-sky-300 border border-sky-500/30 text-[9px] font-bold uppercase tracking-wider shrink-0" title="Entrada propia">Propio</span>';
+  return '<span class="px-1.5 py-0.5 rounded bg-sky-500/15 text-sky-300 border border-sky-500/30 text-[10px] font-bold uppercase tracking-wider shrink-0" title="Entrada propia">Propio</span>';
 }

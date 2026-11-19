@@ -347,12 +347,12 @@ import { isOwnedBy } from '../../scripts/vtt/initiative';
                 </span>
                 ${
                   isOwnCharacter
-                    ? '<span class="px-1.5 py-0.2 rounded bg-blue-500/20 text-blue-300 border border-blue-500/40 text-[9px] font-bold whitespace-nowrap shrink-0">TÚ</span>'
+                    ? '<span class="px-1.5 py-0.2 rounded bg-blue-500/20 text-blue-300 border border-blue-500/40 text-[10px] font-bold whitespace-nowrap shrink-0">TÚ</span>'
                     : ''
                 }
                 ${
                   isCurrentTurn
-                    ? '<span class="px-1.5 py-0.2 rounded bg-amber-500/25 text-amber-300 border border-amber-500/50 text-[9px] font-bold animate-pulse whitespace-nowrap shrink-0">TURNO</span>'
+                    ? '<span class="px-1.5 py-0.2 rounded bg-amber-500/25 text-amber-300 border border-amber-500/50 text-[10px] font-bold animate-pulse whitespace-nowrap shrink-0">TURNO</span>'
                     : ''
                 }
               </div>
@@ -646,7 +646,7 @@ import { isOwnedBy } from '../../scripts/vtt/initiative';
             <div class="min-w-0">
               <div class="flex items-center gap-1.5 flex-wrap">
                 <span class="text-xs font-bold text-[#94a3b8] line-through truncate">${esc(act.name)}</span>
-                <span class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-rose-500/15 text-rose-400 border border-rose-500/25">${validation.badgeText}</span>
+                <span class="px-1.5 py-0.2 rounded text-[10px] font-bold bg-rose-500/15 text-rose-400 border border-rose-500/25">${validation.badgeText}</span>
               </div>
               <span class="text-[10px] text-[#64748b] font-mono">${reach.label} • ${esc(act.damage || '1d8')} ${esc(act.damageType || '')}</span>
             </div>
@@ -662,7 +662,7 @@ import { isOwnedBy } from '../../scripts/vtt/initiative';
             <div class="min-w-0">
               <div class="flex items-center gap-1.5 flex-wrap">
                 <span class="text-xs font-bold text-[#f1f5f9] truncate">${esc(act.name)}</span>
-                <span class="px-1.5 py-0.2 rounded text-[9px] font-bold ${
+                <span class="px-1.5 py-0.2 rounded text-[10px] font-bold ${
                   validation.disadvantage
                     ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
                     : 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30'
@@ -773,7 +773,7 @@ import { isOwnedBy } from '../../scripts/vtt/initiative';
             <div class="min-w-0">
               <div class="flex items-center gap-1.5 flex-wrap">
                 <span class="text-xs font-bold text-[#94a3b8] line-through truncate">${esc(sp.name)}</span>
-                <span class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-rose-500/15 text-rose-400 border border-rose-500/25">${validation.badgeText}</span>
+                <span class="px-1.5 py-0.2 rounded text-[10px] font-bold bg-rose-500/15 text-rose-400 border border-rose-500/25">${validation.badgeText}</span>
               </div>
               <span class="text-[10px] text-[#64748b] font-mono">${reach.label} • ${formula} ${sp.damageType || ''}</span>
             </div>
@@ -788,7 +788,7 @@ import { isOwnedBy } from '../../scripts/vtt/initiative';
             <div class="min-w-0">
               <div class="flex items-center gap-1.5 flex-wrap">
                 <span class="text-xs font-bold text-[#f1f5f9] truncate">${esc(sp.name)}</span>
-                <span class="px-1.5 py-0.2 rounded text-[9px] font-bold ${
+                <span class="px-1.5 py-0.2 rounded text-[10px] font-bold ${
                   validation.disadvantage
                     ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
                     : 'bg-purple-500/20 text-purple-300 border border-purple-500/40'
@@ -893,7 +893,7 @@ import { isOwnedBy } from '../../scripts/vtt/initiative';
             <div class="min-w-0">
               <div class="flex items-center gap-1.5 flex-wrap">
                 <span class="text-xs font-bold text-[#94a3b8] line-through truncate">${esc(item.name)}</span>
-                <span class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-rose-500/15 text-rose-400 border border-rose-500/25">${validation.badgeText}</span>
+                <span class="px-1.5 py-0.2 rounded text-[10px] font-bold bg-rose-500/15 text-rose-400 border border-rose-500/25">${validation.badgeText}</span>
               </div>
               <span class="text-[10px] text-[#64748b] font-mono">Cant: ${esc(item.quantity)} • ${reach.label}</span>
             </div>
@@ -907,7 +907,7 @@ import { isOwnedBy } from '../../scripts/vtt/initiative';
             <div class="min-w-0">
               <div class="flex items-center gap-1.5 flex-wrap">
                 <span class="text-xs font-bold text-[#f1f5f9] truncate">${esc(item.name)}</span>
-                <span class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">${reach.label}</span>
+                <span class="px-1.5 py-0.2 rounded text-[10px] font-bold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">${reach.label}</span>
               </div>
               <span class="text-[10px] text-[#94a3b8] font-mono">Cant: ${esc(item.quantity)}${item.healAmount ? ` • Cura ${esc(item.healAmount)} PG` : ''}</span>
             </div>

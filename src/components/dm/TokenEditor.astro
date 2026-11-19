@@ -185,28 +185,28 @@
               <input type="radio" name="token-size" value="1" class="sr-only peer" checked />
               <div class="px-2 py-2 rounded-xl bg-[#18202e] border border-[#222f42] peer-checked:border-amber-500 peer-checked:bg-amber-500/15 peer-focus-visible:ring-2 peer-focus-visible:ring-amber-400 text-center transition-all">
                 <span class="block text-xs font-bold text-[#f1f5f9]">1×1</span>
-                <span class="block text-[9px] text-[#94a3b8]">Mediano</span>
+                <span class="block text-[10px] text-[#94a3b8]">Mediano</span>
               </div>
             </label>
             <label class="relative cursor-pointer">
               <input type="radio" name="token-size" value="2" class="sr-only peer" />
               <div class="px-2 py-2 rounded-xl bg-[#18202e] border border-[#222f42] peer-checked:border-amber-500 peer-checked:bg-amber-500/15 peer-focus-visible:ring-2 peer-focus-visible:ring-amber-400 text-center transition-all">
                 <span class="block text-xs font-bold text-[#f1f5f9]">2×2</span>
-                <span class="block text-[9px] text-[#94a3b8]">Grande</span>
+                <span class="block text-[10px] text-[#94a3b8]">Grande</span>
               </div>
             </label>
             <label class="relative cursor-pointer">
               <input type="radio" name="token-size" value="3" class="sr-only peer" />
               <div class="px-2 py-2 rounded-xl bg-[#18202e] border border-[#222f42] peer-checked:border-amber-500 peer-checked:bg-amber-500/15 peer-focus-visible:ring-2 peer-focus-visible:ring-amber-400 text-center transition-all">
                 <span class="block text-xs font-bold text-[#f1f5f9]">3×3</span>
-                <span class="block text-[9px] text-[#94a3b8]">Enorme</span>
+                <span class="block text-[10px] text-[#94a3b8]">Enorme</span>
               </div>
             </label>
             <label class="relative cursor-pointer">
               <input type="radio" name="token-size" value="4" class="sr-only peer" />
               <div class="px-2 py-2 rounded-xl bg-[#18202e] border border-[#222f42] peer-checked:border-amber-500 peer-checked:bg-amber-500/15 peer-focus-visible:ring-2 peer-focus-visible:ring-amber-400 text-center transition-all">
                 <span class="block text-xs font-bold text-[#f1f5f9]">4×4</span>
-                <span class="block text-[9px] text-[#94a3b8]">Gargant.</span>
+                <span class="block text-[10px] text-[#94a3b8]">Gargant.</span>
               </div>
             </label>
           </div>
@@ -864,7 +864,7 @@
         chip.innerHTML = `
           ${avatarHtml}
           <span class="font-bold text-xs truncate max-w-[100px]">${esc(tok.name)}</span>
-          <span class="text-[9px] px-1 py-0.2 rounded bg-[#10141d] text-[#94a3b8] font-mono">${esc(tok.size)}×${esc(tok.size)}</span>
+          <span class="text-[10px] px-1 py-0.2 rounded bg-[#10141d] text-[#94a3b8] font-mono">${esc(tok.size)}×${esc(tok.size)}</span>
         `;
 
         chip.addEventListener('click', () => {
@@ -889,9 +889,9 @@
           ${avatarHtml}
           <div class="flex items-center gap-1 min-w-0">
             <span class="font-bold text-xs truncate max-w-[90px]">${esc(tok.name)}</span>
-            <span class="text-[8px] font-bold px-1 py-0.5 rounded bg-amber-500/30 text-amber-300">OCULTO</span>
+            <span class="text-[10px] font-bold px-1 py-0.5 rounded bg-amber-500/30 text-amber-300">OCULTO</span>
           </div>
-          <span class="text-[9px] px-1 py-0.2 rounded bg-[#10141d] text-[#94a3b8] font-mono">${esc(tok.size)}×${esc(tok.size)}</span>
+          <span class="text-[10px] px-1 py-0.2 rounded bg-[#10141d] text-[#94a3b8] font-mono">${esc(tok.size)}×${esc(tok.size)}</span>
         `;
 
         chip.addEventListener('click', () => {
@@ -958,7 +958,7 @@
           card.innerHTML = `
             ${infoHtml}
             <div class="flex items-center gap-1.5 shrink-0">
-              <span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+              <span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
                 En mapa
               </span>
               <button
@@ -1043,7 +1043,7 @@
               <span class="material-symbols-outlined text-[14px] text-amber-400">pets</span>
               <div class="min-w-0">
                 <span class="font-headline font-bold text-[#e2e8f0] line-clamp-2 break-words">${esc(comp.name)}</span>
-                <span class="block text-[9px] text-[#94a3b8] truncate">${compTypeLabel} (${esc(comp.size || 1)}x${esc(comp.size || 1)})</span>
+                <span class="block text-[10px] text-[#94a3b8] truncate">${compTypeLabel} (${esc(comp.size || 1)}x${esc(comp.size || 1)})</span>
               </div>
             </div>
           `;
@@ -1053,7 +1053,7 @@
             compCard.innerHTML = `
               ${compInfoHtml}
               <div class="flex items-center gap-1.5 shrink-0">
-                <span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                <span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
                   En mapa
                 </span>
                 <button
@@ -1185,8 +1185,8 @@
             <div class="min-w-0">
               <div class="flex items-center gap-1.5 flex-wrap">
                 <span class="font-headline font-bold text-[#f1f5f9] line-clamp-2 break-words">${esc(tok.name)}</span>
-                <span class="text-[9px] px-1 py-0.2 rounded bg-[#10141d] text-[#94a3b8] font-mono">${esc(tok.size)}×${esc(tok.size)}</span>
-                ${isSecret ? '<span class="text-[8px] font-bold px-1 py-0.2 rounded bg-amber-500/30 text-amber-300">OCULTO</span>' : ''}
+                <span class="text-[10px] px-1 py-0.2 rounded bg-[#10141d] text-[#94a3b8] font-mono">${esc(tok.size)}×${esc(tok.size)}</span>
+                ${isSecret ? '<span class="text-[10px] font-bold px-1 py-0.2 rounded bg-amber-500/30 text-amber-300">OCULTO</span>' : ''}
               </div>
               <span class="block text-[10px] text-[#64748b] font-mono">(${Math.round(tok.x || 0)}, ${Math.round(tok.y || 0)})</span>
             </div>

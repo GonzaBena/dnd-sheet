@@ -202,17 +202,17 @@
                 <span class="text-[#f1f5f9] font-medium line-clamp-2 break-words">${escapeHtml(sp.name)}</span>
                 ${customBadgeHtml(sp)}
                 <span class="text-[10px] text-[#64748b]">(${sp.school})</span>
-                ${isConc ? `<span class="px-1.5 py-0.2 rounded bg-amber-500/15 text-amber-300 border border-amber-500/30 text-[9px] font-bold font-mono" title="Requiere Concentración">CONC</span>` : ''}
-                ${isRitual ? `<span class="px-1.5 py-0.2 rounded bg-sky-500/15 text-sky-300 border border-sky-500/30 text-[9px] font-bold font-mono" title="Se puede lanzar como Ritual (+10 min, sin ranuras)">RITUAL</span>` : ''}
-                ${!compCheck.canCast ? `<span class="px-1.5 py-0.2 rounded bg-rose-500/10 text-rose-300 border border-rose-500/30 text-[9px] font-bold" title="${escapeHtml(compCheck.warnings.join(' • '))}">⚠️ Comp</span>` : ''}
-                ${sp.isSave ? `<span class="px-1.5 py-0.2 rounded bg-purple-500/10 text-purple-300 border border-purple-500/30 text-[9px] font-bold font-mono">CD ${sp.saveDc || char.spellcasting?.saveDc} ${sp.saveAbility ? sp.saveAbility.toUpperCase() : ''}</span>` : ''}
+                ${isConc ? `<span class="px-1.5 py-0.2 rounded bg-amber-500/15 text-amber-300 border border-amber-500/30 text-[10px] font-bold font-mono" title="Requiere Concentración">CONC</span>` : ''}
+                ${isRitual ? `<span class="px-1.5 py-0.2 rounded bg-sky-500/15 text-sky-300 border border-sky-500/30 text-[10px] font-bold font-mono" title="Se puede lanzar como Ritual (+10 min, sin ranuras)">RITUAL</span>` : ''}
+                ${!compCheck.canCast ? `<span class="px-1.5 py-0.2 rounded bg-rose-500/10 text-rose-300 border border-rose-500/30 text-[10px] font-bold" title="${escapeHtml(compCheck.warnings.join(' • '))}">⚠️ Comp</span>` : ''}
+                ${sp.isSave ? `<span class="px-1.5 py-0.2 rounded bg-purple-500/10 text-purple-300 border border-purple-500/30 text-[10px] font-bold font-mono">CD ${sp.saveDc || char.spellcasting?.saveDc} ${sp.saveAbility ? sp.saveAbility.toUpperCase() : ''}</span>` : ''}
                 ${(() => {
                   if (!sp.resourceId) return '';
                   const r = (char.resources || []).find((x: any) => x.id === sp.resourceId);
                   if (!r) return '';
                   const rem = Math.max(0, r.max - r.used);
                   const color = rem > 0 ? 'bg-amber-500/15 text-amber-300 border-amber-500/40' : 'bg-rose-500/10 text-rose-300 border-rose-500/30';
-                  return `<span class="px-1.5 py-0.2 rounded ${color} text-[9px] font-bold font-mono border" title="Usos gratuitos: ${rem}/${r.max} (${escapeHtml(r.name)})">Gratis: ${rem}/${r.max}</span>`;
+                  return `<span class="px-1.5 py-0.2 rounded ${color} text-[10px] font-bold font-mono border" title="Usos gratuitos: ${rem}/${r.max} (${escapeHtml(r.name)})">Gratis: ${rem}/${r.max}</span>`;
                 })()}
               </div>
             </div>

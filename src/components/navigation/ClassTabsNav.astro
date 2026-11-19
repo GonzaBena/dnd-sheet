@@ -4,7 +4,7 @@
 
 <nav class="w-full mb-6 p-1.5 rounded-2xl bg-[#121721] border border-[#222f42] shadow-md flex items-center gap-1.5" id="class-tabs-bar">
   <!-- Scrollable tabs area (only the buttons scroll, never overlapping the configure button) -->
-  <div class="flex-1 min-w-0 overflow-x-auto no-scrollbar flex items-center gap-1.5 flex-nowrap pr-2" id="tab-buttons-list">
+  <div class="tabs-scroller flex-1 min-w-0 overflow-x-auto no-scrollbar flex items-center gap-1.5 flex-nowrap pr-2" id="tab-buttons-list">
     <!-- Tab: Todo -->
     <button
       type="button"
@@ -150,9 +150,53 @@
       }
     });
 
+    // Al cambiar de pestaña (o al cargar), la activa queda visible dentro de la tira deslizable.
+    if (active !== lastActiveTab) {
+      lastActiveTab = active;
+      revealTab(document.querySelector<HTMLElement>(`#tab-buttons-list .tab-btn[data-tab="${active}"]`));
+    }
+
     // Update visibility of main content sections based on active tab
     applyTabFilter(active, cfg);
   }
+
+  let lastActiveTab: string | null = null;
+
+  // Desplaza solo la tira de pestañas (nunca la página) hasta que la pestaña quede fuera de los degradados.
+  function revealTab(tab: HTMLElement | null) {
+    const list = document.getElementById('tab-buttons-list');
+    if (!list || !tab) return;
+    const pad = 32; // = --fade-size
+    const l = list.getBoundingClientRect();
+    const t = tab.getBoundingClientRect();
+    let delta = 0;
+    if (t.left < l.left + pad) delta = t.left - l.left - pad;
+    else if (t.right > l.right - pad) delta = t.right - l.right + pad;
+    if (delta === 0) return;
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    list.scrollBy({ left: delta, behavior: reduce ? 'auto' : 'smooth' });
+  }
+
+  // Respaldo sin scroll-driven animations: centinelas en los extremos marcan qué borde tiene más pestañas.
+  (function setupTabsFadeFallback() {
+    const list = document.getElementById('tab-buttons-list');
+    if (!list || CSS.supports('animation-timeline', 'scroll()') || !('IntersectionObserver' in window)) return;
+    const start = document.createElement('span');
+    const end = document.createElement('span');
+    for (const sentinel of [start, end]) {
+      sentinel.setAttribute('aria-hidden', 'true');
+      sentinel.style.cssText = 'flex: none; min-inline-size: 1px; min-block-size: 1px';
+    }
+    list.prepend(start);
+    list.append(end);
+    const observer = new IntersectionObserver((entries) => {
+      for (const { target, isIntersecting } of entries) {
+        list.classList.toggle(target === start ? 'more-start' : 'more-end', !isIntersecting);
+      }
+    }, { root: list });
+    observer.observe(start);
+    observer.observe(end);
+  })();
 
   function applyTabFilter(tab: string, cfg: any) {
     const secAbilities = document.getElementById('section-abilities');

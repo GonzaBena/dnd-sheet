@@ -416,7 +416,7 @@ import HandoutManager from './HandoutManager.astro';
                   </div>
                 </div>
               </div>
-              <span class="px-2 py-0.5 rounded-full border text-[9px] font-bold shrink-0 ${statusColor}">${statusText}</span>
+              <span class="px-2 py-0.5 rounded-full border text-[10px] font-bold shrink-0 ${statusColor}">${statusText}</span>
             </div>
 
             <!-- PG con ajuste rápido en una sola fila -->
@@ -633,8 +633,8 @@ import HandoutManager from './HandoutManager.astro';
         <div class="flex items-center justify-between gap-2">
           <div class="flex items-center gap-1.5 flex-wrap">
             <h5 class="font-headline font-bold text-sm text-[#f1f5f9]">${esc(entry.title)}</h5>
-            ${isPrivate ? '<span class="px-1.5 py-0.2 rounded bg-purple-500/30 text-purple-200 text-[9px] font-bold uppercase border border-purple-400/40">🔒 Solo DM</span>' : ''}
-            ${isForDm ? `<span class="px-1.5 py-0.2 rounded bg-purple-500/30 text-purple-200 text-[9px] font-bold uppercase border border-purple-400/40">📨 De ${esc(entry.authorName || 'un jugador')}</span>` : ''}
+            ${isPrivate ? '<span class="px-1.5 py-0.2 rounded bg-purple-500/30 text-purple-200 text-[10px] font-bold uppercase border border-purple-400/40">🔒 Solo DM</span>' : ''}
+            ${isForDm ? `<span class="px-1.5 py-0.2 rounded bg-purple-500/30 text-purple-200 text-[10px] font-bold uppercase border border-purple-400/40">📨 De ${esc(entry.authorName || 'un jugador')}</span>` : ''}
           </div>
           <div class="flex items-center gap-1.5 shrink-0">
             <span class="text-[10px] text-[#64748b] font-label">${entry.timestamp ? new Date(entry.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}</span>

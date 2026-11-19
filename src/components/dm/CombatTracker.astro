@@ -768,7 +768,7 @@
                   <span class="text-xs sm:text-sm font-bold text-[#f1f5f9] truncate max-w-[150px] sm:max-w-xs md:max-w-md" title="${escapeHtml(c.name)}">
                     ${escapeHtml(c.name)}
                   </span>
-                  <span class="px-1.5 py-0.5 rounded text-[9px] font-bold whitespace-nowrap shrink-0 inline-flex items-center ${
+                  <span class="px-1.5 py-0.5 rounded text-[10px] font-bold whitespace-nowrap shrink-0 inline-flex items-center ${
                     c.isPlayer
                       ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
                       : 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
@@ -905,14 +905,14 @@
                               return `
                           <button
                             type="button"
-                            class="dm-remove-condition-btn inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-bold border ${info.color} hover:opacity-80 transition-opacity cursor-pointer whitespace-nowrap shrink-0"
+                            class="dm-remove-condition-btn inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold border ${info.color} hover:opacity-80 transition-opacity cursor-pointer whitespace-nowrap shrink-0"
                             data-id="${c.id}"
                             data-cond="${condId}"
                             title="Quitar ${escapeHtml(info.name)}"
                           >
                             <span class="material-symbols-outlined text-[11px] shrink-0">${info.icon}</span>
                             <span class="whitespace-nowrap">${escapeHtml(info.name)}</span>
-                            <span class="text-[9px] ml-0.5">×</span>
+                            <span class="text-[10px] ml-0.5">×</span>
                           </button>
                         `;
                             })

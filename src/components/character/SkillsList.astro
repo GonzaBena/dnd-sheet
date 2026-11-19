@@ -128,7 +128,7 @@
       const val = skill.value ?? 0;
       const modStr = val >= 0 ? `+${val}` : `${val}`;
 
-      let dotHtml = `<span class="text-[9px] text-[#334155]" title="Sin competencia">○</span>`;
+      let dotHtml = `<span class="text-[10px] text-[#334155]" title="Sin competencia">○</span>`;
       if (skill.expertise) {
         dotHtml = `<span class="text-[10px] text-amber-400 font-bold" title="Pericia (x2)">◆</span>`;
       } else if (skill.proficient) {
@@ -137,7 +137,7 @@
 
       let bonusBadge = '';
       if (skill.customBonus && skill.customBonus !== 0) {
-        bonusBadge = `<span class="px-1 py-0.2 rounded bg-cyan-500/20 text-cyan-300 text-[8px] font-mono border border-cyan-500/30 shrink-0" title="Bonificación de objeto o dote">${skill.customBonus >= 0 ? '+' : ''}${skill.customBonus}</span>`;
+        bonusBadge = `<span class="px-1 py-0.2 rounded bg-cyan-500/20 text-cyan-300 text-[10px] font-mono border border-cyan-500/30 shrink-0" title="Bonificación de objeto o dote">${skill.customBonus >= 0 ? '+' : ''}${skill.customBonus}</span>`;
       }
 
       const row = document.createElement('div');
@@ -146,7 +146,7 @@
       row.innerHTML = `
         <!-- Vista Cuadradito en Móvil / 1 Columna Global (< lg): [stat, nombre centrado, bonus] -->
         <div class="flex lg:hidden w-full items-center justify-between gap-1 px-0.5">
-          <span class="text-[9px] uppercase font-bold text-[#64748b] tracking-wider leading-none">${skill.stat}</span>
+          <span class="text-[10px] uppercase font-bold text-[#64748b] tracking-wider leading-none">${skill.stat}</span>
           <div class="flex items-center gap-1 leading-none">
             ${bonusBadge}
             ${dotHtml}
@@ -161,7 +161,7 @@
         <!-- Vista Lista en Escritorio / Multi-Columna Global (lg+): fila horizontal clásica -->
         <div class="hidden lg:flex items-center gap-1.5 min-w-0 flex-1">
           ${dotHtml}
-          <span class="text-[9px] uppercase font-bold text-[#64748b] w-6 shrink-0">${skill.stat}</span>
+          <span class="text-[10px] uppercase font-bold text-[#64748b] w-6 shrink-0">${skill.stat}</span>
           <span class="text-xs font-medium text-[#f1f5f9] group-hover:text-amber-300 transition-colors truncate">${skill.name}</span>
           ${bonusBadge}
         </div>

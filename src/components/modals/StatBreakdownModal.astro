@@ -149,14 +149,14 @@
 
           if (s.item?.slot) {
             const slotBadge = document.createElement('span');
-            slotBadge.className = 'text-[9px] px-1.5 py-0.2 rounded bg-[#18202e] text-[#94a3b8] border border-[#222f42] uppercase';
+            slotBadge.className = 'text-[10px] px-1.5 py-0.2 rounded bg-[#18202e] text-[#94a3b8] border border-[#222f42] uppercase';
             slotBadge.textContent = s.item.slot;
             top.appendChild(slotBadge);
           }
 
           if (s.item?.attuned) {
             const attBadge = document.createElement('span');
-            attBadge.className = 'text-[9px] px-1.5 py-0.2 rounded bg-violet-500/15 text-violet-300 border border-violet-500/30 font-bold';
+            attBadge.className = 'text-[10px] px-1.5 py-0.2 rounded bg-violet-500/15 text-violet-300 border border-violet-500/30 font-bold';
             attBadge.textContent = 'Sintonizado';
             top.appendChild(attBadge);
           }

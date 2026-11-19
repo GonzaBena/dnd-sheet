@@ -91,7 +91,7 @@
     return el('span', `material-symbols-outlined ${cls}`, name);
   }
   function chip(text: string, cls: string) {
-    return el('span', `px-1.5 py-0.5 rounded text-[9px] font-bold border shrink-0 ${cls}`, text);
+    return el('span', `px-1.5 py-0.5 rounded text-[10px] font-bold border shrink-0 ${cls}`, text);
   }
 
   function acLabel(item: any): string {
@@ -123,7 +123,7 @@
     cell.dataset.slot = slot;
 
     const head = el('div', 'flex items-center justify-between gap-1');
-    head.appendChild(el('span', 'text-[9px] uppercase tracking-wider text-[#64748b] font-bold', SLOT_LABELS[slot]));
+    head.appendChild(el('span', 'text-[10px] uppercase tracking-wider text-[#64748b] font-bold', SLOT_LABELS[slot]));
     head.appendChild(icon(SLOT_ICONS[slot] ?? 'inventory_2', 'text-[14px] text-[#64748b]'));
     cell.appendChild(head);
 
@@ -179,7 +179,7 @@
 
     const actions = el('div', 'flex items-center gap-1 mt-auto flex-wrap');
     if (item.requiresAttunement || item.attuned) {
-      const at = el('button', 'px-1.5 py-0.5 rounded bg-violet-500/15 text-violet-300 hover:bg-violet-500/30 border border-violet-500/30 text-[9px] font-bold cursor-pointer', item.attuned ? 'Quitar sintonía' : 'Sintonizar');
+      const at = el('button', 'px-1.5 py-0.5 rounded bg-violet-500/15 text-violet-300 hover:bg-violet-500/30 border border-violet-500/30 text-[10px] font-bold cursor-pointer', item.attuned ? 'Quitar sintonía' : 'Sintonizar');
       (at as HTMLButtonElement).type = 'button';
       at.addEventListener('click', () => {
         if (item.attuned) { characterStore.unattuneItem(item.id); return; }

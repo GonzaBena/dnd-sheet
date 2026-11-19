@@ -145,7 +145,7 @@
               <span class="text-xs text-[#94a3b8] font-label truncate">
                 ${escapeHtml(item.description || (item.healAmount ? `Recupera +${item.healAmount} PG` : 'Objeto usable en combate'))}
               </span>
-              ${item.activationCondition ? `<span class="px-1.5 py-0.2 rounded bg-amber-500/10 text-amber-300 text-[9px] font-bold border border-amber-500/20 flex items-center gap-0.5 shrink-0"><span class="material-symbols-outlined text-[11px]">timer</span><span>${escapeHtml(item.activationCondition)}</span></span>` : ''}
+              ${item.activationCondition ? `<span class="px-1.5 py-0.2 rounded bg-amber-500/10 text-amber-300 text-[10px] font-bold border border-amber-500/20 flex items-center gap-0.5 shrink-0"><span class="material-symbols-outlined text-[11px]">timer</span><span>${escapeHtml(item.activationCondition)}</span></span>` : ''}
             </div>
           </div>
         </div>
@@ -277,8 +277,8 @@
               <div class="flex items-center gap-1.5 flex-wrap">
                 <span class="text-[#f1f5f9] font-medium line-clamp-2 break-words max-w-full">${escapeHtml(item.name)}</span>
                 ${customBadgeHtml(item)}
-                ${usableLabelEs ? `<span class="px-1.5 py-0.2 rounded bg-emerald-500/10 text-emerald-300 text-[9px] font-bold border border-emerald-500/25 uppercase shrink-0">${usableLabelEs}</span>` : ''}
-                ${item.activationCondition ? `<span class="px-1.5 py-0.2 rounded bg-amber-500/10 text-amber-300 text-[9px] font-bold border border-amber-500/20 flex items-center gap-0.5 shrink-0" title="Condición de activación: ${item.activationCondition}"><span class="material-symbols-outlined text-[10px]">timer</span><span>${escapeHtml(item.activationCondition)}</span></span>` : ''}
+                ${usableLabelEs ? `<span class="px-1.5 py-0.2 rounded bg-emerald-500/10 text-emerald-300 text-[10px] font-bold border border-emerald-500/25 uppercase shrink-0">${usableLabelEs}</span>` : ''}
+                ${item.activationCondition ? `<span class="px-1.5 py-0.2 rounded bg-amber-500/10 text-amber-300 text-[10px] font-bold border border-amber-500/20 flex items-center gap-0.5 shrink-0" title="Condición de activación: ${item.activationCondition}"><span class="material-symbols-outlined text-[10px]">timer</span><span>${escapeHtml(item.activationCondition)}</span></span>` : ''}
               </div>
               ${item.description ? `<span class="text-[10px] text-[#64748b] truncate block">${escapeHtml(item.description)}</span>` : ''}
             </div>
@@ -375,7 +375,7 @@
       const isWeaponInBackpack = item.category === 'weapon' || !!item.weapon;
       const mkBadge = (text: string, cls: string, icon?: string) => {
         const b = document.createElement('span');
-        b.className = `px-1.5 py-0.5 rounded text-[9px] font-bold border flex items-center gap-0.5 shrink-0 ${cls}`;
+        b.className = `px-1.5 py-0.5 rounded text-[10px] font-bold border flex items-center gap-0.5 shrink-0 ${cls}`;
         if (icon) {
           const ic = document.createElement('span');
           ic.className = 'material-symbols-outlined text-[10px]';

@@ -20,6 +20,40 @@
     overscroll-behavior: none;
   }
 
+  /* Los botones flotantes (bitácora / índice) ocupan ~5rem abajo a la derecha: el foco por teclado
+     y los saltos a anclas nunca deben dejar un elemento tapado por ellos (WCAG 2.4.11). */
+  html {
+    scroll-padding-bottom: 6rem;
+  }
+
+  /* Tamaño mínimo de objetivo táctil (WCAG 2.5.8, 24×24px). :where() deja la especificidad en 0,
+     así que cualquier utilidad explícita sigue mandando salvo en el mínimo. Los controles con
+     .sr-only quedan fuera: su caja es de 1px a propósito. */
+  :where(button, select, [role="button"]):not(.sr-only) {
+    min-block-size: 24px;
+    min-inline-size: 24px;
+  }
+
+  :where(label:has(> input[type="checkbox"], > input[type="radio"]:not(.sr-only))) {
+    min-block-size: 24px;
+  }
+
+  :where(footer a) {
+    min-block-size: 24px;
+  }
+
+  /* En móvil la última fila del footer queda centrada justo debajo de los botones flotantes. */
+  @media (max-width: 639.98px) {
+    body:has(#journal-fab-root:not(.hidden)) footer {
+      padding-block-end: 5.5rem;
+    }
+  }
+
+  :where(footer a:not(.flex, .inline-flex, .block, .grid)) {
+    display: inline-flex;
+    align-items: center;
+  }
+
   html.modal-open,
   body.modal-open {
     overflow: hidden !important;
@@ -186,6 +220,73 @@ dialog[open] :is(.create-char-card, .premade-char-card),
 
 ::-webkit-scrollbar-thumb:hover {
   background: #f59e0b;
+}
+
+/* ==========================================================================
+   PESTAÑAS DESLIZABLES: degradado en el borde que tiene más pestañas
+   - Con scroll-driven animations: cada degradado crece al alejarse de su extremo.
+   - Sin soporte: ClassTabsNav agrega .more-start / .more-end con IntersectionObserver.
+   La máscara resta solo las bandas (no-clip), así no oculta el anillo de foco.
+   ========================================================================== */
+@property --fade-start {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
+@property --fade-end {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
+.tabs-scroller {
+  --fade-size: 2rem;
+  scroll-padding-inline: var(--fade-size);
+  mask:
+    linear-gradient(black, black) no-clip subtract,
+    linear-gradient(to right, black, transparent) 0 0 / var(--fade-start) 100% no-repeat no-clip,
+    linear-gradient(to right, transparent, black) 100% 0 / var(--fade-end) 100% no-repeat no-clip;
+  transition: --fade-start 0.2s, --fade-end 0.2s;
+}
+
+.tabs-scroller.more-start {
+  --fade-start: var(--fade-size);
+}
+
+.tabs-scroller.more-end {
+  --fade-end: var(--fade-size);
+}
+
+@supports (animation-timeline: scroll()) {
+  .tabs-scroller {
+    transition: none;
+    /* Una sola animación sobre todo el recorrido: los degradados aparecen en el primer 4% del
+       scroll y desaparecen en el último 4%. (animation-range con inicio 0 deja la animación
+       "terminada" en Chromium, por eso los tramos van en los keyframes.) */
+    /* Longhands a propósito: con el shorthand `animation`, el minificador fusiona también
+       animation-timeline dentro del shorthand y Chromium descarta la declaración entera. */
+    animation-name: tabs-edge-fades;
+    animation-timing-function: linear;
+    animation-fill-mode: both;
+    animation-timeline: scroll(self inline);
+  }
+}
+
+@keyframes tabs-edge-fades {
+  0% {
+    --fade-start: 0px;
+    --fade-end: var(--fade-size);
+  }
+  4%,
+  96% {
+    --fade-start: var(--fade-size);
+    --fade-end: var(--fade-size);
+  }
+  100% {
+    --fade-start: var(--fade-size);
+    --fade-end: 0px;
+  }
 }
 
 /* Text selections */

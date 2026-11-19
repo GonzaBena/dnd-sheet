@@ -149,7 +149,7 @@
 
             <!-- Quick DC/AC presets chips -->
             <div class="flex items-center gap-1 flex-wrap pt-0.5" id="dice-dc-chips-container">
-              <span class="text-[9px] text-[#64748b] uppercase tracking-wider mr-1">Rápido:</span>
+              <span class="text-[10px] text-[#64748b] uppercase tracking-wider mr-1">Rápido:</span>
               <button type="button" class="dice-dc-chip px-1.5 py-0.5 rounded bg-[#18202e] hover:bg-amber-500/20 border border-[#222f42] hover:border-amber-500/40 text-[10px] font-mono text-[#cbd5e1] hover:text-amber-300 transition-colors cursor-pointer" data-dc="10">10</button>
               <button type="button" class="dice-dc-chip px-1.5 py-0.5 rounded bg-[#18202e] hover:bg-amber-500/20 border border-[#222f42] hover:border-amber-500/40 text-[10px] font-mono text-[#cbd5e1] hover:text-amber-300 transition-colors cursor-pointer" data-dc="12">12</button>
               <button type="button" class="dice-dc-chip px-1.5 py-0.5 rounded bg-[#18202e] hover:bg-amber-500/20 border border-[#222f42] hover:border-amber-500/40 text-[10px] font-mono text-[#cbd5e1] hover:text-amber-300 transition-colors cursor-pointer" data-dc="14">14</button>
@@ -200,7 +200,7 @@
             <span class="text-[11px] font-headline font-bold text-[#f1f5f9]">Secreta</span>
             <span
               id="dice-secret-badge"
-              class="hidden px-1 py-0.2 rounded text-[8px] font-bold uppercase bg-purple-500/20 text-purple-300 border border-purple-500/40"
+              class="hidden px-1 py-0.2 rounded text-[10px] font-bold uppercase bg-purple-500/20 text-purple-300 border border-purple-500/40"
             >
               🔒
             </span>
@@ -247,7 +247,7 @@
         <div class="flex items-center justify-center gap-2.5 w-full">
           <!-- Input Principal del Dado Físico -->
           <div class="flex flex-col items-center">
-            <span class="text-[9px] uppercase font-bold text-[#94a3b8] font-mono mb-0.5">Dado</span>
+            <span class="text-[10px] uppercase font-bold text-[#94a3b8] font-mono mb-0.5">Dado</span>
             <input
               type="number"
               id="dice-physical-input"
@@ -262,7 +262,7 @@
 
           <!-- Modificador -->
           <div class="flex flex-col items-center">
-            <span class="text-[9px] uppercase font-bold text-[#94a3b8] font-mono mb-0.5">Mod</span>
+            <span class="text-[10px] uppercase font-bold text-[#94a3b8] font-mono mb-0.5">Mod</span>
             <div class="w-14 h-12 rounded-xl bg-[#121721] border border-[#222f42] flex items-center justify-center font-headline font-bold text-amber-400 text-base">
               <span id="dice-physical-mod-text">+3</span>
             </div>
@@ -272,7 +272,7 @@
 
           <!-- Total Calculado -->
           <div class="flex flex-col items-center">
-            <span class="text-[9px] uppercase font-bold text-amber-300 font-mono mb-0.5">Total</span>
+            <span class="text-[10px] uppercase font-bold text-amber-300 font-mono mb-0.5">Total</span>
             <div class="w-16 h-12 rounded-xl bg-amber-500/20 border-2 border-amber-500/60 shadow-[0_0_15px_rgba(245,158,11,0.25)] flex items-center justify-center font-headline font-bold text-[#f1f5f9] text-lg">
               <span id="dice-physical-total-text">--</span>
             </div>
@@ -925,7 +925,7 @@
           const discardedIdx = chosenIdx === 0 ? 1 : 0;
           boxes[chosenIdx].classList.add('border-emerald-400', 'ring-2', 'ring-emerald-400/50');
           const badge = document.createElement('span');
-          badge.className = 'absolute top-1 right-1 text-[8px] bg-emerald-500/30 text-emerald-300 px-1 rounded font-bold uppercase';
+          badge.className = 'absolute top-1 right-1 text-[10px] bg-emerald-500/30 text-emerald-300 px-1 rounded font-bold uppercase';
           badge.textContent = 'Elegido';
           boxes[chosenIdx].appendChild(badge);
 
@@ -1255,7 +1255,7 @@
     }
 
     const physicalBadge = isPhysical
-      ? '<span class="px-1.5 py-0.2 rounded bg-amber-500/15 text-amber-300 border border-amber-500/30 text-[9px] font-bold inline-flex items-center gap-1 mr-1"><span>🖐️</span><span>Dado Físico</span></span>'
+      ? '<span class="px-1.5 py-0.2 rounded bg-amber-500/15 text-amber-300 border border-amber-500/30 text-[10px] font-bold inline-flex items-center gap-1 mr-1"><span>🖐️</span><span>Dado Físico</span></span>'
       : '';
 
     const targetLabel = targetName ? `<span class="text-rose-300 font-bold"> ➜ ${esc(targetName)}</span>` : '';

@@ -13,7 +13,7 @@
         <div>
           <div class="flex items-center gap-2">
             <h3 class="font-headline font-bold text-sm sm:text-base text-[#f1f5f9]" id="compendium-modal-title">Compendio Oficial D&D 5e</h3>
-            <span id="compendium-cache-pill" class="text-[9px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 font-bold uppercase tracking-wider flex items-center gap-1">
+            <span id="compendium-cache-pill" class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 font-bold uppercase tracking-wider flex items-center gap-1">
               <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
               <span>Caché Local Listo</span>
             </span>
@@ -626,14 +626,14 @@
     if (activeCategory === 'spells') {
       const lvlText = item.level === 0 ? 'Truco' : `Nvl ${item.level}`;
       badges = `
-        <span class="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/30 font-bold">${lvlText}</span>
-        <span class="text-[9px] px-1.5 py-0.5 rounded bg-[#1e293b] text-[#94a3b8]">${item.schoolEs}</span>
+        <span class="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/30 font-bold">${lvlText}</span>
+        <span class="text-[10px] px-1.5 py-0.5 rounded bg-[#1e293b] text-[#94a3b8]">${item.schoolEs}</span>
       `;
       subtitle = `${item.castingTimeEs} • ${item.range}`;
     } else if (activeCategory === 'weapons') {
       badges = `
-        <span class="text-[9px] px-1.5 py-0.5 rounded bg-rose-500/10 text-rose-400 border border-rose-500/30 font-bold">${item.damageDice || 'Arma'}</span>
-        ${item.mastery ? `<span class="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/30">🎯 ${item.mastery}</span>` : ''}
+        <span class="text-[10px] px-1.5 py-0.5 rounded bg-rose-500/10 text-rose-400 border border-rose-500/30 font-bold">${item.damageDice || 'Arma'}</span>
+        ${item.mastery ? `<span class="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/30">🎯 ${item.mastery}</span>` : ''}
       `;
       subtitle = `${item.attackType || 'Cuerpo a cuerpo'} • ${item.cost || 'Común'}`;
     } else if (activeCategory === 'armor') {
@@ -641,31 +641,31 @@
         const slots = wornSlotsFor(dndApiService.toInventoryPayload(item) as any);
         const slotText = slots[0] ? SLOT_LABELS[slots[0]] : 'Equipable';
         badges = `
-          <span class="text-[9px] px-1.5 py-0.5 rounded bg-sky-500/10 text-sky-400 border border-sky-500/30 font-bold">🛡️ ${slotText}</span>
-          <span class="text-[9px] px-1.5 py-0.5 rounded bg-purple-500/10 text-purple-400 border border-purple-500/30 font-bold">${item.rarityEs || 'Mágico'}</span>
+          <span class="text-[10px] px-1.5 py-0.5 rounded bg-sky-500/10 text-sky-400 border border-sky-500/30 font-bold">🛡️ ${slotText}</span>
+          <span class="text-[10px] px-1.5 py-0.5 rounded bg-purple-500/10 text-purple-400 border border-purple-500/30 font-bold">${item.rarityEs || 'Mágico'}</span>
         `;
         subtitle = [item.category || 'Objeto maravilloso', item.attunement ? 'Requiere sintonización' : ''].filter(Boolean).join(' • ');
       } else {
         badges = `
-          <span class="text-[9px] px-1.5 py-0.5 rounded bg-sky-500/10 text-sky-400 border border-sky-500/30 font-bold">${item.armorClass || 'Armadura'}</span>
+          <span class="text-[10px] px-1.5 py-0.5 rounded bg-sky-500/10 text-sky-400 border border-sky-500/30 font-bold">${item.armorClass || 'Armadura'}</span>
         `;
         subtitle = [item.cost || '', item.weight ? `${item.weight} lb` : ''].filter(Boolean).join(' • ');
       }
     } else if (activeCategory === 'magic-items') {
       badges = `
-        <span class="text-[9px] px-1.5 py-0.5 rounded bg-purple-500/10 text-purple-400 border border-purple-500/30 font-bold">${item.rarityEs || 'Mágico'}</span>
-        ${item.attunement ? `<span class="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/30">Sintonía</span>` : ''}
+        <span class="text-[10px] px-1.5 py-0.5 rounded bg-purple-500/10 text-purple-400 border border-purple-500/30 font-bold">${item.rarityEs || 'Mágico'}</span>
+        ${item.attunement ? `<span class="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/30">Sintonía</span>` : ''}
       `;
       subtitle = item.category || 'Objeto';
     } else if (activeCategory === 'equipment') {
       const usableBadge = item.usableType === 'drinkable'
-        ? `<span class="text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 font-bold">🧪 Bebible</span>`
+        ? `<span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 font-bold">🧪 Bebible</span>`
         : item.usableType === 'edible'
-        ? `<span class="text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 font-bold">🍖 Comestible</span>`
+        ? `<span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 font-bold">🍖 Comestible</span>`
         : item.usableType === 'usable'
-        ? `<span class="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-300 border border-amber-500/30 font-bold">⚡ Usable</span>`
+        ? `<span class="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-300 border border-amber-500/30 font-bold">⚡ Usable</span>`
         : '';
-      const costBadge = item.cost ? `<span class="text-[9px] px-1.5 py-0.5 rounded bg-[#1e293b] text-[#94a3b8]">${item.cost}</span>` : '';
+      const costBadge = item.cost ? `<span class="text-[10px] px-1.5 py-0.5 rounded bg-[#1e293b] text-[#94a3b8]">${item.cost}</span>` : '';
       badges = `${usableBadge}${costBadge}`;
       subtitle = [item.equipmentType, item.weight ? `${item.weight} lb` : ''].filter(Boolean).join(' • ');
     } else {

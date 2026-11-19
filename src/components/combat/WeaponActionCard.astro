@@ -28,7 +28,7 @@
       >
         <span class="material-symbols-outlined text-[13px]">restart_alt</span>
         <span>Nuevo Turno</span>
-        <span id="turn-used-badge" class="hidden px-1.5 py-0.2 rounded bg-amber-500/30 text-amber-300 text-[9px] font-mono font-bold">1</span>
+        <span id="turn-used-badge" class="hidden px-1.5 py-0.2 rounded bg-amber-500/30 text-amber-300 text-[10px] font-mono font-bold">1</span>
       </button>
       <button
         type="button"
@@ -168,7 +168,7 @@
               <div class="flex items-center gap-x-2 gap-y-0.5 flex-wrap">
                 <span class="font-headline font-bold text-[#f1f5f9] text-sm line-clamp-2 break-words">${esc(act.name)}</span>
                 ${act.equipped ? `<span class="material-symbols-outlined text-[13px] text-emerald-400" title="Equipada">check_circle</span>` : ''}
-                ${act.isAuto !== false && act.ability && act.ability !== 'none' ? `<span class="text-[9px] text-[#38bdf8] bg-sky-500/10 border border-sky-500/30 px-1.5 py-0.2 rounded font-mono font-bold uppercase" title="Modificador vinculado a ${esc(act.ability.toUpperCase())}">${esc(act.ability.toUpperCase())}</span>` : ''}
+                ${act.isAuto !== false && act.ability && act.ability !== 'none' ? `<span class="text-[10px] text-[#38bdf8] bg-sky-500/10 border border-sky-500/30 px-1.5 py-0.2 rounded font-mono font-bold uppercase" title="Modificador vinculado a ${esc(act.ability.toUpperCase())}">${esc(act.ability.toUpperCase())}</span>` : ''}
               </div>
               ${act.type ? `<span class="block text-[10px] text-amber-400 font-semibold uppercase tracking-wide leading-tight">${esc(act.type)}</span>` : ''}
               <span class="text-xs text-[#94a3b8] font-label">Daño: <strong class="text-amber-300">${esc(act.damage)}</strong> (${esc(act.damageType)})</span>
@@ -479,7 +479,7 @@
         <div>
           <div class="flex items-center justify-between gap-1.5">
             <span class="font-bold font-headline text-[#f1f5f9] truncate">${esc(r.name)}</span>
-            <span class="text-[9px] px-1.5 py-0.2 rounded font-mono ${
+            <span class="text-[10px] px-1.5 py-0.2 rounded font-mono ${
               r.canExecute ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' : 'bg-[#18202e] text-[#64748b]'
             }">${r.sourceType === 'spell' ? 'Conjuro' : r.sourceType === 'feature' ? 'Rasgo' : r.sourceType === 'item' ? 'Objeto' : 'Acción'}</span>
           </div>

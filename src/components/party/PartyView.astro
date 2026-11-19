@@ -822,8 +822,8 @@ import HandoutManager from '../dm/HandoutManager.astro';
           <div class="min-w-0">
             <div class="flex items-center gap-1.5 flex-wrap">
               <h4 class="font-headline font-bold text-xs text-[#f1f5f9] truncate">${c.name}</h4>
-              ${isMine ? '<span class="text-[9px] px-1.5 py-0.2 rounded bg-amber-500/15 text-amber-300 font-bold border border-amber-500/30">Tú</span>' : ''}
-              ${c.inspiration ? '<span class="text-[9px] px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 font-bold border border-amber-500/40">⭐ Inspirado</span>' : ''}
+              ${isMine ? '<span class="text-[10px] px-1.5 py-0.2 rounded bg-amber-500/15 text-amber-300 font-bold border border-amber-500/30">Tú</span>' : ''}
+              ${c.inspiration ? '<span class="text-[10px] px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 font-bold border border-amber-500/40">⭐ Inspirado</span>' : ''}
             </div>
             <p class="text-[11px] text-[#94a3b8] truncate">
               ${c.race || ''} ${c.className || ''} Nivel ${c.level || 1} • <span class="text-[#cbd5e1]">${ownerName}</span>
@@ -869,9 +869,9 @@ import HandoutManager from '../dm/HandoutManager.astro';
             <div class="min-w-0">
               <div class="flex items-center gap-1.5 flex-wrap">
                 <span class="font-bold text-[#f1f5f9] truncate">${displayName}</span>
-                ${isThisMe ? '<span class="text-[9px] text-amber-400 font-bold">(Tú)</span>' : ''}
-                ${isThisDm ? '<span class="px-1.5 py-0.2 rounded bg-purple-500/20 text-purple-300 text-[8px] font-bold border border-purple-500/30">👑 DM</span>' : ''}
-                ${isThisCreator && !isThisDm ? '<span class="px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 text-[8px] font-bold border border-amber-500/30">Creador</span>' : ''}
+                ${isThisMe ? '<span class="text-[10px] text-amber-400 font-bold">(Tú)</span>' : ''}
+                ${isThisDm ? '<span class="px-1.5 py-0.2 rounded bg-purple-500/20 text-purple-300 text-[10px] font-bold border border-purple-500/30">👑 DM</span>' : ''}
+                ${isThisCreator && !isThisDm ? '<span class="px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 text-[10px] font-bold border border-amber-500/30">Creador</span>' : ''}
               </div>
               <span class="text-[10px] text-[#64748b] block truncate">${isThisDm ? 'Dungeon Master de la partida' : 'Miembro sin personaje asignado'}</span>
             </div>
