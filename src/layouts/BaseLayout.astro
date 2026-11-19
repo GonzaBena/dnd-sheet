@@ -25,7 +25,32 @@ const {
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, interactive-widget=resizes-content" />
     <meta name="theme-color" content="#0a0d12" />
     <meta name="description" content={description} />
-    
+
+    <!-- Si un JS de /_astro/ no carga (HTML cacheado de un deploy anterior que apunta a archivos ya
+         borrados), recarga la página una sola vez para traer el HTML nuevo. Va antes de cualquier script. -->
+    <script is:inline>
+      (function () {
+        var KEY = 'dnd_stale_reload_at';
+        function reloadOnce() {
+          try {
+            var last = Number(sessionStorage.getItem(KEY) || 0);
+            if (Date.now() - last < 30000) return;
+            sessionStorage.setItem(KEY, String(Date.now()));
+          } catch (e) {}
+          location.reload();
+        }
+        window.addEventListener('error', function (e) {
+          var el = e.target;
+          var src = el && (el.src || el.href);
+          if (src && /\/_astro\//.test(src) && (el.tagName === 'SCRIPT' || el.tagName === 'LINK')) reloadOnce();
+        }, true);
+        window.addEventListener('vite:preloadError', function (e) {
+          e.preventDefault();
+          reloadOnce();
+        });
+      })();
+    </script>
+
     <!-- OpenGraph / Facebook / WhatsApp / Discord -->
     <meta property="og:type" content="website" />
     <meta property="og:title" content={title} />
